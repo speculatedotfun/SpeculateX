@@ -9,6 +9,10 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 import "./PositionToken.sol";
 import "./interfaces/AggregatorV3Interface.sol";
 
+interface IMintableERC20 {
+    function mint(address to, uint256 amount) external;
+}
+
 contract SpeculateCore is AccessControl, ReentrancyGuard, Pausable {
     using SafeERC20 for IERC20;
 
@@ -857,5 +861,13 @@ contract SpeculateCore is AccessControl, ReentrancyGuard, Pausable {
         usdc.safeTransferFrom(msg.sender, address(this), amount);
         m.usdcVault += amount;
         emit VaultTopUp(id, amount);
+    }
+
+    // ==================
+    // Test Helpers
+    // ==================
+    /// @notice Faucet for testnet: Mint USDC to caller (requires Core to be minter on USDC)
+    function faucet(uint256 amount) external {
+        IMintableERC20(address(usdc)).mint(msg.sender, amount);
     }
 }

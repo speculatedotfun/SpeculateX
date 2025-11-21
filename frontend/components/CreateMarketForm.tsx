@@ -17,6 +17,33 @@ interface CreateMarketFormProps {
   standalone?: boolean;
 }
 
+const QUESTION_TEMPLATES = [
+  {
+    label: 'BTC Price Target',
+    question: 'Will Bitcoin (BTC) reach $100,000 by Dec 31, 2025?',
+    category: 'Crypto',
+    description: 'Market resolves to YES if BTC price is strictly greater than or equal to $100,000 on the resolution date.'
+  },
+  {
+    label: 'ETH Flippening',
+    question: 'Will Ethereum (ETH) market cap exceed Bitcoin (BTC) market cap?',
+    category: 'Crypto',
+    description: 'Market resolves to YES if ETH market cap is greater than BTC market cap at any point before resolution.'
+  },
+  {
+    label: 'Fed Rate Cut',
+    question: 'Will the Federal Reserve cut interest rates in the next FOMC meeting?',
+    category: 'Economics',
+    description: 'Resolves based on the official FOMC statement.'
+  },
+  {
+    label: 'Solana ATH',
+    question: 'Will Solana (SOL) reach a new All-Time High in 2025?',
+    category: 'Crypto',
+    description: 'Resolves YES if SOL price exceeds $260 on major exchanges.'
+  },
+];
+
 export default function CreateMarketForm({ standalone = false }: CreateMarketFormProps = { standalone: false }) {
   const { address } = useAccount();
   const publicClient = usePublicClient();
@@ -72,6 +99,12 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
 
   const [needsApproval, setNeedsApproval] = useState(false);
   const [isApprovingState, setIsApprovingState] = useState(false);
+
+  const applyTemplate = (template: typeof QUESTION_TEMPLATES[0]) => {
+    setQuestion(template.question);
+    setCategory(template.category);
+    setDescription(template.description);
+  };
 
 useEffect(() => {
   if (!question) return;
@@ -254,6 +287,23 @@ useEffect(() => {
 
   const formContent = (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Quick Templates */}
+      <div className="space-y-2">
+        <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Quick Templates</label>
+        <div className="flex flex-wrap gap-2">
+          {QUESTION_TEMPLATES.map((template) => (
+            <button
+              key={template.label}
+              type="button"
+              onClick={() => applyTemplate(template)}
+              className="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-full text-xs font-medium text-gray-700 transition-colors"
+            >
+              {template.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div>
         <label className="font-bold block mb-2">Market Question *</label>
         <input

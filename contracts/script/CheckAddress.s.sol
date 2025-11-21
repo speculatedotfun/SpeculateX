@@ -18,3 +18,4 @@ contract CheckAddress is Script {
         console.log("ChainlinkResolver owner should be: 0xbd0e87A678f3D53a27D1bb186cfc8fd465433554");
     }
 }
+

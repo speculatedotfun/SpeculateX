@@ -31,3 +31,4 @@ contract CheckRoles is Script {
         console.log("Current market count:", core.marketCount());
     }
 }
+

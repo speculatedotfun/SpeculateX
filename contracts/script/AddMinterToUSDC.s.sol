@@ -22,7 +22,7 @@ contract AddMinterToUSDC is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         // Get addresses from environment or use defaults
-        address usdcAddr = vm.envOr("USDC_ADDRESS", address(0x0E5cB1F812ce0402fdF0c9cee2E1FE3BF351a827));
+        address usdcAddr = vm.envOr("USDC_ADDRESS", address(0x45A16Ea5F1423b38326C3F3Fe642Bd57c54cB219));
         address adminToAdd = vm.envOr("ADMIN_ADDRESS", address(0x654704a85211ECf9E021ff4D25a3a35533b99732));
         
         MockUSDC usdc = MockUSDC(usdcAddr);

@@ -139,6 +139,22 @@ export function useMarketData(marketId: number): UseMarketDataResult {
           // Create synthetic transaction hash for deduplication
           const syntheticTxHash = `block-polled-${blockNumber}-${newPriceYes.toFixed(6)}`;
 
+          // Dispatch instant-trade-update event for useMarketPriceHistory
+          if (typeof window !== 'undefined') {
+            const event = new CustomEvent('instant-trade-update', {
+              detail: {
+                marketId: marketId,
+                newPriceYes: newPriceYes,
+                newPriceNo: newPriceNo,
+                timestamp: Math.floor(Date.now() / 1000),
+                txHash: syntheticTxHash,
+                source: 'block-fallback'
+              }
+            });
+            window.dispatchEvent(event);
+            console.log('[useMarketData] 🚀 Dispatched instant-trade-update event');
+          }
+
           // Add to chart data if not already processed
           if (!processedTxHashesRef.current.has(syntheticTxHash)) {
             processedTxHashesRef.current.add(syntheticTxHash);

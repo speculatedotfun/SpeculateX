@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
 import { addresses } from '@/lib/contracts';
-import { usdcAbi } from '@/lib/abis';
+import { usdcAbi, coreAbi } from '@/lib/abis';
 
 export default function MintUsdcForm() {
   const { address } = useAccount();
@@ -73,23 +73,22 @@ export default function MintUsdcForm() {
 
     try {
       const amount = parseUnits(mintAmount, 6);
-      console.log('Minting USDC:', { 
-        contractAddress: addresses.usdc, 
+      console.log('Minting USDC (Faucet):', { 
+        contractAddress: addresses.core, 
         amount: amount.toString(), 
         recipient: address,
         decimals: 6
       });
       
-      // writeContract triggers the transaction
-      // Errors are handled via the error state from useWriteContract hook
+      // Call faucet function on SpeculateCore
       writeContract({
-        address: addresses.usdc,
-        abi: usdcAbi,
-        functionName: 'mint',
-        args: [address, amount],
+        address: addresses.core,
+        abi: coreAbi,
+        functionName: 'faucet',
+        args: [amount],
       });
       
-      console.log('Mint transaction initiated');
+      console.log('Faucet transaction initiated');
     } catch (error: any) {
       console.error('Error in handleMint:', error);
       const errorMessage = error?.message || error?.toString() || 'Unknown error';

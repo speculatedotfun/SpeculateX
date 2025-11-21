@@ -8,7 +8,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   outputFileTracingRoot: path.join(__dirname, '..'),
-  allowedDevOrigins: ['127.0.0.1', 'localhost'],
+  allowedDevOrigins: ['127.0.0.1', 'localhost', '127.1.1.1'],
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,

@@ -27,6 +27,8 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
   const throttledResizeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const moduleRef = useRef<typeof import('lightweight-charts') | null>(null);
   const hasData = Array.isArray(data) && data.length > 0;
+  // Relax the loading condition: if we have ANY data (even just seed/sync points), show the chart
+  // This prevents the "Loading..." spinner from persisting when we have valid sync points
   const showLoadingOverlay = !hasData;
   const [chartError, setChartError] = useState<string | null>(null);
 
@@ -79,8 +81,11 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
       }
 
       // Check for time gaps (> 2 minutes = significant break)
+      // Skip gap if previous point was 'seed' (always connect seed to first point)
       const timeGap = currentTimestamp - previous.timestamp;
-      if (timeGap > 120) { // 2 minutes gap
+      const isSeedPoint = previous.txHash === 'seed';
+      
+      if (timeGap > 120 && !isSeedPoint) { // 2 minutes gap, unless connecting from seed
         // Add break points (undefined creates visual gap)
         const breakTime = previous.timestamp + 30; // 30 seconds after last point
         yesData.push({ time: breakTime as Time, value: undefined as any });
@@ -155,7 +160,7 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
           rightPriceScale: {
             borderColor: '#e2e8f0',
             scaleMargins: { top: 0.1, bottom: 0.1 },
-            borderVisible: true,
+            borderVisible: false,
             entireTextOnly: true,
             ticksVisible: true,
           },
@@ -163,7 +168,7 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
             borderColor: '#e2e8f0',
             timeVisible: true,
             secondsVisible: false,
-            borderVisible: true,
+            borderVisible: false,
             fixLeftEdge: true,
             fixRightEdge: true,
           },
@@ -174,54 +179,43 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
             },
           },
           watermark: {
-            visible: true,
-            fontSize: 48,
-            horzAlign: 'center',
-            vertAlign: 'center',
-            color: 'rgba(100, 116, 139, 0.05)',
-            text: 'SPECULATE',
+            visible: false,
           },
           handleScroll: { mouseWheel: true, pressedMouseMove: true },
           handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
         });
 
         // Create professional line series with enhanced styling
-        const yesLineWidth = selectedSide === 'yes' ? 4 : 3;
-        const noLineWidth = selectedSide === 'no' ? 4 : 3;
+        const yesLineWidth = selectedSide === 'yes' ? 3 : 2;
+        const noLineWidth = selectedSide === 'no' ? 3 : 2;
 
         const yesSeries = chart.addSeries(LineSeries, {
           lineWidth: yesLineWidth,
           lineType: LineType.Curved,
-          pointMarkersVisible: true,
-          pointMarkersRadius: selectedSide === 'yes' ? 4 : 3,
-          pointMarkersBorderColor: '#ffffff',
-          pointMarkersColor: '#22c55e',
+          pointMarkersVisible: false,
           priceLineVisible: true,
-          priceLineWidth: yesLineWidth,
+          priceLineWidth: 1,
           priceLineColor: '#22c55e',
           lastValueVisible: true,
           crosshairMarkerVisible: true,
           crosshairMarkerBorderColor: '#ffffff',
           crosshairMarkerBackgroundColor: '#22c55e',
-          crosshairMarkerRadius: 6,
+          crosshairMarkerRadius: 4,
           color: '#22c55e',
         } as any);
 
         const noSeries = chart.addSeries(LineSeries, {
           lineWidth: noLineWidth,
           lineType: LineType.Curved,
-          pointMarkersVisible: true,
-          pointMarkersRadius: selectedSide === 'no' ? 4 : 3,
-          pointMarkersBorderColor: '#ffffff',
-          pointMarkersColor: '#ef4444',
+          pointMarkersVisible: false,
           priceLineVisible: true,
-          priceLineWidth: noLineWidth,
+          priceLineWidth: 1,
           priceLineColor: '#ef4444',
           lastValueVisible: true,
           crosshairMarkerVisible: true,
           crosshairMarkerBorderColor: '#ffffff',
           crosshairMarkerBackgroundColor: '#ef4444',
-          crosshairMarkerRadius: 6,
+          crosshairMarkerRadius: 4,
           color: '#ef4444',
         } as any);
 
@@ -282,50 +276,40 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
 
     const { yesData, noData } = processedData;
 
-    // Log removed for production
-
     // Update data with smooth transition
-    const transitionDuration = 300;
-
     yesSeriesRef.current.setData(yesData);
     noSeriesRef.current.setData(noData);
 
     // Smooth fit content after a brief delay to allow visual updates
     setTimeout(() => {
       chartRef.current?.timeScale().fitContent();
-    }, transitionDuration);
-  }, [processedData, selectedSide]);
+    }, 50);
+  }, [processedData]);
 
   // Update chart data with visual breaks
   const updateSeriesStyling = useCallback(() => {
     if (!yesSeriesRef.current || !noSeriesRef.current) return;
 
-    const yesLineWidth = selectedSide === 'yes' ? 4 : 3;
-    const noLineWidth = selectedSide === 'no' ? 4 : 3;
+    const yesLineWidth = selectedSide === 'yes' ? 3 : 2;
+    const noLineWidth = selectedSide === 'no' ? 3 : 2;
 
     try {
       const lineType = moduleRef.current?.LineType?.Curved;
 
       const yesOptions: any = {
         lineWidth: yesLineWidth,
-        priceLineWidth: yesLineWidth,
+        priceLineWidth: 1,
         priceLineColor: '#22c55e',
         color: '#22c55e',
-        pointMarkersVisible: true,
-        pointMarkersRadius: selectedSide === 'yes' ? 4 : 3,
-        pointMarkersBorderColor: '#ffffff',
-        pointMarkersColor: '#22c55e',
+        pointMarkersVisible: false,
       };
 
       const noOptions: any = {
         lineWidth: noLineWidth,
-        priceLineWidth: noLineWidth,
+        priceLineWidth: 1,
         priceLineColor: '#ef4444',
         color: '#ef4444',
-        pointMarkersVisible: true,
-        pointMarkersRadius: selectedSide === 'no' ? 4 : 3,
-        pointMarkersBorderColor: '#ffffff',
-        pointMarkersColor: '#ef4444',
+        pointMarkersVisible: false,
       };
 
       if (lineType !== undefined) {
@@ -341,7 +325,6 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
         ...noOptions,
       });
 
-      console.log('[PriceChart] Applied styling for selectedSide:', selectedSide);
     } catch (error) {
       console.warn('[PriceChart] Failed to apply styling:', error);
     }
@@ -362,44 +345,27 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
   // Error fallback UI
   if (chartError) {
     return (
-      <div className="relative w-full rounded-lg overflow-hidden border border-gray-200 bg-white shadow-sm" style={{ height }}>
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Chart Error</h3>
-            <p className="text-gray-600 mb-4">{chartError}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="inline-flex items-center px-4 py-2 bg-[#14B8A6] text-white rounded-lg hover:bg-[#14B8A6]/90 transition-colors text-sm font-medium"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Reload Page
-            </button>
-          </div>
+      <div className="relative w-full h-full flex items-center justify-center bg-gray-50 rounded-xl">
+        <div className="text-center p-4">
+          <div className="text-red-500 mb-2">Chart Error</div>
+          <div className="text-sm text-gray-500">{chartError}</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full rounded-lg overflow-hidden border border-gray-200 bg-white shadow-sm" style={{ height }} data-testid="price-chart">
+    <div className="relative w-full h-full" style={{ minHeight: height }} data-testid="price-chart">
       <div ref={containerRef} className="w-full h-full" />
       {showLoadingOverlay && (
-        <div className="absolute top-4 right-4 z-10">
+        <div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-sm z-10">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-6 h-6 border-2 border-[#14B8A6] border-t-transparent rounded-full"
+            className="w-8 h-8 border-2 border-[#14B8A6] border-t-transparent rounded-full"
           />
         </div>
       )}
     </div>
   );
 });
-

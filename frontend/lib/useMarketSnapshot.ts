@@ -144,6 +144,13 @@ export function useMarketSnapshot(
         holderLimit,
       });
 
+      // Debug: Log snapshot data
+      if (data.market) {
+        console.log(`[useMarketSnapshot] ✅ Market ${marketId} loaded. Trades: ${data.market.tradesAsc?.length ?? 0}`);
+      } else {
+        console.log(`[useMarketSnapshot] ⚠️ Market ${marketId} not found in Subgraph (indexing delay?).`);
+      }
+
       return data.market;
     },
   });

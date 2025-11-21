@@ -32,3 +32,4 @@ contract TestChainlinkResolver is Script {
         console.log("BNB/USD: 0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526");
     }
 }
+

@@ -7,6 +7,7 @@ import { coreAbi, usdcAbi, positionTokenAbi } from '@/lib/abis';
 import { useToast } from '@/components/ui/toast';
 import { clamp, formatBalanceDisplay, toBigIntSafe } from '@/lib/tradingUtils';
 import { mul, div, exp2, log2, ln, costFunction, spotPriceYesE18, findSharesOut, simulateBuyChunk } from '@/lib/lmsrMath';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const SCALE = 10n ** 18n;
 const USDC_TO_E18 = 10n ** 12n;
@@ -1351,41 +1352,42 @@ export default function TradingCard({
     <>
       {showSplitConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={handleCancelSplit} />
-          <div className="relative bg-white rounded-xl shadow-xl max-w-sm w-full mx-4 p-6 space-y-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={handleCancelSplit} />
+          <div className="relative bg-white rounded-3xl shadow-2xl max-w-sm w-full mx-4 p-8 space-y-6 animate-in fade-in zoom-in duration-200">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Split Order Confirmation</h3>
-              <p className="text-sm text-gray-600 mt-1">
-                This buy would exceed the single-transaction price jump limit. We will execute it in smaller chunks.
+              <h3 className="text-2xl font-bold text-gray-900">Large Order Warning</h3>
+              <p className="text-gray-600 mt-2 leading-relaxed">
+                This buy exceeds the single-transaction price impact limit. We'll automatically split it into smaller chunks for you.
               </p>
             </div>
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span>Total buy</span>
-                <span className="font-semibold">{totalSplitDisplay} USDC</span>
+            <div className="bg-gray-50 rounded-2xl p-6 space-y-3 text-sm border border-gray-100">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Total Buy</span>
+                <span className="font-bold text-lg">{totalSplitDisplay} USDC</span>
               </div>
-              <div className="flex justify-between">
-                <span>Chunk size</span>
+              <div className="h-px bg-gray-200 my-1" />
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Chunk Size</span>
                 <span className="font-semibold">{splitChunkAmountDisplay} USDC</span>
               </div>
               {splitChunkCountDisplay > 0 && (
-                <div className="flex justify-between">
-                  <span>Estimated chunks</span>
-                  <span className="font-semibold">{splitChunkCountDisplay}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Est. Transactions</span>
+                  <span className="font-semibold bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-xs">{splitChunkCountDisplay}</span>
                 </div>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <button
                 onClick={handleCancelSplit}
-                className="flex-1 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100"
+                className="flex-1 py-3.5 rounded-xl border-2 border-gray-200 text-gray-700 font-bold hover:bg-gray-50 hover:border-gray-300 transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmSplit}
                 disabled={!isTradeable || isBusy}
-                className="flex-1 py-2 rounded-lg bg-green-500 text-white font-bold hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-3.5 rounded-xl bg-[#14B8A6] text-white font-bold hover:bg-[#0D9488] shadow-lg shadow-[#14B8A6]/20 transition-all disabled:opacity-50"
               >
                 Split & Execute
               </button>
@@ -1394,200 +1396,264 @@ export default function TradingCard({
         </div>
       )}
 
-      <div className="space-y-6" data-testid="trading-card">
+      <div className="p-6 space-y-6" data-testid="trading-card">
         {!isTradeable && (
-          <div
-            className="rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-sm font-semibold px-4 py-3"
-            aria-live="polite"
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl border-2 border-amber-200 bg-amber-50 text-amber-800 p-4 font-medium flex items-center gap-3"
           >
+             <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
             {tradeDisabledReason}
-          </div>
+          </motion.div>
         )}
-        <div className="flex gap-2 bg-gray-100 rounded-xl p-1">
+
+        {/* Buy/Sell Toggle */}
+        <div className="bg-gray-100 p-1 rounded-xl flex relative">
+          <div
+            className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-lg shadow-sm transition-all duration-200 ease-out ${
+              tradeMode === 'sell' ? 'translate-x-[calc(100%+4px)]' : 'translate-x-0'
+            }`}
+          />
           {(['buy', 'sell'] as const).map(m => (
             <button
               key={m}
               onClick={() => {
                 if (!isBusy && isTradeable) setTradeMode(m);
               }}
-              className={`flex-1 rounded-lg py-2.5 font-bold transition-all ${tradeMode === m ? 'bg-green-500 text-white' : 'text-gray-600'} disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`relative flex-1 py-2.5 font-bold text-sm uppercase tracking-wide transition-colors z-10 disabled:opacity-50 disabled:cursor-not-allowed ${
+                tradeMode === m ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
+              }`}
               disabled={!isTradeable}
             >
-              {m.toUpperCase()}
+              {m}
             </button>
           ))}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          {(['yes', 'no'] as const).map(s => (
-            <button
-              key={s}
-              onClick={() => {
-                if (!isBusy && isTradeable) setSide(s);
-              }}
-              className={`p-4 rounded-xl text-left transition-all ${side === s ? 'ring-2 ring-green-500' : ''} ${s === 'yes' ? 'bg-green-50' : 'bg-red-50'} disabled:opacity-50 disabled:cursor-not-allowed`}
-              disabled={!isTradeable}
-            >
-              <div className="text-2xl font-black">{formatPrice(s === 'yes' ? priceYes : priceNo)}</div>
-              <div className="text-xs font-bold uppercase text-gray-600">{s}</div>
-              <div className="text-xs text-gray-500 mt-1">
-                You have: {s === 'yes' ? yesBalance : noBalance}
-              </div>
-            </button>
-          ))}
-        </div>
-
-        <div className="text-center text-sm text-gray-600">
-          {tradeMode === 'buy' ? `USDC Balance: ${usdcBalance}` : `${side.toUpperCase()} Balance: ${side === 'yes' ? yesBalance : noBalance}`}
-        </div>
-
-        <input
-          type="text"
-          inputMode="decimal"
-          pattern={amountRegex.source}
-          value={amount}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => {
-            const val = e.target.value;
-            if (!val) {
-              setAmount('');
-              return;
-            }
-            if (!amountRegex.test(val)) return;
-            if (val === '.' || val.endsWith('.')) {
-              setAmount(val);
-              return;
-            }
-            const num = parseFloat(val);
-            if (!Number.isFinite(num)) return;
-            if (tradeMode === 'buy' && num > maxBuyAmount) return;
-            if (tradeMode === 'sell' && num > maxSellAmount) return;
-            setAmount(formatAmount(num));
-          }}
-          placeholder="0.0"
-          className="w-full rounded-lg border px-4 py-3 text-lg font-semibold text-center focus:ring-2 focus:ring-green-500"
-          disabled={isBusy || showSplitConfirm || !isTradeable}
-        />
-
-        <div className="flex gap-2">
-          {['10', '50', '100', 'Max'].map(q => (
-            <button
-              key={q}
-              onClick={() => {
-                if (q === 'Max') {
-                  const maxValue = tradeMode === 'buy'
-                    ? safeMaxBuy
-                    : side === 'yes'
-                      ? Number(formatUnits(yesBalanceRaw, 18))
-                      : Number(formatUnits(noBalanceRaw, 18));
-                  const maxString = Number.isFinite(maxValue) ? formatAmount(maxValue) : '0';
-                  setAmount(maxString);
-                } else {
-                  const preset = Number(q);
-                  setAmount(formatAmount(preset));
-                }
-              }}
-              disabled={isBusy || showSplitConfirm || !isTradeable}
-              className="flex-1 bg-green-50 hover:bg-green-100 py-2 rounded-lg font-bold text-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {q}
-            </button>
-          ))}
-        </div>
-
-        {tradeMode === 'buy' && maxJumpE6 > 0n && isTradeable && (
-          <div className="text-xs text-gray-500 text-center">
-            Max single-tx buy (safe, 98%): {splitChunkAmountDisplay} USDC
-          </div>
-        )}
-
-        {tradeMode === 'buy' && overJumpCap && isTradeable && (
-          <div className="rounded-md bg-amber-50 text-amber-800 p-2 text-sm">
-            Large order will be split automatically to keep prices stable.
-            {overCapPreview && (
-              <>
-                {' '}≈{overCapPreview.chunkCount} chunks of {overCapPreview.chunkAmount} USDC.
-              </>
-            )}
-          </div>
-        )}
-
-        {amount && parseFloat(amount) > 0 && (
-          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-            <div className="text-xs text-gray-500 text-center">Preview (simulated - actual may vary)</div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Current price</span>
-              <span className="font-bold">{formatPrice(currentPrice)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">New price</span>
-              <span className="font-bold">{formatPrice(newPrice)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Shares</span>
-              <span className="font-bold">{shares.toFixed(4)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Avg. entry (incl. fees)</span>
-              <span className="font-bold">${avgPrice.toFixed(3)}</span>
-            </div>
-            {tradeMode === 'buy' && (
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Cost (incl. fees)</span>
-                <span className="font-bold">${costUsd.toFixed(2)}</span>
-              </div>
-            )}
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">
-                Fee
-                {tradeMode === 'buy' && (
-                  <span
-                    title={`Treasury ${(feeTreasuryBps / 100).toFixed(2)}% • Vault ${(feeVaultBps / 100).toFixed(2)}% • LP ${(feeLpBps / 100).toFixed(2)}%`}
-                    aria-label={`Fee breakdown: Treasury ${(feeTreasuryBps / 100).toFixed(2)} percent, Vault ${(feeVaultBps / 100).toFixed(2)} percent, LP ${(feeLpBps / 100).toFixed(2)} percent`}
-                    className="ml-2 underline decoration-dotted cursor-help text-xs font-normal align-middle"
-                  >
-                    details
-                  </span>
-                )}
-                {tradeMode === 'sell' && (
-                  <span className="ml-2 text-xs font-normal text-gray-500">(fee-free sell)</span>
-                )}
-              </span>
-              <span className="font-bold">
-                {feePercent.toFixed(2)}%
-                {feeUsd > 0 ? ` ($${feeUsd.toFixed(2)})` : ''}
-              </span>
-            </div>
-            {tradeMode === 'buy' ? (
-              <>
-                {tradeMultiple > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Multiple</span>
-                    <span className="font-bold">{tradeMultiple.toFixed(2)}×</span>
+        {/* Outcome Selection */}
+        <div className="grid grid-cols-2 gap-4">
+          {(['yes', 'no'] as const).map(s => {
+            const price = s === 'yes' ? priceYes : priceNo;
+            const isSelected = side === s;
+            const colorClass = s === 'yes' 
+              ? (isSelected ? 'bg-[#22c55e] text-white ring-[#22c55e]' : 'bg-green-50 text-green-800 hover:bg-green-100')
+              : (isSelected ? 'bg-[#ef4444] text-white ring-[#ef4444]' : 'bg-red-50 text-red-800 hover:bg-red-100');
+            
+            return (
+              <motion.button
+                key={s}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  if (!isBusy && isTradeable) setSide(s);
+                }}
+                className={`
+                  relative p-4 rounded-2xl text-left transition-all duration-200 ring-offset-2
+                  ${isSelected ? 'ring-2 shadow-lg' : 'ring-0'}
+                  ${colorClass}
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                `}
+                disabled={!isTradeable}
+              >
+                <div className="flex flex-col h-full justify-between min-h-[100px]">
+                  <div className="flex justify-between items-start">
+                    <span className="text-sm font-bold uppercase opacity-90 tracking-wider">{s}</span>
+                    {isSelected && (
+                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
                   </div>
-                )}
-                <div className="flex justify-between text-green-600 font-bold text-sm">
-                  <span className="text-gray-600">Max profit</span>
-                  <span>${maxProfit.toFixed(2)} (+{maxProfitPct.toFixed(1)}%)</span>
+                  <div className="space-y-1">
+                    <div className="text-3xl font-black tracking-tight">
+                      {formatPrice(price)}
+                    </div>
+                    <div className="text-[10px] font-medium opacity-80 truncate">
+                      Bal: {s === 'yes' ? yesBalance : noBalance}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Max payout</span>
-                  <span className="font-bold">${maxPayout.toFixed(2)}</span>
-                </div>
-              </>
-            ) : (
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Proceeds</span>
-                <span className="font-bold">${costUsd.toFixed(2)}</span>
+              </motion.button>
+            );
+          })}
+        </div>
+
+        {/* Input Section */}
+        <div className="space-y-3">
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+              <span className="text-gray-400 font-bold text-xl">$</span>
+            </div>
+            <input
+              type="text"
+              inputMode="decimal"
+              pattern={amountRegex.source}
+              value={amount}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                const val = e.target.value;
+                if (!val) {
+                  setAmount('');
+                  return;
+                }
+                if (!amountRegex.test(val)) return;
+                if (val === '.' || val.endsWith('.')) {
+                  setAmount(val);
+                  return;
+                }
+                const num = parseFloat(val);
+                if (!Number.isFinite(num)) return;
+                if (tradeMode === 'buy' && num > maxBuyAmount) return;
+                if (tradeMode === 'sell' && num > maxSellAmount) return;
+                setAmount(formatAmount(num));
+              }}
+              placeholder="0.00"
+              className="w-full rounded-2xl border-2 border-gray-100 bg-gray-50 py-6 pl-10 pr-24 text-4xl font-black text-gray-900 placeholder-gray-300 focus:border-[#14B8A6] focus:bg-white focus:ring-4 focus:ring-[#14B8A6]/10 transition-all outline-none text-right"
+              disabled={isBusy || showSplitConfirm || !isTradeable}
+            />
+            <div className="absolute inset-y-0 right-4 flex items-center">
+              <div className="flex flex-col items-end justify-center">
+                 <span className="text-xs font-bold text-gray-400 uppercase">USDC</span>
+                 <button
+                  onClick={() => {
+                     const maxValue = tradeMode === 'buy'
+                       ? safeMaxBuy
+                       : side === 'yes'
+                         ? Number(formatUnits(yesBalanceRaw, 18))
+                         : Number(formatUnits(noBalanceRaw, 18));
+                     const maxString = Number.isFinite(maxValue) ? formatAmount(maxValue) : '0';
+                     setAmount(maxString);
+                  }}
+                  className="text-[10px] font-bold text-[#14B8A6] hover:text-[#0D9488] bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 px-2 py-0.5 rounded-full transition-colors mt-1"
+                  disabled={!isTradeable}
+                >
+                  MAX
+                </button>
               </div>
-            )}
-            {gasEstimate && (
-              <div className="flex justify-between text-sm text-gray-500">
-                <span>Est. gas</span>
-                <span>{gasEstimate.toString()} wei (~{Number(formatUnits(gasEstimate, 9)).toFixed(3)} gwei)</span>
-              </div>
-            )}
+            </div>
           </div>
-        )}
+          
+          {/* Quick Amounts */}
+           <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+            {['10', '50', '100', '500', '1000'].map(q => (
+              <button
+                key={q}
+                onClick={() => setAmount(formatAmount(Number(q)))}
+                disabled={isBusy || showSplitConfirm || !isTradeable}
+                className="flex-1 min-w-[60px] py-2 rounded-lg text-sm font-bold text-gray-600 bg-gray-50 border border-gray-100 hover:border-gray-300 hover:bg-white hover:shadow-sm transition-all disabled:opacity-50"
+              >
+                ${q}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex justify-between items-center px-1">
+            <span className="text-xs font-medium text-gray-500">Wallet Balance</span>
+            <span className="text-xs font-bold text-gray-900">{usdcBalance} USDC</span>
+          </div>
+        </div>
+
+        <AnimatePresence>
+          {tradeMode === 'buy' && overJumpCap && isTradeable && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="rounded-xl bg-amber-50 border border-amber-100 p-4 overflow-hidden"
+            >
+              <div className="flex gap-3">
+                <div className="p-2 bg-amber-100 rounded-lg h-fit">
+                  <svg className="w-4 h-4 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <div className="text-sm text-amber-900">
+                  <p className="font-semibold mb-1">High Impact Trade</p>
+                  <p className="opacity-90 text-xs leading-relaxed">
+                    This order will be automatically split into small chunks to minimize price impact.
+                    {overCapPreview && (
+                      <span className="block mt-1 font-mono bg-amber-100/50 rounded px-1 py-0.5 w-fit">
+                        ≈ {overCapPreview.chunkCount} chunks of {overCapPreview.chunkAmount} USDC
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Preview Section */}
+        <AnimatePresence>
+          {amount && parseFloat(amount) > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="bg-gray-50/50 rounded-xl p-4 space-y-3 border border-gray-100"
+            >
+              <div className="flex justify-between text-sm items-center">
+                <span className="text-gray-500">Avg. Price</span>
+                <span className="font-bold text-gray-900">{formatPrice(avgPrice)}</span>
+              </div>
+              <div className="flex justify-between text-sm items-center">
+                <span className="text-gray-500">Estimated Shares</span>
+                <span className="font-bold text-gray-900">{shares.toFixed(2)}</span>
+              </div>
+               <div className="flex justify-between text-sm items-center">
+                <div className="flex items-center gap-1 text-gray-500">
+                   <span>Fee</span>
+                   {tradeMode === 'buy' && (
+                    <span
+                      title={`Treasury ${(feeTreasuryBps / 100).toFixed(2)}% • Vault ${(feeVaultBps / 100).toFixed(2)}% • LP ${(feeLpBps / 100).toFixed(2)}%`}
+                      className="cursor-help opacity-50 hover:opacity-100"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </span>
+                   )}
+                </div>
+                <span className="font-medium text-gray-700">
+                  {feeUsd > 0 ? `$${feeUsd.toFixed(2)}` : 'None'} <span className="text-xs text-gray-400">({feePercent.toFixed(2)}%)</span>
+                </span>
+              </div>
+
+              <div className="h-px bg-gray-200 my-2" />
+
+              {tradeMode === 'buy' ? (
+                <>
+                  <div className="flex justify-between text-sm items-center">
+                    <span className="text-gray-500">Total Cost</span>
+                    <span className="font-bold text-gray-900">${costUsd.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-1">
+                    <span className="text-sm font-semibold text-[#22c55e]">Potential Profit</span>
+                    <div className="text-right">
+                      <div className="font-bold text-[#22c55e] text-lg">+${maxProfit.toFixed(2)}</div>
+                      <div className="text-xs font-bold text-[#22c55e]/80">+{maxProfitPct.toFixed(2)}% ROI</div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex justify-between items-center pt-1">
+                  <span className="text-sm font-semibold text-gray-700">Total Proceeds</span>
+                   <div className="font-bold text-gray-900 text-lg">${costUsd.toFixed(2)}</div>
+                </div>
+              )}
+              
+              {gasEstimate && (
+                <div className="flex justify-end items-center gap-1 text-[10px] text-gray-400 mt-1">
+                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <span>Est. Network Fee: ~{Number(formatUnits(gasEstimate, 9)).toFixed(4)} gwei</span>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <button
           onClick={(e) => {
@@ -1603,124 +1669,135 @@ export default function TradingCard({
             showSplitConfirm ||
             !isTradeable
           }
-          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`
+            w-full py-4 rounded-2xl font-black text-lg shadow-xl transition-all transform active:scale-[0.99]
+            ${!isTradeable 
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+              : tradeMode === 'buy'
+                ? side === 'yes' 
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white shadow-green-500/25'
+                  : 'bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-400 hover:to-rose-500 text-white shadow-red-500/25'
+                : 'bg-gray-900 hover:bg-gray-800 text-white shadow-gray-900/25'
+            }
+            disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none
+          `}
         >
-          {busyLabel ? busyLabel : tradeMode.toUpperCase()}
-        </button>
-
-        {isResolved && (
-          <div className="pt-6 border-t border-gray-200 space-y-4">
-            <h3 className="text-lg font-bold text-gray-900">Redeem Winnings</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => handleRedeem(true)}
-                disabled={yesBalanceRaw === 0n || !resolution?.yesWins || isBusy}
-                className="p-4 rounded-xl bg-green-50 text-left disabled:opacity-50"
-              >
-                <div className="text-xl font-bold">Yes</div>
-                <div className="text-xs">Balance: {yesBalance}</div>
-              </button>
-              <button
-                onClick={() => handleRedeem(false)}
-                disabled={noBalanceRaw === 0n || resolution?.yesWins || isBusy}
-                className="p-4 rounded-xl bg-red-50 text-left disabled:opacity-50"
-              >
-                <div className="text-xl font-bold">No</div>
-                <div className="text-xs">Balance: {noBalance}</div>
-              </button>
+          {busyLabel ? (
+            <div className="flex items-center justify-center gap-2">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+              />
+              <span>{busyLabel}</span>
             </div>
-          </div>
-        )}
-
-        <div className="pt-6 border-t border-gray-200 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-gray-900">Provide Liquidity</h3>
-            <span className="text-xs font-semibold text-gray-500">
-              Vault: ${vaultBase.toFixed(2)}
+          ) : (
+            <span>
+              {tradeMode === 'buy' ? `BUY ${side.toUpperCase()}` : `SELL ${side.toUpperCase()}`}
             </span>
-          </div>
+          )}
+        </button>
+        
+        {/* Footer Actions - Liquidity & Redeem */}
+         <div className="pt-4 border-t border-gray-100">
+           <div className="grid grid-cols-2 gap-3">
+              {isResolved ? (
+                 <button
+                  onClick={() => handleRedeem(resolution?.yesWins ?? false)}
+                  disabled={isBusy}
+                  className="col-span-2 py-3 rounded-xl font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors shadow-lg shadow-purple-600/20"
+                 >
+                   Redeem Winnings
+                 </button>
+              ) : (
+                <>
+                  {/* Liquidity Manager Trigger */}
+                   <div className="col-span-2">
+                     <details className="group bg-gray-50 rounded-xl border border-gray-100 overflow-hidden transition-all duration-300">
+                       <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+                         <div className="flex items-center gap-2">
+                           <div className="p-1.5 bg-white rounded-md shadow-sm">
+                             <svg className="w-4 h-4 text-[#14B8A6]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                           </div>
+                           <span className="font-semibold text-gray-700 text-sm">Liquidity & Rewards</span>
+                         </div>
+                         <div className="flex items-center gap-3">
+                            {(pendingFeesFloat > 0 || pendingResidualFloat > 0) && (
+                              <span className="flex h-2 w-2 rounded-full bg-green-500">
+                                <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-green-400 opacity-75"></span>
+                              </span>
+                            )}
+                            <svg className="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                         </div>
+                       </summary>
+                       
+                       <div className="p-4 pt-0 space-y-4 border-t border-gray-100 mt-2">
+                          <div className="grid grid-cols-2 gap-4 text-xs text-gray-500">
+                             <div className="bg-white p-3 rounded-lg border border-gray-100">
+                               <div className="mb-1">Your Share</div>
+                               <div className="font-bold text-gray-900 text-lg">{userSharePct.toFixed(2)}%</div>
+                               <div>{lpShareFloat.toFixed(2)} LP</div>
+                             </div>
+                             <div className="bg-white p-3 rounded-lg border border-gray-100">
+                               <div className="mb-1">Rewards</div>
+                               <div className="font-bold text-[#22c55e] text-lg">${pendingFeesFloat.toFixed(4)}</div>
+                               <div>Pending</div>
+                             </div>
+                          </div>
 
-          <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm font-medium text-gray-700">
-            <div className="flex justify-between">
-              <span>Your LP shares</span>
-              <span>{lpShareFloat.toFixed(2)} USDC ({userSharePct.toFixed(2)}%)</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Pending fees</span>
-              <span>${pendingFeesFloat.toFixed(4)}</span>
-            </div>
-            {isResolved && (
-              <div className="flex justify-between">
-                <span>Pending residual</span>
-                <span>${pendingResidualFloat.toFixed(4)}</span>
-              </div>
-            )}
-            <div className="flex justify-between text-gray-500">
-              <span>Fee pool</span>
-              <span>${lpFeePoolFloat.toFixed(2)}</span>
-            </div>
-          </div>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              pattern={liquidityRegex.source}
+                              value={addLiquidityAmount}
+                              onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                                const val = e.target.value;
+                                if (!val) {
+                                  setAddLiquidityAmount('');
+                                  return;
+                                }
+                                if (!liquidityRegex.test(val)) return;
+                                if (val === '.' || val.endsWith('.')) {
+                                  setAddLiquidityAmount(val);
+                                  return;
+                                }
+                                const num = parseFloat(val);
+                                if (!Number.isFinite(num)) return;
+                                if (num > maxBuyAmount) return;
+                                setAddLiquidityAmount(formatLiquidity(num));
+                              }}
+                              placeholder="Add Liquidity Amount"
+                              className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-[#14B8A6] outline-none"
+                              disabled={!isTradeable || isBusy || isLpProcessing}
+                            />
+                             <button
+                              onClick={handleAddLiquidity}
+                              disabled={!canAddLiquidity || isLpProcessing || isBusy || !isTradeable}
+                              className="px-4 py-2 bg-[#14B8A6] hover:bg-[#0D9488] text-white text-sm font-bold rounded-lg disabled:opacity-50 shadow-sm"
+                            >
+                              {pendingLpAction === 'add' && isLpProcessing ? 'Adding...' : 'Add'}
+                            </button>
+                          </div>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase text-gray-600">
-                Add liquidity (USDC)
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  pattern={liquidityRegex.source}
-                  value={addLiquidityAmount}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                    const val = e.target.value;
-                    if (!val) {
-                      setAddLiquidityAmount('');
-                      return;
-                    }
-                    if (!liquidityRegex.test(val)) return;
-                    if (val === '.' || val.endsWith('.')) {
-                      setAddLiquidityAmount(val);
-                      return;
-                    }
-                    const num = parseFloat(val);
-                    if (!Number.isFinite(num)) return;
-                    if (num > maxBuyAmount) return;
-                    setAddLiquidityAmount(formatLiquidity(num));
-                  }}
-                  placeholder="0.0"
-                  className="flex-1 rounded-lg border px-4 py-2 font-semibold focus:ring-2 focus:ring-green-500"
-                  disabled={!isTradeable || isBusy || isLpProcessing}
-                />
-                <button
-                  onClick={() => {
-                    const maxString = Number.isFinite(maxBuyAmount) ? formatLiquidity(maxBuyAmount) : '0';
-                    setAddLiquidityAmount(maxString);
-                  }}
-                  className="px-3 py-2 bg-green-50 hover:bg-green-100 rounded-lg text-sm font-bold text-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={!isTradeable || isBusy || isLpProcessing}
-                >
-                  Max
-                </button>
-              </div>
-              <button
-                onClick={handleAddLiquidity}
-                disabled={!canAddLiquidity || isLpProcessing || isBusy || !isTradeable}
-                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {pendingLpAction === 'add' && isLpProcessing ? 'Adding…' : 'Add Liquidity'}
-              </button>
-            </div>
-          </div>
-
-          <button
-            onClick={handleClaimAllLp}
-            disabled={(pendingLpFeesValue === 0n && pendingLpResidualValue === 0n) || isLpProcessing}
-            className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {pendingLpAction === 'claim' && isLpProcessing ? 'Claiming…' : 'Claim All LP Rewards'}
-          </button>
-        </div>
+                          <button
+                            onClick={handleClaimAllLp}
+                            disabled={(pendingLpFeesValue === 0n && pendingLpResidualValue === 0n) || isLpProcessing}
+                            className="w-full py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-lg disabled:opacity-50 disabled:bg-gray-300 transition-colors"
+                          >
+                            {pendingLpAction === 'claim' && isLpProcessing ? 'Claiming...' : 'Claim Rewards'}
+                          </button>
+                       </div>
+                     </details>
+                   </div>
+                </>
+              )}
+           </div>
+         </div>
       </div>
     </>
   );

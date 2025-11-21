@@ -14,6 +14,7 @@ import Header from '@/components/Header';
 import TradingCard from '@/components/TradingCard';
 import { PriceChart } from '@/components/PriceChart';
 import { MarketHeader } from '@/components/market/MarketHeader';
+import { Skeleton } from '@/components/ui';
 
 // Lib
 import { getMarket, getSpotPriceYesE6, getMarketResolution, getMarketState } from '@/lib/hooks';
@@ -107,6 +108,42 @@ const MARKET_LIVE_SUBSCRIPTION = /* GraphQL */ `
   }
 `;
 
+function MarketDetailSkeleton() {
+  return (
+    <div className="min-h-screen bg-[#FAF9FF] relative overflow-hidden">
+      <Header />
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+        <Skeleton className="h-6 w-32 mb-6 rounded-full" />
+        
+        {/* Header Skeleton */}
+        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mb-8">
+          <div className="flex flex-col md:flex-row gap-8 items-start">
+            <Skeleton className="w-20 h-20 rounded-2xl shrink-0" />
+            <div className="flex-1 w-full space-y-4">
+              <Skeleton className="h-8 w-3/4" />
+              <div className="flex gap-3">
+                <Skeleton className="h-6 w-24 rounded-full" />
+                <Skeleton className="h-6 w-24 rounded-full" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            <Skeleton className="h-[500px] w-full rounded-3xl" />
+            <Skeleton className="h-[300px] w-full rounded-3xl" />
+          </div>
+          <div className="lg:col-span-1 space-y-8">
+            <Skeleton className="h-[400px] w-full rounded-3xl" />
+            <Skeleton className="h-[300px] w-full rounded-3xl" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MarketDetailPage() {
   const params = useParams();
   const publicClient = usePublicClient();
@@ -159,7 +196,8 @@ export default function MarketDetailPage() {
     timeRange,
     snapshotData,
     snapshotLoading,
-    market?.createdAt // Pass market createdAt from blockchain event (available immediately)
+    market?.createdAt, // Pass market createdAt from blockchain event (available immediately)
+    marketData.currentPrices // Pass current prices to sync chart if history is lagging
   );
 
   // Merge real-time data from useMarketData with historical data
@@ -484,7 +522,13 @@ export default function MarketDetailPage() {
           .filter((point: PricePoint | null): point is PricePoint => point !== null);
         
         if (newPricePoints.length > 0) {
-          // Chart data is now managed by centralized hook
+           // We need to update the history state in useMarketPriceHistory
+           // But since we can't directly access the setter from here,
+           // and useMarketPriceHistory handles snapshotData updates via useEffect,
+           // we might not need to do anything here if snapshotData is updated correctly.
+           // However, this callback is for subscription updates.
+           // Let's use the mergePricePoints function from useMarketPriceHistory!
+           mergePricePoints(newPricePoints);
         }
       }
 
@@ -627,26 +671,7 @@ export default function MarketDetailPage() {
 
   // Loading state - wait for market metadata, resolution, and market data
   if (marketData.isLoading || !market || !resolution) {
-    return (
-      <div className="min-h-screen bg-[#FAF9FF] relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <motion.div
-            className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-[#14B8A6]/20 to-purple-400/20 rounded-full blur-3xl"
-            animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
-            transition={{ duration: 20, repeat: Infinity }}
-          />
-        </div>
-        <Header />
-        <div className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] sm:min-h-[calc(100vh-5rem)]">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-16 h-16 border-4 border-[#14B8A6] border-t-transparent rounded-full"
-          />
-          <p className="mt-6 text-lg font-semibold text-gray-600 text-center">Loading market...</p>
-        </div>
-      </div>
-    );
+    return <MarketDetailSkeleton />;
   }
 
   // Error state
@@ -781,14 +806,14 @@ export default function MarketDetailPage() {
                 <>
                   <TradingCard marketId={marketIdNum} marketData={marketData} />
                   {!marketIsActive && (
-                    <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                      Trading for this market is closed.
-                      {marketIsResolved
-                        ? ' The market has been resolved.'
-                        : marketIsExpired
-                          ? ' The market has expired.'
-                          : ' Trading is currently unavailable.'}
-                    </div>
+                  <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                    Trading for this market is closed.
+                    {marketIsResolved
+                    ? ' The market has been resolved.'
+                    : marketIsExpired
+                      ? ' The market has expired.'
+                      : ' Trading is currently unavailable.'}
+                  </div>
                   )}
                 </>
               )}
@@ -799,125 +824,104 @@ export default function MarketDetailPage() {
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 shadow-xl border border-gray-100"
+              className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 md:mb-8 gap-4 relative">
-                <div className="flex-1">
-                  <div className="text-xs sm:text-sm font-bold text-gray-500 mb-2 uppercase tracking-wider">Market Price ({chartSide.toUpperCase()})</div>
-                  <div className="flex items-baseline gap-2 sm:gap-4 flex-wrap">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-semibold text-gray-500 mb-1">
+                    MARKET PRICE
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${chartSide === 'yes' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      {chartSide}
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-3 flex-wrap">
                     <motion.div
                       key={chartSide === 'yes' ? marketData.currentPrices.yes : marketData.currentPrices.no}
-                      initial={{ scale: 1.2, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black bg-clip-text text-transparent ${
-                        chartSide === 'yes'
-                          ? 'bg-gradient-to-r from-green-500 to-green-600'
-                          : 'bg-gradient-to-r from-red-500 to-red-600'
-                      }`}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-5xl font-black tracking-tight text-gray-900"
                     >
                       {formatPriceInCents(chartSide === 'yes' ? marketData.currentPrices.yes : marketData.currentPrices.no)}
                     </motion.div>
-                    <motion.div
-                      key={chanceChangePercent}
-                      initial={{ x: -10, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: 0.2 }}
-                      className={`flex items-center text-base sm:text-lg md:text-xl font-bold ${chanceChangePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}
-                    >
+                    <div className={`flex items-center font-bold text-lg ${chanceChangePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                       {chanceChangePercent >= 0 ? '↑' : '↓'} {Math.abs(chanceChangePercent).toFixed(2)}%
-                    </motion.div>
+                      <span className="text-gray-400 text-sm font-medium ml-1">past {timeRange.toLowerCase()}</span>
+                    </div>
                   </div>
                 </div>
-                <div className="flex gap-2 sm:gap-3">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                
+                <div className="flex bg-gray-100 p-1 rounded-xl self-start sm:self-center">
+                  <button
                     onClick={() => setChartSide('yes')}
-                    className={`px-4 sm:px-6 md:px-8 py-3 sm:py-4 rounded-xl font-bold transition-all shadow-lg relative text-sm sm:text-base ${
+                    className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
                       chartSide === 'yes'
-                        ? 'bg-gradient-to-r from-green-400 to-green-500 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-white text-green-600 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-900'
                     }`}
                   >
-                    <div className="flex flex-col items-center">
-                      <span>YES</span>
-                      <span className={`text-xs mt-1 ${chartSide === 'yes' ? 'text-white/80' : 'text-gray-500'}`}>
-                        {formatPriceInCents(marketData.currentPrices.yes)}
-                      </span>
-                    </div>
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    Yes
+                  </button>
+                  <button
                     onClick={() => setChartSide('no')}
-                    className={`px-4 sm:px-6 md:px-8 py-3 sm:py-4 rounded-xl font-bold transition-all shadow-lg relative text-sm sm:text-base ${
+                    className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
                       chartSide === 'no'
-                        ? 'bg-gradient-to-r from-red-400 to-red-500 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-white text-red-600 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-900'
                     }`}
                   >
-                    <div className="flex flex-col items-center">
-                      <span>NO</span>
-                      <span className={`text-xs mt-1 ${chartSide === 'no' ? 'text-white/80' : 'text-gray-500'}`}>
-                        {formatPriceInCents(marketData.currentPrices.no)}
-                      </span>
-                    </div>
-                  </motion.button>
+                    No
+                  </button>
                 </div>
               </div>
 
-              {/* Chart */}
-              <div className="mb-4 sm:mb-6">
-                <div className="h-64 sm:h-80 md:h-96 bg-white rounded-xl border border-gray-200 p-2 sm:p-4 relative overflow-hidden flex items-center justify-center">
-                  {snapshotLoading && sortedChartData.length === 0 ? (
-                    <div className="flex items-center justify-center h-full w-full">
+              {/* Chart Container */}
+              <div className="h-[350px] w-full mb-6 relative">
+                {snapshotLoading && sortedChartData.length === 0 ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-50/50 rounded-xl">
+                    <div className="flex flex-col items-center gap-3">
                       <motion.div
                         animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        className="w-12 h-12 border-4 border-[#14B8A6] border-t-transparent rounded-full"
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                        className="w-8 h-8 border-2 border-[#14B8A6] border-t-transparent rounded-full"
                       />
+                      <span className="text-sm font-medium text-gray-500">Loading chart data...</span>
                     </div>
-                  ) : (
-                    <div className="w-full h-full relative">
-                      <PriceChart
-                        data={resolvedChartData}
-                        selectedSide={chartSide}
-                        marketId={marketIdNum}
-                        useCentralizedData={true}
-                      />
-                      {isChartRefreshing && (
-                        <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex flex-col items-center justify-center gap-2 pointer-events-none">
-                          <div className="h-2 w-2/3 bg-gradient-to-r from-[#14B8A6] to-[#0D9488] rounded-full animate-pulse" />
-                          <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                            Updating chart…
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="w-full h-full">
+                    <PriceChart
+                      data={resolvedChartData}
+                      selectedSide={chartSide}
+                      marketId={marketIdNum}
+                      useCentralizedData={true}
+                    />
+                    {isChartRefreshing && (
+                      <div className="absolute top-2 right-2 px-3 py-1.5 bg-white/90 backdrop-blur rounded-full border border-gray-200 shadow-sm flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#14B8A6] animate-pulse" />
+                        <span className="text-xs font-medium text-gray-600">Live</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Time Range Filters */}
-              <div className="flex gap-3">
-                {(['1D', '1W', '1M', 'ALL'] as const).map((range, index) => (
-                  <motion.button
-                    key={range}
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.4 + index * 0.05 }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setTimeRange(range)}
-                    className={`flex-1 px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-md ${
-                      timeRange === range
-                        ? 'bg-gradient-to-r from-[#14B8A6] to-[#0D9488] text-white'
-                        : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200'
-                    }`}
-                  >
-                    {range}
-                  </motion.button>
-                ))}
+              {/* Time Range Controls */}
+              <div className="flex items-center justify-between border-t border-gray-100 pt-4">
+                <div className="flex gap-2">
+                  {(['1D', '1W', '1M', 'ALL'] as const).map((range) => (
+                    <button
+                      key={range}
+                      onClick={() => setTimeRange(range)}
+                      className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                        timeRange === range
+                          ? 'bg-gray-900 text-white'
+                          : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                      }`}
+                    >
+                      {range}
+                    </button>
+                  ))}
+                </div>
               </div>
             </motion.div>
 
@@ -926,116 +930,123 @@ export default function MarketDetailPage() {
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.5 }}
-              className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 shadow-xl border border-gray-100"
+              className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden"
             >
-              <div className="flex gap-1 sm:gap-2 mb-6 sm:mb-8 bg-gray-50 rounded-xl p-1 sm:p-2 overflow-x-auto" data-testid="market-tabs">
+              <div className="flex border-b border-gray-100 overflow-x-auto">
                 {(['Position', 'Comments', 'Transactions', 'Resolution'] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`relative flex-1 px-3 sm:px-4 md:px-6 py-2 sm:py-3 font-bold text-xs sm:text-sm transition-all rounded-lg whitespace-nowrap min-w-0 ${
+                    className={`flex-1 px-6 py-4 text-sm font-bold whitespace-nowrap transition-colors relative ${
                       activeTab === tab
-                        ? 'text-white'
-                        : 'text-gray-600 hover:text-gray-900'
+                        ? 'text-[#14B8A6]'
+                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                     }`}
                   >
+                    {tab}
                     {activeTab === tab && (
                       <motion.div
                         layoutId="activeTabIndicator"
-                        className="absolute inset-0 bg-gradient-to-r from-[#14B8A6] to-[#0D9488] rounded-lg shadow-lg"
+                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#14B8A6]"
                         transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                       />
                     )}
-                    <span className="relative z-10">{tab}</span>
                   </button>
                 ))}
               </div>
 
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  {activeTab === 'Position' && (
-                    <PositionTab
-                      isConnected={isConnected}
-                      yesBalance={yesBalance}
-                      noBalance={noBalance}
-                      priceYes={marketData.currentPrices.yes}
-                      priceNo={marketData.currentPrices.no}
-                    />
-                  )}
-                  {activeTab === 'Comments' && (
-                    <CommentsTab
-                      marketId={marketId}
-                      isConnected={isConnected}
-                      address={address}
-                    />
-                  )}
-                  {activeTab === 'Transactions' && (
-                    <TransactionsTab
-                      transactions={transactions}
-                      loading={snapshotLoading && transactions.length === 0}
-                    />
-                  )}
-                  {activeTab === 'Resolution' && (
-                    <ResolutionTab resolution={resolution} />
-                  )}
-                </motion.div>
-              </AnimatePresence>
+              <div className="p-6 sm:p-8 bg-gray-50/30 min-h-[300px]">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeTab}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {activeTab === 'Position' && (
+                      <PositionTab
+                        isConnected={isConnected}
+                        yesBalance={yesBalance}
+                        noBalance={noBalance}
+                        priceYes={marketData.currentPrices.yes}
+                        priceNo={marketData.currentPrices.no}
+                      />
+                    )}
+                    {activeTab === 'Comments' && (
+                      <CommentsTab
+                        marketId={marketId}
+                        isConnected={isConnected}
+                        address={address}
+                      />
+                    )}
+                    {activeTab === 'Transactions' && (
+                      <TransactionsTab
+                        transactions={transactions}
+                        loading={snapshotLoading && transactions.length === 0}
+                      />
+                    )}
+                    {activeTab === 'Resolution' && (
+                      <ResolutionTab resolution={resolution} />
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
             </motion.div>
           </div>
 
           {/* Right Column */}
-          <div className="lg:col-span-1 space-y-4 sm:space-y-6 md:space-y-8">
+          <div className="lg:col-span-1 space-y-6">
             {/* Trading Card - Desktop */}
             <motion.div
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.4 }}
-              className="hidden lg:block bg-white rounded-2xl p-4 sm:p-6 shadow-xl border border-gray-100"
+              className="hidden lg:block"
             >
               {isMarketIdValid && market && (
-                <>
-                  <TradingCard marketId={marketIdNum} marketData={marketData} />
+                <div className="sticky top-24 space-y-6">
+                  <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden">
+                    <TradingCard marketId={marketIdNum} marketData={marketData} />
+                  </div>
+                  
                   {!marketIsActive && (
-                    <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                      Trading for this market is closed.
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 font-medium">
+                      ⚠️ Trading for this market is closed.
                     </div>
                   )}
-                </>
+
+                  {/* Top Holders */}
+                  <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden">
+                    <TopHoldersCard
+                      holderTab={holderTab}
+                      setHolderTab={setHolderTab}
+                      topHoldersYes={topHoldersYes}
+                      topHoldersNo={topHoldersNo}
+                      address={address}
+                      yesBalance={yesBalance}
+                      noBalance={noBalance}
+                      priceYes={marketData.currentPrices.yes}
+                      priceNo={marketData.currentPrices.no}
+                    />
+                  </div>
+                </div>
               )}
             </motion.div>
-
-            {/* Top Holders */}
-            <TopHoldersCard
-              holderTab={holderTab}
-              setHolderTab={setHolderTab}
-              topHoldersYes={topHoldersYes}
-              topHoldersNo={topHoldersNo}
-              address={address}
-              yesBalance={yesBalance}
-              noBalance={noBalance}
-              priceYes={marketData.currentPrices.yes}
-              priceNo={marketData.currentPrices.no}
-            />
           </div>
         </div>
                 {showInstantUpdateBadge && (
                   <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute top-0 right-0 mt-2 sm:mt-0 px-3 py-1 rounded-full bg-white/90 border border-[#14B8A6]/40 text-xs font-semibold text-[#14B8A6] shadow-md"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="fixed bottom-6 right-6 px-4 py-2 rounded-full bg-gray-900 text-white text-sm font-bold shadow-lg flex items-center gap-2 z-50"
                   >
-                    Prices refreshed
+                    <div className="w-2 h-2 rounded-full bg-[#14B8A6] animate-pulse" />
+                    Prices updated
                   </motion.div>
                 )}
       </div>
     </div>
   );
 }
-

@@ -57,3 +57,4 @@ contract DeployNewChainlinkResolver is Script {
         vm.stopBroadcast();
     }
 }
+

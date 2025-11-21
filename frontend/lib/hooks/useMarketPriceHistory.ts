@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { PricePoint } from '../priceHistory/types';
 import { withSeedPoint } from '../marketUtils';
 import type { SnapshotTrade, SnapshotTimeRange } from '../useMarketSnapshot';
+import { usePublicClient } from 'wagmi';
+import { coreAbi } from '@/lib/abis';
+import { addresses } from '@/lib/contracts';
+import { decodeEventLog, parseAbiItem } from 'viem';
 
 declare global {
   interface Window {
@@ -15,8 +19,11 @@ export function useMarketPriceHistory(
   timeRange: SnapshotTimeRange,
   snapshotData: any,
   historyLoading: boolean,
-  marketCreatedAt?: bigint | number | string | null
+  marketCreatedAt?: bigint | number | string | null,
+  currentPrices?: { yes: number; no: number } | null
 ) {
+  const publicClient = usePublicClient();
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
 
   const fallbackChartPointRef = useRef<PricePoint>({
     timestamp: Math.floor(Date.now() / 1000),
@@ -170,13 +177,13 @@ export function useMarketPriceHistory(
     });
   }, []);
 
-  // Load price history from snapshot data
+  // Load price history from snapshot data and sync with current prices
   useEffect(() => {
     if (historyLoading) return;
 
     const snapshotPriceHistory =
       snapshotData?.tradesAsc
-        ?.map<PricePoint | null>((trade: SnapshotTrade | null) => {
+        ?.map((trade: SnapshotTrade | null) => {
           if (
             !trade?.timestamp ||
             trade.priceE6 === null ||
@@ -196,7 +203,7 @@ export function useMarketPriceHistory(
             txHash: trade.txHash ?? undefined,
           };
         })
-        .filter((point): point is PricePoint => point !== null) ?? [];
+        .filter((point: PricePoint | null): point is PricePoint => point !== null) ?? [];
 
     // If no trades exist yet, use market createdAt timestamp for seed point
     if (snapshotPriceHistory.length === 0) {
@@ -229,8 +236,6 @@ export function useMarketPriceHistory(
           priceNo: 0.5,
           txHash: 'seed',
         };
-        // Set the chart data to show the seed point at market creation (0.5/0.5)
-        setLivePriceHistory([fallbackChartPointRef.current]);
         console.log('[useMarketPriceHistory] Set seed point at market creation:', createdAtTimestamp);
       } else {
         // Fallback: use current timestamp if no createdAt available
@@ -240,13 +245,149 @@ export function useMarketPriceHistory(
           priceNo: 0.5,
           txHash: 'seed',
         };
-        setLivePriceHistory([fallbackChartPointRef.current]);
       }
+
+      // Create initial points array with seed
+      const points = [fallbackChartPointRef.current];
+
+      // If we have current prices that differ from seed, add a point for now
+      // This handles the case where the subgraph is lagging but we know the current price
+      if (currentPrices) {
+        const { yes: priceYes, no: priceNo } = currentPrices;
+        if (Math.abs(priceYes - 0.5) > 0.0001) {
+             // Check if we should fetch logs from RPC as fallback
+             // Only fetch if we haven't already fetched logs and the market is active and we have no history
+             if (!isLoadingLogs && publicClient && marketIdNum > 0) {
+                setIsLoadingLogs(true);
+                (async () => {
+                  try {
+                    console.log('[useMarketPriceHistory] Subgraph has no history yet (normal for new markets). Fetching recent trades from RPC to fill gap...');
+                    
+                    // Fetch Trade events for this market
+                    // We limit to 45000 blocks to avoid RPC limits (usually 50k)
+                    const currentBlock = await publicClient.getBlockNumber();
+                    const BLOCK_LIMIT = 45000n;
+                    let blockRange = BLOCK_LIMIT;
+
+                    // If we have creation time, try to optimize the range
+                    if (createdAtTimestamp) {
+                        const now = Math.floor(Date.now() / 1000);
+                        const ageSeconds = now - createdAtTimestamp;
+                        const estimatedBlocks = BigInt(Math.ceil(ageSeconds / 3) + 1000); // ~3s per block + buffer
+                        if (estimatedBlocks < BLOCK_LIMIT) {
+                            blockRange = estimatedBlocks;
+                        }
+                    }
+
+                    const fromBlock = currentBlock - blockRange;
+                    
+                    const logs = await publicClient.getLogs({
+                      address: addresses.core,
+                      event: parseAbiItem('event Buy(uint256 indexed id, address indexed user, bool isYes, uint256 usdcIn, uint256 tokensOut, uint256 priceE6)'),
+                      args: {
+                        id: BigInt(marketIdNum)
+                      },
+                      fromBlock: fromBlock > 0n ? fromBlock : 0n,
+                      toBlock: 'latest'
+                    });
+                    
+                    const sellLogs = await publicClient.getLogs({
+                        address: addresses.core,
+                        event: parseAbiItem('event Sell(uint256 indexed id, address indexed user, bool isYes, uint256 tokensIn, uint256 usdcOut, uint256 priceE6)'),
+                        args: {
+                          id: BigInt(marketIdNum)
+                        },
+                        fromBlock: fromBlock > 0n ? fromBlock : 0n,
+                        toBlock: 'latest'
+                    });
+
+                    const allLogs = [...logs, ...sellLogs].sort((a, b) => {
+                        const blockDiff = Number(a.blockNumber) - Number(b.blockNumber);
+                        if (blockDiff !== 0) return blockDiff;
+                        return Number(a.logIndex) - Number(b.logIndex);
+                    });
+
+                    if (allLogs.length > 0) {
+                        console.log(`[useMarketPriceHistory] Found ${allLogs.length} trade logs from RPC`);
+                        const pointsFromLogs: PricePoint[] = [];
+                        
+                        for (const log of allLogs) {
+                            // We need timestamp for each log. This is expensive (one RPC call per block usually).
+                            // Optimization: batch getBlock or just approximate if blocks are close?
+                            // For accuracy, we should get block.
+                            // But let's try to get block for each unique blockNumber
+                            const block = await publicClient.getBlock({ blockNumber: log.blockNumber });
+                            const timestamp = Number(block.timestamp);
+                            const priceE6 = (log.args as any).priceE6;
+                            
+                            if (priceE6) {
+                                const priceYesVal = Number(priceE6) / 1e6;
+                                pointsFromLogs.push({
+                                    timestamp,
+                                    priceYes: Math.max(0, Math.min(1, priceYesVal)),
+                                    priceNo: Math.max(0, Math.min(1, 1 - priceYesVal)),
+                                    txHash: log.transactionHash
+                                });
+                            }
+                        }
+                        
+                        // Merge these points
+                        if (pointsFromLogs.length > 0) {
+                            setLivePriceHistory(prev => {
+                                // Merge logic similar to mergePricePoints but simpler since we know we are initializing
+                                const dedup = new Map<string, PricePoint>();
+                                
+                                // Add seed
+                                dedup.set('seed', fallbackChartPointRef.current);
+                                
+                                for (const p of pointsFromLogs) {
+                                    const key = `${p.txHash}-${p.timestamp}`;
+                                    dedup.set(key, p);
+                                }
+                                
+                                // Add any existing live points (like the sync point if it's newer)
+                                for (const p of prev) {
+                                    if (p.txHash === 'current-state-sync' || p.txHash?.startsWith('live-')) {
+                                         const key = `${p.txHash}-${p.timestamp}`;
+                                         dedup.set(key, p);
+                                    }
+                                }
+
+                                const merged = Array.from(dedup.values()).sort((a, b) => a.timestamp - b.timestamp);
+                                return withSeedPoint(merged, fallbackChartPointRef.current);
+                            });
+                        }
+                    }
+                  } catch (err) {
+                    console.error('[useMarketPriceHistory] Failed to fetch logs:', err);
+                  } finally {
+                    setIsLoadingLogs(false);
+                  }
+                })();
+             }
+
+             const now = Math.floor(Date.now() / 1000);
+             // Ensure timestamp is after seed
+             const timestamp = Math.max(now, fallbackChartPointRef.current.timestamp + 1);
+             
+             points.push({
+                 timestamp,
+                 priceYes,
+                 priceNo,
+                 txHash: 'current-state-sync'
+             });
+             console.log('[useMarketPriceHistory] Added current state sync point:', { priceYes, timestamp });
+        }
+      }
+
+      setLivePriceHistory(points);
+      // Force chart to recognize this as "having data" immediately
+      // This fixes the "empty chart" issue when only seed + sync points exist
       return;
     }
 
     const earliest = snapshotPriceHistory.reduce(
-      (min, point) => (point.timestamp < min ? point.timestamp : min),
+      (min: number, point: PricePoint) => (point.timestamp < min ? point.timestamp : min),
       snapshotPriceHistory[0].timestamp
     );
     // Use market createdAt if available, otherwise use earliest trade minus 60 seconds
@@ -282,11 +423,34 @@ export function useMarketPriceHistory(
     setLivePriceHistory((prevData) => {
       // Separate existing live points from historical points
       const existingLivePoints = prevData.filter(point =>
-        point.txHash?.startsWith('live-') || point.txHash === 'seed'
+        point.txHash?.startsWith('live-') || point.txHash === 'seed' || point.txHash === 'current-state-sync'
       );
 
       // Combine historical data with existing live points
-      const combined = [...sorted, ...existingLivePoints];
+      let combined = [...sorted, ...existingLivePoints];
+
+      // If we have current prices and they are newer than our last point, consider adding a sync point
+      if (currentPrices && combined.length > 0) {
+         const lastPoint = combined[combined.length - 1];
+         const { yes: priceYes } = currentPrices;
+         
+         // If significant price difference and current price is "fresh"
+         // Note: We don't know exact timestamp of currentPrices, assuming "now"
+         // This is a heuristic to fix visual desync
+         if (Math.abs(lastPoint.priceYes - priceYes) > 0.01) {
+             // Only if last point is somewhat old (e.g. > 10s ago) or it's a resolution/sync issue
+             const now = Math.floor(Date.now() / 1000);
+             if (now > lastPoint.timestamp) {
+                 combined.push({
+                     timestamp: now,
+                     priceYes: currentPrices.yes,
+                     priceNo: currentPrices.no,
+                     txHash: 'current-state-sync-update'
+                 });
+             }
+         }
+      }
+
       const mergedDedup = new Map<string, PricePoint>();
 
       for (const point of combined) {
@@ -297,7 +461,7 @@ export function useMarketPriceHistory(
       const merged = Array.from(mergedDedup.values()).sort((a, b) => a.timestamp - b.timestamp);
       return withSeedPoint(merged, fallbackChartPointRef.current);
     });
-  }, [historyLoading, snapshotData?.tradesAsc]);
+  }, [historyLoading, snapshotData?.tradesAsc, currentPrices]);
 
   // Store refs for stable event handler
   const marketIdNumRef = useRef(marketIdNum);
@@ -370,9 +534,11 @@ export function useMarketPriceHistory(
         });
 
         // BLOCK OPTIMISTIC UPDATES: Only allow confirmed transactions (blockchain events or block polling)
+        // Allow 'current-state-sync-update' through as well since it comes from our own sync logic
         const isConfirmedTransaction = (detail.source === 'blockchain-event' || detail.source === 'block-fallback') && detail.txHash;
+        const isSyncUpdate = detail.txHash === 'current-state-sync-update';
 
-        if (!isConfirmedTransaction) {
+        if (!isConfirmedTransaction && !isSyncUpdate) {
           console.log('[useMarketPriceHistory] 🚫 Blocking update - not a confirmed transaction:', {
             txHash: detail.txHash || 'no-txHash',
             source: detail.source || 'no-source',
@@ -451,48 +617,16 @@ export function useMarketPriceHistory(
 
   // Load from localStorage - TEMPORARILY DISABLED FOR TESTING
   useEffect(() => {
-    // DISABLED: Comment out the entire localStorage loading logic
     /*
-    if (!priceHistoryStorageKey || typeof window === 'undefined') return;
-    try {
-      const stored = window.localStorage.getItem(priceHistoryStorageKey);
-      if (!stored) return;
-      const parsed = JSON.parse(stored);
-      if (!Array.isArray(parsed)) return;
-
-      const sanitized = parsed
-        .map((point: any): PricePoint | null => {
-          if (!point) return null;
-          const timestamp = Number(point.timestamp);
-          const priceYesVal = Number(point.priceYes);
-          const priceNoVal = Number(point.priceNo);
-          if (
-            !Number.isFinite(timestamp) ||
-            !Number.isFinite(priceYesVal) ||
-            !Number.isFinite(priceNoVal)
-          ) {
-            return null;
-          }
-          const txHash = typeof point.txHash === 'string' ? point.txHash : undefined;
-          return {
-            timestamp,
-            priceYes: Math.max(0, Math.min(1, priceYesVal)),
-            priceNo: Math.max(0, Math.min(1, priceNoVal)),
-            ...(txHash ? { txHash } : {}),
-          };
-        })
-        .filter((point): point is PricePoint => point !== null);
-
-      if (sanitized.length === 0) return;
-      setLivePriceHistory(withSeedPoint(sanitized, fallbackChartPointRef.current));
-    } catch (error) {
-      console.warn('[useMarketPriceHistory] Failed to restore cache', error);
-    }
+    // DISABLED: LocalStorage caching can cause stale data issues when combined with
+    // complex merging of RPC + Subgraph + Live updates.
+    // For now, we rely on fresh data + RPC fallback.
     */
   }, [priceHistoryStorageKey]);
 
-  // Save to localStorage
+  // Save to localStorage - DISABLED
   useEffect(() => {
+    /*
     if (!priceHistoryStorageKey || typeof window === 'undefined') return;
     if (!livePriceHistory || livePriceHistory.length === 0) return;
     try {
@@ -500,6 +634,7 @@ export function useMarketPriceHistory(
     } catch (error) {
       console.warn('[useMarketPriceHistory] Failed to persist cache', error);
     }
+    */
   }, [priceHistoryStorageKey, livePriceHistory]);
 
   return {

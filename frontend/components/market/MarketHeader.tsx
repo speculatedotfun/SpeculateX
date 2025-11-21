@@ -79,6 +79,7 @@ export function MarketHeader({
             className="w-full h-full object-contain p-1"
             unoptimized
             onError={onLogoError}
+            priority
           />
         </div>
         <div className="flex-1 min-w-0">

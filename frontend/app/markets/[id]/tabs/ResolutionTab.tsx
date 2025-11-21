@@ -119,3 +119,4 @@ export function ResolutionTab({ resolution }: ResolutionTabProps) {
 
 
 
+
