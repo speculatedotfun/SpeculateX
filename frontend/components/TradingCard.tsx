@@ -849,7 +849,6 @@ export default function TradingCard({
     marketIdBI,
     isTradeable,
     address,
-    baseSpotYes,
     yesBase,
     noBase,
     vaultBase,
@@ -1135,7 +1134,6 @@ export default function TradingCard({
     showErrorToast,
     tradeDisabledReason,
     showToast,
-    baseSpotYes,
     vaultBase,
   ]);
 
@@ -1357,7 +1355,7 @@ export default function TradingCard({
             <div>
               <h3 className="text-2xl font-bold text-gray-900">Large Order Warning</h3>
               <p className="text-gray-600 mt-2 leading-relaxed">
-                This buy exceeds the single-transaction price impact limit. We'll automatically split it into smaller chunks for you.
+                This buy exceeds the single-transaction price impact limit. We&apos;ll automatically split it into smaller chunks for you.
               </p>
             </div>
             <div className="bg-gray-50 rounded-2xl p-6 space-y-3 text-sm border border-gray-100">
