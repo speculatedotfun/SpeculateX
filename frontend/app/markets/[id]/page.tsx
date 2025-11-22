@@ -728,16 +728,16 @@ export default function MarketDetailPage() {
 
   // Main content
   return (
-    <div className="min-h-screen bg-[#FAF9FF] relative overflow-hidden">
+    <div className="min-h-screen bg-[#f5f0ff] relative overflow-hidden">
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
-          className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-[#14B8A6]/20 to-purple-400/20 rounded-full blur-3xl"
+          className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-[#14B8A6]/10 to-purple-400/10 rounded-full blur-3xl"
           animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
           transition={{ duration: 20, repeat: Infinity }}
         />
         <motion.div
-          className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-[#14B8A6]/20 rounded-full blur-3xl"
+          className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-[#14B8A6]/10 rounded-full blur-3xl"
           animate={{ scale: [1, 1.1, 1], rotate: [0, -90, 0] }}
           transition={{ duration: 25, repeat: Infinity, delay: 2 }}
         />
@@ -750,9 +750,9 @@ export default function MarketDetailPage() {
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
         >
-          <Link href="/markets" className="inline-flex items-center text-[#14B8A6] hover:text-[#0D9488] mb-6 font-semibold group" data-testid="back-button">
+          <Link href="/markets" className="inline-flex items-center text-[#14B8A6] hover:text-[#0D9488] mb-4 sm:mb-6 font-semibold group text-sm sm:text-base" data-testid="back-button">
             <motion.svg
-              className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform"
+              className="w-4 h-4 sm:w-5 sm:h-5 mr-2 group-hover:-translate-x-1 transition-transform"
               fill="none" stroke="currentColor" viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -791,10 +791,9 @@ export default function MarketDetailPage() {
           </motion.div>
         )}
 
-        {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           {/* Left Column */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6 md:space-y-8">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6 md:space-y-8 flex flex-col-reverse lg:block">
             {/* Trading Card - Mobile */}
             <motion.div
               initial={{ y: 50, opacity: 0 }}
@@ -819,41 +818,41 @@ export default function MarketDetailPage() {
               )}
             </motion.div>
 
-            {/* Chart Card */}
+              {/* Chart Card */}
             <motion.div
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.3 }}
               className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-8 gap-6">
                 <div>
-                  <div className="flex items-center gap-2 text-sm font-semibold text-gray-500 mb-1">
-                    MARKET PRICE
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${chartSide === 'yes' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                    Market Price
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${chartSide === 'yes' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                       {chartSide}
                     </span>
                   </div>
-                  <div className="flex items-baseline gap-3 flex-wrap">
+                  <div className="flex items-baseline gap-4 flex-wrap">
                     <motion.div
                       key={chartSide === 'yes' ? marketData.currentPrices.yes : marketData.currentPrices.no}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-5xl font-black tracking-tight text-gray-900"
+                      className="text-5xl sm:text-6xl font-black tracking-tighter text-gray-900"
                     >
                       {formatPriceInCents(chartSide === 'yes' ? marketData.currentPrices.yes : marketData.currentPrices.no)}
                     </motion.div>
                     <div className={`flex items-center font-bold text-lg ${chanceChangePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                       {chanceChangePercent >= 0 ? '↑' : '↓'} {Math.abs(chanceChangePercent).toFixed(2)}%
-                      <span className="text-gray-400 text-sm font-medium ml-1">past {timeRange.toLowerCase()}</span>
+                      <span className="text-gray-400 text-xs font-medium ml-2">past {timeRange.toLowerCase()}</span>
                     </div>
                   </div>
                 </div>
                 
-                <div className="flex bg-gray-100 p-1 rounded-xl self-start sm:self-center">
+                <div className="flex bg-gray-100/80 p-1 rounded-xl self-start sm:self-center w-full sm:w-auto backdrop-blur-sm">
                   <button
                     onClick={() => setChartSide('yes')}
-                    className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                    className={`flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all relative z-10 ${
                       chartSide === 'yes'
                         ? 'bg-white text-green-600 shadow-sm'
                         : 'text-gray-500 hover:text-gray-900'
@@ -863,7 +862,7 @@ export default function MarketDetailPage() {
                   </button>
                   <button
                     onClick={() => setChartSide('no')}
-                    className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                    className={`flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all relative z-10 ${
                       chartSide === 'no'
                         ? 'bg-white text-red-600 shadow-sm'
                         : 'text-gray-500 hover:text-gray-900'
@@ -875,7 +874,7 @@ export default function MarketDetailPage() {
               </div>
 
               {/* Chart Container */}
-              <div className="h-[350px] w-full mb-6 relative">
+              <div className="h-[300px] sm:h-[400px] w-full mb-6 relative">
                 {snapshotLoading && sortedChartData.length === 0 ? (
                   <div className="absolute inset-0 flex items-center justify-center bg-gray-50/50 rounded-xl">
                     <div className="flex flex-col items-center gap-3">
@@ -906,13 +905,13 @@ export default function MarketDetailPage() {
               </div>
 
               {/* Time Range Controls */}
-              <div className="flex items-center justify-between border-t border-gray-100 pt-4">
-                <div className="flex gap-2">
+              <div className="flex items-center justify-between border-t border-gray-100 pt-4 overflow-x-auto">
+                <div className="flex gap-2 w-full sm:w-auto">
                   {(['1D', '1W', '1M', 'ALL'] as const).map((range) => (
                     <button
                       key={range}
                       onClick={() => setTimeRange(range)}
-                      className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                      className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${
                         timeRange === range
                           ? 'bg-gray-900 text-white'
                           : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'

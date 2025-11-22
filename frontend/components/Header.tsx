@@ -60,8 +60,8 @@ export default function Header() {
     <header 
       className={`sticky top-0 z-50 transition-all duration-300 border-b ${
         scrolled 
-          ? 'bg-white/95 backdrop-blur-xl shadow-sm border-gray-200/50' 
-          : 'bg-white border-transparent'
+          ? 'bg-white/80 backdrop-blur-md shadow-sm border-gray-200/50' 
+          : 'bg-transparent border-transparent'
       }`}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -246,9 +246,9 @@ export default function Header() {
                               <button
                                 onClick={openAccountModal}
                                 type="button"
-                                className="group flex items-center gap-3 rounded-full bg-white border border-gray-200 pl-3 pr-4 py-1.5 hover:border-[#14B8A6] hover:ring-2 hover:ring-[#14B8A6]/10 transition-all shadow-sm hover:shadow-md"
+                                className="group flex items-center gap-2 sm:gap-3 rounded-full bg-white border border-gray-200 pl-2 sm:pl-3 pr-2 sm:pr-4 py-1.5 hover:border-[#14B8A6] hover:ring-2 hover:ring-[#14B8A6]/10 transition-all shadow-sm hover:shadow-md"
                               >
-                                <div className="flex flex-col items-end leading-none">
+                                <div className="flex flex-col items-end leading-none hidden sm:flex">
                                   <span className="text-xs font-bold text-gray-900">
                                     {account.displayBalance
                                       ? account.displayBalance
@@ -283,9 +283,9 @@ export default function Header() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden border-t border-gray-100 bg-white/95 backdrop-blur-xl overflow-hidden"
+              className="md:hidden absolute top-full left-0 right-0 border-t border-gray-100 bg-white/95 backdrop-blur-xl shadow-xl overflow-hidden"
             >
-              <nav className="flex flex-col py-4 space-y-2 px-2">
+              <nav className="flex flex-col py-4 space-y-2 px-4 bg-white">
                 {navLinks.map((link) => {
                   const active = isActive(link.href);
                   return (

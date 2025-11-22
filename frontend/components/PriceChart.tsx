@@ -21,8 +21,8 @@ interface PriceChartProps {
 export const PriceChart = memo(function PriceChart({ data, selectedSide, height = 340, marketId, useCentralizedData = false }: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const yesSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
-  const noSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+    const yesSeriesRef = useRef<ISeriesApi<'Area'> | null>(null);
+    const noSeriesRef = useRef<ISeriesApi<'Area'> | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const throttledResizeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const moduleRef = useRef<typeof import('lightweight-charts') | null>(null);
@@ -33,7 +33,7 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
   const [chartError, setChartError] = useState<string | null>(null);
 
   // Process data with visual breaks for gaps
-  const processDataWithBreaks = useCallback((rawData: PricePoint[]): { yesData: LineData[], noData: LineData[] } => {
+  const processDataWithBreaks = useCallback((rawData: PricePoint[]): { yesData: (LineData | { time: Time; value: undefined })[], noData: (LineData | { time: Time; value: undefined })[] } => {
     if (!rawData.length) return { yesData: [], noData: [] };
 
     // Sort by timestamp, then deduplicate by timestamp (keep last occurrence)
@@ -56,8 +56,8 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
     
     const sortedDataFinal = dedupedData;
 
-    const yesData: LineData[] = [];
-    const noData: LineData[] = [];
+    const yesData: (LineData | { time: Time; value: undefined })[] = [];
+    const noData: (LineData | { time: Time; value: undefined })[] = [];
 
     // Always add first point
     const firstPoint = sortedDataFinal[0];
@@ -126,7 +126,7 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
             mod) as typeof import('lightweight-charts');
         }
 
-        const { createChart, ColorType, CrosshairMode, LineStyle, LineSeries, LineType } = moduleRef.current;
+        const { createChart, ColorType, CrosshairMode, LineStyle, AreaSeries, LineType } = moduleRef.current;
 
         // Create chart with professional styling
         const chart = createChart(containerRef.current, {
@@ -134,65 +134,65 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
           height,
           layout: {
             background: { type: ColorType.Solid, color: '#ffffff' },
-            textColor: '#64748b',
-            fontSize: 12,
-            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
+            textColor: '#94a3b8', // Slate-400
+            fontSize: 11,
+            fontFamily: "'Geist', 'Inter', sans-serif",
           },
           grid: {
-            vertLines: { color: '#f1f5f9', style: LineStyle.Solid, visible: true },
+            vertLines: { color: '#f1f5f9', style: LineStyle.Solid, visible: false },
             horzLines: { color: '#f1f5f9', style: LineStyle.Solid, visible: true },
           },
           crosshair: {
             mode: CrosshairMode.Normal,
             vertLine: {
               width: 1,
-              color: '#64748b',
+              color: '#94a3b8',
               style: LineStyle.Dashed,
-              labelBackgroundColor: '#ffffff'
+              labelBackgroundColor: '#1e293b',
             },
             horzLine: {
               width: 1,
-              color: '#64748b',
+              color: '#94a3b8',
               style: LineStyle.Dashed,
-              labelBackgroundColor: '#ffffff'
+              labelBackgroundColor: '#1e293b',
             },
           },
           rightPriceScale: {
-            borderColor: '#e2e8f0',
-            scaleMargins: { top: 0.1, bottom: 0.1 },
+            borderColor: 'transparent',
+            scaleMargins: { top: 0.2, bottom: 0.1 },
             borderVisible: false,
             entireTextOnly: true,
-            ticksVisible: true,
+            ticksVisible: false,
           },
           timeScale: {
-            borderColor: '#e2e8f0',
+            borderColor: 'transparent',
             timeVisible: true,
             secondsVisible: false,
             borderVisible: false,
             fixLeftEdge: true,
             fixRightEdge: true,
+            minBarSpacing: 10,
           },
           localization: {
-            priceFormatter: (price: number) => `${(price * 100).toFixed(2)}¢`,
+            priceFormatter: (price: number) => `${(price * 100).toFixed(1)}¢`,
             timeFormatter: (timestamp: number) => {
-              return new Date(timestamp * 1000).toLocaleString();
+              return new Date(timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             },
           },
           watermark: {
             visible: false,
           },
-          handleScroll: { mouseWheel: true, pressedMouseMove: true },
-          handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
+          handleScroll: { mouseWheel: false, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+          handleScale: { axisPressedMouseMove: true, mouseWheel: false, pinch: true },
         });
 
-        // Create professional line series with enhanced styling
-        const yesLineWidth = selectedSide === 'yes' ? 3 : 2;
-        const noLineWidth = selectedSide === 'no' ? 3 : 2;
-
-        const yesSeries = chart.addSeries(LineSeries, {
-          lineWidth: yesLineWidth,
+        // Create professional area series with enhanced styling
+        const yesSeries = chart.addSeries(AreaSeries, {
+          lineColor: '#22c55e',
+          topColor: 'rgba(34, 197, 94, 0.4)',
+          bottomColor: 'rgba(34, 197, 94, 0.0)',
+          lineWidth: 3,
           lineType: LineType.Curved,
-          pointMarkersVisible: false,
           priceLineVisible: true,
           priceLineWidth: 1,
           priceLineColor: '#22c55e',
@@ -200,14 +200,15 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
           crosshairMarkerVisible: true,
           crosshairMarkerBorderColor: '#ffffff',
           crosshairMarkerBackgroundColor: '#22c55e',
-          crosshairMarkerRadius: 4,
-          color: '#22c55e',
+          crosshairMarkerRadius: 5,
         } as any);
 
-        const noSeries = chart.addSeries(LineSeries, {
-          lineWidth: noLineWidth,
+        const noSeries = chart.addSeries(AreaSeries, {
+          lineColor: '#ef4444',
+          topColor: 'rgba(239, 68, 68, 0.4)',
+          bottomColor: 'rgba(239, 68, 68, 0.0)',
+          lineWidth: 3,
           lineType: LineType.Curved,
-          pointMarkersVisible: false,
           priceLineVisible: true,
           priceLineWidth: 1,
           priceLineColor: '#ef4444',
@@ -215,14 +216,13 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
           crosshairMarkerVisible: true,
           crosshairMarkerBorderColor: '#ffffff',
           crosshairMarkerBackgroundColor: '#ef4444',
-          crosshairMarkerRadius: 4,
-          color: '#ef4444',
+          crosshairMarkerRadius: 5,
         } as any);
 
         // Store references
         chartRef.current = chart;
-        yesSeriesRef.current = yesSeries;
-        noSeriesRef.current = noSeries;
+        yesSeriesRef.current = yesSeries as any;
+        noSeriesRef.current = noSeries as any;
 
         // Setup resize observer with throttling
         const observer = new ResizeObserver(entries => {
@@ -294,36 +294,18 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
     const noLineWidth = selectedSide === 'no' ? 3 : 2;
 
     try {
-      const lineType = moduleRef.current?.LineType?.Curved;
-
-      const yesOptions: any = {
-        lineWidth: yesLineWidth,
-        priceLineWidth: 1,
-        priceLineColor: '#22c55e',
-        color: '#22c55e',
-        pointMarkersVisible: false,
-      };
-
-      const noOptions: any = {
-        lineWidth: noLineWidth,
-        priceLineWidth: 1,
-        priceLineColor: '#ef4444',
-        color: '#ef4444',
-        pointMarkersVisible: false,
-      };
-
-      if (lineType !== undefined) {
-        yesOptions.lineType = lineType;
-        noOptions.lineType = lineType;
-      }
-
+      // Only update line width as colors are static for area series now
       yesSeriesRef.current.applyOptions({
-        ...yesOptions,
-      });
+        lineWidth: yesLineWidth,
+        topColor: selectedSide === 'yes' ? 'rgba(34, 197, 94, 0.4)' : 'rgba(34, 197, 94, 0.1)',
+        bottomColor: selectedSide === 'yes' ? 'rgba(34, 197, 94, 0.0)' : 'rgba(34, 197, 94, 0.0)',
+      } as any);
 
       noSeriesRef.current.applyOptions({
-        ...noOptions,
-      });
+        lineWidth: noLineWidth,
+        topColor: selectedSide === 'no' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(239, 68, 68, 0.1)',
+        bottomColor: selectedSide === 'no' ? 'rgba(239, 68, 68, 0.0)' : 'rgba(239, 68, 68, 0.0)',
+      } as any);
 
     } catch (error) {
       console.warn('[PriceChart] Failed to apply styling:', error);

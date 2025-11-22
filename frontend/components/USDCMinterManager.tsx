@@ -5,9 +5,14 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadCont
 import { addresses } from '@/lib/contracts';
 import { usdcAbi } from '@/lib/abis';
 import { isAdmin as checkIsAdmin } from '@/lib/hooks';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/toast';
 
 export default function USDCMinterManager() {
   const { address } = useAccount();
+  const { pushToast } = useToast();
   const [newMinterAddress, setNewMinterAddress] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -60,20 +65,20 @@ export default function USDCMinterManager() {
 
   useEffect(() => {
     if (isAddSuccess) {
-      alert('Minter added successfully!');
+      pushToast({ title: 'Success', description: 'Minter added successfully!', type: 'success' });
       setNewMinterAddress('');
     }
-  }, [isAddSuccess]);
+  }, [isAddSuccess, pushToast]);
 
   useEffect(() => {
     if (isRemoveSuccess) {
-      alert('Minter removed successfully!');
+      pushToast({ title: 'Success', description: 'Minter removed successfully!', type: 'success' });
     }
-  }, [isRemoveSuccess]);
+  }, [isRemoveSuccess, pushToast]);
 
   const handleAddMinter = async () => {
     if (!newMinterAddress || !newMinterAddress.startsWith('0x') || newMinterAddress.length !== 42) {
-      alert('Please enter a valid Ethereum address (0x...)');
+      pushToast({ title: 'Invalid Address', description: 'Please enter a valid Ethereum address (0x...)', type: 'error' });
       return;
     }
 
@@ -86,7 +91,7 @@ export default function USDCMinterManager() {
       });
     } catch (error: any) {
       console.error('Error adding minter:', error);
-      alert(`Failed to add minter: ${error?.message || 'Unknown error'}`);
+      pushToast({ title: 'Error', description: `Failed to add minter: ${error?.message || 'Unknown error'}`, type: 'error' });
     }
   };
 
@@ -104,7 +109,7 @@ export default function USDCMinterManager() {
       });
     } catch (error: any) {
       console.error('Error removing minter:', error);
-      alert(`Failed to remove minter: ${error?.message || 'Unknown error'}`);
+      pushToast({ title: 'Error', description: `Failed to remove minter: ${error?.message || 'Unknown error'}`, type: 'error' });
     }
   };
 
@@ -123,7 +128,7 @@ export default function USDCMinterManager() {
     const isMinter: boolean = Boolean(isMinterData);
 
     return (
-      <div className="flex items-center justify-between p-3 bg-purple-50 rounded-md border border-purple-200 mb-2">
+      <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-100 mb-2">
         <div>
           <p className="text-sm font-medium text-purple-900">{addressToCheck}</p>
           <p className="text-xs text-purple-600">
@@ -131,13 +136,15 @@ export default function USDCMinterManager() {
           </p>
         </div>
         {isMinter ? (
-          <button
+          <Button
             onClick={() => handleRemoveMinter(addressToCheck)}
             disabled={isRemoving || isConfirmingRemove}
-            className="px-3 py-1 text-xs font-semibold text-red-700 bg-red-100 rounded hover:bg-red-200 disabled:opacity-50"
+            variant="destructive"
+            size="sm"
+            className="h-8"
           >
             Remove
-          </button>
+          </Button>
         ) : null}
       </div>
     );
@@ -148,81 +155,59 @@ export default function USDCMinterManager() {
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">USDC Minter Management</h3>
-      
-      <div className="mb-6">
-        <h4 className="text-sm font-medium text-gray-700 mb-3">About Minters</h4>
-        <p className="text-xs text-gray-600 mb-2">
-          Minters can mint USDC tokens directly. There are two ways to grant minting permissions:
-        </p>
-        <ul className="text-xs text-gray-600 list-disc list-inside mb-2 space-y-1">
-          <li><strong>Add as Minter:</strong> Grant direct minting permissions (requires MockUSDC owner)</li>
-          <li><strong>SpeculateCore Admin:</strong> Admins from SpeculateCore can mint if SpeculateCore address is set on MockUSDC</li>
-        </ul>
-        <p className="text-xs text-gray-500">
-          Note: Only the owner of MockUSDC can add/remove minters. If you&apos;re a SpeculateCore admin, ensure the SpeculateCore address is set on MockUSDC (requires owner).
-        </p>
-      </div>
-
-      <div className="space-y-4">
+    <Card>
+      <CardHeader>
+        <CardTitle>USDC Minter Management</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Add New Minter
-          </label>
-          <input
-            type="text"
-            value={newMinterAddress}
-            onChange={(e) => setNewMinterAddress(e.target.value)}
-            placeholder="0x..."
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-          />
-          <p className="mt-1 text-xs text-gray-500">
-            Enter the Ethereum address to grant minting permissions on MockUSDC
-          </p>
+          <h4 className="text-sm font-medium text-gray-700 mb-3">About Minters</h4>
+          <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-600 space-y-2 border border-gray-100">
+            <p>Minters can mint USDC tokens directly. There are two ways to grant minting permissions:</p>
+            <ul className="list-disc list-inside pl-2 space-y-1">
+              <li><strong>Add as Minter:</strong> Grant direct minting permissions (requires MockUSDC owner)</li>
+              <li><strong>SpeculateCore Admin:</strong> Admins from SpeculateCore can mint if SpeculateCore address is set on MockUSDC</li>
+            </ul>
+            <p className="text-gray-500 italic">Note: Only the owner of MockUSDC can add/remove minters.</p>
+          </div>
         </div>
 
-        <button
-          onClick={handleAddMinter}
-          disabled={isAdding || isConfirmingAdd || !newMinterAddress}
-          className="w-full rounded-md bg-green-600 px-4 py-3 text-sm font-semibold text-white hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {(isAdding || isConfirmingAdd) ? 'Adding Minter...' : 'Add Minter'}
-        </button>
-
-        {(isAdding || isConfirmingAdd) && (
-          <div className="p-3 bg-yellow-50 rounded-md border border-yellow-200">
-            <p className="text-sm text-yellow-800">
-              Transaction pending... Please wait for confirmation.
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Add New Minter
+            </label>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Input
+                type="text"
+                value={newMinterAddress}
+                onChange={(e) => setNewMinterAddress(e.target.value)}
+                placeholder="0x..."
+                className="flex-1"
+              />
+              <Button
+                onClick={handleAddMinter}
+                disabled={isAdding || isConfirmingAdd || !newMinterAddress}
+                className="bg-green-600 hover:bg-green-700 text-white whitespace-nowrap"
+              >
+                {(isAdding || isConfirmingAdd) ? 'Adding...' : 'Add Minter'}
+              </Button>
+            </div>
+            <p className="mt-2 text-xs text-gray-500">
+              Enter the Ethereum address to grant minting permissions on MockUSDC
             </p>
           </div>
-        )}
 
-        {addError && (
-          <div className="p-3 bg-red-50 rounded-md border border-red-200">
-            <p className="text-sm text-red-800">
-              <strong>Error:</strong> {addError.message}
-            </p>
+          <div className="mt-6 pt-6 border-t border-gray-100">
+            <h4 className="text-sm font-medium text-gray-700 mb-3">Check Minter Status</h4>
+            <MinterChecker addressToCheck={addresses.admin} />
+            {newMinterAddress && newMinterAddress !== addresses.admin && (
+              <MinterChecker addressToCheck={newMinterAddress} />
+            )}
           </div>
-        )}
-
-        {removeError && (
-          <div className="p-3 bg-red-50 rounded-md border border-red-200">
-            <p className="text-sm text-red-800">
-              <strong>Error:</strong> {removeError.message}
-            </p>
-          </div>
-        )}
-
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">Check Minter Status</h4>
-          <MinterChecker addressToCheck={addresses.admin} />
-          {newMinterAddress && newMinterAddress !== addresses.admin && (
-            <MinterChecker addressToCheck={newMinterAddress} />
-          )}
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 

@@ -361,7 +361,7 @@ export function useUserPortfolio() {
       }));
 
       // Process redemptions from subgraph
-      const redemptions: PortfolioRedemption[] = redemptionsRaw.map((r) => ({
+      let redemptions: PortfolioRedemption[] = redemptionsRaw.map((r) => ({
         id: r.id,
         marketId: Number(r.market.id),
         question: r.market.question,
@@ -371,28 +371,50 @@ export function useUserPortfolio() {
         yesWins: r.market.yesWins ?? null,
       }));
 
+      // Reuse marketCount from above
+      const maxMarketId = Number(marketCount);
+      
+      // Filter out redemptions from markets that don't exist on current Core contract
+      redemptions = redemptions.filter(r => 
+        r.marketId > 0 && r.marketId <= maxMarketId
+      );
+
       // Merge with local redemptions (optimistic updates)
       try {
-        if (typeof window !== 'undefined') {
-          const localRedemptionsRaw = JSON.parse(localStorage.getItem('userRedemptions') || '[]');
-          // Filter out redemptions that are already in the subgraph
+        if (typeof window !== 'undefined' && address) {
+          // Key local storage by user address to prevent seeing other users' data
+          const storageKey = `userRedemptions_${address.toLowerCase()}`;
+          const legacyKey = 'userRedemptions';
+          
+          // Migrate legacy data if exists (one-time cleanup)
+          const legacyData = localStorage.getItem(legacyKey);
+          if (legacyData) {
+             // We can't safely migrate because we don't know who owned it.
+             // Safest to just delete it to prevent data leak between accounts.
+             localStorage.removeItem(legacyKey);
+          }
+
+          const localRedemptionsRaw = JSON.parse(localStorage.getItem(storageKey) || '[]');
           const subgraphTxHashes = new Set(redemptions.map(r => r.txHash.toLowerCase()));
           
-          const localRedemptions = localRedemptionsRaw.filter((r: any) => 
-            !subgraphTxHashes.has(r.txHash.toLowerCase())
-          ).map((r: any) => ({
-            id: r.id,
-            marketId: r.marketId,
-            question: r.question,
-            amount: r.amount,
-            timestamp: r.timestamp,
-            txHash: r.txHash,
-            yesWins: r.yesWins
-          }));
+          const localRedemptions = localRedemptionsRaw
+            .filter((r: any) => {
+              const notInSubgraph = !subgraphTxHashes.has(r.txHash?.toLowerCase() || '');
+              const marketExists = r.marketId && Number(r.marketId) > 0 && Number(r.marketId) <= maxMarketId;
+              return notInSubgraph && marketExists;
+            })
+            .map((r: any) => ({
+              id: r.id,
+              marketId: r.marketId,
+              question: r.question,
+              amount: r.amount,
+              timestamp: r.timestamp,
+              txHash: r.txHash,
+              yesWins: r.yesWins
+            }));
 
           if (localRedemptions.length > 0) {
             redemptions.unshift(...localRedemptions);
-            // Sort by timestamp desc
             redemptions.sort((a, b) => b.timestamp - a.timestamp);
           }
         }

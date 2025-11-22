@@ -5,6 +5,11 @@ import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { addresses } from '@/lib/contracts';
 import { coreAbi as SpeculateCoreABI } from '@/lib/abis';
 import { formatUnits } from 'viem';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/components/ui/toast';
+import { CheckCircle, XCircle, AlertTriangle, DollarSign, Trophy, Activity } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface Market {
   id: number;
@@ -26,6 +31,7 @@ interface AdminMarketManagerProps {
 export default function AdminMarketManager({ markets }: AdminMarketManagerProps) {
   const { data: hash, writeContract, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const { pushToast } = useToast();
 
   const handleResolve = async (marketId: number, yesWins: boolean) => {
     try {
@@ -37,7 +43,11 @@ export default function AdminMarketManager({ markets }: AdminMarketManagerProps)
       });
     } catch (error) {
       console.error('Error resolving market:', error);
-      alert('Failed to resolve market');
+      pushToast({
+        title: 'Error',
+        description: 'Failed to resolve market',
+        type: 'error',
+      });
     }
   };
 
@@ -51,91 +61,162 @@ export default function AdminMarketManager({ markets }: AdminMarketManagerProps)
       });
     } catch (error) {
       console.error('Error finalizing residual:', error);
-      alert('Failed to finalize residual');
+      pushToast({
+        title: 'Error',
+        description: 'Failed to finalize residual',
+        type: 'error',
+      });
     }
   };
 
   useEffect(() => {
     if (isSuccess) {
-      window.location.reload();
+      pushToast({
+        title: 'Success',
+        description: 'Transaction confirmed successfully',
+        type: 'success',
+      });
+      // Small delay to allow toast to be seen before reload
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     }
-  }, [isSuccess]);
+  }, [isSuccess, pushToast]);
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900">Manage Markets</h2>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-[#0f0a2e]">Manage Markets</h2>
+          <p className="text-gray-500 text-sm mt-1">Monitor and resolve active markets</p>
+        </div>
+        <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200">
+          <Activity className="w-4 h-4 text-[#14B8A6]" />
+          <span className="text-sm font-medium text-gray-700">{markets.length} Total Markets</span>
+        </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="grid gap-4">
         {markets.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">No markets yet</p>
+          <div className="text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+            <p className="text-gray-500 font-medium">No markets found</p>
+          </div>
         ) : (
           markets.map((market) => {
             const isResolved = market.status === 'resolved';
             const winnersRemaining = market.winningSupply > 0n;
-            const canFinalizeResidual = isResolved && market.vault > 0.000001 && !winnersRemaining;
             const winningSupplyDisplay = Number(formatUnits(market.winningSupply, 18));
-            const finalizeDisabled = !isResolved || winnersRemaining || market.vault <= 0.000001 || isPending || isConfirming;
+            
+            // Logic for smart residual finalization
+            // Required payout = winningSupply (since 1 token = 1 USDC)
+            const requiredVault = winningSupplyDisplay;
+            const availableResidual = Math.max(0, market.vault - requiredVault);
+            
+            // Enable button if there is strictly more money in the vault than needed for winners
+            const canFinalizeResidual = isResolved && availableResidual > 0.000001;
+            const finalizeDisabled = !canFinalizeResidual || isPending || isConfirming;
+            
             return (
-              <div
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 key={market.id}
-                className="rounded-md border border-gray-200 p-4"
+                className={`rounded-2xl border p-5 transition-all duration-300 ${
+                  isResolved 
+                    ? 'bg-gray-50/50 border-gray-100' 
+                    : 'bg-white border-gray-100 shadow-sm hover:shadow-md hover:border-[#14B8A6]/20'
+                }`}
               >
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <h3 className="font-medium text-gray-900">{market.question}</h3>
-                    <p className="text-sm text-gray-500">
-                      Status: {market.status} • Vault: ${market.vault.toFixed(2)} • Residual pot: ${market.residual.toFixed(2)}
-                    </p>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="space-y-3 flex-1">
+                    <div className="flex items-start gap-3">
+                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-bold text-xs ${
+                         isResolved ? 'bg-gray-200 text-gray-500' : 'bg-[#14B8A6]/10 text-[#14B8A6]'
+                      }`}>
+                        #{market.id}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900 leading-tight text-lg">{market.question}</h3>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Badge variant={isResolved ? "secondary" : "default"} className={isResolved ? "bg-gray-200 text-gray-600" : "bg-[#14B8A6] hover:bg-[#0D9488]"}>
+                            {isResolved ? 'Resolved' : 'Live Trading'}
+                          </Badge>
+                          <Badge variant="outline" className="bg-white">
+                            Vault: ${market.vault.toFixed(2)}
+                          </Badge>
+                          {market.residual > 0 && (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              Finalized Residual: ${market.residual.toFixed(2)}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
                     {isResolved && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Winning side: {market.yesWins ? 'YES' : 'NO'} • Winning supply remaining: {winningSupplyDisplay.toFixed(4)}
-                      </p>
-                    )}
-                    {isResolved && winnersRemaining && (
-                      <p className="text-xs text-amber-600 mt-1">
-                        Winning tokens still exist. Ask holders to redeem before finalizing residual.
-                      </p>
+                      <div className="ml-11 bg-white rounded-xl p-3 border border-gray-100 text-sm space-y-2">
+                        <div className="flex items-center gap-2 font-medium text-gray-900">
+                          <Trophy className="w-4 h-4 text-yellow-500" />
+                          Winning Side: <span className={market.yesWins ? "text-green-600" : "text-red-600"}>{market.yesWins ? 'YES' : 'NO'}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-xs text-gray-500">
+                          <div>
+                            <p className="font-medium text-gray-700">Unclaimed Winnings</p>
+                            <p>${winningSupplyDisplay.toFixed(2)} needed</p>
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-700">Available Residual</p>
+                            <p className={availableResidual > 0 ? "text-green-600 font-bold" : ""}>${availableResidual.toFixed(2)}</p>
+                          </div>
+                        </div>
+                        
+                        {canFinalizeResidual && (
+                          <div className="flex items-start gap-2 mt-2 text-blue-600 bg-blue-50 p-2 rounded-lg text-xs">
+                            <DollarSign className="w-3 h-3 mt-0.5 shrink-0" />
+                            <p>You can finalize ${availableResidual.toFixed(2)} for LPs while keeping ${winningSupplyDisplay.toFixed(2)} reserved for winners.</p>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => handleResolve(market.id, true)}
-                      disabled={isResolved || isPending || isConfirming}
-                      className="rounded-md bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-500 disabled:opacity-50"
-                      title="Resolve as YES wins"
-                    >
-                      Resolve YES
-                    </button>
-                    <button
-                      onClick={() => handleResolve(market.id, false)}
-                      disabled={isResolved || isPending || isConfirming}
-                      className="rounded-md bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-500 disabled:opacity-50"
-                      title="Resolve as NO wins"
-                    >
-                      Resolve NO
-                    </button>
-                    <button
-                      onClick={() => handleFinalizeResidual(market.id)}
-                      disabled={finalizeDisabled}
-                      className="rounded-md bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-500 disabled:opacity-50"
-                      title="Finalize residual vault funds for LPs"
-                    >
-                      Finalize Residual
-                    </button>
+
+                  <div className="flex flex-col sm:flex-row gap-2 ml-11 lg:ml-0">
+                    {!isResolved ? (
+                      <>
+                        <Button
+                          onClick={() => handleResolve(market.id, true)}
+                          disabled={isPending || isConfirming}
+                          className="bg-green-600 hover:bg-green-700 text-white font-bold"
+                          size="sm"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Resolve YES
+                        </Button>
+                        <Button
+                          onClick={() => handleResolve(market.id, false)}
+                          disabled={isPending || isConfirming}
+                          className="bg-red-600 hover:bg-red-700 text-white font-bold"
+                          size="sm"
+                        >
+                          <XCircle className="w-4 h-4 mr-2" />
+                          Resolve NO
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        onClick={() => handleFinalizeResidual(market.id)}
+                        disabled={finalizeDisabled}
+                        variant={finalizeDisabled ? "outline" : "default"}
+                        className={finalizeDisabled ? "text-gray-400" : "bg-blue-600 hover:bg-blue-700 text-white"}
+                        size="sm"
+                      >
+                        <DollarSign className="w-4 h-4 mr-2" />
+                        Finalize Residual
+                      </Button>
+                    )}
                   </div>
                 </div>
-                {isResolved && !winnersRemaining && market.vault > 0.000001 ? (
-                  <p className="mt-2 text-xs text-blue-600">
-                    This market is resolved with ${market.vault.toFixed(2)} remaining in the vault. Finalize residual to move funds into the LP residual pot.
-                  </p>
-                ) : market.residual > 0 ? (
-                  <p className="mt-2 text-xs text-gray-500">
-                    Residual finalized. LPs can claim ${market.residual.toFixed(2)} via the claim residual flow.
-                  </p>
-                ) : null}
-              </div>
+              </motion.div>
             );
           })
         )}

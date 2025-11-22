@@ -5,9 +5,15 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadCont
 import { parseUnits, formatUnits } from 'viem';
 import { addresses } from '@/lib/contracts';
 import { usdcAbi, coreAbi } from '@/lib/abis';
+import { motion } from 'framer-motion';
+import { useToast } from '@/components/ui/toast';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export default function MintUsdcForm() {
   const { address } = useAccount();
+  const { pushToast } = useToast();
   const [mintAmount, setMintAmount] = useState('1000');
   const [userBalance, setUserBalance] = useState('0');
   
@@ -40,47 +46,50 @@ export default function MintUsdcForm() {
         refetchBalance();
       }, 1000);
       
-      alert('USDC minted successfully!');
+      pushToast({
+        title: 'Minted Successfully',
+        description: `Successfully minted ${Number(mintAmount).toLocaleString()} USDC`,
+        type: 'success'
+      });
       setMintAmount('1000');
       
       return () => clearTimeout(timeoutId);
     }
-  }, [isSuccess, refetchBalance]);
+  }, [isSuccess, refetchBalance, pushToast, mintAmount]);
 
   useEffect(() => {
     if (error) {
       console.error('Error minting USDC:', error);
       const errorMessage = error?.message || error?.toString() || 'Unknown error';
-      alert(`Failed to mint USDC: ${errorMessage}`);
+      pushToast({
+        title: 'Mint Failed',
+        description: errorMessage,
+        type: 'error'
+      });
     }
-  }, [error]);
+  }, [error, pushToast]);
 
   const handleMint = async () => {
     if (!mintAmount) {
-      alert('Please enter an amount');
+      pushToast({ title: 'Invalid Amount', description: 'Please enter an amount', type: 'warning' });
       return;
     }
 
     if (!address) {
-      alert('Please connect your wallet');
+      pushToast({ title: 'Wallet not connected', description: 'Please connect your wallet', type: 'warning' });
       return;
     }
 
     if (!addresses.usdc || addresses.usdc === '0x0000000000000000000000000000000000000000') {
-      alert('USDC address not configured');
+      pushToast({ title: 'Configuration Error', description: 'USDC address not configured', type: 'error' });
       return;
     }
 
     try {
       const amount = parseUnits(mintAmount, 6);
-      console.log('Minting USDC (Faucet):', { 
-        contractAddress: addresses.core, 
-        amount: amount.toString(), 
-        recipient: address,
-        decimals: 6
-      });
       
       // Call faucet function on SpeculateCore
+      // NOTE: This requires SpeculateCore to have minter role on the USDC token
       writeContract({
         address: addresses.core,
         abi: coreAbi,
@@ -88,65 +97,115 @@ export default function MintUsdcForm() {
         args: [amount],
       });
       
-      console.log('Faucet transaction initiated');
     } catch (error: any) {
       console.error('Error in handleMint:', error);
       const errorMessage = error?.message || error?.toString() || 'Unknown error';
-      alert(`Failed to mint USDC: ${errorMessage}`);
+      pushToast({ title: 'Transaction Failed', description: errorMessage, type: 'error' });
     }
   };
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Mint Test USDC</h3>
-      
-      {address && (
-        <div className="mb-4">
-          <p className="text-sm text-gray-600">Your Balance:</p>
-          <p className="text-2xl font-bold text-green-600">{parseFloat(userBalance).toLocaleString()} USDC</p>
+    <Card className="p-6 sm:p-8 relative overflow-hidden">
+      {/* Decorative Background */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#14B8A6]/10 to-transparent rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
+
+      <div className="relative z-10">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-12 h-12 rounded-2xl bg-[#14B8A6]/10 flex items-center justify-center text-[#14B8A6]">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">Testnet Faucet</h3>
+            <p className="text-sm text-gray-500">Mint free USDC for testing</p>
+          </div>
         </div>
-      )}
+        
+        {address ? (
+          <div className="bg-gray-50 rounded-2xl p-4 mb-6 border border-gray-100">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Your Balance</p>
+            <p className="text-2xl font-black text-gray-900 tracking-tight">
+              {parseFloat(userBalance).toLocaleString()} <span className="text-sm font-bold text-gray-400">USDC</span>
+            </p>
+          </div>
+        ) : (
+          <div className="bg-amber-50 rounded-2xl p-4 mb-6 border border-amber-100 flex items-center gap-3">
+            <div className="p-1.5 bg-amber-100 rounded-full text-amber-600">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-amber-800">Connect wallet to mint tokens</p>
+          </div>
+        )}
 
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Amount to Mint (USDC)
-          </label>
-          <input
-            type="number"
-            value={mintAmount}
-            onChange={(e) => setMintAmount(e.target.value)}
-            min="1"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-            placeholder="1000"
-          />
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+              Amount
+            </label>
+            <div className="relative">
+              <Input
+                type="number"
+                value={mintAmount}
+                onChange={(e) => setMintAmount(e.target.value)}
+                min="1"
+                className="pr-16 font-mono font-bold text-lg h-12"
+                placeholder="1000"
+                disabled={isPending || isConfirming || !address}
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400 pointer-events-none">
+                USDC
+              </div>
+            </div>
+            {/* Quick Selectors */}
+            <div className="flex gap-2 mt-3 overflow-x-auto no-scrollbar pb-1">
+              {['100', '1000', '5000', '10000'].map((amt) => (
+                <button
+                  key={amt}
+                  onClick={() => setMintAmount(amt)}
+                  disabled={isPending || isConfirming || !address}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 hover:bg-[#14B8A6]/10 hover:text-[#14B8A6] transition-colors"
+                >
+                  {Number(amt).toLocaleString()}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Button
+            onClick={handleMint}
+            disabled={isPending || isConfirming || !address}
+            className="w-full h-14 text-base bg-[#14B8A6] hover:bg-[#0D9488] shadow-lg shadow-[#14B8A6]/20"
+          >
+            {(isPending || isConfirming) ? (
+              <div className="flex items-center gap-2">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                />
+                <span>Minting...</span>
+              </div>
+            ) : (
+              'Mint USDC'
+            )}
+          </Button>
+
+          {hash && (
+            <a 
+              href={`https://testnet.bscscan.com/tx/${hash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-xs text-center text-gray-400 hover:text-[#14B8A6] transition-colors truncate px-4"
+            >
+              View Transaction: {hash}
+            </a>
+          )}
         </div>
-
-        <button
-          onClick={handleMint}
-          disabled={isPending || isConfirming || !address}
-          className="w-full rounded-md bg-purple-600 px-4 py-3 text-sm font-semibold text-white hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {(isPending || isConfirming) ? 'Minting USDC...' : 'Mint USDC'}
-        </button>
-
-        {hash && (
-          <p className="text-xs text-gray-500 text-center">
-            Transaction: {hash.slice(0, 10)}...{hash.slice(-8)}
-          </p>
-        )}
-
-        {error && (
-          <p className="text-xs text-red-600 text-center mt-2">
-            Error: {error.message || 'Transaction failed'}
-          </p>
-        )}
-
-        {!address && (
-          <p className="text-sm text-gray-500 text-center">Connect wallet to mint USDC</p>
-        )}
       </div>
-    </div>
+    </Card>
   );
 }
 

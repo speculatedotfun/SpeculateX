@@ -12,6 +12,7 @@ import { getMarketCount, getMarket, getMarketState, getLpResidualPot, isAdmin as
 import { addresses } from '@/lib/contracts';
 import { formatUnits } from 'viem';
 import { positionTokenAbi } from '@/lib/abis';
+import { motion } from 'framer-motion';
 
 interface Market {
   id: number;
@@ -129,9 +130,17 @@ export default function AdminPage() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-[#FAF9FF]">
+      <div className="min-h-screen bg-[#f5f0ff] relative overflow-hidden">
+        {/* Background Blobs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <motion.div 
+            className="absolute top-0 left-0 w-[500px] h-[500px] bg-gradient-to-br from-[#14B8A6]/10 to-blue-400/10 rounded-full blur-3xl"
+            animate={{ scale: [1, 1.1, 1], rotate: [0, 45, 0] }}
+            transition={{ duration: 15, repeat: Infinity }}
+          />
+        </div>
         <Header />
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 relative z-10">
           <div className="bg-white rounded-xl p-8 shadow-lg border border-gray-200">
             <h1 className="text-3xl font-bold text-gray-900 mb-4">Admin Panel</h1>
             <p className="text-gray-600">Please connect your wallet to access the admin panel</p>
@@ -143,9 +152,17 @@ export default function AdminPage() {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-[#FAF9FF]">
+      <div className="min-h-screen bg-[#f5f0ff] relative overflow-hidden">
+        {/* Background Blobs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <motion.div 
+            className="absolute top-0 left-0 w-[500px] h-[500px] bg-gradient-to-br from-[#14B8A6]/10 to-blue-400/10 rounded-full blur-3xl"
+            animate={{ scale: [1, 1.1, 1], rotate: [0, 45, 0] }}
+            transition={{ duration: 15, repeat: Infinity }}
+          />
+        </div>
         <Header />
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 relative z-10">
           <div className="bg-white rounded-xl p-8 shadow-lg border border-red-200">
             <h1 className="text-3xl font-bold text-gray-900 mb-4">Admin Panel</h1>
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -159,46 +176,53 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF9FF]">
+    <div className="min-h-screen bg-[#f5f0ff] relative overflow-hidden">
+      {/* Background Blobs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div 
+          className="absolute top-0 left-0 w-[500px] h-[500px] bg-gradient-to-br from-[#14B8A6]/10 to-blue-400/10 rounded-full blur-3xl"
+          animate={{ scale: [1, 1.1, 1], rotate: [0, 45, 0] }}
+          transition={{ duration: 15, repeat: Infinity }}
+        />
+      </div>
       <Header />
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Admin Panel</h1>
           <p className="text-gray-600">Manage markets, admins, and system settings</p>
         </div>
         
         <div className="mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">USDC Minting</h2>
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">USDC Minting</h2>
             <MintUsdcForm />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Create Market</h2>
+        <div className="grid grid-cols-1 gap-8 mb-8">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">Create Market</h2>
             <CreateMarketForm />
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Admin Management</h2>
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">Admin Management</h2>
             <AdminManager />
           </div>
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">USDC Minter Management</h2>
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">USDC Minter Management</h2>
             <USDCMinterManager />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Manage Markets</h2>
+        <div className="grid grid-cols-1 gap-8">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
             {loading ? (
               <div className="text-center py-12">
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#14B8A6]"></div>
-                <p className="mt-4 text-gray-500">Loading markets...</p>
+                <p className="mt-4 text-gray-500 font-medium">Loading markets...</p>
               </div>
             ) : (
               <AdminMarketManager markets={markets} />

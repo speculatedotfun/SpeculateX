@@ -43,6 +43,20 @@ function getQueryClient() {
         },
       });
     }
+    
+    // Check if we need to clear cache (Core address changed)
+    try {
+      const shouldClear = sessionStorage.getItem('clearReactQueryCache');
+      if (shouldClear === 'true') {
+        console.log('[providers] Clearing React Query cache...');
+        globalQueryClient.clear();
+        sessionStorage.removeItem('clearReactQueryCache');
+        console.log('[providers] ✅ React Query cache cleared');
+      }
+    } catch (e) {
+      // Ignore if sessionStorage not available
+    }
+    
     return globalQueryClient;
   }
 }

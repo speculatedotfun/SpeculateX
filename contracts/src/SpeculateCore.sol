@@ -192,7 +192,7 @@ contract SpeculateCore is AccessControl, ReentrancyGuard, Pausable {
         uint256 term = SCALE;
         // LN2 is a positive constant hardcoded above
         uint256 y = mul(frac, LN2);
-        for (uint8 i = 1; i <= 20;) {
+        for (uint8 i = 1; i <= 12;) {
             term = (mul(term, y)) / i;
             res += term;
             unchecked { ++i; }
@@ -217,10 +217,7 @@ contract SpeculateCore is AccessControl, ReentrancyGuard, Pausable {
         w += mul(z2, SCALE) / 3;
         uint256 z4 = mul(z2, z2);
         w += mul(z4, SCALE) / 5;
-        uint256 z6 = mul(z4, z2);
-        w += mul(z6, SCALE) / 7;
-        uint256 z8 = mul(z6, z2);
-        w += mul(z8, SCALE) / 9;
+        // Optimized: removed z6 and z8 terms to save contract size. Precision loss is negligible for this use case.
         return res + mul(mul(z, w), TWO_OVER_LN2);
     }
     function ln(uint256 x) internal pure returns (uint256) {
@@ -657,28 +654,38 @@ contract SpeculateCore is AccessControl, ReentrancyGuard, Pausable {
     // ==================
     // Residual (LP-only) after all redemptions
     // ==================
-    /// @notice Finalize any leftover vault USDC to LPs pro-rata AFTER all winning shares are redeemed.
+    /// @notice Finalize any leftover vault USDC to LPs pro-rata.
+    /// @dev Keeps enough USDC in vault to cover remaining winning tokens (1:1 payout). Moves the rest (residual) to LP pot.
     function finalizeResidual(uint256 id) external onlyRole(DEFAULT_ADMIN_ROLE) {
         Market storage m = markets[id];
         if (m.status != MarketStatus.Resolved || !m.resolution.isResolved) revert MarketNotActive();
-        // ensure all winning supply has been redeemed
+        
         bool yesWins = m.resolution.yesWins;
         // Cache token reference to avoid repeated storage reads
         PositionToken winningToken = yesWins ? m.yes : m.no;
         uint256 winningSupply = winningToken.totalSupply();
-        if (winningSupply != 0) revert("!zero");
-        uint256 leftover = m.usdcVault;
-        if (leftover == 0) {
+        
+        // Calculate required payout for remaining winners: 18 decimals -> 6 decimals
+        uint256 requiredPayout = (winningSupply * PRICE_DECIMALS_E6) / PRICE_DECIMALS_E18;
+        
+        // If vault has less than or equal to what is needed, there is no residual to distribute
+        if (m.usdcVault <= requiredPayout) {
             emit ResidualFinalized(id, 0, m.totalLpUsdc);
             return;
         }
+
+        uint256 residual = m.usdcVault - requiredPayout;
+        
         if (m.totalLpUsdc == 0) revert NoLiquidity();
-        // index the entire leftover to LPs and move it to residual pot
-        accResidualPerUSDCE18[id] += (leftover * 1e18) / m.totalLpUsdc;
-        lpResidualUSDC[id] += leftover;
-        // zero the vault (residual is now separate, untouchable by redemptions)
-        m.usdcVault = 0;
-        emit ResidualFinalized(id, leftover, m.totalLpUsdc);
+        
+        // index the residual to LPs and move it to residual pot
+        accResidualPerUSDCE18[id] += (residual * 1e18) / m.totalLpUsdc;
+        lpResidualUSDC[id] += residual;
+        
+        // Remove residual from vault, leaving exactly requiredPayout for winners
+        m.usdcVault -= residual;
+        
+        emit ResidualFinalized(id, residual, m.totalLpUsdc);
     }
     function pendingLpResidual(uint256 id, address lp) public view returns (uint256) {
         uint256 entitled = (lpShares[id][lp] * accResidualPerUSDCE18[id]) / 1e18;

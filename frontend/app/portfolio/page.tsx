@@ -170,143 +170,131 @@ export default function PortfolioPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden relative group">
+          <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-3xl overflow-hidden relative group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Total Value</h3>
-                <div className="w-8 h-8 bg-[#14B8A6]/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <TrendingUpIcon className="w-4 h-4 text-[#14B8A6]" />
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Value</h3>
+                <div className="w-10 h-10 bg-[#14B8A6]/10 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <TrendingUpIcon className="w-5 h-5 text-[#14B8A6]" />
                 </div>
               </div>
-              <div className="text-3xl font-bold text-[#0f0a2e]">
+              <div className="text-3xl sm:text-4xl font-black text-[#0f0a2e] tracking-tight">
                 {isLoading ? (
-                  <div className="h-8 w-24 bg-gray-200 animate-pulse rounded" />
+                  <div className="h-10 w-32 bg-gray-100 animate-pulse rounded-lg" />
                 ) : (
                   formatCurrency(totalValue)
                 )}
               </div>
-              <p className="text-xs text-gray-400 mt-2">Current market value</p>
+              <p className="text-xs font-medium text-gray-400 mt-2">Current market value</p>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden relative group">
+          <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-3xl overflow-hidden relative group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Active</h3>
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <ClockIcon className="w-4 h-4 text-blue-600" />
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Active</h3>
+                <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <ClockIcon className="w-5 h-5 text-blue-600" />
                 </div>
               </div>
-              <div className="text-3xl font-bold text-[#0f0a2e]">
+              <div className="text-3xl sm:text-4xl font-black text-[#0f0a2e] tracking-tight">
                 {isLoading ? (
-                  <div className="h-8 w-12 bg-gray-200 animate-pulse rounded" />
+                  <div className="h-10 w-16 bg-gray-100 animate-pulse rounded-lg" />
                 ) : (
                   activePositionsCount
                 )}
               </div>
-              <p className="text-xs text-gray-400 mt-2">Live positions</p>
+              <p className="text-xs font-medium text-gray-400 mt-2">Live positions</p>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden relative group">
+          <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-3xl overflow-hidden relative group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Resolved</h3>
-                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <CheckCircleIcon className="w-4 h-4 text-purple-600" />
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Resolved</h3>
+                <div className="w-10 h-10 bg-purple-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <CheckCircleIcon className="w-5 h-5 text-purple-600" />
                 </div>
               </div>
-              <div className="text-3xl font-bold text-[#0f0a2e]">
+              <div className="text-3xl sm:text-4xl font-black text-[#0f0a2e] tracking-tight">
                 {isLoading ? (
-                  <div className="h-8 w-12 bg-gray-200 animate-pulse rounded" />
+                  <div className="h-10 w-16 bg-gray-100 animate-pulse rounded-lg" />
                 ) : (
                   resolvedPositionsCount
                 )}
               </div>
-              <p className="text-xs text-gray-400 mt-2">Finalized markets</p>
+              <p className="text-xs font-medium text-gray-400 mt-2">Finalized markets</p>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden relative group">
+          <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-3xl overflow-hidden relative group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Claimed</h3>
-                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <TrophyIcon className="w-4 h-4 text-green-600" />
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Claimed</h3>
+                <div className="w-10 h-10 bg-green-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <TrophyIcon className="w-5 h-5 text-green-600" />
                 </div>
               </div>
-              <div className="text-3xl font-bold text-[#0f0a2e]">
+              <div className="text-3xl sm:text-4xl font-black text-[#0f0a2e] tracking-tight">
                 {isLoading ? (
-                  <div className="h-8 w-24 bg-gray-200 animate-pulse rounded" />
+                  <div className="h-10 w-32 bg-gray-100 animate-pulse rounded-lg" />
                 ) : (
                   formatCurrency(totalClaimed)
                 )}
               </div>
-              <p className="text-xs text-gray-400 mt-2">Total winnings redeemed</p>
+              <p className="text-xs font-medium text-gray-400 mt-2">Total winnings redeemed</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Content Tabs */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden min-h-[400px]">
+        <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden min-h-[400px]">
           {/* Tab Header */}
-          <div className="flex border-b border-gray-100 overflow-x-auto">
+          <div className="flex border-b border-gray-100 overflow-x-auto p-2 gap-2">
             <button
               onClick={() => setActiveTab('positions')}
-              className={`flex-1 py-4 px-4 text-sm font-medium text-center transition-colors relative whitespace-nowrap ${
+              className={`flex-1 py-3 px-4 text-sm font-bold rounded-xl transition-all relative whitespace-nowrap ${
                 activeTab === 'positions' 
-                  ? 'text-[#14B8A6]' 
+                  ? 'bg-gray-100 text-gray-900' 
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
               Positions
-              {activeTab === 'positions' && (
-                <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#14B8A6]" />
-              )}
             </button>
             <button
               onClick={() => setActiveTab('claims')}
-              className={`flex-1 py-4 px-4 text-sm font-medium text-center transition-colors relative whitespace-nowrap ${
+              className={`flex-1 py-3 px-4 text-sm font-bold rounded-xl transition-all relative whitespace-nowrap ${
                 activeTab === 'claims' 
-                  ? 'text-[#14B8A6]' 
+                  ? 'bg-gray-100 text-gray-900' 
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
               Claims & History
               {claimablePositions.length > 0 && (
-                <span className="ml-2 bg-green-100 text-green-600 text-[10px] px-1.5 py-0.5 rounded-full">
+                <span className="ml-2 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded-full shadow-sm">
                   {claimablePositions.length}
                 </span>
-              )}
-              {activeTab === 'claims' && (
-                <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#14B8A6]" />
               )}
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`flex-1 py-4 px-4 text-sm font-medium text-center transition-colors relative whitespace-nowrap ${
+              className={`flex-1 py-3 px-4 text-sm font-bold rounded-xl transition-all relative whitespace-nowrap ${
                 activeTab === 'history' 
-                  ? 'text-[#14B8A6]' 
+                  ? 'bg-gray-100 text-gray-900' 
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
               Trade History
-              {activeTab === 'history' && (
-                <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#14B8A6]" />
-              )}
             </button>
             <button
               onClick={() => setActiveTab('faucet')}
-              className={`flex-1 py-4 px-4 text-sm font-medium text-center transition-colors relative whitespace-nowrap ${
+              className={`flex-1 py-3 px-4 text-sm font-bold rounded-xl transition-all relative whitespace-nowrap ${
                 activeTab === 'faucet' 
-                  ? 'text-[#14B8A6]' 
+                  ? 'bg-gray-100 text-gray-900' 
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
               Testnet Faucet
-              {activeTab === 'faucet' && (
-                <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#14B8A6]" />
-              )}
             </button>
           </div>
 
@@ -495,49 +483,52 @@ export default function PortfolioPage() {
                       actionText="Start Trading"
                     />
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm text-left text-gray-500">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-50/50">
-                          <tr>
-                            <th className="px-4 py-3 rounded-l-lg">Action</th>
-                            <th className="px-4 py-3">Market</th>
-                            <th className="px-4 py-3">Amount</th>
-                            <th className="px-4 py-3">Price</th>
-                            <th className="px-4 py-3">Total</th>
-                            <th className="px-4 py-3 rounded-r-lg">Time</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {trades.map((trade) => (
-                            <tr key={trade.id} className="bg-white border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                              <td className="px-4 py-4 font-medium">
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
-                                  trade.action === 'buy' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    <div className="space-y-4">
+                      {trades.map((trade) => (
+                        <div 
+                          key={trade.id} 
+                          className="bg-white border border-gray-100 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:shadow-sm transition-shadow gap-4"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                              trade.action === 'buy' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                            }`}>
+                              {trade.action === 'buy' ? <ArrowUpRightIcon className="w-5 h-5" /> : <ArrowDownRightIcon className="w-5 h-5" />}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`text-xs font-bold uppercase tracking-wider ${
+                                  trade.action === 'buy' ? 'text-green-600' : 'text-red-600'
                                 }`}>
                                   {trade.action} {trade.side}
                                 </span>
-                              </td>
-                              <td className="px-4 py-4 text-gray-900 font-medium max-w-xs truncate">
-                                <Link href={`/markets/${trade.marketId}`} className="hover:text-[#14B8A6] hover:underline">
-                                  {trade.question}
-                                </Link>
-                              </td>
-                              <td className="px-4 py-4">
-                                {formatNumber(trade.tokenAmount)}
-                              </td>
-                              <td className="px-4 py-4">
-                                {formatCurrency(trade.price)}
-                              </td>
-                              <td className="px-4 py-4 font-medium text-gray-900">
-                                {formatCurrency(trade.usdcAmount)}
-                              </td>
-                              <td className="px-4 py-4 text-gray-400">
-                                {new Date(trade.timestamp * 1000).toLocaleDateString()}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                                <span className="text-xs text-gray-400">•</span>
+                                <span className="text-xs text-gray-500">
+                                  {new Date(trade.timestamp * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                              <Link href={`/markets/${trade.marketId}`} className="text-sm font-bold text-gray-900 hover:text-[#14B8A6] line-clamp-1">
+                                {trade.question}
+                              </Link>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between sm:justify-end gap-6 sm:min-w-[300px]">
+                            <div className="text-right">
+                              <p className="text-xs text-gray-400 font-medium uppercase">Amount</p>
+                              <p className="text-sm font-bold text-gray-900">{formatNumber(trade.tokenAmount)}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-gray-400 font-medium uppercase">Price</p>
+                              <p className="text-sm font-bold text-gray-900">{formatCurrency(trade.price)}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-gray-400 font-medium uppercase">Total</p>
+                              <p className="text-sm font-bold text-[#0f0a2e]">{formatCurrency(trade.usdcAmount)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </motion.div>
@@ -643,9 +634,12 @@ function PositionCard({ position, onClaimSuccess, isRedeemed = false }: { positi
             yesWins: yesWins
           };
           
-          const existing = JSON.parse(localStorage.getItem('userRedemptions') || '[]');
-          existing.push(redemption);
-          localStorage.setItem('userRedemptions', JSON.stringify(existing));
+          if (typeof window !== 'undefined' && address) {
+            const storageKey = `userRedemptions_${address.toLowerCase()}`;
+            const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            existing.push(redemption);
+            localStorage.setItem(storageKey, JSON.stringify(existing));
+          }
         } catch (e) {
           console.warn('Failed to save local redemption:', e);
         }
@@ -671,71 +665,83 @@ function PositionCard({ position, onClaimSuccess, isRedeemed = false }: { positi
   // If resolved, winner, and balance == 0 OR isRedeemed, it's "Claimed" (or lost if !won)
   const isClaimed = isRedeemed || (position.status === 'Resolved' && isWinner && position.balance <= 0.000001);
 
+  // A position is "Lost" if the market is resolved, but the user is NOT on the winning side.
+  // "Claimed" should strictly mean they WON and have already redeemed.
+  
+  // Logic fix: "Claimed" should ONLY show if they WON. If they lost, it shouldn't say claimed even if balance is 0.
+  // If they lost (resolved + !won), it should just be "Lost/Resolved", regardless of balance.
+  
+  const showClaimed = isClaimed && isWinner; // Strict check: must be a winner to be "Claimed"
+  const showLost = position.status === 'Resolved' && !isWinner; // Strict lost definition
+
+
   return (
-    <div className={`bg-white border rounded-xl p-4 sm:p-5 hover:shadow-md transition-all group ${
+    <div className={`bg-white border rounded-3xl p-5 sm:p-6 transition-all duration-300 group relative overflow-hidden ${
       canRedeem 
-        ? 'border-green-200 bg-green-50/30' 
-        : isClaimed 
-        ? 'border-gray-100 bg-gray-50/50' 
-        : isLost
-        ? 'border-red-200 bg-red-50/20'
-        : 'border-gray-100'
+        ? 'border-green-200 shadow-[0_8px_30px_rgba(34,197,94,0.1)]' 
+        : 'border-gray-100 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)]'
     }`}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {canRedeem && (
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-green-100/50 to-transparent -mr-16 -mt-16 rounded-full blur-xl pointer-events-none" />
+      )}
+      
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
         
         {/* Market Info */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <Badge variant={position.side === 'YES' ? 'default' : 'destructive'} className={`${
-              position.side === 'YES' ? 'bg-green-500' : 'bg-red-500'
-            } text-white text-[10px] px-1.5 py-0.5`}>
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+              position.side === 'YES' 
+                ? 'bg-green-100 text-green-700 border border-green-200' 
+                : 'bg-red-100 text-red-700 border border-red-200'
+            }`}>
               {position.side}
-            </Badge>
+            </span>
             {position.status === 'Resolved' && (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-600">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide bg-gray-100 text-gray-500 border border-gray-200">
                 Resolved
-              </Badge>
+              </span>
             )}
             {canRedeem && (
-              <Badge variant="default" className="bg-green-600 text-white text-[10px] px-1.5 py-0.5 animate-pulse">
-                Winner!
-              </Badge>
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-green-500 text-white shadow-sm animate-pulse">
+                Winner
+              </span>
             )}
-            {isLost && (
-              <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50 text-[10px] px-1.5 py-0.5">
+            {showLost && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide bg-red-50 text-red-500 border border-red-100">
                 Lost
-              </Badge>
+              </span>
             )}
-            {isClaimed && (
-              <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 text-[10px] px-1.5 py-0.5">
+            {showClaimed && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide bg-gray-100 text-gray-500 border border-gray-200">
                 Claimed
-              </Badge>
+              </span>
             )}
           </div>
           <Link href={`/markets/${position.marketId}`}>
-            <h3 className="text-base font-semibold text-gray-900 truncate hover:text-[#14B8A6] transition-colors">
+            <h3 className="text-lg font-bold text-gray-900 leading-tight hover:text-[#14B8A6] transition-colors line-clamp-2">
               {position.question}
             </h3>
           </Link>
         </div>
 
-        {/* Stats */}
-        <div className="flex items-center gap-4 sm:gap-8">
-          <div className="flex flex-col items-end">
-            <span className="text-xs text-gray-400 uppercase font-medium">Balance</span>
-            <span className="font-medium text-gray-900">{formatNumber(position.balance)}</span>
+        {/* Stats - Grid on mobile, Flex on desktop */}
+        <div className="grid grid-cols-3 sm:flex sm:items-center gap-4 sm:gap-8 w-full sm:w-auto border-t sm:border-t-0 border-gray-100 pt-4 sm:pt-0">
+          <div className="flex flex-col items-start sm:items-end">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Balance</span>
+            <span className="font-bold text-gray-900 text-base">{formatNumber(position.balance)}</span>
           </div>
-          <div className="flex flex-col items-end">
-            <span className="text-xs text-gray-400 uppercase font-medium">Avg Price</span>
-            <span className="font-medium text-gray-900">{formatCurrency(position.currentPrice)}</span>
+          <div className="flex flex-col items-center sm:items-end border-l border-r sm:border-0 border-gray-100 px-2 sm:px-0">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Avg Price</span>
+            <span className="font-bold text-gray-900 text-base">{formatCurrency(position.currentPrice)}</span>
           </div>
           <div className="flex flex-col items-end min-w-[80px]">
-            <span className="text-xs text-gray-400 uppercase font-medium">Value</span>
-            <span className={`font-bold ${
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Value</span>
+            <span className={`font-black text-base ${
               canRedeem 
                 ? 'text-green-600' 
-                : isLost 
-                ? 'text-red-600' 
+                : showLost 
+                ? 'text-red-500' 
                 : 'text-[#0f0a2e]'
             }`}>
               {formatCurrency(position.value)}
@@ -743,8 +749,8 @@ function PositionCard({ position, onClaimSuccess, isRedeemed = false }: { positi
           </div>
         </div>
 
-        {/* Action */}
-        <div className="flex flex-col items-end sm:border-l sm:border-gray-100 sm:pl-4 gap-2">
+        {/* Action - Full width on mobile */}
+        <div className="flex flex-col items-end sm:border-l sm:border-gray-100 sm:pl-6 gap-2 w-full sm:w-auto">
           {canRedeem ? (
             <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
               {errorMessage && (
@@ -755,22 +761,23 @@ function PositionCard({ position, onClaimSuccess, isRedeemed = false }: { positi
               <Button 
                 onClick={handleClaim}
                 disabled={isClaiming || isPending}
-                className="w-full sm:w-auto bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg shadow-green-500/20 animate-bounce-subtle"
+                className="w-full sm:w-auto bg-[#14B8A6] hover:bg-[#0D9488] text-white font-bold rounded-xl shadow-lg shadow-[#14B8A6]/20 transition-all active:scale-95"
               >
                 {isClaiming || isPending ? 'Claiming...' : 'Claim Winnings'}
               </Button>
             </div>
-          ) : isClaimed ? (
-            <Button variant="ghost" disabled className="text-green-600 font-medium bg-green-50 cursor-default">
-              <CheckIcon className="w-4 h-4 mr-1" /> Claimed
-            </Button>
-          ) : isLost ? (
-            <Button variant="ghost" disabled className="text-red-600 font-medium bg-red-50 cursor-default">
-              <XIcon className="w-4 h-4 mr-1" /> Lost
-            </Button>
+          ) : showClaimed ? (
+            <div className="flex items-center gap-1.5 text-green-600 font-bold bg-green-50 px-4 py-2 rounded-xl border border-green-100">
+              <CheckIcon className="w-4 h-4" /> 
+              <span className="text-sm">Claimed</span>
+            </div>
+          ) : showLost ? (
+            <div className="flex items-center gap-1.5 text-gray-400 font-bold bg-gray-50 px-4 py-2 rounded-xl border border-gray-100">
+              <span className="text-sm">Resolved</span>
+            </div>
           ) : (
-             <Link href={`/markets/${position.marketId}`}>
-               <Button variant="outline" className="w-full sm:w-auto border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-[#14B8A6]">
+             <Link href={`/markets/${position.marketId}`} className="w-full sm:w-auto">
+               <Button variant="outline" className="w-full border-2 border-gray-100 text-gray-600 font-bold hover:border-[#14B8A6] hover:text-[#14B8A6] hover:bg-white rounded-xl transition-all">
                  Trade
                </Button>
              </Link>

@@ -12,6 +12,8 @@ import {
 import { parseUnits, keccak256, stringToBytes, decodeEventLog } from 'viem';
 import { addresses } from '@/lib/contracts';
 import { coreAbi, usdcAbi } from '@/lib/abis';
+import { motion } from 'framer-motion';
+import { AlertCircle, CheckCircle2, ChevronDown, Info } from 'lucide-react';
 
 interface CreateMarketFormProps {
   standalone?: boolean;
@@ -286,17 +288,17 @@ useEffect(() => {
   };
 
   const formContent = (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-8">
       {/* Quick Templates */}
-      <div className="space-y-2">
-        <label className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Quick Templates</label>
+      <div className="space-y-3">
+        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Quick Start</label>
         <div className="flex flex-wrap gap-2">
           {QUESTION_TEMPLATES.map((template) => (
             <button
               key={template.label}
               type="button"
               onClick={() => applyTemplate(template)}
-              className="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-full text-xs font-medium text-gray-700 transition-colors"
+              className="px-4 py-2 bg-white hover:bg-gray-50 border border-gray-200 hover:border-[#14B8A6] rounded-xl text-xs font-bold text-gray-700 transition-all shadow-sm active:scale-95"
             >
               {template.label}
             </button>
@@ -304,212 +306,260 @@ useEffect(() => {
         </div>
       </div>
 
-      <div>
-        <label className="font-bold block mb-2">Market Question *</label>
-        <input
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          placeholder="e.g. Will BTC reach $100K by 2026?"
-          className="w-full border rounded-lg px-4 py-3"
-          required
-        />
+      <div className="space-y-6">
+        <div>
+          <label className="text-sm font-bold text-gray-900 block mb-2">Question</label>
+          <input
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="e.g. Will Bitcoin hit $100k by 2025?"
+            className="w-full bg-gray-50 border-2 border-gray-100 focus:border-[#14B8A6] focus:bg-white rounded-2xl px-4 py-4 font-medium text-gray-900 outline-none transition-all"
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="text-sm font-bold text-gray-900 block mb-2">Category</label>
+            <div className="relative">
+              <input
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="Crypto"
+                className="w-full bg-gray-50 border-2 border-gray-100 focus:border-[#14B8A6] focus:bg-white rounded-2xl px-4 py-3 font-medium text-gray-900 outline-none transition-all"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="text-sm font-bold text-gray-900 block mb-2">Resolution Date</label>
+            <input
+              type="datetime-local"
+              value={resolutionDate}
+              onChange={(e) => setResolutionDate(e.target.value)}
+              className="w-full bg-gray-50 border-2 border-gray-100 focus:border-[#14B8A6] focus:bg-white rounded-2xl px-4 py-3 font-medium text-gray-900 outline-none transition-all"
+              required
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-sm font-bold text-gray-900 block mb-2">Description (Optional)</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Add specific resolution criteria..."
+            className="w-full bg-gray-50 border-2 border-gray-100 focus:border-[#14B8A6] focus:bg-white rounded-2xl px-4 py-3 font-medium text-gray-900 outline-none transition-all min-h-[100px]"
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-bold text-gray-900 block mb-2">Initial Liquidity (USDC)</label>
+          <div className="relative">
+            <input
+              type="number"
+              value={initUsdc}
+              onChange={(e) => setInitUsdc(e.target.value)}
+              className="w-full bg-gray-50 border-2 border-gray-100 focus:border-[#14B8A6] focus:bg-white rounded-2xl px-4 py-4 font-medium text-gray-900 outline-none transition-all pr-16"
+              required
+            />
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 uppercase">USDC</div>
+          </div>
+          <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+            <Info className="w-3 h-3" />
+            Higher liquidity reduces price slippage for early traders.
+          </p>
+        </div>
       </div>
 
-      <div>
-        <label className="font-bold block mb-2">Description</label>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Add details or criteria..."
-          className="w-full border rounded-lg px-4 py-3"
-        />
-      </div>
-
-      <div>
-        <label className="font-bold block mb-2">Category</label>
-        <input
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          placeholder="Crypto"
-          className="w-full border rounded-lg px-4 py-3"
-        />
-      </div>
-
-      <div>
-        <label className="font-bold block mb-2">Resolution Date *</label>
-        <input
-          type="datetime-local"
-          value={resolutionDate}
-          onChange={(e) => setResolutionDate(e.target.value)}
-          className="w-full border rounded-lg px-4 py-3"
-          required
-        />
-      </div>
-
-      <div>
-        <label className="font-bold block mb-2">Initial Liquidity (USDC)</label>
-        <input
-          type="number"
-          value={initUsdc}
-          onChange={(e) => setInitUsdc(e.target.value)}
-          className="w-full border rounded-lg px-4 py-3"
-          required
-        />
-        <p className="text-xs text-gray-600 mt-1">
-          Sets the depth of the market; more USDC means flatter prices.
-        </p>
-      </div>
-
-      <div>
-        <label className="font-bold block mb-2">Resolution Type *</label>
-        <div className="flex flex-col gap-2">
-          <label className="flex items-center gap-3">
+      <div className="bg-gray-50/50 border border-gray-100 rounded-2xl p-6 space-y-4">
+        <label className="text-sm font-bold text-gray-900 block">Resolution Mechanism</label>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <label className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+            oracleType === 'none' 
+              ? 'border-[#14B8A6] bg-[#14B8A6]/5' 
+              : 'border-gray-200 hover:border-gray-300 bg-white'
+          }`}>
             <input
               type="radio"
               name="oracleType"
               value="none"
               checked={oracleType === 'none'}
               onChange={() => setOracleType('none')}
+              className="text-[#14B8A6] focus:ring-[#14B8A6]"
             />
-            Manual Resolution
+            <div>
+              <div className="font-bold text-sm text-gray-900">Manual</div>
+              <div className="text-xs text-gray-500">Admin resolves</div>
+            </div>
           </label>
-          <label className="flex items-center gap-3">
+          <label className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+            oracleType === 'chainlink' 
+              ? 'border-[#14B8A6] bg-[#14B8A6]/5' 
+              : 'border-gray-200 hover:border-gray-300 bg-white'
+          }`}>
             <input
               type="radio"
               name="oracleType"
               value="chainlink"
               checked={oracleType === 'chainlink'}
               onChange={() => setOracleType('chainlink')}
+              className="text-[#14B8A6] focus:ring-[#14B8A6]"
             />
-            Chainlink Auto-Resolution
+            <div>
+              <div className="font-bold text-sm text-gray-900">Chainlink Oracle</div>
+              <div className="text-xs text-gray-500">Automated price feed</div>
+            </div>
           </label>
         </div>
+
+        {oracleType === 'chainlink' && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="pt-4 space-y-4 border-t border-gray-200"
+          >
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Price Feed</label>
+              <div className="relative">
+                <select
+                  value={priceFeedSymbol}
+                  onChange={(e) => setPriceFeedSymbol(e.target.value)}
+                  className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 font-medium text-gray-900 outline-none focus:border-[#14B8A6] appearance-none"
+                >
+                  <option value="BTC/USD">BTC/USD</option>
+                  <option value="ETH/USD">ETH/USD</option>
+                  <option value="BNB/USD">BNB/USD</option>
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Target Price</label>
+                <input
+                  type="number"
+                  value={targetValue}
+                  onChange={(e) => setTargetValue(e.target.value)}
+                  placeholder="50000"
+                  className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 font-medium text-gray-900 outline-none focus:border-[#14B8A6]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Comparison</label>
+                <div className="relative">
+                  <select
+                    value={comparison}
+                    onChange={(e) => setComparison(e.target.value as 'above' | 'below' | 'equals')}
+                    className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 font-medium text-gray-900 outline-none focus:border-[#14B8A6] appearance-none"
+                  >
+                    <option value="above">Above Target</option>
+                    <option value="below">Below Target</option>
+                    <option value="equals">Equals Target</option>
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </div>
 
-      {oracleType === 'chainlink' && (
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4">
-          <h3 className="font-semibold text-gray-900">Chainlink Configuration</h3>
-          <div>
-            <label className="block mb-1">Price Feed Symbol *</label>
-            <select
-              value={priceFeedSymbol}
-              onChange={(e) => setPriceFeedSymbol(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2"
-            >
-              <option value="BTC/USD">BTC/USD</option>
-              <option value="ETH/USD">ETH/USD</option>
-              <option value="BNB/USD">BNB/USD</option>
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block mb-1">Target Value *</label>
+      {/* Token Details Toggle/Section - Optional for advanced users, kept simple here */}
+      <details className="group">
+        <summary className="flex items-center gap-2 text-sm font-semibold text-gray-500 cursor-pointer hover:text-gray-900">
+          <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
+          Advanced Token Settings
+        </summary>
+        <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-green-50/50 p-4 rounded-xl border border-green-100">
+            <div className="text-xs font-bold text-green-700 mb-2 uppercase">YES Token</div>
+            <div className="space-y-2">
               <input
-                type="number"
-                value={targetValue}
-                onChange={(e) => setTargetValue(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2"
+                value={yesName}
+                onChange={(e) => setYesName(e.target.value)}
+                placeholder="Name"
+                className="w-full bg-white border border-green-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-green-500"
+              />
+              <input
+                value={yesSymbol}
+                onChange={(e) => setYesSymbol(e.target.value)}
+                placeholder="Symbol"
+                className="w-full bg-white border border-green-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-green-500"
               />
             </div>
-            <div>
-              <label className="block mb-1">Comparison *</label>
-              <select
-                value={comparison}
-                onChange={(e) => setComparison(e.target.value as 'above' | 'below' | 'equals')}
-                className="w-full border rounded-lg px-3 py-2"
-              >
-                <option value="above">Above</option>
-                <option value="below">Below</option>
-                <option value="equals">Equals</option>
-              </select>
+          </div>
+          <div className="bg-red-50/50 p-4 rounded-xl border border-red-100">
+            <div className="text-xs font-bold text-red-700 mb-2 uppercase">NO Token</div>
+            <div className="space-y-2">
+              <input
+                value={noName}
+                onChange={(e) => setNoName(e.target.value)}
+                placeholder="Name"
+                className="w-full bg-white border border-red-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-red-500"
+              />
+              <input
+                value={noSymbol}
+                onChange={(e) => setNoSymbol(e.target.value)}
+                placeholder="Symbol"
+                className="w-full bg-white border border-red-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-red-500"
+              />
             </div>
           </div>
-          <div>
-            <label className="block mb-1">Custom Feed Address (optional)</label>
-            <input
-              value={customOracle}
-              onChange={(e) => setCustomOracle(e.target.value)}
-              placeholder="0x..."
-              className="w-full border rounded-lg px-3 py-2"
-            />
-            <p className="text-xs text-gray-500">Leave blank to use the default address for the selected feed.</p>
-          </div>
         </div>
-      )}
+      </details>
 
-      <div className="p-4 bg-gray-50 rounded-lg border space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label>YES Token Name</label>
-            <input
-              value={yesName}
-              onChange={(e) => setYesName(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label>YES Token Symbol</label>
-            <input
-              value={yesSymbol}
-              onChange={(e) => setYesSymbol(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm"
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label>NO Token Name</label>
-            <input
-              value={noName}
-              onChange={(e) => setNoName(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label>NO Token Symbol</label>
-            <input
-              value={noSymbol}
-              onChange={(e) => setNoSymbol(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm"
-            />
-          </div>
-        </div>
-      </div>
-
-      {needsApproval && (
-        <div className="p-4 bg-red-50 border rounded-lg">
-          <p className="text-red-800 font-semibold mb-2">Approval Required</p>
+      {needsApproval ? (
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center"
+        >
+          <AlertCircle className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+          <h4 className="font-bold text-amber-900 mb-1">Approval Required</h4>
+          <p className="text-sm text-amber-700 mb-4">You need to approve USDC usage to fund the initial liquidity.</p>
           <button
             type="button"
             onClick={handleApprove}
             disabled={isApproving || isApprovalConfirming}
-            className="w-full bg-red-600 hover:bg-red-500 text-white rounded-lg py-3 font-semibold disabled:opacity-50"
+            className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-lg shadow-amber-500/20 transition-all active:scale-95 disabled:opacity-50"
           >
             {isApproving || isApprovalConfirming ? 'Approving...' : 'Approve USDC'}
           </button>
-        </div>
+        </motion.div>
+      ) : (
+        <button
+          type="submit"
+          disabled={isPending || isConfirming || needsApproval}
+          className="w-full py-4 bg-gradient-to-r from-[#14B8A6] to-[#0D9488] hover:from-[#0D9488] hover:to-[#0f766e] text-white font-black text-lg rounded-2xl shadow-xl shadow-[#14B8A6]/20 transition-all transform active:scale-[0.98] disabled:opacity-50 disabled:transform-none"
+        >
+          {isPending || isConfirming ? (
+            <span className="flex items-center justify-center gap-2">
+              <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full" />
+              Creating Market...
+            </span>
+          ) : (
+            'Create Market'
+          )}
+        </button>
       )}
-
-      <button
-        type="submit"
-        disabled={isPending || isConfirming || needsApproval}
-        className="w-full bg-teal-500 hover:bg-teal-600 text-white rounded-lg py-3 font-semibold disabled:opacity-50"
-      >
-        {isPending || isConfirming ? 'Creating...' : 'Create Market'}
-      </button>
     </form>
   );
 
   if (standalone) {
     return (
-      <div className="min-h-screen bg-gray-50 py-10">
-        <div className="max-w-4xl mx-auto px-4">
-          <Link href="/" className="text-teal-600 hover:text-teal-500 font-medium mb-6 inline-block">
-            ← Back to Home
+      <div className="min-h-screen bg-[#f5f0ff] py-12">
+        <div className="max-w-3xl mx-auto px-4">
+          <Link href="/" className="inline-flex items-center text-gray-500 hover:text-[#14B8A6] font-bold mb-8 transition-colors">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            Back to Home
           </Link>
-          <div className="bg-white p-8 rounded-xl shadow border">
-            <h1 className="text-3xl font-bold mb-6">Create Market</h1>
+          <div className="bg-white p-8 sm:p-10 rounded-[32px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] border border-gray-100">
+            <div className="mb-8">
+              <h1 className="text-3xl sm:text-4xl font-black text-[#0f0a2e] mb-2">Create Market</h1>
+              <p className="text-gray-500">Launch a new prediction market with custom parameters.</p>
+            </div>
             {formContent}
           </div>
         </div>
@@ -517,5 +567,5 @@ useEffect(() => {
     );
   }
 
-  return <div className="bg-white p-6 rounded-lg shadow">{formContent}</div>;
+  return <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">{formContent}</div>;
 }

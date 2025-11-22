@@ -21,13 +21,13 @@ export function ConnectionStatusIndicator({ health, analytics }: {
   };
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1 bg-gray-50 rounded-full border border-gray-200">
-      <div className={`w-2 h-2 rounded-full ${getStatusColor(health?.status || 'unhealthy')}`} />
-      <span className="text-xs font-medium text-gray-600">
+    <div className="flex items-center gap-2 px-3 py-1.5 bg-white/50 backdrop-blur-md rounded-full border border-white/60 shadow-sm">
+      <div className={`w-2 h-2 rounded-full ${getStatusColor(health?.status || 'unhealthy')} ring-2 ring-white/50`} />
+      <span className="text-xs font-bold text-gray-700">
         {getStatusText(health?.status || 'unhealthy')}
       </span>
       {health?.latency && (
-        <span className="text-xs text-gray-500">
+        <span className="text-xs font-mono text-gray-400 ml-1">
           {Math.round(health.latency)}ms
         </span>
       )}

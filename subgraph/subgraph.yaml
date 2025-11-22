@@ -6,9 +6,9 @@ dataSources:
     name: SpeculateCore
     network: chapel
     source:
-      address: "0xCd8EBd779bc4dD30e5343Ac6baFdBe66E286a512"
+      address: "0x62E390c9251186E394cEF754FbB42b8391331d0F"
       abi: SpeculateCore
-      startBlock: 74100000
+      startBlock: 74246000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
