@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useBlockNumber, useReadContract, usePublicClient } from 'wagmi';
 import { addresses } from '@/lib/contracts';
 import { coreAbi } from '@/lib/abis';
-import { getSpotPriceYesE6 } from '@/lib/hooks';
+import { getSpotPriceYesE6, getMarketResolution } from '@/lib/hooks';
 import type { PricePoint } from '@/lib/priceHistory/types';
 
 export interface MarketPrices {
@@ -27,17 +27,17 @@ export interface UseMarketDataResult {
   // Current prices
   currentPrices: MarketPrices;
   instantPrices: InstantPrices;
-
+  
   // Chart data
   chartData: PricePoint[];
-
+  
   // Market state
   marketState: MarketState | null;
-
+  
   // UI state
   isLoading: boolean;
   error: string | null;
-
+  
   // Actions
   refetch: () => Promise<void>;
 }
@@ -54,14 +54,14 @@ export function useMarketData(marketId: number): UseMarketDataResult {
   const [marketState, setMarketState] = useState<MarketState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  
   // Refs for polling
   const lastCheckedBlockRef = useRef<bigint | null>(null);
   const lastPriceUpdateTimeRef = useRef<number>(0);
   const processedTxHashesRef = useRef<Set<string>>(new Set());
 
   // Market state query
-  const marketStateQuery = useReadContract({
+  const { refetch: refetchMarketState } = useReadContract({
     address: addresses.core,
     abi: coreAbi,
     functionName: 'getMarketState',
@@ -78,14 +78,29 @@ export function useMarketData(marketId: number): UseMarketDataResult {
       setError(null);
 
       // Load market state
-      const stateResult = await marketStateQuery.refetch();
+      const stateResult = await refetchMarketState();
+      
+      // Also check resolution status
+      const resolution = await getMarketResolution(marketIdBigInt);
+      
       if (stateResult.data) {
         const [qYes, qNo, vault, b, priceYes] = stateResult.data as [bigint, bigint, bigint, bigint, bigint];
         setMarketState({ qYes, qNo, vault, b, priceYes });
 
-        // Set initial prices
-        const yesPrice = Number(priceYes) / 1e6;
-        const noPrice = 1 - yesPrice;
+        let yesPrice = Number(priceYes) / 1e6;
+        let noPrice = 1 - yesPrice;
+
+        // Override prices if resolved
+        if (resolution && resolution.isResolved) {
+          if (resolution.yesWins) {
+            yesPrice = 1;
+            noPrice = 0;
+          } else {
+            yesPrice = 0;
+            noPrice = 1;
+          }
+        }
+
         setCurrentPrices({ yes: yesPrice, no: noPrice });
         setInstantPrices({ yes: yesPrice, no: noPrice });
       }
@@ -96,7 +111,7 @@ export function useMarketData(marketId: number): UseMarketDataResult {
     } finally {
       setIsLoading(false);
     }
-  }, [publicClient, marketId, marketStateQuery]);
+  }, [publicClient, marketId, refetchMarketState, marketIdBigInt]);
 
   // Block polling for price changes
   useEffect(() => {
@@ -117,6 +132,27 @@ export function useMarketData(marketId: number): UseMarketDataResult {
 
     const pollPrices = async () => {
       try {
+        // Check resolution status first
+        const resolution = await getMarketResolution(marketIdBigInt);
+        if (resolution && resolution.isResolved) {
+           // If resolved, stop polling and set final prices
+           let yesPrice = 0;
+           let noPrice = 0;
+           if (resolution.yesWins) {
+             yesPrice = 1;
+             noPrice = 0;
+           } else {
+             yesPrice = 0;
+             noPrice = 1;
+           }
+           
+           if (currentPrices.yes !== yesPrice) {
+             setCurrentPrices({ yes: yesPrice, no: noPrice });
+             setInstantPrices({ yes: yesPrice, no: noPrice });
+           }
+           return;
+        }
+
         const priceYesE6 = await getSpotPriceYesE6(marketIdBigInt);
         if (!priceYesE6) return;
 
@@ -126,6 +162,7 @@ export function useMarketData(marketId: number): UseMarketDataResult {
         // Only update if price changed significantly
         const priceChange = Math.abs(currentPrices.yes - newPriceYes);
         if (priceChange > 0.00001) {
+          // ... (rest of existing polling logic)
           console.log('[useMarketData] 📊 Price change detected:', {
             oldPrice: currentPrices.yes,
             newPrice: newPriceYes,
@@ -188,7 +225,7 @@ export function useMarketData(marketId: number): UseMarketDataResult {
   // Load initial data on mount
   useEffect(() => {
     loadInitialData();
-  }, [loadInitialData]); // Run when loadInitialData changes
+  }, [loadInitialData]);
 
   // Refetch function
   const refetch = useCallback(async () => {

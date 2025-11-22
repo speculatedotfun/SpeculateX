@@ -128,6 +128,8 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
 
         const { createChart, ColorType, CrosshairMode, LineStyle, AreaSeries, LineType } = moduleRef.current;
 
+        if (!containerRef.current) return;
+
         // Create chart with professional styling
         const chart = createChart(containerRef.current, {
           width: containerRef.current.clientWidth,

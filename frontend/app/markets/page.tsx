@@ -222,9 +222,24 @@ export default function MarketsPage() {
             noPercent = Math.round((qNo / totalShares) * 100);
           }
 
-          const yesPriceNum = parseFloat(priceYes);
-          const yesPriceClean = Number.isFinite(yesPriceNum) ? yesPriceNum : 0;
-          const noPriceClean = Number.isFinite(yesPriceNum) ? Math.max(0, 1 - yesPriceNum) : 0;
+          let yesPriceNum = parseFloat(priceYes);
+          let yesPriceClean = Number.isFinite(yesPriceNum) ? yesPriceNum : 0;
+          let noPriceClean = Number.isFinite(yesPriceNum) ? Math.max(0, 1 - yesPriceNum) : 0;
+
+          // Override prices if market is resolved
+          if (resolution.isResolved) {
+            if (resolution.yesWins) {
+              yesPriceClean = 1;
+              noPriceClean = 0;
+              yesPercent = 100;
+              noPercent = 0;
+            } else {
+              yesPriceClean = 0;
+              noPriceClean = 1;
+              yesPercent = 0;
+              noPercent = 100;
+            }
+          }
 
           return {
             id: i,
@@ -623,19 +638,15 @@ export default function MarketsPage() {
                   >
                     <Link href={`/markets/${market.id}`}>
                       <div className="group relative bg-white rounded-3xl p-5 shadow-[0_2px_10px_rgb(0,0,0,0.03)] border border-gray-100 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:border-[#14B8A6]/20 transition-all duration-300 h-full flex flex-col">
-                        {/* Live Indicator or Status */}
-                        <div className="absolute top-5 right-5 z-10">
-                          {market.status === 'LIVE TRADING' ? (
+                        {/* Live Indicator */}
+                        {market.status === 'LIVE TRADING' && (
+                          <div className="absolute top-5 right-5 z-10">
                             <span className="flex h-2.5 w-2.5">
                               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
                             </span>
-                          ) : (
-                            <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-500">
-                              {market.status}
-                            </Badge>
-                          )}
-                        </div>
+                          </div>
+                        )}
 
                         {/* Card Header */}
                         <div className="flex items-start gap-4 mb-4 pr-6">
@@ -701,8 +712,8 @@ export default function MarketsPage() {
                               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
-                              <span className={Number(market.expiryTimestamp) < Date.now() / 1000 ? "text-orange-400" : ""}>
-                                {formatTimeRemaining(market.expiryTimestamp)}
+                              <span className={market.isResolved ? "text-purple-600 font-bold" : (Number(market.expiryTimestamp) < Date.now() / 1000 ? "text-orange-400" : "")}>
+                                {market.isResolved ? "Resolved" : formatTimeRemaining(market.expiryTimestamp)}
                               </span>
                             </div>
                           )}
