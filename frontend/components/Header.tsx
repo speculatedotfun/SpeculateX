@@ -53,6 +53,7 @@ export default function Header() {
     { href: '/', label: 'Home' },
     { href: '/markets', label: 'Markets' },
     { href: '/portfolio', label: 'Portfolio' },
+    { href: '/leaderboard', label: 'Leaderboard' },
     ...(isAdmin ? [{ href: '/admin', label: 'Admin' }] : []),
   ];
 
