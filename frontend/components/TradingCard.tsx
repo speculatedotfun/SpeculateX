@@ -1366,7 +1366,7 @@ export default function TradingCard({
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">Large Order</h3>
                 <p className="text-gray-500 mt-2 text-sm leading-relaxed">
-                  This amount exceeds the optimal trade size. We'll split it into smaller chunks to get you a better price.
+                  This amount exceeds the optimal trade size. We&apos;ll split it into smaller chunks to get you a better price.
                 </p>
               </div>
 

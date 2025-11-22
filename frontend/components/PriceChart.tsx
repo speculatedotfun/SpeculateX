@@ -262,7 +262,8 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
       yesSeriesRef.current = null;
       noSeriesRef.current = null;
     };
-  }, []); // Empty dependency array - setup runs once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - setup runs once, height changes handled separately
 
   // Update chart height when prop changes
   useEffect(() => {

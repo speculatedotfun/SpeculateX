@@ -548,7 +548,7 @@ export default function MarketDetailPage() {
         }
       }
     },
-    []
+    [mergePricePoints]
   );
 
   // Subscribe to live updates

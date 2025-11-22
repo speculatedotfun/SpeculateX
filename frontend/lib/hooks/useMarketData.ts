@@ -96,7 +96,7 @@ export function useMarketData(marketId: number): UseMarketDataResult {
     } finally {
       setIsLoading(false);
     }
-  }, [publicClient, marketId]);
+  }, [publicClient, marketId, marketStateQuery]);
 
   // Block polling for price changes
   useEffect(() => {
@@ -183,12 +183,12 @@ export function useMarketData(marketId: number): UseMarketDataResult {
     };
 
     pollPrices();
-  }, [blockNumber, publicClient, marketId]);
+  }, [blockNumber, publicClient, marketId, currentPrices.yes, marketIdBigInt]);
 
   // Load initial data on mount
   useEffect(() => {
     loadInitialData();
-  }, []); // Empty dependency array - run only once on mount
+  }, [loadInitialData]); // Run when loadInitialData changes
 
   // Refetch function
   const refetch = useCallback(async () => {
