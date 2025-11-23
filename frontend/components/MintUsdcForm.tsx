@@ -117,32 +117,32 @@ export default function MintUsdcForm() {
             </svg>
           </div>
           <div>
-            <h3 className="text-xl font-bold text-gray-900">Testnet Faucet</h3>
-            <p className="text-sm text-gray-500">Mint free USDC for testing</p>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Testnet Faucet</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Mint free USDC for testing</p>
           </div>
         </div>
         
         {address ? (
-          <div className="bg-gray-50 rounded-2xl p-4 mb-6 border border-gray-100">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Your Balance</p>
-            <p className="text-2xl font-black text-gray-900 tracking-tight">
-              {parseFloat(userBalance).toLocaleString()} <span className="text-sm font-bold text-gray-400">USDC</span>
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 mb-6 border border-gray-100 dark:border-gray-700">
+            <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Your Balance</p>
+            <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+              {parseFloat(userBalance).toLocaleString()} <span className="text-sm font-bold text-gray-400 dark:text-gray-500">USDC</span>
             </p>
           </div>
         ) : (
-          <div className="bg-amber-50 rounded-2xl p-4 mb-6 border border-amber-100 flex items-center gap-3">
-            <div className="p-1.5 bg-amber-100 rounded-full text-amber-600">
+          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-4 mb-6 border border-amber-100 dark:border-amber-800 flex items-center gap-3">
+            <div className="p-1.5 bg-amber-100 dark:bg-amber-900/30 rounded-full text-amber-600 dark:text-amber-400">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-amber-800">Connect wallet to mint tokens</p>
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Connect wallet to mint tokens</p>
           </div>
         )}
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">
               Amount
             </label>
             <div className="relative">
@@ -155,7 +155,7 @@ export default function MintUsdcForm() {
                 placeholder="1000"
                 disabled={isPending || isConfirming || !address}
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400 pointer-events-none">
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400 dark:text-gray-500 pointer-events-none">
                 USDC
               </div>
             </div>
@@ -166,7 +166,7 @@ export default function MintUsdcForm() {
                   key={amt}
                   onClick={() => setMintAmount(amt)}
                   disabled={isPending || isConfirming || !address}
-                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 hover:bg-[#14B8A6]/10 hover:text-[#14B8A6] transition-colors"
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-[#14B8A6]/10 dark:hover:bg-[#14B8A6]/20 hover:text-[#14B8A6] transition-colors"
                 >
                   {Number(amt).toLocaleString()}
                 </button>
@@ -198,7 +198,7 @@ export default function MintUsdcForm() {
               href={`https://testnet.bscscan.com/tx/${hash}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="block text-xs text-center text-gray-400 hover:text-[#14B8A6] transition-colors truncate px-4"
+              className="block text-xs text-center text-gray-400 dark:text-gray-500 hover:text-[#14B8A6] transition-colors truncate px-4"
             >
               View Transaction: {hash}
             </a>

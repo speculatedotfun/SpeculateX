@@ -128,10 +128,10 @@ export default function USDCMinterManager() {
     const isMinter: boolean = Boolean(isMinterData);
 
     return (
-      <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-100 mb-2">
+      <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-100 dark:border-purple-800 mb-2">
         <div>
-          <p className="text-sm font-medium text-purple-900">{addressToCheck}</p>
-          <p className="text-xs text-purple-600">
+          <p className="text-sm font-medium text-purple-900 dark:text-purple-200">{addressToCheck}</p>
+          <p className="text-xs text-purple-600 dark:text-purple-400">
             {isMinter ? 'Has minting permissions' : 'No minting permissions'}
           </p>
         </div>
@@ -161,20 +161,20 @@ export default function USDCMinterManager() {
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-3">About Minters</h4>
-          <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-600 space-y-2 border border-gray-100">
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">About Minters</h4>
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-xs text-gray-600 dark:text-gray-400 space-y-2 border border-gray-100 dark:border-gray-700">
             <p>Minters can mint USDC tokens directly. There are two ways to grant minting permissions:</p>
             <ul className="list-disc list-inside pl-2 space-y-1">
               <li><strong>Add as Minter:</strong> Grant direct minting permissions (requires MockUSDC owner)</li>
               <li><strong>SpeculateCore Admin:</strong> Admins from SpeculateCore can mint if SpeculateCore address is set on MockUSDC</li>
             </ul>
-            <p className="text-gray-500 italic">Note: Only the owner of MockUSDC can add/remove minters.</p>
+            <p className="text-gray-500 dark:text-gray-500 italic">Note: Only the owner of MockUSDC can add/remove minters.</p>
           </div>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Add New Minter
             </label>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -193,13 +193,13 @@ export default function USDCMinterManager() {
                 {(isAdding || isConfirmingAdd) ? 'Adding...' : 'Add Minter'}
               </Button>
             </div>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
               Enter the Ethereum address to grant minting permissions on MockUSDC
             </p>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-gray-100">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">Check Minter Status</h4>
+          <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Check Minter Status</h4>
             <MinterChecker addressToCheck={addresses.admin} />
             {newMinterAddress && newMinterAddress !== addresses.admin && (
               <MinterChecker addressToCheck={newMinterAddress} />

@@ -176,19 +176,19 @@ export default function AdminManager() {
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-3">Current Admins</h4>
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Current Admins</h4>
           {loading ? (
-            <p className="text-sm text-gray-500">Loading admins...</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Loading admins...</p>
           ) : (
             <div className="space-y-2">
               {currentAdmins.length > 0 ? (
                 currentAdmins.map((admin, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-blue-50 rounded-xl border border-blue-100">
+                  <div key={index} className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
                     <div>
-                      <p className="text-sm font-medium text-blue-900">
+                      <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
                         {admin}
                       </p>
-                      <p className="text-xs text-blue-600">Has DEFAULT_ADMIN_ROLE</p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400">Has DEFAULT_ADMIN_ROLE</p>
                     </div>
                     <Button
                       onClick={() => handleRemoveAdmin(admin)}
@@ -201,14 +201,14 @@ export default function AdminManager() {
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-gray-500">No admins found. The deployer address retains admin rights.</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">No admins found. The deployer address retains admin rights.</p>
               )}
             </div>
           )}
         </div>
 
-        <div className="border-t border-gray-100 pt-4">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">Add New Admin</h4>
+        <div className="border-t border-gray-100 dark:border-gray-700 pt-4">
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Add New Admin</h4>
           <div className="flex flex-col sm:flex-row gap-3">
             <Input
               type="text"

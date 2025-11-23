@@ -9,6 +9,7 @@ import type {
   Time,
 } from 'lightweight-charts';
 import type { PricePoint } from '@/lib/priceHistory/types';
+import { useTheme } from '@/lib/theme';
 
 interface PriceChartProps {
   data: PricePoint[];
@@ -31,6 +32,8 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
   // This prevents the "Loading..." spinner from persisting when we have valid sync points
   const showLoadingOverlay = !hasData;
   const [chartError, setChartError] = useState<string | null>(null);
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
 
   // Process data with visual breaks for gaps
   const processDataWithBreaks = useCallback((rawData: PricePoint[]): { yesData: (LineData | { time: Time; value: undefined })[], noData: (LineData | { time: Time; value: undefined })[] } => {
@@ -130,33 +133,33 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
 
         if (!containerRef.current) return;
 
-        // Create chart with professional styling
+        // Create chart with professional styling - supports dark mode
         const chart = createChart(containerRef.current, {
           width: containerRef.current.clientWidth,
           height,
           layout: {
-            background: { type: ColorType.Solid, color: '#ffffff' },
-            textColor: '#94a3b8', // Slate-400
+            background: { type: ColorType.Solid, color: isDark ? '#1e293b' : '#ffffff' },
+            textColor: isDark ? '#94a3b8' : '#64748b', // Slate-400
             fontSize: 11,
             fontFamily: "'Geist', 'Inter', sans-serif",
           },
           grid: {
-            vertLines: { color: '#f1f5f9', style: LineStyle.Solid, visible: false },
-            horzLines: { color: '#f1f5f9', style: LineStyle.Solid, visible: true },
+            vertLines: { color: isDark ? '#334155' : '#f1f5f9', style: LineStyle.Solid, visible: false },
+            horzLines: { color: isDark ? '#334155' : '#f1f5f9', style: LineStyle.Solid, visible: true },
           },
           crosshair: {
             mode: CrosshairMode.Normal,
             vertLine: {
               width: 1,
-              color: '#94a3b8',
+              color: isDark ? '#64748b' : '#94a3b8',
               style: LineStyle.Dashed,
-              labelBackgroundColor: '#1e293b',
+              labelBackgroundColor: isDark ? '#0f172a' : '#1e293b',
             },
             horzLine: {
               width: 1,
-              color: '#94a3b8',
+              color: isDark ? '#64748b' : '#94a3b8',
               style: LineStyle.Dashed,
-              labelBackgroundColor: '#1e293b',
+              labelBackgroundColor: isDark ? '#0f172a' : '#1e293b',
             },
           },
           rightPriceScale: {
@@ -327,13 +330,40 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
     updateSeriesStyling();
   }, [selectedSide, updateSeriesStyling]);
 
+  // Update chart theme when theme changes
+  useEffect(() => {
+    if (!chartRef.current || !moduleRef.current) return;
+    const { ColorType, LineStyle } = moduleRef.current;
+    
+    chartRef.current.applyOptions({
+      layout: {
+        background: { type: ColorType.Solid, color: isDark ? '#1e293b' : '#ffffff' },
+        textColor: isDark ? '#94a3b8' : '#64748b',
+      },
+      grid: {
+        vertLines: { color: isDark ? '#334155' : '#f1f5f9', style: LineStyle.Solid },
+        horzLines: { color: isDark ? '#334155' : '#f1f5f9', style: LineStyle.Solid },
+      },
+      crosshair: {
+        vertLine: {
+          color: isDark ? '#64748b' : '#94a3b8',
+          labelBackgroundColor: isDark ? '#0f172a' : '#1e293b',
+        },
+        horzLine: {
+          color: isDark ? '#64748b' : '#94a3b8',
+          labelBackgroundColor: isDark ? '#0f172a' : '#1e293b',
+        },
+      },
+    });
+  }, [isDark]);
+
   // Error fallback UI
   if (chartError) {
     return (
-      <div className="relative w-full h-full flex items-center justify-center bg-gray-50 rounded-xl">
+      <div className="relative w-full h-full flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-xl">
         <div className="text-center p-4">
-          <div className="text-red-500 mb-2">Chart Error</div>
-          <div className="text-sm text-gray-500">{chartError}</div>
+          <div className="text-red-500 dark:text-red-400 mb-2">Chart Error</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">{chartError}</div>
         </div>
       </div>
     );
@@ -343,7 +373,7 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
     <div className="relative w-full h-full" style={{ minHeight: height }} data-testid="price-chart">
       <div ref={containerRef} className="w-full h-full" />
       {showLoadingOverlay && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-sm z-10">
+        <div className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm z-10">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}

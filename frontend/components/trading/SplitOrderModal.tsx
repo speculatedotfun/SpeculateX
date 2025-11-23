@@ -24,33 +24,33 @@ export function SplitOrderModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
-      <div className="relative bg-white rounded-xl shadow-xl max-w-sm w-full mx-4 p-6 space-y-4">
+      <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-sm w-full mx-4 p-6 space-y-4 border border-gray-200 dark:border-gray-800">
         <div>
-          <h3 className="text-lg font-bold text-gray-900">Split Order Confirmation</h3>
-          <p className="text-sm text-gray-600 mt-1">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Split Order Confirmation</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             This buy would exceed the single-transaction price jump limit. We will execute it in smaller chunks.
           </p>
         </div>
-        <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2 text-sm text-gray-700 dark:text-gray-300">
           <div className="flex justify-between">
             <span>Total buy</span>
-            <span className="font-semibold">{totalSplitDisplay} USDC</span>
+            <span className="font-semibold text-gray-900 dark:text-white">{totalSplitDisplay} USDC</span>
           </div>
           <div className="flex justify-between">
             <span>Chunk size</span>
-            <span className="font-semibold">{splitChunkAmountDisplay} USDC</span>
+            <span className="font-semibold text-gray-900 dark:text-white">{splitChunkAmountDisplay} USDC</span>
           </div>
           {splitChunkCountDisplay > 0 && (
             <div className="flex justify-between">
               <span>Estimated chunks</span>
-              <span className="font-semibold">{splitChunkCountDisplay}</span>
+              <span className="font-semibold text-gray-900 dark:text-white">{splitChunkCountDisplay}</span>
             </div>
           )}
         </div>
         <div className="flex gap-2">
           <button
             onClick={onCancel}
-            className="flex-1 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100"
+            className="flex-1 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-100 dark:hover:bg-gray-800"
           >
             Cancel
           </button>
@@ -66,6 +66,7 @@ export function SplitOrderModal({
     </div>
   );
 }
+
 
 
 

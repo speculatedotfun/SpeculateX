@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, ChangeEvent, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useAccount, useWriteContract, useReadContract, usePublicClient, useBlockNumber } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
@@ -542,7 +543,7 @@ export default function TradingCard({
     setAvgPrice(0);
     setCostUsd(0);
     setFeeUsd(0);
-    setFeePercent(tradeMode === 'buy' ? totalFeeBps / 100 : 0);
+    setFeePercent(tradeMode === 'buy' ? totalFeeBps / 10000 : 0);
     setMaxProfit(0);
     setMaxProfitPct(0);
     setMaxPayout(0);
@@ -606,7 +607,7 @@ export default function TradingCard({
         setAvgPrice(avgPriceGross);
         setCostUsd(grossUsd);
         setFeeUsd(feeUsdValue);
-        setFeePercent(totalFeeBps / 100);
+        setFeePercent(totalFeeBps / 10000);
         setMaxProfit(maxProfitValue);
         setMaxProfitPct(profitPct);
         setMaxPayout(maxPayoutValue);
@@ -1350,64 +1351,71 @@ export default function TradingCard({
 
   return (
     <>
-      {showSplitConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      {showSplitConfirm && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <motion.div 
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden"
+            className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-200 dark:border-gray-800"
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 sm:p-8 space-y-6">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="text-center space-y-3">
+                <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto">
+                  <svg className="w-8 h-8 text-amber-600 dark:text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900">Large Order</h3>
-                <p className="text-gray-500 mt-2 text-sm leading-relaxed">
-                  This amount exceeds the optimal trade size. We&apos;ll split it into smaller chunks to get you a better price.
-                </p>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">Large Order</h3>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed px-2">
+                    This amount exceeds the optimal trade size. We&apos;ll split it into smaller chunks to get you a better price.
+                  </p>
+                </div>
               </div>
 
-              <div className="bg-gray-50 rounded-2xl p-4 space-y-3 border border-gray-100 text-sm">
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-5 space-y-4 border border-gray-100 dark:border-gray-700">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500 font-medium">Total Amount</span>
-                  <span className="font-bold text-gray-900">{totalSplitDisplay} USDC</span>
+                  <span className="text-gray-500 dark:text-gray-400 font-medium text-sm">Total Amount</span>
+                  <span className="font-bold text-gray-900 dark:text-white text-base">{totalSplitDisplay} USDC</span>
                 </div>
-                <div className="h-px bg-gray-200" />
+                <div className="h-px bg-gray-200 dark:bg-gray-700" />
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500 font-medium">Chunk Size</span>
-                  <span className="font-semibold text-gray-700">{splitChunkAmountDisplay} USDC</span>
+                  <span className="text-gray-500 dark:text-gray-400 font-medium text-sm">Chunk Size</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300 text-sm">{splitChunkAmountDisplay} USDC</span>
                 </div>
                 {splitChunkCountDisplay > 0 && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-500 font-medium">Transactions</span>
-                    <span className="font-mono font-bold text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-md">
-                      {splitChunkCountDisplay}
-                    </span>
-                  </div>
+                  <>
+                    <div className="h-px bg-gray-200 dark:bg-gray-700" />
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500 dark:text-gray-400 font-medium text-sm">Transactions</span>
+                      <span className="font-mono font-bold text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-md">
+                        {splitChunkCountDisplay}
+                      </span>
+                    </div>
+                  </>
                 )}
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 pt-2">
                 <button
                   onClick={handleCancelSplit}
-                  className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors text-sm"
+                  className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleConfirmSplit}
                   disabled={!isTradeable || isBusy}
-                  className="flex-1 py-3 rounded-xl bg-[#14B8A6] text-white font-bold hover:bg-[#0D9488] shadow-lg shadow-[#14B8A6]/20 transition-all disabled:opacity-50 text-sm"
+                  className="flex-1 py-3 rounded-xl bg-[#14B8A6] text-white font-bold hover:bg-[#0D9488] shadow-lg shadow-[#14B8A6]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 >
                   Execute Split
                 </button>
               </div>
             </div>
           </motion.div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <div className="p-1 space-y-6" data-testid="trading-card">
@@ -1415,23 +1423,23 @@ export default function TradingCard({
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl bg-amber-50 border border-amber-100 p-4 flex gap-3 items-start"
+            className="rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 p-4 flex gap-3 items-start"
           >
-             <div className="p-1.5 bg-amber-100 rounded-full text-amber-600 mt-0.5">
+             <div className="p-1.5 bg-amber-100 dark:bg-amber-900/30 rounded-full text-amber-600 dark:text-amber-400 mt-0.5">
                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
              </div>
-            <div className="text-sm text-amber-800 font-medium leading-relaxed">
+            <div className="text-sm text-amber-800 dark:text-amber-200 font-medium leading-relaxed">
               {tradeDisabledReason}
             </div>
           </motion.div>
         )}
 
         {/* Trade Mode Toggle */}
-        <div className="flex bg-gray-100/80 p-1 rounded-xl relative backdrop-blur-sm">
+        <div className="flex bg-gray-100/80 dark:bg-gray-700/50 p-1 rounded-xl relative backdrop-blur-sm">
           <div
-            className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-lg shadow-sm transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+            className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white dark:bg-gray-600 rounded-lg shadow-sm transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
               tradeMode === 'sell' ? 'translate-x-[calc(100%+4px)]' : 'translate-x-0'
             }`}
           />
@@ -1442,7 +1450,7 @@ export default function TradingCard({
                 if (!isBusy && isTradeable) setTradeMode(m);
               }}
               className={`relative flex-1 py-3 font-bold text-sm uppercase tracking-wider transition-colors z-10 ${
-                tradeMode === m ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                tradeMode === m ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
               disabled={!isTradeable}
             >
@@ -1467,8 +1475,8 @@ export default function TradingCard({
                 className={`
                   relative p-4 rounded-2xl text-left transition-all duration-200 border-2
                   ${s === 'yes' 
-                    ? (isSelected ? 'bg-green-50 border-green-500 shadow-[0_0_0_4px_rgba(34,197,94,0.1)]' : 'bg-white border-gray-100 hover:border-green-200 hover:bg-green-50/50') 
-                    : (isSelected ? 'bg-red-50 border-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.1)]' : 'bg-white border-gray-100 hover:border-red-200 hover:bg-red-50/50')
+                    ? (isSelected ? 'bg-green-50 dark:bg-green-900/20 border-green-500 dark:border-green-400 shadow-[0_0_0_4px_rgba(34,197,94,0.1)] dark:shadow-[0_0_0_4px_rgba(34,197,94,0.2)]' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-green-200 dark:hover:border-green-800 hover:bg-green-50/50 dark:hover:bg-green-900/10') 
+                    : (isSelected ? 'bg-red-50 dark:bg-red-900/20 border-red-500 dark:border-red-400 shadow-[0_0_0_4px_rgba(239,68,68,0.1)] dark:shadow-[0_0_0_4px_rgba(239,68,68,0.2)]' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-red-200 dark:hover:border-red-800 hover:bg-red-50/50 dark:hover:bg-red-900/10')
                   }
                   disabled:opacity-50 disabled:cursor-not-allowed
                 `}
@@ -1476,7 +1484,7 @@ export default function TradingCard({
               >
                 <div className="flex justify-between items-start mb-3">
                   <span className={`text-sm font-bold uppercase tracking-wider ${
-                    s === 'yes' ? 'text-green-700' : 'text-red-700'
+                    s === 'yes' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'
                   }`}>
                     {s}
                   </span>
@@ -1490,10 +1498,10 @@ export default function TradingCard({
                 </div>
                 
                 <div className="space-y-0.5">
-                  <div className="text-3xl font-black tracking-tight text-gray-900">
+                  <div className="text-3xl font-black tracking-tight text-gray-900 dark:text-white">
                     {formatPrice(price)}
                   </div>
-                  <div className="text-xs font-medium text-gray-400 truncate">
+                  <div className="text-xs font-medium text-gray-400 dark:text-gray-500 truncate">
                     Balance: {s === 'yes' ? yesBalance : noBalance}
                   </div>
                 </div>
@@ -1504,11 +1512,11 @@ export default function TradingCard({
 
         {/* Amount Input */}
         <div className="space-y-4">
-          <div className="bg-gray-50 rounded-3xl border border-gray-200 p-4 focus-within:ring-4 focus-within:ring-[#14B8A6]/10 focus-within:border-[#14B8A6] transition-all">
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 p-4 focus-within:ring-4 focus-within:ring-[#14B8A6]/10 dark:focus-within:ring-[#14B8A6]/20 focus-within:border-[#14B8A6] transition-all">
             <div className="flex justify-between items-center mb-2 px-1">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Amount</span>
+              <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Amount</span>
               <div className="flex items-center gap-2">
-                 <span className="text-xs font-medium text-gray-500">
+                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
                    Max: {tradeMode === 'buy' ? usdcBalance : (side === 'yes' ? yesBalance : noBalance)}
                  </span>
                  <button
@@ -1521,7 +1529,7 @@ export default function TradingCard({
                      const maxString = Number.isFinite(maxValue) ? formatAmount(maxValue) : '0';
                      setAmount(maxString);
                   }}
-                  className="text-[10px] font-bold text-[#14B8A6] hover:text-[#0D9488] bg-[#14B8A6]/10 px-2 py-1 rounded-md transition-colors uppercase tracking-wide"
+                  className="text-[10px] font-bold text-[#14B8A6] hover:text-[#0D9488] bg-[#14B8A6]/10 dark:bg-[#14B8A6]/20 px-2 py-1 rounded-md transition-colors uppercase tracking-wide"
                   disabled={!isTradeable}
                 >
                   Max
@@ -1530,7 +1538,7 @@ export default function TradingCard({
             </div>
 
             <div className="relative flex items-baseline">
-              <span className="text-3xl font-medium text-gray-400 mr-1">$</span>
+              {tradeMode === 'buy' && <span className="text-3xl font-medium text-gray-400 dark:text-gray-500 mr-1">$</span>}
               <input
                 type="text"
                 inputMode="decimal"
@@ -1548,10 +1556,10 @@ export default function TradingCard({
                   setAmount(formatAmount(num));
                 }}
                 placeholder="0.00"
-                className="w-full bg-transparent text-5xl font-black text-gray-900 placeholder-gray-300 outline-none tabular-nums"
+                className="w-full bg-transparent text-5xl font-black text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-600 outline-none tabular-nums"
                 disabled={isBusy || showSplitConfirm || !isTradeable}
               />
-              <span className="text-sm font-bold text-gray-400 ml-2">USDC</span>
+              <span className="text-sm font-bold text-gray-400 dark:text-gray-500 ml-2">{tradeMode === 'buy' ? 'USDC' : 'Shares'}</span>
             </div>
           </div>
           
@@ -1562,9 +1570,9 @@ export default function TradingCard({
                 key={q}
                 onClick={() => setAmount(formatAmount(Number(q)))}
                 disabled={isBusy || showSplitConfirm || !isTradeable}
-                className="flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold text-gray-600 bg-white border border-gray-200 hover:border-[#14B8A6] hover:text-[#14B8A6] hover:shadow-sm transition-all active:scale-95 disabled:opacity-50"
+                className="flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-[#14B8A6] hover:text-[#14B8A6] hover:shadow-sm transition-all active:scale-95 disabled:opacity-50"
               >
-                ${q}
+                {tradeMode === 'buy' ? `$${q}` : `${q} Shares`}
               </button>
             ))}
           </div>
@@ -1576,20 +1584,20 @@ export default function TradingCard({
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="rounded-2xl bg-blue-50 border border-blue-100 p-4 overflow-hidden"
+              className="rounded-2xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 p-4 overflow-hidden"
             >
               <div className="flex gap-3">
                 <div className="mt-1">
-                  <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <div className="text-sm text-blue-900">
+                <div className="text-sm text-blue-900 dark:text-blue-200">
                   <p className="font-bold mb-1">Smart Split Enabled</p>
                   <p className="opacity-80 text-xs leading-relaxed">
                     Large orders are automatically optimized to minimize price impact.
                     {overCapPreview && (
-                      <span className="block mt-1 font-mono bg-blue-100/50 rounded px-1.5 py-0.5 w-fit">
+                      <span className="block mt-1 font-mono bg-blue-100/50 dark:bg-blue-900/30 rounded px-1.5 py-0.5 w-fit">
                         {overCapPreview.chunkCount} chunks × {overCapPreview.chunkAmount} USDC
                       </span>
                     )}
@@ -1607,22 +1615,22 @@ export default function TradingCard({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              className="bg-gray-50/50 rounded-2xl p-5 space-y-3 border border-gray-100"
+              className="bg-gray-50/50 dark:bg-gray-800/50 rounded-2xl p-5 space-y-3 border border-gray-100 dark:border-gray-700"
             >
-              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Order Summary</h4>
+              <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Order Summary</h4>
               
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Avg. Entry Price</span>
-                <span className="font-mono font-medium text-gray-900">{formatPrice(avgPrice)}</span>
+                <span className="text-gray-500 dark:text-gray-400">Avg. Entry Price</span>
+                <span className="font-mono font-medium text-gray-900 dark:text-white">{formatPrice(avgPrice)}</span>
               </div>
               
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Estimated Shares</span>
-                <span className="font-mono font-medium text-gray-900">{shares.toFixed(2)}</span>
+                <span className="text-gray-500 dark:text-gray-400">Estimated Shares</span>
+                <span className="font-mono font-medium text-gray-900 dark:text-white">{shares.toFixed(2)}</span>
               </div>
 
               <div className="flex justify-between text-sm">
-                 <div className="flex items-center gap-1 text-gray-500">
+                 <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
                    <span>Fees</span>
                    <span title="Includes LP, Treasury, and Platform fees" className="cursor-help opacity-50 hover:opacity-100">
                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1630,32 +1638,32 @@ export default function TradingCard({
                      </svg>
                    </span>
                  </div>
-                 <span className="font-mono font-medium text-gray-700">
-                   ${feeUsd.toFixed(2)} <span className="text-xs text-gray-400">({(feePercent * 100).toFixed(2)}%)</span>
+                 <span className="font-mono font-medium text-gray-700 dark:text-gray-300">
+                   ${feeUsd.toFixed(2)} <span className="text-xs text-gray-400 dark:text-gray-500">({(feePercent * 100).toFixed(2)}%)</span>
                  </span>
               </div>
 
-              <div className="h-px bg-gray-200 my-2" />
+              <div className="h-px bg-gray-200 dark:bg-gray-700 my-2" />
 
               {tradeMode === 'buy' ? (
                 <>
                   <div className="flex justify-between items-end">
-                    <span className="text-sm font-medium text-gray-600">Potential Return</span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Potential Return</span>
                     <div className="text-right">
-                      <div className="font-black text-green-600 text-lg tracking-tight">+${maxProfit.toFixed(2)}</div>
-                      <div className="text-xs font-bold text-green-600/70">+{maxProfitPct.toFixed(2)}% ROI</div>
+                      <div className="font-black text-green-600 dark:text-green-400 text-lg tracking-tight">+${maxProfit.toFixed(2)}</div>
+                      <div className="text-xs font-bold text-green-600/70 dark:text-green-400/70">+{maxProfitPct.toFixed(2)}% ROI</div>
                     </div>
                   </div>
                 </>
               ) : (
                 <div className="flex justify-between items-end">
-                  <span className="text-sm font-medium text-gray-600">Total Proceeds</span>
-                   <div className="font-black text-gray-900 text-lg tracking-tight">${costUsd.toFixed(2)}</div>
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Proceeds</span>
+                   <div className="font-black text-gray-900 dark:text-white text-lg tracking-tight">${costUsd.toFixed(2)}</div>
                 </div>
               )}
               
               {gasEstimate && (
-                <div className="flex justify-end items-center gap-1.5 text-[10px] text-gray-400 mt-1 font-medium">
+                <div className="flex justify-end items-center gap-1.5 text-[10px] text-gray-400 dark:text-gray-500 mt-1 font-medium">
                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
@@ -1684,12 +1692,12 @@ export default function TradingCard({
           className={`
             w-full py-4 rounded-2xl font-black text-lg shadow-lg transition-all transform active:scale-[0.98] relative overflow-hidden group
             ${!isTradeable 
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+              ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed shadow-none'
               : tradeMode === 'buy'
                 ? side === 'yes' 
                   ? 'bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white shadow-green-500/25'
                   : 'bg-gradient-to-br from-red-500 to-rose-600 hover:from-red-400 hover:to-rose-500 text-white shadow-red-500/25'
-                : 'bg-gray-900 hover:bg-gray-800 text-white shadow-gray-900/25'
+                : 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white shadow-gray-900/25'
             }
             disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none
           `}
@@ -1725,7 +1733,7 @@ export default function TradingCard({
                    <button
                     onClick={() => handleRedeem(resolution?.yesWins ?? false)}
                     disabled={isBusy}
-                    className="w-full py-3.5 rounded-xl font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors shadow-lg shadow-purple-600/20 flex items-center justify-center gap-2"
+                    className="w-full py-3.5 rounded-xl font-bold text-white bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors shadow-lg shadow-purple-600/20 dark:shadow-purple-600/30 flex items-center justify-center gap-2"
                    >
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1735,7 +1743,7 @@ export default function TradingCard({
                  ) : (
                    <Link
                     href="/portfolio"
-                    className="block w-full py-3.5 rounded-xl font-bold text-center text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                    className="block w-full py-3.5 rounded-xl font-bold text-center text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                    >
                      View Portfolio
                    </Link>
@@ -1745,17 +1753,17 @@ export default function TradingCard({
 
             {/* Liquidity Manager Trigger - Always visible so LPs can claim residual */}
              <div className="mt-2">
-               <details className="group bg-white rounded-xl border border-gray-200 overflow-hidden transition-all duration-300">
-                 <summary className="flex items-center justify-between p-4 cursor-pointer list-none hover:bg-gray-50 transition-colors">
+               <details className="group bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300">
+                 <summary className="flex items-center justify-between p-4 cursor-pointer list-none hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                    <div className="flex items-center gap-3">
-                     <div className="p-2 bg-gray-100 rounded-lg group-open:bg-[#14B8A6]/10 group-open:text-[#14B8A6] transition-colors text-gray-500">
+                     <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg group-open:bg-[#14B8A6]/10 dark:group-open:bg-[#14B8A6]/20 group-open:text-[#14B8A6] transition-colors text-gray-500 dark:text-gray-400">
                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                      </div>
                      <div>
-                       <div className="font-bold text-gray-900 text-sm">Liquidity Provider</div>
-                       <div className="text-xs text-gray-500">Earn fees by providing liquidity</div>
+                       <div className="font-bold text-gray-900 dark:text-white text-sm">Liquidity Provider</div>
+                       <div className="text-xs text-gray-500 dark:text-gray-400">Earn fees by providing liquidity</div>
                      </div>
                    </div>
                    <div className="flex items-center gap-3">
@@ -1764,28 +1772,28 @@ export default function TradingCard({
                           <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-green-400 opacity-75"></span>
                         </span>
                       )}
-                      <ChevronDown className="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" />
+                      <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform group-open:rotate-180" />
                    </div>
                  </summary>
                  
-                 <div className="p-4 pt-0 space-y-4 border-t border-gray-100 mt-2 bg-gray-50/50">
+                 <div className="p-4 pt-0 space-y-4 border-t border-gray-100 dark:border-gray-700 mt-2 bg-gray-50/50 dark:bg-gray-900/50">
                     <div className="grid grid-cols-2 gap-3 mt-3">
-                       <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-                         <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Your Share</div>
-                         <div className="font-black text-gray-900 text-xl">{userSharePct.toFixed(2)}%</div>
-                         <div className="text-xs text-gray-500">{lpShareFloat.toFixed(2)} LP</div>
+                       <div className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                         <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Your Share</div>
+                         <div className="font-black text-gray-900 dark:text-white text-xl">{userSharePct.toFixed(2)}%</div>
+                         <div className="text-xs text-gray-500 dark:text-gray-400">{lpShareFloat.toFixed(2)} LP</div>
                        </div>
-                       <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-                         <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Pending Rewards</div>
-                         <div className="font-black text-green-600 text-xl">${(pendingFeesFloat + pendingResidualFloat).toFixed(4)}</div>
-                         <div className="text-xs text-gray-500">
+                       <div className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                         <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Pending Rewards</div>
+                         <div className="font-black text-green-600 dark:text-green-400 text-xl">${(pendingFeesFloat + pendingResidualFloat).toFixed(4)}</div>
+                         <div className="text-xs text-gray-500 dark:text-gray-400">
                             {pendingResidualFloat > 0 ? 'Includes Residual' : 'Ready to claim'}
                          </div>
                        </div>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Add Liquidity</label>
+                      <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1">Add Liquidity</label>
                       <div className="flex gap-2">
                         <input
                           type="text"
@@ -1803,26 +1811,26 @@ export default function TradingCard({
                             setAddLiquidityAmount(formatLiquidity(num));
                           }}
                           placeholder="Amount"
-                          className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-[#14B8A6] outline-none disabled:opacity-50 disabled:bg-gray-100"
+                          className="flex-1 rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-2.5 text-sm font-semibold dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-[#14B8A6] outline-none disabled:opacity-50 disabled:bg-gray-100 dark:disabled:bg-gray-800"
                           disabled={!isTradeable || isBusy || isLpProcessing}
                         />
                          <button
                           onClick={handleAddLiquidity}
                           disabled={!canAddLiquidity || isLpProcessing || isBusy || !isTradeable}
-                          className="px-6 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-bold rounded-xl disabled:opacity-50 shadow-sm transition-all"
+                          className="px-6 py-2.5 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white text-sm font-bold rounded-xl disabled:opacity-50 shadow-sm transition-all"
                         >
                           {pendingLpAction === 'add' && isLpProcessing ? 'Adding...' : 'Add'}
                         </button>
                       </div>
                       {!isTradeable && (
-                        <p className="text-[10px] text-amber-600 ml-1">Liquidity cannot be added to resolved markets.</p>
+                        <p className="text-[10px] text-amber-600 dark:text-amber-400 ml-1">Liquidity cannot be added to resolved markets.</p>
                       )}
                     </div>
 
                     <button
                       onClick={handleClaimAllLp}
                       disabled={(pendingLpFeesValue === 0n && pendingLpResidualValue === 0n) || isLpProcessing}
-                      className="w-full py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-900 text-xs font-bold rounded-xl disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                      className="w-full py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-xs font-bold rounded-xl disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
                     >
                       {pendingLpAction === 'claim' && isLpProcessing ? (
                          <motion.div

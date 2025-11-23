@@ -38,7 +38,7 @@ export function TransactionsTab({ transactions, loading }: TransactionsTabProps)
           initial={{ x: -50, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ delay: index * 0.05 }}
-          className="flex items-center justify-between p-5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all border border-gray-200 hover:border-[#14B8A6]"
+          className="flex items-center justify-between p-5 bg-gray-50 dark:bg-gray-800 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all border border-gray-200 dark:border-gray-700 hover:border-[#14B8A6] dark:hover:border-[#14B8A6]"
         >
           <div className="flex items-center gap-4 flex-1">
             <div className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase shadow-md ${
@@ -49,19 +49,19 @@ export function TransactionsTab({ transactions, loading }: TransactionsTabProps)
               {tx.type}
             </div>
             <div>
-              <div className="text-sm font-bold text-gray-900">
+              <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
                 {tx.user.slice(0, 6)}...{tx.user.slice(-4)}
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 dark:text-gray-400">
                 {new Date(tx.timestamp * 1000).toLocaleString()}
               </div>
             </div>
           </div>
           <div className="text-right mr-4">
-            <div className="text-sm font-bold text-gray-900">
+            <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
               {tx.amount} → {tx.output}
             </div>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-gray-500 dark:text-gray-400">
               Price: ${tx.price}
             </div>
           </div>
@@ -81,6 +81,7 @@ export function TransactionsTab({ transactions, loading }: TransactionsTabProps)
     </div>
   );
 }
+
 
 
 

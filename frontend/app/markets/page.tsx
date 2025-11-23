@@ -82,7 +82,7 @@ const getResolutionTypeLabel = (oracleType: number): string => {
   }
 };
 
-const STATUS_FILTERS = ['All', 'Active', 'Expired', 'Resolved'] as const;
+const STATUS_FILTERS = ['Active', 'Expired', 'Resolved'] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 // Real-time countdown component for each market
@@ -160,7 +160,7 @@ export default function MarketsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
-  const [activeStatusTab, setActiveStatusTab] = useState<StatusFilter | null>(null);
+  const [activeStatusTab, setActiveStatusTab] = useState<StatusFilter>('Active');
   // Removed advanced filters since they are not used anymore
   const publicClient = usePublicClient();
 
@@ -215,16 +215,13 @@ export default function MarketsPage() {
           const totalPairs = Number(formatUnits(state.vault, 6));
           const totalShares = qYes + qNo;
 
-          let yesPercent = 50;
-          let noPercent = 50;
-          if (totalShares > 0) {
-            yesPercent = Math.round((qYes / totalShares) * 100);
-            noPercent = Math.round((qNo / totalShares) * 100);
-          }
-
           let yesPriceNum = parseFloat(priceYes);
           let yesPriceClean = Number.isFinite(yesPriceNum) ? yesPriceNum : 0;
           let noPriceClean = Number.isFinite(yesPriceNum) ? Math.max(0, 1 - yesPriceNum) : 0;
+
+          // Calculate percentages based on price to ensure consistency with displayed prices
+          let yesPercent = Math.round(yesPriceClean * 100);
+          let noPercent = 100 - yesPercent;
 
           // Override prices if market is resolved
           if (resolution.isResolved) {
@@ -407,14 +404,15 @@ export default function MarketsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f0ff] relative overflow-hidden">
-      {/* Animated Background - Figma inspired */}
+    <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden">
+      {/* Animated Background Blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div 
-          className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-[#14B8A6]/10 to-purple-400/10 rounded-full blur-3xl"
+          className="absolute -top-[20%] -left-[10%] w-[800px] h-[800px] bg-gradient-to-br from-[#14B8A6]/10 to-purple-400/10 dark:from-[#14B8A6]/5 dark:to-purple-400/5 rounded-full blur-3xl"
           animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 90, 0],
+            x: [0, 50, 0],
+            y: [0, 30, 0],
+            scale: [1, 1.05, 1],
           }}
           transition={{
             duration: 20,
@@ -423,10 +421,11 @@ export default function MarketsPage() {
           }}
         />
         <motion.div 
-          className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-[#14B8A6]/10 rounded-full blur-3xl"
+          className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] bg-gradient-to-br from-blue-400/10 to-[#14B8A6]/10 dark:from-blue-400/5 dark:to-[#14B8A6]/5 rounded-full blur-3xl"
           animate={{
+            x: [0, -50, 0],
+            y: [0, -30, 0],
             scale: [1, 1.1, 1],
-            rotate: [0, -90, 0],
           }}
           transition={{
             duration: 25,
@@ -450,16 +449,16 @@ export default function MarketsPage() {
               BROWSE MARKETS
             </div>
           </div>
-          <h1 className="[font-family:'Geist',Helvetica] font-bold text-[#0f0a2e] text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-[0] leading-tight sm:leading-[50px] md:leading-[60px] mb-6 translate-y-[-1rem] animate-fade-in opacity-0 [--animation-delay:200ms]">
+          <h1 className="[font-family:'Geist',Helvetica] font-bold text-[#0f0a2e] dark:text-white text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-[0] leading-tight sm:leading-[50px] md:leading-[60px] mb-6 translate-y-[-1rem] animate-fade-in opacity-0 [--animation-delay:200ms]">
             What&apos;s the Market Thinking?
           </h1>
-          <p className="[font-family:'Geist',Helvetica] font-light text-gray-500 text-base sm:text-lg tracking-[0] leading-6 sm:leading-7 mb-8 max-w-[668px] translate-y-[-1rem] animate-fade-in opacity-0 [--animation-delay:400ms]">
+          <p className="[font-family:'Geist',Helvetica] font-light text-gray-500 dark:text-gray-400 text-base sm:text-lg tracking-[0] leading-6 sm:leading-7 mb-8 max-w-[668px] translate-y-[-1rem] animate-fade-in opacity-0 [--animation-delay:400ms]">
             Trade what you believe in every market reflects real-time sentiment and liquidity.
           </p>
         </div>
 
         {/* Stats Banner - Figma Design with Logo Patterns */}
-        <div className="relative bg-white rounded-2xl border-2 border-[#14B8A6] border-solid shadow-lg mb-8 sm:mb-12 translate-y-[-1rem] animate-fade-in opacity-0 [--animation-delay:600ms] overflow-hidden" style={{ boxSizing: 'border-box' }}>
+        <div className="relative bg-white dark:bg-gray-900 rounded-2xl border-2 border-[#14B8A6] border-solid shadow-lg mb-8 sm:mb-12 translate-y-[-1rem] animate-fade-in opacity-0 [--animation-delay:600ms] overflow-hidden" style={{ boxSizing: 'border-box' }}>
           {/* Left Logo */}
           <div className="absolute left-0 top-0 bottom-0 w-[80px] sm:w-[140px] md:w-[182px] pointer-events-none opacity-20 md:opacity-100">
             <Image
@@ -469,51 +468,51 @@ export default function MarketsPage() {
               className="object-cover object-left"
               unoptimized
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white md:hidden" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white dark:to-gray-900 md:hidden" />
           </div>
 
           {/* Stats Content */}
-          <div className="relative z-10 grid grid-cols-3 md:flex md:items-center md:justify-center gap-0 sm:gap-3 md:gap-12 lg:gap-20 xl:gap-32 px-2 sm:px-4 md:px-8 py-6 sm:py-6 md:py-0 min-h-[120px] md:min-h-[155px] divide-x divide-gray-100 md:divide-x-0">
+          <div className="relative z-10 grid grid-cols-3 md:flex md:items-center md:justify-center gap-0 sm:gap-3 md:gap-12 lg:gap-20 xl:gap-32 px-2 sm:px-4 md:px-8 py-6 sm:py-6 md:py-0 min-h-[120px] md:min-h-[155px] divide-x divide-gray-100 dark:divide-gray-800 md:divide-x-0">
             {/* Total Liquidity */}
             <div className="flex flex-col items-center justify-center gap-1.5 sm:gap-2 md:gap-4">
-              <div className="font-inter text-gray-500 text-[9px] sm:text-[10px] md:text-[11px] text-center tracking-[0.55px] leading-[17.6px] uppercase font-bold relative z-20">
+              <div className="font-inter text-gray-500 dark:text-gray-400 text-[9px] sm:text-[10px] md:text-[11px] text-center tracking-[0.55px] leading-[17.6px] uppercase font-bold relative z-20">
                 TOTAL LIQUIDITY
               </div>
               <div className="flex flex-col items-center gap-0.5 relative z-20">
-                <div className="font-inter text-[#0a0e17] text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-[32px] text-center tracking-[0] leading-tight font-black">
+                <div className="font-inter text-[#0a0e17] dark:text-gray-100 text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-[32px] text-center tracking-[0] leading-tight font-black">
                   ${liquidityDisplay}
                 </div>
-                <div className="font-inter text-[#0a0e17] text-[10px] sm:text-sm md:text-lg lg:text-xl text-center tracking-[0] leading-tight font-bold text-gray-600">
+                <div className="font-inter text-[#0a0e17] dark:text-gray-300 text-[10px] sm:text-sm md:text-lg lg:text-xl text-center tracking-[0] leading-tight font-bold text-gray-600 dark:text-gray-400">
                   USDC pooled
                 </div>
               </div>
-              <div className="font-inter text-[#475569] text-[9px] sm:text-[10px] md:text-xs text-center tracking-[0] leading-[19.2px] hidden sm:block relative z-20">
+              <div className="font-inter text-[#475569] dark:text-gray-400 text-[9px] sm:text-[10px] md:text-xs text-center tracking-[0] leading-[19.2px] hidden sm:block relative z-20">
                 Across {stats.total} markets
               </div>
             </div>
 
             {/* Active Traders */}
             <div className="flex flex-col items-center justify-center gap-1.5 sm:gap-2 md:gap-4">
-              <div className="font-inter text-gray-500 text-[9px] sm:text-[10px] md:text-[11px] text-center tracking-[0.55px] leading-[17.6px] uppercase font-bold">
+              <div className="font-inter text-gray-500 dark:text-gray-400 text-[9px] sm:text-[10px] md:text-[11px] text-center tracking-[0.55px] leading-[17.6px] uppercase font-bold">
                 ACTIVE TRADERS
               </div>
-              <div className="font-inter text-[#0a0e17] text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-[32px] text-center tracking-[0] leading-tight font-black">
+              <div className="font-inter text-[#0a0e17] dark:text-gray-100 text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-[32px] text-center tracking-[0] leading-tight font-black">
                 {formatNumber(typeof activeTraders === 'number' ? activeTraders : Number(activeTraders) || 0)}
               </div>
-              <div className="font-inter text-[#475569] text-[9px] sm:text-[10px] md:text-xs text-center tracking-[0] leading-[19.2px] hidden sm:block">
+              <div className="font-inter text-[#475569] dark:text-gray-400 text-[9px] sm:text-[10px] md:text-xs text-center tracking-[0] leading-[19.2px] hidden sm:block">
                 Updated every minute
               </div>
             </div>
 
             {/* Total Markets */}
             <div className="flex flex-col items-center justify-center gap-1.5 sm:gap-2 md:gap-4">
-              <div className="font-inter text-gray-500 text-[9px] sm:text-[10px] md:text-[11px] text-center tracking-[0.55px] leading-[17.6px] uppercase font-bold relative z-20">
+              <div className="font-inter text-gray-500 dark:text-gray-400 text-[9px] sm:text-[10px] md:text-[11px] text-center tracking-[0.55px] leading-[17.6px] uppercase font-bold relative z-20">
                 MARKETS
               </div>
-              <div className="font-inter text-[#0a0e17] text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-[32px] text-center tracking-[0] leading-tight font-black relative z-20">
+              <div className="font-inter text-[#0a0e17] dark:text-gray-100 text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-[32px] text-center tracking-[0] leading-tight font-black relative z-20">
                 {formatNumber(stats.total)}
               </div>
-              <div className="font-inter text-[#475569] text-[9px] sm:text-[10px] md:text-xs text-center tracking-[0] leading-[19.2px] hidden sm:block relative z-20">
+              <div className="font-inter text-[#475569] dark:text-gray-400 text-[9px] sm:text-[10px] md:text-xs text-center tracking-[0] leading-[19.2px] hidden sm:block relative z-20">
                 Live: {formatNumber(stats.live)} • Ended: {formatNumber(stats.resolved + stats.expired)}
               </div>
             </div>
@@ -528,7 +527,7 @@ export default function MarketsPage() {
               className="object-cover object-right"
               unoptimized
             />
-            <div className="absolute inset-0 bg-gradient-to-l from-transparent to-white md:hidden" />
+            <div className="absolute inset-0 bg-gradient-to-l from-transparent to-white dark:to-gray-900 md:hidden" />
           </div>
         </div>
 
@@ -543,11 +542,11 @@ export default function MarketsPage() {
             {STATUS_FILTERS.map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveStatusTab(tab === 'All' ? null : tab)}
+                onClick={() => setActiveStatusTab(tab)}
                 className={`relative px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
-                  (activeStatusTab === tab) || (tab === 'All' && activeStatusTab === null)
+                  activeStatusTab === tab
                     ? 'bg-[#2DD4BF] text-white shadow'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                 }`}
               >
                 {tab}
@@ -559,7 +558,7 @@ export default function MarketsPage() {
               <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#6b717f99]" />
               <Input
                 placeholder="Search markets..."
-                className="pl-12 h-12 bg-white rounded-2xl border-[#e5e6ea80] shadow-[0px_1px_2px_#0000000d] [font-family:'Geist',Helvetica] text-sm focus:border-[#14B8A6]"
+                className="pl-12 h-12 bg-white dark:bg-gray-800 rounded-2xl border-[#e5e6ea80] dark:border-gray-700 shadow-[0px_1px_2px_#0000000d] dark:shadow-none [font-family:'Geist',Helvetica] text-sm focus:border-[#14B8A6] text-gray-900 dark:text-gray-100"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -568,9 +567,9 @@ export default function MarketsPage() {
         </motion.div>
 
         <div className="mb-6">
-          <p className="[font-family:'Geist',Helvetica] text-sm text-gray-500">
+          <p className="[font-family:'Geist',Helvetica] text-sm text-gray-500 dark:text-gray-400">
             <span className="font-medium">Showing </span>
-            <span className="font-semibold text-[#0f0a2e]">{filteredMarkets.length}</span>
+            <span className="font-semibold text-[#0f0a2e] dark:text-gray-200">{filteredMarkets.length}</span>
             <span className="font-medium"> markets</span>
           </p>
         </div>
@@ -607,11 +606,11 @@ export default function MarketsPage() {
             <motion.div 
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-gray-300 shadow-lg"
+              className="text-center py-20 bg-white dark:bg-gray-900 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-700 shadow-lg"
             >
               <div className="text-6xl mb-4">📊</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">No markets found</h3>
-              <p className="text-gray-600 mb-6">Try adjusting your search or filters</p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">No markets found</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">Try adjusting your search or filters</p>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -637,7 +636,7 @@ export default function MarketsPage() {
                     layout
                   >
                     <Link href={`/markets/${market.id}`}>
-                      <div className="group relative bg-white rounded-3xl p-5 shadow-[0_2px_10px_rgb(0,0,0,0.03)] border border-gray-100 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:border-[#14B8A6]/20 transition-all duration-300 h-full flex flex-col">
+                      <div className="group relative bg-white dark:bg-gray-800 rounded-3xl p-5 shadow-[0_2px_10px_rgb(0,0,0,0.03)] dark:shadow-[0_2px_10px_rgb(0,0,0,0.2)] border border-gray-100 dark:border-gray-700 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.3)] hover:border-[#14B8A6]/20 dark:hover:border-[#14B8A6]/30 transition-all duration-300 h-full flex flex-col">
                         {/* Live Indicator */}
                         {market.status === 'LIVE TRADING' && (
                           <div className="absolute top-5 right-5 z-10">
@@ -650,7 +649,7 @@ export default function MarketsPage() {
 
                         {/* Card Header */}
                         <div className="flex items-start gap-4 mb-4 pr-6">
-                          <div className="w-12 h-12 rounded-2xl bg-gray-50 border border-gray-100 p-2 flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                          <div className="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 p-2 flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                             <Image
                               src={getMarketLogo(market.question)}
                               alt={market.question}
@@ -664,7 +663,7 @@ export default function MarketsPage() {
                               }}
                             />
                           </div>
-                          <h3 className="text-base font-bold text-gray-900 leading-snug line-clamp-2 group-hover:text-[#14B8A6] transition-colors">
+                          <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 leading-snug line-clamp-2 group-hover:text-[#14B8A6] transition-colors">
                             {market.question}
                           </h3>
                         </div>
@@ -689,13 +688,13 @@ export default function MarketsPage() {
 
                         {/* Price Buttons - Visual Only */}
                         <div className="grid grid-cols-2 gap-3 mb-5 mt-auto">
-                          <div className="bg-[#F0FDFA] border border-[#CCFBF1] rounded-xl p-3 text-center group-hover:border-[#14B8A6]/30 transition-colors">
-                            <div className="text-xs font-bold text-[#0F766E] uppercase tracking-wider mb-0.5">Yes</div>
-                            <div className="text-lg font-black text-[#14B8A6]">{formatPriceInCents(market.yesPrice)}</div>
+                          <div className="bg-[#F0FDFA] dark:bg-[#115e59]/20 border border-[#CCFBF1] dark:border-[#14b8a6]/20 rounded-xl p-3 text-center group-hover:border-[#14B8A6]/30 transition-colors">
+                            <div className="text-xs font-bold text-[#0F766E] dark:text-[#2dd4bf] uppercase tracking-wider mb-0.5">Yes</div>
+                            <div className="text-lg font-black text-[#14B8A6] dark:text-[#2dd4bf]">{formatPriceInCents(market.yesPrice)}</div>
                           </div>
-                          <div className="bg-[#FEF2F2] border border-[#FEE2E2] rounded-xl p-3 text-center group-hover:border-red-200 transition-colors">
-                            <div className="text-xs font-bold text-[#991B1B] uppercase tracking-wider mb-0.5">No</div>
-                            <div className="text-lg font-black text-[#EF4444]">{formatPriceInCents(market.noPrice)}</div>
+                          <div className="bg-[#FEF2F2] dark:bg-[#7f1d1d]/20 border border-[#FEE2E2] dark:border-[#ef4444]/20 rounded-xl p-3 text-center group-hover:border-red-200 transition-colors">
+                            <div className="text-xs font-bold text-[#991B1B] dark:text-[#f87171] uppercase tracking-wider mb-0.5">No</div>
+                            <div className="text-lg font-black text-[#EF4444] dark:text-[#f87171]">{formatPriceInCents(market.noPrice)}</div>
                           </div>
                         </div>
 
@@ -728,79 +727,79 @@ export default function MarketsPage() {
         </div>
       </main>
       {/* Footer */}
-      <footer className="w-full bg-[#fffefe66] border-t border-border mt-12 sm:mt-20">
+      <footer className="w-full bg-[#fffefe66] dark:bg-[#0f172a66] border-t border-border mt-12 sm:mt-20">
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6 md:px-12 lg:px-20 py-8 sm:py-12 md:py-16 lg:py-20">
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-8 sm:mb-12 md:mb-16">
             <div className="flex flex-col gap-4 sm:gap-6">
-              <h3 className="[font-family:'Geist',Helvetica] font-semibold text-[#0f0a2e] text-sm sm:text-base leading-6">
+              <h3 className="[font-family:'Geist',Helvetica] font-semibold text-[#0f0a2e] dark:text-white text-sm sm:text-base leading-6">
                 Product
               </h3>
               <div className="flex flex-col gap-3 sm:gap-[18px]">
-                <Link href="/markets" className="[font-family:'Geist',Helvetica] font-light text-gray-500 text-xs sm:text-sm leading-5 hover:text-gray-700 transition-colors">
+                <Link href="/markets" className="[font-family:'Geist',Helvetica] font-light text-gray-500 dark:text-gray-400 text-xs sm:text-sm leading-5 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
                   Markets
                 </Link>
-                <Link href="/admin" className="[font-family:'Geist',Helvetica] font-light text-gray-500 text-xs sm:text-sm leading-5 hover:text-gray-700 transition-colors">
+                <Link href="/admin" className="[font-family:'Geist',Helvetica] font-light text-gray-500 dark:text-gray-400 text-xs sm:text-sm leading-5 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
                   Create Market
                 </Link>
-                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 text-xs sm:text-sm leading-5 hover:text-gray-700 transition-colors">
+                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 dark:text-gray-400 text-xs sm:text-sm leading-5 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
                   API
                 </a>
               </div>
             </div>
             <div className="flex flex-col gap-4 sm:gap-6">
-              <h3 className="[font-family:'Geist',Helvetica] font-semibold text-[#0f0a2e] text-sm sm:text-base leading-6">
+              <h3 className="[font-family:'Geist',Helvetica] font-semibold text-[#0f0a2e] dark:text-white text-sm sm:text-base leading-6">
                 Resources
               </h3>
               <div className="flex flex-col gap-3 sm:gap-[18px]">
-                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 text-xs sm:text-sm leading-5 hover:text-gray-700 transition-colors">
+                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 dark:text-gray-400 text-xs sm:text-sm leading-5 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
                   Documentation
                 </a>
-                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 text-xs sm:text-sm leading-5 hover:text-gray-700 transition-colors">
+                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 dark:text-gray-400 text-xs sm:text-sm leading-5 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
                   FAQ
                 </a>
-                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 text-xs sm:text-sm leading-5 hover:text-gray-700 transition-colors">
+                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 dark:text-gray-400 text-xs sm:text-sm leading-5 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
                   Blog
                 </a>
               </div>
             </div>
             <div className="flex flex-col gap-4 sm:gap-6">
-              <h3 className="[font-family:'Geist',Helvetica] font-semibold text-[#0f0a2e] text-sm sm:text-base leading-6">
+              <h3 className="[font-family:'Geist',Helvetica] font-semibold text-[#0f0a2e] dark:text-white text-sm sm:text-base leading-6">
                 Community
               </h3>
               <div className="flex flex-col gap-3 sm:gap-[18px]">
-                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 text-xs sm:text-sm leading-5 hover:text-gray-700 transition-colors">
+                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 dark:text-gray-400 text-xs sm:text-sm leading-5 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
                   Discord
                 </a>
-                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 text-xs sm:text-sm leading-5 hover:text-gray-700 transition-colors">
+                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 dark:text-gray-400 text-xs sm:text-sm leading-5 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
                   Twitter
                 </a>
-                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 text-xs sm:text-sm leading-5 hover:text-gray-700 transition-colors">
+                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 dark:text-gray-400 text-xs sm:text-sm leading-5 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
                   Governance
                 </a>
               </div>
             </div>
             <div className="flex flex-col gap-4 sm:gap-6">
-              <h3 className="[font-family:'Geist',Helvetica] font-semibold text-[#0f0a2e] text-sm sm:text-base leading-6">
+              <h3 className="[font-family:'Geist',Helvetica] font-semibold text-[#0f0a2e] dark:text-white text-sm sm:text-base leading-6">
                 Legal
               </h3>
               <div className="flex flex-col gap-3 sm:gap-[18px]">
-                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 text-xs sm:text-sm leading-5 hover:text-gray-700 transition-colors">
+                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 dark:text-gray-400 text-xs sm:text-sm leading-5 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
                   Privacy
                 </a>
-                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 text-xs sm:text-sm leading-5 hover:text-gray-700 transition-colors">
+                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 dark:text-gray-400 text-xs sm:text-sm leading-5 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
                   Terms
                 </a>
-                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 text-xs sm:text-sm leading-5 hover:text-gray-700 transition-colors">
+                <a href="#" className="[font-family:'Geist',Helvetica] font-light text-gray-500 dark:text-gray-400 text-xs sm:text-sm leading-5 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
                   Security
                 </a>
               </div>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-0 pt-4 sm:pt-6 border-t border-[#e5e6ea80]">
-            <p className="[font-family:'Geist',Helvetica] font-light text-gray-500 text-xs sm:text-sm leading-5 text-center sm:text-left">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-0 pt-4 sm:pt-6 border-t border-[#e5e6ea80] dark:border-gray-800">
+            <p className="[font-family:'Geist',Helvetica] font-light text-gray-500 dark:text-gray-400 text-xs sm:text-sm leading-5 text-center sm:text-left">
               © 2025 SpeculateX. All rights reserved.
             </p>
-            <p className="[font-family:'Geist',Helvetica] font-light text-gray-500 text-xs sm:text-sm leading-5 text-center sm:text-right">
+            <p className="[font-family:'Geist',Helvetica] font-light text-gray-500 dark:text-gray-400 text-xs sm:text-sm leading-5 text-center sm:text-right">
               Built for the decentralized web
             </p>
           </div>

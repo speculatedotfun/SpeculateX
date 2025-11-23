@@ -130,20 +130,42 @@ export default function AdminPage() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-[#f5f0ff] relative overflow-hidden">
-        {/* Background Blobs */}
+      <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden">
+        {/* Animated Background Blobs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <motion.div 
-            className="absolute top-0 left-0 w-[500px] h-[500px] bg-gradient-to-br from-[#14B8A6]/10 to-blue-400/10 rounded-full blur-3xl"
-            animate={{ scale: [1, 1.1, 1], rotate: [0, 45, 0] }}
-            transition={{ duration: 15, repeat: Infinity }}
+            className="absolute -top-[20%] -left-[10%] w-[800px] h-[800px] bg-gradient-to-br from-[#14B8A6]/10 to-purple-400/10 dark:from-[#14B8A6]/5 dark:to-purple-400/5 rounded-full blur-3xl"
+            animate={{
+              x: [0, 50, 0],
+              y: [0, 30, 0],
+              scale: [1, 1.05, 1],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <motion.div 
+            className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] bg-gradient-to-br from-blue-400/10 to-[#14B8A6]/10 dark:from-blue-400/5 dark:to-[#14B8A6]/5 rounded-full blur-3xl"
+            animate={{
+              x: [0, -50, 0],
+              y: [0, -30, 0],
+              scale: [1, 1.1, 1],
+            }}
+            transition={{
+              duration: 25,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 2
+            }}
           />
         </div>
         <Header />
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 relative z-10">
-          <div className="bg-white rounded-xl p-8 shadow-lg border border-gray-200">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Admin Panel</h1>
-            <p className="text-gray-600">Please connect your wallet to access the admin panel</p>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-lg border border-gray-200 dark:border-gray-700">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Admin Panel</h1>
+            <p className="text-gray-600 dark:text-gray-400">Please connect your wallet to access the admin panel</p>
           </div>
         </div>
       </div>
@@ -152,22 +174,44 @@ export default function AdminPage() {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-[#f5f0ff] relative overflow-hidden">
-        {/* Background Blobs */}
+      <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden">
+        {/* Animated Background Blobs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <motion.div 
-            className="absolute top-0 left-0 w-[500px] h-[500px] bg-gradient-to-br from-[#14B8A6]/10 to-blue-400/10 rounded-full blur-3xl"
-            animate={{ scale: [1, 1.1, 1], rotate: [0, 45, 0] }}
-            transition={{ duration: 15, repeat: Infinity }}
+            className="absolute -top-[20%] -left-[10%] w-[800px] h-[800px] bg-gradient-to-br from-[#14B8A6]/10 to-purple-400/10 dark:from-[#14B8A6]/5 dark:to-purple-400/5 rounded-full blur-3xl"
+            animate={{
+              x: [0, 50, 0],
+              y: [0, 30, 0],
+              scale: [1, 1.05, 1],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <motion.div 
+            className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] bg-gradient-to-br from-blue-400/10 to-[#14B8A6]/10 dark:from-blue-400/5 dark:to-[#14B8A6]/5 rounded-full blur-3xl"
+            animate={{
+              x: [0, -50, 0],
+              y: [0, -30, 0],
+              scale: [1, 1.1, 1],
+            }}
+            transition={{
+              duration: 25,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 2
+            }}
           />
         </div>
         <Header />
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 relative z-10">
-          <div className="bg-white rounded-xl p-8 shadow-lg border border-red-200">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Admin Panel</h1>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-700 font-semibold">Access Denied</p>
-              <p className="text-red-600 text-sm mt-2">Only administrators can access this page. Your address ({address?.slice(0, 6)}...{address?.slice(-4)}) is not authorized.</p>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-lg border border-red-200 dark:border-red-900">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Admin Panel</h1>
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+              <p className="text-red-700 dark:text-red-400 font-semibold">Access Denied</p>
+              <p className="text-red-600 dark:text-red-300 text-sm mt-2">Only administrators can access this page. Your address ({address?.slice(0, 6)}...{address?.slice(-4)}) is not authorized.</p>
             </div>
           </div>
         </div>
@@ -176,53 +220,75 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f0ff] relative overflow-hidden">
-      {/* Background Blobs */}
+    <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden">
+      {/* Animated Background Blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div 
-          className="absolute top-0 left-0 w-[500px] h-[500px] bg-gradient-to-br from-[#14B8A6]/10 to-blue-400/10 rounded-full blur-3xl"
-          animate={{ scale: [1, 1.1, 1], rotate: [0, 45, 0] }}
-          transition={{ duration: 15, repeat: Infinity }}
+          className="absolute -top-[20%] -left-[10%] w-[800px] h-[800px] bg-gradient-to-br from-[#14B8A6]/10 to-purple-400/10 dark:from-[#14B8A6]/5 dark:to-purple-400/5 rounded-full blur-3xl"
+          animate={{
+            x: [0, 50, 0],
+            y: [0, 30, 0],
+            scale: [1, 1.05, 1],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div 
+          className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] bg-gradient-to-br from-blue-400/10 to-[#14B8A6]/10 dark:from-blue-400/5 dark:to-[#14B8A6]/5 rounded-full blur-3xl"
+          animate={{
+            x: [0, -50, 0],
+            y: [0, -30, 0],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2
+          }}
         />
       </div>
       <Header />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Admin Panel</h1>
-          <p className="text-gray-600">Manage markets, admins, and system settings</p>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">Admin Panel</h1>
+          <p className="text-gray-600 dark:text-gray-400">Manage markets, admins, and system settings</p>
         </div>
         
         <div className="mb-8">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">USDC Minting</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-gray-100 dark:border-gray-700">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">USDC Minting</h2>
             <MintUsdcForm />
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-8 mb-8">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Create Market</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-gray-100 dark:border-gray-700">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Create Market</h2>
             <CreateMarketForm />
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Admin Management</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-gray-100 dark:border-gray-700">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Admin Management</h2>
             <AdminManager />
           </div>
-          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">USDC Minter Management</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-gray-100 dark:border-gray-700">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">USDC Minter Management</h2>
             <USDCMinterManager />
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-8">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-gray-100 dark:border-gray-700">
             {loading ? (
               <div className="text-center py-12">
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#14B8A6]"></div>
-                <p className="mt-4 text-gray-500 font-medium">Loading markets...</p>
+                <p className="mt-4 text-gray-500 dark:text-gray-400 font-medium">Loading markets...</p>
               </div>
             ) : (
               <AdminMarketManager markets={markets} />

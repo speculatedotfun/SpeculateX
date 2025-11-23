@@ -49,15 +49,15 @@ export function LiquiditySection({
   handleClaimAllLp,
 }: LiquiditySectionProps) {
   return (
-    <div className="pt-6 border-t border-gray-200 space-y-4">
+    <div className="pt-6 border-t border-gray-200 dark:border-gray-700 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-bold text-gray-900">Provide Liquidity</h3>
-        <span className="text-xs font-semibold text-gray-500">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Provide Liquidity</h3>
+        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
           Vault: ${vaultBase.toFixed(2)}
         </span>
       </div>
 
-      <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm font-medium text-gray-700">
+      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2 text-sm font-medium text-gray-700 dark:text-gray-300">
         <div className="flex justify-between">
           <span>Your LP shares</span>
           <span>{lpShareFloat.toFixed(2)} USDC ({userSharePct.toFixed(2)}%)</span>
@@ -72,7 +72,7 @@ export function LiquiditySection({
             <span>${pendingResidualFloat.toFixed(4)}</span>
           </div>
         )}
-        <div className="flex justify-between text-gray-500">
+        <div className="flex justify-between text-gray-500 dark:text-gray-400">
           <span>Fee pool</span>
           <span>${lpFeePoolFloat.toFixed(2)}</span>
         </div>
@@ -80,7 +80,7 @@ export function LiquiditySection({
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase text-gray-600">
+          <label className="text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
             Add liquidity (USDC)
           </label>
           <div className="flex gap-2">
@@ -106,7 +106,7 @@ export function LiquiditySection({
                 setAddLiquidityAmount(formatLiquidity(num));
               }}
               placeholder="0.0"
-              className="flex-1 rounded-lg border px-4 py-2 font-semibold focus:ring-2 focus:ring-green-500"
+              className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-2 font-semibold focus:ring-2 focus:ring-green-500 focus:outline-none"
               disabled={!isTradeable || isBusy || isLpProcessing}
             />
             <button
@@ -114,7 +114,7 @@ export function LiquiditySection({
                 const maxString = Number.isFinite(maxBuyAmount) ? formatLiquidity(maxBuyAmount) : '0';
                 setAddLiquidityAmount(maxString);
               }}
-              className="px-3 py-2 bg-green-50 hover:bg-green-100 rounded-lg text-sm font-bold text-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-2 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg text-sm font-bold text-green-700 dark:text-green-400 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={!isTradeable || isBusy || isLpProcessing}
             >
               Max
@@ -133,13 +133,14 @@ export function LiquiditySection({
       <button
         onClick={handleClaimAllLp}
         disabled={(pendingLpFeesValue === 0n && pendingLpResidualValue === 0n) || isLpProcessing}
-        className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {pendingLpAction === 'claim' && isLpProcessing ? 'Claiming…' : 'Claim All LP Rewards'}
       </button>
     </div>
   );
 }
+
 
 
 

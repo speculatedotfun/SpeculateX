@@ -100,10 +100,10 @@ function ToastCard({ item, onClose }: ToastCardProps) {
     'bg-rose-500';
 
   const subtle =
-    item.type === 'success' ? 'bg-emerald-50 text-emerald-900 border-emerald-200' :
-    item.type === 'warning' ? 'bg-amber-50 text-amber-900 border-amber-200' :
-    item.type === 'info'    ? 'bg-sky-50 text-sky-900 border-sky-200' :
-    'bg-rose-50 text-rose-900 border-rose-200';
+    item.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-900 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800' :
+    item.type === 'warning' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-200 border-amber-200 dark:border-amber-800' :
+    item.type === 'info'    ? 'bg-sky-50 dark:bg-sky-900/20 text-sky-900 dark:text-sky-200 border-sky-200 dark:border-sky-800' :
+    'bg-rose-50 dark:bg-rose-900/20 text-rose-900 dark:text-rose-200 border-rose-200 dark:border-rose-800';
 
   return (
     <div className={`rounded-xl border ${subtle} shadow-lg overflow-hidden`}>
@@ -112,7 +112,7 @@ function ToastCard({ item, onClose }: ToastCardProps) {
         <div className="flex-1 font-semibold">{item.title}</div>
         <button
           onClick={onClose}
-          className="text-xs font-bold opacity-60 hover:opacity-100"
+          className="text-xs font-bold opacity-60 hover:opacity-100 transition-opacity"
           aria-label="Dismiss notification"
         >
           ✕
@@ -120,15 +120,15 @@ function ToastCard({ item, onClose }: ToastCardProps) {
       </div>
       {item.description && (
         <div className="px-3 pb-3">
-          <p className="text-sm text-gray-700 line-clamp-2">{item.description}</p>
+          <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">{item.description}</p>
           <button
-            className="mt-1 text-xs text-gray-600 underline decoration-dotted hover:text-gray-900"
+            className="mt-1 text-xs text-gray-600 dark:text-gray-400 underline decoration-dotted hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
             onClick={() => setShowDetails(prev => !prev)}
           >
             {showDetails ? 'Hide details' : 'View details'}
           </button>
           {showDetails && (
-            <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words text-[11px] font-mono bg-white/70 border border-gray-200 rounded-lg p-2">
+            <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words text-[11px] font-mono bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-gray-900 dark:text-gray-100">
               {item.description}
             </pre>
           )}

@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { isAdmin as checkIsAdmin } from '@/lib/hooks';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function Header() {
   const pathname = usePathname();
@@ -61,7 +62,7 @@ export default function Header() {
     <header 
       className={`sticky top-0 z-50 transition-all duration-300 border-b ${
         scrolled 
-          ? 'bg-white/80 backdrop-blur-md shadow-sm border-gray-200/50' 
+          ? 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-sm border-gray-200/50 dark:border-gray-800/50' 
           : 'bg-transparent border-transparent'
       }`}
     >
@@ -76,7 +77,7 @@ export default function Header() {
                 fill
                 sizes="(max-width: 640px) 140px, 160px"
                 priority
-                className="object-contain object-left"
+                className="object-contain object-left dark:[filter:invert(1)_hue-rotate(180deg)_brightness(1.1)]"
               />
             </div>
           </Link>
@@ -92,7 +93,7 @@ export default function Header() {
                   className={`relative px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
                     active
                       ? 'text-[#14B8A6]'
-                      : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
                 >
                   {link.label}
@@ -110,11 +111,14 @@ export default function Header() {
 
           {/* Right Side - Wallet or Launch App */}
           <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0 relative z-20">
+            {/* Theme Toggle */}
+            <ThemeToggle />
+            
             {/* Mobile Menu Button */}
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2.5 rounded-xl bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-[#14B8A6] transition-colors border border-transparent focus:border-[#14B8A6]/20 focus:bg-[#14B8A6]/5 focus:text-[#14B8A6] outline-none"
+              className="md:hidden p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#14B8A6] dark:hover:text-[#14B8A6] transition-colors border border-transparent focus:border-[#14B8A6]/20 focus:bg-[#14B8A6]/5 dark:focus:bg-[#14B8A6]/10 focus:text-[#14B8A6] outline-none"
               aria-label="Toggle menu"
             >
               <AnimatePresence mode="wait">
@@ -147,7 +151,7 @@ export default function Header() {
             {isLandingPage ? (
               <Link
                 href="/markets"
-                className="group relative inline-flex items-center justify-center rounded-full bg-[#14B8A6] px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-[#14B8A6]/25 hover:bg-[#0D9488] hover:shadow-xl hover:shadow-[#14B8A6]/30 transition-all duration-300 active:scale-95"
+                className="group relative inline-flex items-center justify-center rounded-full bg-[#14B8A6] dark:bg-[#14B8A6] px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-[#14B8A6]/25 dark:shadow-[#14B8A6]/30 hover:bg-[#0D9488] dark:hover:bg-[#0D9488] hover:shadow-xl hover:shadow-[#14B8A6]/30 dark:hover:shadow-[#14B8A6]/40 transition-all duration-300 active:scale-95"
               >
                 <span className="mr-2">Launch App</span>
                 <svg 
@@ -196,7 +200,7 @@ export default function Header() {
                               <button
                                 onClick={openConnectModal}
                                 type="button"
-                                className="group relative inline-flex items-center justify-center rounded-full bg-[#14B8A6] px-5 sm:px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-[#14B8A6]/25 hover:bg-[#0D9488] hover:shadow-xl hover:shadow-[#14B8A6]/30 transition-all duration-300 active:scale-95"
+                                className="group relative inline-flex items-center justify-center rounded-full bg-[#14B8A6] dark:bg-[#14B8A6] px-5 sm:px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-[#14B8A6]/25 dark:shadow-[#14B8A6]/30 hover:bg-[#0D9488] dark:hover:bg-[#0D9488] hover:shadow-xl hover:shadow-[#14B8A6]/30 dark:hover:shadow-[#14B8A6]/40 transition-all duration-300 active:scale-95"
                               >
                                 Connect Wallet
                               </button>
@@ -220,7 +224,7 @@ export default function Header() {
                               <button
                                 onClick={openChainModal}
                                 type="button"
-                                className="hidden sm:flex items-center gap-2 rounded-full bg-white border border-gray-200 px-3 py-2 hover:border-gray-300 hover:shadow-sm transition-all"
+                                className="hidden sm:flex items-center gap-2 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all"
                               >
                                 {chain.hasIcon && (
                                   <div
@@ -239,7 +243,7 @@ export default function Header() {
                                     )}
                                   </div>
                                 )}
-                                <span className="text-sm font-bold text-gray-700">
+                                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
                                   {chain.name}
                                 </span>
                               </button>
@@ -247,15 +251,15 @@ export default function Header() {
                               <button
                                 onClick={openAccountModal}
                                 type="button"
-                                className="group flex items-center gap-2 sm:gap-3 rounded-full bg-white border border-gray-200 pl-2 sm:pl-3 pr-2 sm:pr-4 py-1.5 hover:border-[#14B8A6] hover:ring-2 hover:ring-[#14B8A6]/10 transition-all shadow-sm hover:shadow-md"
+                                className="group flex items-center gap-2 sm:gap-3 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 pl-2 sm:pl-3 pr-2 sm:pr-4 py-1.5 hover:border-[#14B8A6] dark:hover:border-[#14B8A6] hover:ring-2 hover:ring-[#14B8A6]/10 dark:hover:ring-[#14B8A6]/20 transition-all shadow-sm hover:shadow-md"
                               >
                                 <div className="flex flex-col items-end leading-none hidden sm:flex">
-                                  <span className="text-xs font-bold text-gray-900">
+                                  <span className="text-xs font-bold text-gray-900 dark:text-gray-100">
                                     {account.displayBalance
                                       ? account.displayBalance
                                       : ''}
                                   </span>
-                                  <span className="text-[10px] font-semibold text-gray-500 group-hover:text-[#14B8A6] transition-colors">
+                                  <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 group-hover:text-[#14B8A6] transition-colors">
                                     {account.displayName}
                                   </span>
                                 </div>
@@ -284,9 +288,9 @@ export default function Header() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden absolute top-full left-0 right-0 border-t border-gray-100 bg-white/95 backdrop-blur-xl shadow-xl overflow-hidden"
+              className="md:hidden absolute top-full left-0 right-0 border-t border-gray-100 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-xl overflow-hidden"
             >
-              <nav className="flex flex-col py-4 space-y-2 px-4 bg-white">
+              <nav className="flex flex-col py-4 space-y-2 px-4 bg-white dark:bg-gray-900">
                 {navLinks.map((link) => {
                   const active = isActive(link.href);
                   return (
@@ -296,8 +300,8 @@ export default function Header() {
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={`relative px-4 py-3 rounded-xl text-base font-bold transition-all ${
                         active
-                          ? 'text-[#14B8A6] bg-[#14B8A6]/5'
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                          ? 'text-[#14B8A6] bg-[#14B8A6]/5 dark:bg-[#14B8A6]/10'
+                          : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800'
                       }`}
                     >
                       <div className="flex items-center justify-between">

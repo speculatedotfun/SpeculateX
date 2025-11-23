@@ -90,17 +90,47 @@ export default function PortfolioPage() {
 
   if (!isConnected) {
   return (
-      <div className="min-h-screen bg-[#f5f0ff] relative overflow-hidden">
+      <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden">
+        {/* Animated Background Blobs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <motion.div 
+            className="absolute -top-[20%] -left-[10%] w-[800px] h-[800px] bg-gradient-to-br from-[#14B8A6]/10 to-purple-400/10 dark:from-[#14B8A6]/5 dark:to-purple-400/5 rounded-full blur-3xl"
+            animate={{
+              x: [0, 50, 0],
+              y: [0, 30, 0],
+              scale: [1, 1.05, 1],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <motion.div 
+            className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] bg-gradient-to-br from-blue-400/10 to-[#14B8A6]/10 dark:from-blue-400/5 dark:to-[#14B8A6]/5 rounded-full blur-3xl"
+            animate={{
+              x: [0, -50, 0],
+              y: [0, -30, 0],
+              scale: [1, 1.1, 1],
+            }}
+            transition={{
+              duration: 25,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 2
+            }}
+          />
+        </div>
         <Header />
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
-          <div className="w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center mb-6">
+          <div className="w-20 h-20 bg-white dark:bg-gray-800 rounded-full shadow-lg flex items-center justify-center mb-6">
             <WalletIcon className="w-10 h-10 text-[#14B8A6]" />
           </div>
-          <h1 className="text-3xl font-bold text-[#0f0a2e] mb-3 text-center">Connect Your Wallet</h1>
-          <p className="text-gray-500 mb-8 text-center max-w-md">
+          <h1 className="text-3xl font-bold text-[#0f0a2e] dark:text-white mb-3 text-center">Connect Your Wallet</h1>
+          <p className="text-gray-500 dark:text-gray-400 mb-8 text-center max-w-md">
             Connect your wallet to view your positions, track performance, and manage your prediction market portfolio.
           </p>
-          <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium">
+          <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-lg text-sm font-medium">
             ↗ Use the Connect button in the top right
         </div>
       </div>
@@ -109,13 +139,35 @@ export default function PortfolioPage() {
 }
 
   return (
-    <div className="min-h-screen bg-[#f5f0ff] relative overflow-hidden">
-      {/* Background Blobs */}
+    <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden">
+      {/* Animated Background Blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div 
-          className="absolute top-0 left-0 w-[500px] h-[500px] bg-gradient-to-br from-[#14B8A6]/10 to-blue-400/10 rounded-full blur-3xl"
-          animate={{ scale: [1, 1.1, 1], rotate: [0, 45, 0] }}
-          transition={{ duration: 15, repeat: Infinity }}
+          className="absolute -top-[20%] -left-[10%] w-[800px] h-[800px] bg-gradient-to-br from-[#14B8A6]/10 to-purple-400/10 dark:from-[#14B8A6]/5 dark:to-purple-400/5 rounded-full blur-3xl"
+          animate={{
+            x: [0, 50, 0],
+            y: [0, 30, 0],
+            scale: [1, 1.05, 1],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div 
+          className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] bg-gradient-to-br from-blue-400/10 to-[#14B8A6]/10 dark:from-blue-400/5 dark:to-[#14B8A6]/5 rounded-full blur-3xl"
+          animate={{
+            x: [0, -50, 0],
+            y: [0, -30, 0],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2
+          }}
         />
       </div>
 
@@ -126,10 +178,10 @@ export default function PortfolioPage() {
         {/* Page Header */}
         <div className="mb-8 sm:mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <h1 className="[font-family:'Geist',Helvetica] font-bold text-[#0f0a2e] text-3xl sm:text-4xl tracking-tight mb-3">
+            <h1 className="[font-family:'Geist',Helvetica] font-bold text-[#0f0a2e] dark:text-white text-3xl sm:text-4xl tracking-tight mb-3">
               Portfolio
             </h1>
-            <p className="text-gray-500">Track your prediction market performance</p>
+            <p className="text-gray-500 dark:text-gray-400">Track your prediction market performance</p>
           </div>
           <Button
             onClick={async () => {
@@ -139,7 +191,7 @@ export default function PortfolioPage() {
             }}
             disabled={isRefetching || isManualRefreshing}
             variant="outline"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             <RefreshCwIcon className={`w-4 h-4 ${(isRefetching || isManualRefreshing) ? 'animate-spin' : ''}`} />
             Refresh
@@ -148,11 +200,11 @@ export default function PortfolioPage() {
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="bg-green-100 border border-green-200 text-green-800 px-4 py-3 rounded-xl flex items-center gap-3 shadow-sm"
+              className="bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-3 rounded-xl flex items-center gap-3 shadow-sm"
             >
-              <TrophyIcon className="w-5 h-5 text-green-600" />
+              <TrophyIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-green-600">Claimable Winnings</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-green-600 dark:text-green-400">Claimable Winnings</p>
                 <p className="text-sm font-medium">
                   You have {claimablePositions.length} winning position{claimablePositions.length > 1 ? 's' : ''} to redeem!
                 </p>
@@ -170,93 +222,93 @@ export default function PortfolioPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
-          <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-3xl overflow-hidden relative group">
+          <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] bg-white dark:bg-gray-800 rounded-3xl overflow-hidden relative group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Value</h3>
+                <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Total Value</h3>
                 <div className="w-10 h-10 bg-[#14B8A6]/10 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                   <TrendingUpIcon className="w-5 h-5 text-[#14B8A6]" />
                 </div>
               </div>
-              <div className="text-3xl sm:text-4xl font-black text-[#0f0a2e] tracking-tight">
+              <div className="text-3xl sm:text-4xl font-black text-[#0f0a2e] dark:text-white tracking-tight">
                 {isLoading ? (
-                  <div className="h-10 w-32 bg-gray-100 animate-pulse rounded-lg" />
+                  <div className="h-10 w-32 bg-gray-100 dark:bg-gray-700 animate-pulse rounded-lg" />
                 ) : (
                   formatCurrency(totalValue)
                 )}
               </div>
-              <p className="text-xs font-medium text-gray-400 mt-2">Current market value</p>
+              <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mt-2">Current market value</p>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-3xl overflow-hidden relative group">
+          <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] bg-white dark:bg-gray-800 rounded-3xl overflow-hidden relative group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Active</h3>
-                <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <ClockIcon className="w-5 h-5 text-blue-600" />
+                <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Active</h3>
+                <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <ClockIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
-              <div className="text-3xl sm:text-4xl font-black text-[#0f0a2e] tracking-tight">
+              <div className="text-3xl sm:text-4xl font-black text-[#0f0a2e] dark:text-white tracking-tight">
                 {isLoading ? (
-                  <div className="h-10 w-16 bg-gray-100 animate-pulse rounded-lg" />
+                  <div className="h-10 w-16 bg-gray-100 dark:bg-gray-700 animate-pulse rounded-lg" />
                 ) : (
                   activePositionsCount
                 )}
               </div>
-              <p className="text-xs font-medium text-gray-400 mt-2">Live positions</p>
+              <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mt-2">Live positions</p>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-3xl overflow-hidden relative group">
+          <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] bg-white dark:bg-gray-800 rounded-3xl overflow-hidden relative group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Resolved</h3>
-                <div className="w-10 h-10 bg-purple-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <CheckCircleIcon className="w-5 h-5 text-purple-600" />
+                <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Resolved</h3>
+                <div className="w-10 h-10 bg-purple-50 dark:bg-purple-900/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <CheckCircleIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
-              <div className="text-3xl sm:text-4xl font-black text-[#0f0a2e] tracking-tight">
+              <div className="text-3xl sm:text-4xl font-black text-[#0f0a2e] dark:text-white tracking-tight">
                 {isLoading ? (
-                  <div className="h-10 w-16 bg-gray-100 animate-pulse rounded-lg" />
+                  <div className="h-10 w-16 bg-gray-100 dark:bg-gray-700 animate-pulse rounded-lg" />
                 ) : (
                   resolvedPositionsCount
                 )}
               </div>
-              <p className="text-xs font-medium text-gray-400 mt-2">Finalized markets</p>
+              <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mt-2">Finalized markets</p>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-3xl overflow-hidden relative group">
+          <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] bg-white dark:bg-gray-800 rounded-3xl overflow-hidden relative group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Claimed</h3>
-                <div className="w-10 h-10 bg-green-50 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <TrophyIcon className="w-5 h-5 text-green-600" />
+                <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Claimed</h3>
+                <div className="w-10 h-10 bg-green-50 dark:bg-green-900/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <TrophyIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
                 </div>
               </div>
-              <div className="text-3xl sm:text-4xl font-black text-[#0f0a2e] tracking-tight">
+              <div className="text-3xl sm:text-4xl font-black text-[#0f0a2e] dark:text-white tracking-tight">
                 {isLoading ? (
-                  <div className="h-10 w-32 bg-gray-100 animate-pulse rounded-lg" />
+                  <div className="h-10 w-32 bg-gray-100 dark:bg-gray-700 animate-pulse rounded-lg" />
                 ) : (
                   formatCurrency(totalClaimed)
                 )}
               </div>
-              <p className="text-xs font-medium text-gray-400 mt-2">Total winnings redeemed</p>
+              <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mt-2">Total winnings redeemed</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Content Tabs */}
-        <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden min-h-[400px]">
+        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-gray-100 dark:border-gray-700 overflow-hidden min-h-[400px]">
           {/* Tab Header */}
-          <div className="flex border-b border-gray-100 overflow-x-auto p-2 gap-2">
+          <div className="flex border-b border-gray-100 dark:border-gray-700 overflow-x-auto p-2 gap-2">
             <button
               onClick={() => setActiveTab('positions')}
               className={`flex-1 py-3 px-4 text-sm font-bold rounded-xl transition-all relative whitespace-nowrap ${
                 activeTab === 'positions' 
-                  ? 'bg-gray-100 text-gray-900' 
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' 
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50'
               }`}
             >
               Positions
@@ -265,8 +317,8 @@ export default function PortfolioPage() {
               onClick={() => setActiveTab('claims')}
               className={`flex-1 py-3 px-4 text-sm font-bold rounded-xl transition-all relative whitespace-nowrap ${
                 activeTab === 'claims' 
-                  ? 'bg-gray-100 text-gray-900' 
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' 
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50'
               }`}
             >
               Claims & History
@@ -280,8 +332,8 @@ export default function PortfolioPage() {
               onClick={() => setActiveTab('history')}
               className={`flex-1 py-3 px-4 text-sm font-bold rounded-xl transition-all relative whitespace-nowrap ${
                 activeTab === 'history' 
-                  ? 'bg-gray-100 text-gray-900' 
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' 
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50'
               }`}
             >
               Trade History
@@ -290,8 +342,8 @@ export default function PortfolioPage() {
               onClick={() => setActiveTab('faucet')}
               className={`flex-1 py-3 px-4 text-sm font-bold rounded-xl transition-all relative whitespace-nowrap ${
                 activeTab === 'faucet' 
-                  ? 'bg-gray-100 text-gray-900' 
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' 
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50'
               }`}
             >
               Testnet Faucet
@@ -311,7 +363,7 @@ export default function PortfolioPage() {
                   {isLoading ? (
                     <div className="space-y-4">
                       {[1, 2, 3].map((i) => (
-                        <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />
+                        <div key={i} className="h-20 bg-gray-100 dark:bg-gray-700 rounded-xl animate-pulse" />
                       ))}
                     </div>
                   ) : positions.length === 0 ? (
@@ -326,7 +378,7 @@ export default function PortfolioPage() {
                       {/* Active Positions */}
                       {positions.filter(p => p.status === 'Active').length > 0 && (
                         <div>
-                          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                             <ClockIcon className="w-4 h-4" />
                             Active Positions
                           </h3>
@@ -348,7 +400,7 @@ export default function PortfolioPage() {
                       {/* Resolved Positions */}
                       {positions.filter(p => p.status === 'Resolved').length > 0 && (
                         <div>
-                          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                             <CheckCircleIcon className="w-4 h-4" />
                             Resolved Positions
                           </h3>
@@ -379,15 +431,15 @@ export default function PortfolioPage() {
                   <div className="space-y-8">
                     {/* Claimable Section */}
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <TrophyIcon className="w-5 h-5 text-green-600" />
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <TrophyIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
                         Ready to Claim
                       </h3>
                       {isLoading ? (
-                        <div className="h-20 bg-gray-100 rounded-xl animate-pulse" />
+                        <div className="h-20 bg-gray-100 dark:bg-gray-700 rounded-xl animate-pulse" />
                       ) : claimablePositions.length === 0 ? (
-                        <div className="bg-gray-50 rounded-xl p-6 text-center border border-gray-100">
-                          <p className="text-gray-500 text-sm">No winnings to claim right now.</p>
+                        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-6 text-center border border-gray-100 dark:border-gray-700">
+                          <p className="text-gray-500 dark:text-gray-400 text-sm">No winnings to claim right now.</p>
                         </div>
                       ) : (
                         <div className="space-y-4">
@@ -406,8 +458,8 @@ export default function PortfolioPage() {
                     {/* Lost Positions Section */}
                     {lostPositions.length > 0 && (
                       <div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                          <XIcon className="w-5 h-5 text-red-600" />
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                          <XIcon className="w-5 h-5 text-red-600 dark:text-red-400" />
                           Lost Positions
                         </h3>
                         <div className="space-y-4">
@@ -425,15 +477,15 @@ export default function PortfolioPage() {
 
                     {/* Past Claims Section */}
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <HistoryIcon className="w-5 h-5 text-gray-600" />
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <HistoryIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                         Past Claims
                       </h3>
                       {isLoading ? (
-                        <div className="h-20 bg-gray-100 rounded-xl animate-pulse" />
+                        <div className="h-20 bg-gray-100 dark:bg-gray-700 rounded-xl animate-pulse" />
                       ) : claimedPositions.length === 0 ? (
-                        <div className="bg-gray-50 rounded-xl p-6 text-center border border-gray-100">
-                          <p className="text-gray-500 text-sm">No past claims found.</p>
+                        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-6 text-center border border-gray-100 dark:border-gray-700">
+                          <p className="text-gray-500 dark:text-gray-400 text-sm">No past claims found.</p>
                         </div>
                       ) : (
                         <div className="space-y-4">
@@ -472,7 +524,7 @@ export default function PortfolioPage() {
                   {isLoading ? (
                     <div className="space-y-4">
                       {[1, 2, 3].map((i) => (
-                        <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+                        <div key={i} className="h-16 bg-gray-100 dark:bg-gray-700 rounded-xl animate-pulse" />
                       ))}
                     </div>
                   ) : trades.length === 0 ? (
@@ -487,27 +539,27 @@ export default function PortfolioPage() {
                       {trades.map((trade) => (
                         <div 
                           key={trade.id} 
-                          className="bg-white border border-gray-100 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:shadow-sm transition-shadow gap-4"
+                          className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:shadow-sm transition-shadow gap-4"
                         >
                           <div className="flex items-center gap-4">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              trade.action === 'buy' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                              trade.action === 'buy' ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
                             }`}>
                               {trade.action === 'buy' ? <ArrowUpRightIcon className="w-5 h-5" /> : <ArrowDownRightIcon className="w-5 h-5" />}
                             </div>
                             <div>
                               <div className="flex items-center gap-2 mb-1">
                                 <span className={`text-xs font-bold uppercase tracking-wider ${
-                                  trade.action === 'buy' ? 'text-green-600' : 'text-red-600'
+                                  trade.action === 'buy' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                                 }`}>
                                   {trade.action} {trade.side}
                                 </span>
-                                <span className="text-xs text-gray-400">•</span>
-                                <span className="text-xs text-gray-500">
+                                <span className="text-xs text-gray-400 dark:text-gray-500">•</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
                                   {new Date(trade.timestamp * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </div>
-                              <Link href={`/markets/${trade.marketId}`} className="text-sm font-bold text-gray-900 hover:text-[#14B8A6] line-clamp-1">
+                              <Link href={`/markets/${trade.marketId}`} className="text-sm font-bold text-gray-900 dark:text-white hover:text-[#14B8A6] dark:hover:text-[#14B8A6] line-clamp-1">
                                 {trade.question}
                               </Link>
                             </div>
@@ -515,16 +567,16 @@ export default function PortfolioPage() {
                           
                           <div className="flex items-center justify-between sm:justify-end gap-6 sm:min-w-[300px]">
                             <div className="text-right">
-                              <p className="text-xs text-gray-400 font-medium uppercase">Amount</p>
-                              <p className="text-sm font-bold text-gray-900">{formatNumber(trade.tokenAmount)}</p>
+                              <p className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase">Amount</p>
+                              <p className="text-sm font-bold text-gray-900 dark:text-white">{formatNumber(trade.tokenAmount)}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-xs text-gray-400 font-medium uppercase">Price</p>
-                              <p className="text-sm font-bold text-gray-900">{formatCurrency(trade.price)}</p>
+                              <p className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase">Price</p>
+                              <p className="text-sm font-bold text-gray-900 dark:text-white">{formatCurrency(trade.price)}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-xs text-gray-400 font-medium uppercase">Total</p>
-                              <p className="text-sm font-bold text-[#0f0a2e]">{formatCurrency(trade.usdcAmount)}</p>
+                              <p className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase">Total</p>
+                              <p className="text-sm font-bold text-[#0f0a2e] dark:text-white">{formatCurrency(trade.usdcAmount)}</p>
                             </div>
                           </div>
                         </div>
@@ -676,13 +728,13 @@ function PositionCard({ position, onClaimSuccess, isRedeemed = false }: { positi
 
 
   return (
-    <div className={`bg-white border rounded-3xl p-5 sm:p-6 transition-all duration-300 group relative overflow-hidden ${
+    <div className={`bg-white dark:bg-gray-800 border rounded-3xl p-5 sm:p-6 transition-all duration-300 group relative overflow-hidden ${
       canRedeem 
-        ? 'border-green-200 shadow-[0_8px_30px_rgba(34,197,94,0.1)]' 
-        : 'border-gray-100 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)]'
+        ? 'border-green-200 dark:border-green-800 shadow-[0_8px_30px_rgba(34,197,94,0.1)]' 
+        : 'border-gray-100 dark:border-gray-700 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)]'
     }`}>
       {canRedeem && (
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-green-100/50 to-transparent -mr-16 -mt-16 rounded-full blur-xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-green-100/50 dark:from-green-900/30 to-transparent -mr-16 -mt-16 rounded-full blur-xl pointer-events-none" />
       )}
       
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
@@ -692,13 +744,13 @@ function PositionCard({ position, onClaimSuccess, isRedeemed = false }: { positi
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
               position.side === 'YES' 
-                ? 'bg-green-100 text-green-700 border border-green-200' 
-                : 'bg-red-100 text-red-700 border border-red-200'
+                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800' 
+                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'
             }`}>
               {position.side}
             </span>
             {position.status === 'Resolved' && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide bg-gray-100 text-gray-500 border border-gray-200">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600">
                 Resolved
               </span>
             )}
@@ -708,41 +760,41 @@ function PositionCard({ position, onClaimSuccess, isRedeemed = false }: { positi
               </span>
             )}
             {showLost && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide bg-red-50 text-red-500 border border-red-100">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 border border-red-100 dark:border-red-800">
                 Lost
               </span>
             )}
             {showClaimed && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide bg-gray-100 text-gray-500 border border-gray-200">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600">
                 Claimed
               </span>
             )}
           </div>
           <Link href={`/markets/${position.marketId}`}>
-            <h3 className="text-lg font-bold text-gray-900 leading-tight hover:text-[#14B8A6] transition-colors line-clamp-2">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight hover:text-[#14B8A6] dark:hover:text-[#14B8A6] transition-colors line-clamp-2">
               {position.question}
             </h3>
           </Link>
         </div>
 
         {/* Stats - Grid on mobile, Flex on desktop */}
-        <div className="grid grid-cols-3 sm:flex sm:items-center gap-4 sm:gap-8 w-full sm:w-auto border-t sm:border-t-0 border-gray-100 pt-4 sm:pt-0">
+        <div className="grid grid-cols-3 sm:flex sm:items-center gap-4 sm:gap-8 w-full sm:w-auto border-t sm:border-t-0 border-gray-100 dark:border-gray-700 pt-4 sm:pt-0">
           <div className="flex flex-col items-start sm:items-end">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Balance</span>
-            <span className="font-bold text-gray-900 text-base">{formatNumber(position.balance)}</span>
+            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">Balance</span>
+            <span className="font-bold text-gray-900 dark:text-white text-base">{formatNumber(position.balance)}</span>
           </div>
-          <div className="flex flex-col items-center sm:items-end border-l border-r sm:border-0 border-gray-100 px-2 sm:px-0">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Avg Price</span>
-            <span className="font-bold text-gray-900 text-base">{formatCurrency(position.currentPrice)}</span>
+          <div className="flex flex-col items-center sm:items-end border-l border-r sm:border-0 border-gray-100 dark:border-gray-700 px-2 sm:px-0">
+            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">Avg Price</span>
+            <span className="font-bold text-gray-900 dark:text-white text-base">{formatCurrency(position.currentPrice)}</span>
           </div>
           <div className="flex flex-col items-end min-w-[80px]">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Value</span>
+            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">Value</span>
             <span className={`font-black text-base ${
               canRedeem 
-                ? 'text-green-600' 
+                ? 'text-green-600 dark:text-green-400' 
                 : showLost 
-                ? 'text-red-500' 
-                : 'text-[#0f0a2e]'
+                ? 'text-red-500 dark:text-red-400' 
+                : 'text-[#0f0a2e] dark:text-white'
             }`}>
               {formatCurrency(position.value)}
             </span>
@@ -750,11 +802,11 @@ function PositionCard({ position, onClaimSuccess, isRedeemed = false }: { positi
         </div>
 
         {/* Action - Full width on mobile */}
-        <div className="flex flex-col items-end sm:border-l sm:border-gray-100 sm:pl-6 gap-2 w-full sm:w-auto">
+        <div className="flex flex-col items-end sm:border-l sm:border-gray-100 dark:sm:border-gray-700 sm:pl-6 gap-2 w-full sm:w-auto">
           {canRedeem ? (
             <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
               {errorMessage && (
-                <div className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded border border-red-200 max-w-xs text-right">
+                <div className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded border border-red-200 dark:border-red-800 max-w-xs text-right">
                   {errorMessage}
                 </div>
               )}
@@ -767,17 +819,17 @@ function PositionCard({ position, onClaimSuccess, isRedeemed = false }: { positi
               </Button>
             </div>
           ) : showClaimed ? (
-            <div className="flex items-center gap-1.5 text-green-600 font-bold bg-green-50 px-4 py-2 rounded-xl border border-green-100">
+            <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400 font-bold bg-green-50 dark:bg-green-900/20 px-4 py-2 rounded-xl border border-green-100 dark:border-green-800">
               <CheckIcon className="w-4 h-4" /> 
               <span className="text-sm">Claimed</span>
             </div>
           ) : showLost ? (
-            <div className="flex items-center gap-1.5 text-gray-400 font-bold bg-gray-50 px-4 py-2 rounded-xl border border-gray-100">
+            <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 font-bold bg-gray-50 dark:bg-gray-800 px-4 py-2 rounded-xl border border-gray-100 dark:border-gray-700">
               <span className="text-sm">Resolved</span>
             </div>
           ) : (
              <Link href={`/markets/${position.marketId}`} className="w-full sm:w-auto">
-               <Button variant="outline" className="w-full border-2 border-gray-100 text-gray-600 font-bold hover:border-[#14B8A6] hover:text-[#14B8A6] hover:bg-white rounded-xl transition-all">
+               <Button variant="outline" className="w-full border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-bold hover:border-[#14B8A6] dark:hover:border-[#14B8A6] hover:text-[#14B8A6] dark:hover:text-[#14B8A6] hover:bg-white dark:hover:bg-gray-800 rounded-xl transition-all">
                  Trade
                </Button>
              </Link>
@@ -792,11 +844,11 @@ function PositionCard({ position, onClaimSuccess, isRedeemed = false }: { positi
 function EmptyState({ title, description, actionLink, actionText }: { title: string, description: string, actionLink: string, actionText: string }) {
   return (
     <div className="text-center py-12 px-4">
-      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-        <AlertCircleIcon className="w-8 h-8 text-gray-300" />
+      <div className="w-16 h-16 bg-gray-50 dark:bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+        <AlertCircleIcon className="w-8 h-8 text-gray-300 dark:text-gray-500" />
       </div>
-      <h3 className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
-      <p className="text-gray-500 max-w-sm mx-auto mb-6">{description}</p>
+      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{title}</h3>
+      <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">{description}</p>
       <Link href={actionLink}>
         <Button className="bg-[#14B8A6] hover:bg-[#0D9488] text-white">
           {actionText}

@@ -87,19 +87,19 @@ export default function AdminMarketManager({ markets }: AdminMarketManagerProps)
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-[#0f0a2e]">Manage Markets</h2>
-          <p className="text-gray-500 text-sm mt-1">Monitor and resolve active markets</p>
+          <h2 className="text-2xl font-bold text-[#0f0a2e] dark:text-white">Manage Markets</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Monitor and resolve active markets</p>
         </div>
-        <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200">
+        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700">
           <Activity className="w-4 h-4 text-[#14B8A6]" />
-          <span className="text-sm font-medium text-gray-700">{markets.length} Total Markets</span>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{markets.length} Total Markets</span>
         </div>
       </div>
 
       <div className="grid gap-4">
         {markets.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-            <p className="text-gray-500 font-medium">No markets found</p>
+          <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700">
+            <p className="text-gray-500 dark:text-gray-400 font-medium">No markets found</p>
           </div>
         ) : (
           markets.map((market) => {
@@ -123,29 +123,29 @@ export default function AdminMarketManager({ markets }: AdminMarketManagerProps)
                 key={market.id}
                 className={`rounded-2xl border p-5 transition-all duration-300 ${
                   isResolved 
-                    ? 'bg-gray-50/50 border-gray-100' 
-                    : 'bg-white border-gray-100 shadow-sm hover:shadow-md hover:border-[#14B8A6]/20'
+                    ? 'bg-gray-50/50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-700' 
+                    : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-[#14B8A6]/20 dark:hover:border-[#14B8A6]/30'
                 }`}
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-3 flex-1">
                     <div className="flex items-start gap-3">
                       <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-bold text-xs ${
-                         isResolved ? 'bg-gray-200 text-gray-500' : 'bg-[#14B8A6]/10 text-[#14B8A6]'
+                         isResolved ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400' : 'bg-[#14B8A6]/10 dark:bg-[#14B8A6]/20 text-[#14B8A6]'
                       }`}>
                         #{market.id}
                       </div>
                       <div>
-                        <h3 className="font-bold text-gray-900 leading-tight text-lg">{market.question}</h3>
+                        <h3 className="font-bold text-gray-900 dark:text-white leading-tight text-lg">{market.question}</h3>
                         <div className="mt-2 flex flex-wrap gap-2">
-                          <Badge variant={isResolved ? "secondary" : "default"} className={isResolved ? "bg-gray-200 text-gray-600" : "bg-[#14B8A6] hover:bg-[#0D9488]"}>
+                          <Badge variant={isResolved ? "secondary" : "default"} className={isResolved ? "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300" : "bg-[#14B8A6] hover:bg-[#0D9488]"}>
                             {isResolved ? 'Resolved' : 'Live Trading'}
                           </Badge>
-                          <Badge variant="outline" className="bg-white">
+                          <Badge variant="outline" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
                             Vault: ${market.vault.toFixed(2)}
                           </Badge>
                           {market.residual > 0 && (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
                               Finalized Residual: ${market.residual.toFixed(2)}
                             </Badge>
                           )}
@@ -154,24 +154,24 @@ export default function AdminMarketManager({ markets }: AdminMarketManagerProps)
                     </div>
 
                     {isResolved && (
-                      <div className="ml-11 bg-white rounded-xl p-3 border border-gray-100 text-sm space-y-2">
-                        <div className="flex items-center gap-2 font-medium text-gray-900">
-                          <Trophy className="w-4 h-4 text-yellow-500" />
-                          Winning Side: <span className={market.yesWins ? "text-green-600" : "text-red-600"}>{market.yesWins ? 'YES' : 'NO'}</span>
+                      <div className="ml-11 bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 text-sm space-y-2">
+                        <div className="flex items-center gap-2 font-medium text-gray-900 dark:text-white">
+                          <Trophy className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
+                          Winning Side: <span className={market.yesWins ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>{market.yesWins ? 'YES' : 'NO'}</span>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 text-xs text-gray-500">
+                        <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 dark:text-gray-400">
                           <div>
-                            <p className="font-medium text-gray-700">Unclaimed Winnings</p>
+                            <p className="font-medium text-gray-700 dark:text-gray-300">Unclaimed Winnings</p>
                             <p>${winningSupplyDisplay.toFixed(2)} needed</p>
                           </div>
                           <div>
-                            <p className="font-medium text-gray-700">Available Residual</p>
-                            <p className={availableResidual > 0 ? "text-green-600 font-bold" : ""}>${availableResidual.toFixed(2)}</p>
+                            <p className="font-medium text-gray-700 dark:text-gray-300">Available Residual</p>
+                            <p className={availableResidual > 0 ? "text-green-600 dark:text-green-400 font-bold" : ""}>${availableResidual.toFixed(2)}</p>
                           </div>
                         </div>
                         
                         {canFinalizeResidual && (
-                          <div className="flex items-start gap-2 mt-2 text-blue-600 bg-blue-50 p-2 rounded-lg text-xs">
+                          <div className="flex items-start gap-2 mt-2 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg text-xs">
                             <DollarSign className="w-3 h-3 mt-0.5 shrink-0" />
                             <p>You can finalize ${availableResidual.toFixed(2)} for LPs while keeping ${winningSupplyDisplay.toFixed(2)} reserved for winners.</p>
                           </div>

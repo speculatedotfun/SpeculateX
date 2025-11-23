@@ -110,7 +110,7 @@ const MARKET_LIVE_SUBSCRIPTION = /* GraphQL */ `
 
 function MarketDetailSkeleton() {
   return (
-    <div className="min-h-screen bg-[#FAF9FF] relative overflow-hidden">
+    <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden">
       <Header />
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         <Skeleton className="h-6 w-32 mb-6 rounded-full" />
@@ -677,17 +677,47 @@ export default function MarketDetailPage() {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-[#FAF9FF]">
+      <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden">
+        {/* Animated Background Blobs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <motion.div 
+            className="absolute -top-[20%] -left-[10%] w-[800px] h-[800px] bg-gradient-to-br from-[#14B8A6]/10 to-purple-400/10 dark:from-[#14B8A6]/5 dark:to-purple-400/5 rounded-full blur-3xl"
+            animate={{
+              x: [0, 50, 0],
+              y: [0, 30, 0],
+              scale: [1, 1.05, 1],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <motion.div 
+            className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] bg-gradient-to-br from-blue-400/10 to-[#14B8A6]/10 dark:from-blue-400/5 dark:to-[#14B8A6]/5 rounded-full blur-3xl"
+            animate={{
+              x: [0, -50, 0],
+              y: [0, -30, 0],
+              scale: [1, 1.1, 1],
+            }}
+            transition={{
+              duration: 25,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 2
+            }}
+          />
+        </div>
         <Header />
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] sm:min-h-[calc(100vh-5rem)]">
+        <div className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] sm:min-h-[calc(100vh-5rem)]">
           <div className="text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Market Not Found</h1>
-            <p className="text-gray-600 mb-6">{error}</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Market Not Found</h1>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
             <Link href="/markets" className="inline-flex items-center px-4 py-2 bg-[#14B8A6] text-white rounded-lg hover:bg-[#14B8A6]/90 transition-colors">
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -703,17 +733,47 @@ export default function MarketDetailPage() {
   // Invalid market ID
   if (!isMarketIdValid) {
     return (
-      <div className="min-h-screen bg-[#FAF9FF]">
+      <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden">
+        {/* Animated Background Blobs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <motion.div 
+            className="absolute -top-[20%] -left-[10%] w-[800px] h-[800px] bg-gradient-to-br from-[#14B8A6]/10 to-purple-400/10 dark:from-[#14B8A6]/5 dark:to-purple-400/5 rounded-full blur-3xl"
+            animate={{
+              x: [0, 50, 0],
+              y: [0, 30, 0],
+              scale: [1, 1.05, 1],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <motion.div 
+            className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] bg-gradient-to-br from-blue-400/10 to-[#14B8A6]/10 dark:from-blue-400/5 dark:to-[#14B8A6]/5 rounded-full blur-3xl"
+            animate={{
+              x: [0, -50, 0],
+              y: [0, -30, 0],
+              scale: [1, 1.1, 1],
+            }}
+            transition={{
+              duration: 25,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 2
+            }}
+          />
+        </div>
         <Header />
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="text-center bg-white rounded-2xl p-12 shadow-xl"
+            className="text-center bg-white dark:bg-gray-800 rounded-2xl p-12 shadow-xl border border-gray-100 dark:border-gray-700"
           >
             <div className="text-6xl mb-4">❌</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Market Not Found</h2>
-            <p className="text-gray-600 mb-6">The market you&apos;re looking for doesn&apos;t exist.</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Market Not Found</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">The market you&apos;re looking for doesn&apos;t exist.</p>
             <Link
               href="/markets"
               className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#14B8A6] to-[#0D9488] text-white font-bold rounded-lg hover:shadow-lg transition-all"
@@ -728,18 +788,35 @@ export default function MarketDetailPage() {
 
   // Main content
   return (
-    <div className="min-h-screen bg-[#f5f0ff] relative overflow-hidden">
-      {/* Animated Background */}
+    <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden">
+      {/* Animated Background Blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
-          className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-[#14B8A6]/10 to-purple-400/10 rounded-full blur-3xl"
-          animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
-          transition={{ duration: 20, repeat: Infinity }}
+          className="absolute -top-[20%] -left-[10%] w-[800px] h-[800px] bg-gradient-to-br from-[#14B8A6]/10 to-purple-400/10 dark:from-[#14B8A6]/5 dark:to-purple-400/5 rounded-full blur-3xl"
+          animate={{
+            x: [0, 50, 0],
+            y: [0, 30, 0],
+            scale: [1, 1.05, 1],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
         />
         <motion.div
-          className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-[#14B8A6]/10 rounded-full blur-3xl"
-          animate={{ scale: [1, 1.1, 1], rotate: [0, -90, 0] }}
-          transition={{ duration: 25, repeat: Infinity, delay: 2 }}
+          className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] bg-gradient-to-br from-blue-400/10 to-[#14B8A6]/10 dark:from-blue-400/5 dark:to-[#14B8A6]/5 rounded-full blur-3xl"
+          animate={{
+            x: [0, -50, 0],
+            y: [0, -30, 0],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2
+          }}
         />
       </div>
       <Header />
@@ -776,7 +853,7 @@ export default function MarketDetailPage() {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-4 px-5 py-3 rounded-2xl border border-gray-200 bg-gradient-to-r from-[#fef3c7] to-[#fde68a] text-sm text-amber-900 shadow-inner flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+            className="mt-4 px-5 py-3 rounded-2xl border border-gray-200 dark:border-yellow-900/30 bg-gradient-to-r from-[#fef3c7] to-[#fde68a] dark:from-yellow-900/20 dark:to-yellow-800/20 text-sm text-amber-900 dark:text-amber-200 shadow-inner flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
           >
             <span className="font-semibold">
               {marketIsResolved
@@ -784,7 +861,7 @@ export default function MarketDetailPage() {
                 : 'Market expired — trading is closed.'}
             </span>
             {marketIsResolved && (
-              <span className="text-[11px] tracking-widest uppercase text-gray-700 bg-white/70 px-3 py-1 rounded-full shadow-sm">
+              <span className="text-[11px] tracking-widest uppercase text-gray-700 dark:text-gray-300 bg-white/70 dark:bg-gray-800/50 px-3 py-1 rounded-full shadow-sm">
                 Winner: {marketResolution?.yesWins ? 'YES' : 'NO'}
               </span>
             )}
@@ -799,13 +876,13 @@ export default function MarketDetailPage() {
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="lg:hidden bg-white rounded-2xl p-4 sm:p-6 shadow-xl border border-gray-100"
+              className="lg:hidden bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-xl border border-gray-100 dark:border-gray-700"
             >
               {isMarketIdValid && market && (
                 <>
                   <TradingCard marketId={marketIdNum} marketData={marketData} />
                   {!marketIsActive && (
-                  <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                  <div className="mt-6 rounded-xl border border-amber-200 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
                     Trading for this market is closed.
                     {marketIsResolved
                     ? ' The market has been resolved.'
@@ -823,13 +900,13 @@ export default function MarketDetailPage() {
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100"
+              className="bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-gray-100 dark:border-gray-700"
             >
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-8 gap-6">
                 <div>
                   <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
                     Market Price
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${chartSide === 'yes' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${chartSide === 'yes' ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'}`}>
                       {chartSide}
                     </span>
                   </div>
@@ -838,24 +915,24 @@ export default function MarketDetailPage() {
                       key={chartSide === 'yes' ? marketData.currentPrices.yes : marketData.currentPrices.no}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-5xl sm:text-6xl font-black tracking-tighter text-gray-900"
+                      className="text-5xl sm:text-6xl font-black tracking-tighter text-gray-900 dark:text-white"
                     >
                       {formatPriceInCents(chartSide === 'yes' ? marketData.currentPrices.yes : marketData.currentPrices.no)}
                     </motion.div>
                     <div className={`flex items-center font-bold text-lg ${chanceChangePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                       {chanceChangePercent >= 0 ? '↑' : '↓'} {Math.abs(chanceChangePercent).toFixed(2)}%
-                      <span className="text-gray-400 text-xs font-medium ml-2">past {timeRange.toLowerCase()}</span>
+                      <span className="text-gray-400 dark:text-gray-500 text-xs font-medium ml-2">past {timeRange.toLowerCase()}</span>
                     </div>
                   </div>
                 </div>
                 
-                <div className="flex bg-gray-100/80 p-1 rounded-xl self-start sm:self-center w-full sm:w-auto backdrop-blur-sm">
+                <div className="flex bg-gray-100/80 dark:bg-gray-700/50 p-1 rounded-xl self-start sm:self-center w-full sm:w-auto backdrop-blur-sm">
                   <button
                     onClick={() => setChartSide('yes')}
                     className={`flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all relative z-10 ${
                       chartSide === 'yes'
-                        ? 'bg-white text-green-600 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-900'
+                        ? 'bg-white dark:bg-gray-600 text-green-600 dark:text-green-400 shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
                   >
                     Yes
@@ -864,8 +941,8 @@ export default function MarketDetailPage() {
                     onClick={() => setChartSide('no')}
                     className={`flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all relative z-10 ${
                       chartSide === 'no'
-                        ? 'bg-white text-red-600 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-900'
+                        ? 'bg-white dark:bg-gray-600 text-red-600 dark:text-red-400 shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
                   >
                     No
@@ -876,14 +953,14 @@ export default function MarketDetailPage() {
               {/* Chart Container */}
               <div className="h-[300px] sm:h-[400px] w-full mb-6 relative">
                 {snapshotLoading && sortedChartData.length === 0 ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gray-50/50 rounded-xl">
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-50/50 dark:bg-gray-800/50 rounded-xl">
                     <div className="flex flex-col items-center gap-3">
                       <motion.div
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
                         className="w-8 h-8 border-2 border-[#14B8A6] border-t-transparent rounded-full"
                       />
-                      <span className="text-sm font-medium text-gray-500">Loading chart data...</span>
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Loading chart data...</span>
                     </div>
                   </div>
                 ) : (
@@ -895,9 +972,9 @@ export default function MarketDetailPage() {
                       useCentralizedData={true}
                     />
                     {isChartRefreshing && (
-                      <div className="absolute top-2 right-2 px-3 py-1.5 bg-white/90 backdrop-blur rounded-full border border-gray-200 shadow-sm flex items-center gap-2">
+                      <div className="absolute top-2 right-2 px-3 py-1.5 bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-full border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-[#14B8A6] animate-pulse" />
-                        <span className="text-xs font-medium text-gray-600">Live</span>
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Live</span>
                       </div>
                     )}
                   </div>
@@ -905,7 +982,7 @@ export default function MarketDetailPage() {
               </div>
 
               {/* Time Range Controls */}
-              <div className="flex items-center justify-between border-t border-gray-100 pt-4 overflow-x-auto">
+              <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-4 overflow-x-auto">
                 <div className="flex gap-2 w-full sm:w-auto">
                   {(['1D', '1W', '1M', 'ALL'] as const).map((range) => (
                     <button
@@ -913,8 +990,8 @@ export default function MarketDetailPage() {
                       onClick={() => setTimeRange(range)}
                       className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${
                         timeRange === range
-                          ? 'bg-gray-900 text-white'
-                          : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                          : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                       }`}
                     >
                       {range}
@@ -929,9 +1006,9 @@ export default function MarketDetailPage() {
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.5 }}
-              className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden"
+              className="bg-white dark:bg-gray-800 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-gray-100 dark:border-gray-700 overflow-hidden"
             >
-              <div className="flex border-b border-gray-100 overflow-x-auto">
+              <div className="flex border-b border-gray-100 dark:border-gray-700 overflow-x-auto">
                 {(['Position', 'Comments', 'Transactions', 'Resolution'] as const).map((tab) => (
                   <button
                     key={tab}
@@ -939,7 +1016,7 @@ export default function MarketDetailPage() {
                     className={`flex-1 px-6 py-4 text-sm font-bold whitespace-nowrap transition-colors relative ${
                       activeTab === tab
                         ? 'text-[#14B8A6]'
-                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
                     {tab}
@@ -954,7 +1031,7 @@ export default function MarketDetailPage() {
                 ))}
               </div>
 
-              <div className="p-6 sm:p-8 bg-gray-50/30 min-h-[300px]">
+              <div className="p-6 sm:p-8 bg-gray-50/30 dark:bg-gray-900/30 min-h-[300px]">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeTab}
@@ -1005,18 +1082,18 @@ export default function MarketDetailPage() {
             >
               {isMarketIdValid && market && (
                 <div className="sticky top-24 space-y-6">
-                  <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden">
+                  <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-gray-100 dark:border-gray-700 overflow-hidden">
                     <TradingCard marketId={marketIdNum} marketData={marketData} />
                   </div>
                   
                   {!marketIsActive && (
-                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 font-medium">
+                    <div className="rounded-2xl border border-amber-200 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 p-4 text-sm text-amber-800 dark:text-amber-400 font-medium">
                       ⚠️ Trading for this market is closed.
                     </div>
                   )}
 
                   {/* Top Holders */}
-                  <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden">
+                  <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-gray-100 dark:border-gray-700 overflow-hidden">
                     <TopHoldersCard
                       holderTab={holderTab}
                       setHolderTab={setHolderTab}
