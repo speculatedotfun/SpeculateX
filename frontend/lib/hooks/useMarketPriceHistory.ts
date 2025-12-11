@@ -4,7 +4,7 @@ import { withSeedPoint } from '../marketUtils';
 import type { SnapshotTrade, SnapshotTimeRange } from '../useMarketSnapshot';
 import { usePublicClient } from 'wagmi';
 import { coreAbi } from '@/lib/abis';
-import { addresses } from '@/lib/contracts';
+import { getAddresses } from '@/lib/contracts';
 import { decodeEventLog, parseAbiItem } from 'viem';
 
 declare global {
@@ -284,7 +284,7 @@ export function useMarketPriceHistory(
                     const fromBlock = currentBlock - blockRange;
                     
                     const logs = await publicClient.getLogs({
-                      address: addresses.core,
+                      address: getAddresses().core,
                       event: parseAbiItem('event Buy(uint256 indexed id, address indexed user, bool isYes, uint256 usdcIn, uint256 tokensOut, uint256 priceE6)'),
                       args: {
                         id: BigInt(marketIdNum)
@@ -294,7 +294,7 @@ export function useMarketPriceHistory(
                     });
                     
                     const sellLogs = await publicClient.getLogs({
-                        address: addresses.core,
+                        address: getAddresses().core,
                         event: parseAbiItem('event Sell(uint256 indexed id, address indexed user, bool isYes, uint256 tokensIn, uint256 usdcOut, uint256 priceE6)'),
                         args: {
                           id: BigInt(marketIdNum)

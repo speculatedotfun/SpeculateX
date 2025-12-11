@@ -1,7 +1,7 @@
 'use client';
 import { useEffect } from 'react';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { addresses } from '@/lib/contracts';
+import { getAddresses } from '@/lib/contracts';
 import { coreAbi } from '@/lib/abis';
 import { formatUnits } from 'viem';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
   const { data: hash, writeContract, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
   const { pushToast } = useToast();
+  const addresses = getAddresses();
 
   const handleResolve = (id: number, yesWins: boolean) => {
     writeContract({

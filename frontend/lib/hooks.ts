@@ -1,26 +1,47 @@
-import { readContract } from 'wagmi/actions';
+import { readContract, getPublicClient } from 'wagmi/actions';
 import { config } from './wagmi';
-import { addresses } from './contracts';
+import { getAddresses, getChainId, MAINNET_CHAIN_ID, TESTNET_CHAIN_ID } from './contracts';
 import { formatUnits } from 'viem';
 import { coreAbi } from './abis';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
+// Helper to get public client for current network
+function getClientForCurrentNetwork() {
+  const chainId = getChainId();
+  return getPublicClient(config, { chainId: chainId as any });
+}
+
 // Get market count
 export async function getMarketCount(): Promise<bigint> {
-  const result = await readContract(config, {
-    address: addresses.core,
-    abi: coreAbi,
-    functionName: 'marketCount',
-    args: [],
-  });
-  return result as bigint;
+  const addresses = getAddresses();
+  const chainId = getChainId();
+  try {
+    const publicClient = getClientForCurrentNetwork();
+    const result = await publicClient.readContract({
+      address: addresses.core,
+      abi: coreAbi,
+      functionName: 'marketCount',
+      args: [],
+    });
+    return result as bigint;
+  } catch (error: any) {
+    console.error(`[getMarketCount] Error reading contract on chain ${chainId}:`, error);
+    // If contract doesn't exist on this chain, return 0
+    if (error?.message?.includes('no data') || error?.message?.includes('not a contract')) {
+      console.warn(`[getMarketCount] Contract ${addresses.core} may not exist on chain ${chainId}`);
+      return 0n;
+    }
+    throw error;
+  }
 }
 
 // Get single market
 export async function getMarket(id: bigint) {
   try {
-    const result = await readContract(config, {
+    const addresses = getAddresses();
+    const publicClient = getClientForCurrentNetwork();
+    const result = await publicClient.readContract({
       address: addresses.core,
       abi: coreAbi,
       functionName: 'markets',
@@ -113,7 +134,9 @@ export async function getMarket(id: bigint) {
 
 // Pricing helpers (contract exposes spot price in E6)
 export async function getSpotPriceYesE6(marketId: bigint): Promise<bigint> {
-  return await readContract(config, {
+  const addresses = getAddresses();
+  const publicClient = getClientForCurrentNetwork();
+  return await publicClient.readContract({
     address: addresses.core,
     abi: coreAbi,
     functionName: 'spotPriceYesE6',
@@ -122,7 +145,9 @@ export async function getSpotPriceYesE6(marketId: bigint): Promise<bigint> {
 }
 
 export async function getSpotPriceNoE6(marketId: bigint): Promise<bigint> {
-  return await readContract(config, {
+  const addresses = getAddresses();
+  const publicClient = getClientForCurrentNetwork();
+  return await publicClient.readContract({
     address: addresses.core,
     abi: coreAbi,
     functionName: 'spotPriceNoE6',
@@ -141,7 +166,9 @@ export async function getPriceNo(marketId: bigint): Promise<string> {
 }
 
 export async function getMarketState(id: bigint) {
-  const [qYes, qNo, vault, b, pYesE6] = await readContract(config, {
+  const addresses = getAddresses();
+  const publicClient = getClientForCurrentNetwork();
+  const [qYes, qNo, vault, b, pYesE6] = await publicClient.readContract({
     address: addresses.core,
     abi: coreAbi,
     functionName: 'getMarketState',
@@ -160,7 +187,9 @@ export async function getMarketState(id: bigint) {
 // Get market resolution config
 export async function getMarketResolution(id: bigint) {
   try {
-    const result = await readContract(config, {
+    const addresses = getAddresses();
+    const publicClient = getClientForCurrentNetwork();
+    const result = await publicClient.readContract({
       address: addresses.core,
       abi: coreAbi,
       functionName: 'getMarketResolution',
@@ -192,7 +221,6 @@ export async function getMarketResolution(id: bigint) {
   }
 }
 
-const ADMIN_LOWERCASE = addresses.admin.toLowerCase();
 const adminRoleCache = new Map<string, boolean>();
 
 // Check if an address is an admin (SpeculateCore uses AccessControl)
@@ -201,18 +229,15 @@ export async function isAdmin(address: `0x${string}`): Promise<boolean> {
 
   const normalized = address.toLowerCase();
 
-  if (normalized === ADMIN_LOWERCASE) {
-    adminRoleCache.set(normalized, true);
-    return true;
-  }
-
   if (adminRoleCache.has(normalized)) {
     return adminRoleCache.get(normalized)!;
   }
 
   try {
+    const addresses = getAddresses();
+    const publicClient = getClientForCurrentNetwork();
     const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000';
-    const hasAdminRole = await readContract(config, {
+    const hasAdminRole = await publicClient.readContract({
       address: addresses.core,
       abi: coreAbi,
       functionName: 'hasRole',
@@ -236,7 +261,9 @@ export async function isAdmin(address: `0x${string}`): Promise<boolean> {
 
 export async function getPendingLpFees(id: bigint, user: `0x${string}`) {
   if (!user || user === ZERO_ADDRESS) return 0n;
-  return await readContract(config, {
+  const addresses = getAddresses();
+  const publicClient = getClientForCurrentNetwork();
+  return await publicClient.readContract({
     address: addresses.core,
     abi: coreAbi,
     functionName: 'pendingLpFees',
@@ -245,7 +272,9 @@ export async function getPendingLpFees(id: bigint, user: `0x${string}`) {
 }
 
 export async function getInvariantUsdc(id: bigint) {
-  return await readContract(config, {
+  const addresses = getAddresses();
+  const publicClient = getClientForCurrentNetwork();
+  return await publicClient.readContract({
     address: addresses.core,
     abi: coreAbi,
     functionName: 'invariantUsdc',
@@ -254,7 +283,9 @@ export async function getInvariantUsdc(id: bigint) {
 }
 
 export async function getLpResidualPot(id: bigint): Promise<bigint> {
-  return await readContract(config, {
+  const addresses = getAddresses();
+  const publicClient = getClientForCurrentNetwork();
+  return await publicClient.readContract({
     address: addresses.core,
     abi: coreAbi,
     functionName: 'lpResidualUSDC',

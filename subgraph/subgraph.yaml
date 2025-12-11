@@ -8,7 +8,7 @@ dataSources:
     source:
       address: "0x297f325e98DdFd682dd2dc964a5BEda9861D54D5"
       abi: SpeculateCore
-      startBlock: 77800000
+      startBlock: 77000000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
-import { addresses } from '@/lib/contracts';
+import { getAddresses } from '@/lib/contracts';
 import { coreAbi } from '@/lib/abis';
 import { isAdmin as checkIsAdmin } from '@/lib/hooks';
 import { Button } from '@/components/ui/button';
@@ -20,25 +20,20 @@ export default function AdminManager() {
   // Contracts hooks... (same logic as before)
   const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000';
   
-  const { data: deployerHasRole } = useReadContract({
-    address: addresses.core,
-    abi: coreAbi,
-    functionName: 'hasRole',
-    args: [DEFAULT_ADMIN_ROLE as `0x${string}`, addresses.admin],
-  });
-
   const { writeContract: addAdmin } = useWriteContract();
   const { writeContract: removeAdmin } = useWriteContract();
 
-  // Load initial admin (mock logic, usually requires graph or events to get full list)
+  // Load initial admin (check if current user is admin)
   useEffect(() => {
-    if (deployerHasRole) setCurrentAdmins([addresses.admin]);
-    checkIsAdmin(address).then(setIsAdmin);
-  }, [deployerHasRole, address]);
+    if (address) {
+      checkIsAdmin(address).then(setIsAdmin);
+    }
+  }, [address]);
 
   const handleAdd = async () => {
     if (!newAdminAddress) return;
     try {
+      const addresses = getAddresses();
       await addAdmin({
         address: addresses.core,
         abi: coreAbi,

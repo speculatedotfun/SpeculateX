@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
-import { addresses } from '@/lib/contracts';
+import { getAddresses, getNetwork } from '@/lib/contracts';
 import { usdcAbi, coreAbi } from '@/lib/abis';
 import { motion } from 'framer-motion';
 import { useToast } from '@/components/ui/toast';
@@ -16,7 +16,10 @@ export default function MintUsdcForm() {
   const { pushToast } = useToast();
   const [mintAmount, setMintAmount] = useState('1000');
   const [userBalance, setUserBalance] = useState('0');
+  const network = getNetwork();
+  const addresses = getAddresses();
   
+  // All hooks must be called before any early returns
   const { data: hash, writeContract, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
@@ -25,7 +28,10 @@ export default function MintUsdcForm() {
     abi: usdcAbi,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
-    query: { enabled: !!address, refetchInterval: isConfirming ? 1000 : false },
+    query: { 
+      enabled: network === 'testnet' && !!address, 
+      refetchInterval: isConfirming ? 1000 : false 
+    },
   });
 
   useEffect(() => {
@@ -38,6 +44,17 @@ export default function MintUsdcForm() {
       refetchBalance();
     }
   }, [isSuccess, mintAmount, pushToast, refetchBalance]);
+  
+  // Only show faucet on testnet
+  if (network === 'mainnet') {
+    return (
+      <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-2xl border border-blue-200 dark:border-blue-800 text-center">
+        <p className="text-blue-800 dark:text-blue-200 font-medium">
+          Faucet is only available on Testnet. Switch to Testnet to mint test USDC.
+        </p>
+      </div>
+    );
+  }
 
   const handleMint = async () => {
     if (!address || !mintAmount) return;

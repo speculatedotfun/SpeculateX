@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
-import { addresses } from '@/lib/contracts';
+import { getAddresses } from '@/lib/contracts';
 import { usdcAbi } from '@/lib/abis';
 import { isAdmin as checkIsAdmin } from '@/lib/hooks';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,9 @@ export default function USDCMinterManager() {
   const { pushToast } = useToast();
   const [newMinterAddress, setNewMinterAddress] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  
+  // Get addresses for current network
+  const addresses = getAddresses();
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -154,8 +157,10 @@ export default function USDCMinterManager() {
 
         <div className="pt-4 border-t border-gray-100 dark:border-gray-700 space-y-3">
           <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1">Status Check</h4>
-          <MinterChecker addressToCheck={addresses.admin} />
-          {newMinterAddress && newMinterAddress !== addresses.admin && (
+          {address && (
+            <MinterChecker addressToCheck={address} />
+          )}
+          {newMinterAddress && newMinterAddress !== address && (
             <MinterChecker addressToCheck={newMinterAddress} />
           )}
         </div>

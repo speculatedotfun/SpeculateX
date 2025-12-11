@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { isAdmin as checkIsAdmin } from '@/lib/hooks';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import NetworkSelector from '@/components/NetworkSelector';
 import { Menu, X } from 'lucide-react';
 
 // --- Sub-component to fix nesting/parsing issues ---
@@ -238,6 +239,9 @@ export default function Header() {
 
           {/* Right Side - Wallet or Launch App */}
           <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0 relative z-20">
+            {/* Network Selector */}
+            <NetworkSelector />
+            
             {/* Theme Toggle */}
             <ThemeToggle />
             

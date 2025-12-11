@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useAccount, useWriteContract, useReadContract, usePublicClient, useBlockNumber } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
-import { addresses } from '@/lib/contracts';
+import { getAddresses } from '@/lib/contracts';
 import { coreAbi, usdcAbi, positionTokenAbi } from '@/lib/abis';
 import { useToast } from '@/components/ui/toast';
 import { clamp, formatBalanceDisplay, toBigIntSafe } from '@/lib/tradingUtils';
@@ -151,6 +151,9 @@ export default function TradingCard({
   const [pendingSplitAmount, setPendingSplitAmount] = useState<bigint>(0n);
   const [busyLabel, setBusyLabel] = useState('');
   const isBusy = pendingTrade || pendingLpAction !== null;
+
+  // Get addresses for current network
+  const addresses = getAddresses();
 
   // --- Contract Reads ---
   const { data: contractData } = useReadContract({
