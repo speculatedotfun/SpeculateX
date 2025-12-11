@@ -665,7 +665,7 @@ export default function TradingCard({
       setPendingTrade(false);
       setBusyLabel('');
     }
-  }, [amount, isTradeable, tradeMode, address, publicClient, writeContractAsync, usdcAllowanceValue, tokenAllowanceValue, overJumpCap, refetchAll, showToast, showErrorToast]);
+  }, [amount, amountBigInt, isTradeable, tradeMode, address, publicClient, writeContractAsync, usdcAllowanceValue, tokenAllowanceValue, overJumpCap, refetchAll, showToast, showErrorToast, bE18, feeLpBps, feeTreasuryBps, feeVaultBps, marketIdBI, qNo, qYes, side, tokenAddr, tradeDisabledReason]);
 
   const handleAddLiquidity = useCallback(async () => {
     if (!addLiquidityAmount) return;
