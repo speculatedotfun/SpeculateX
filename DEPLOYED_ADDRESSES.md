@@ -39,7 +39,7 @@
 |----------|---------|---------|--------|
 | **SpeculateCore** | `0x297f325e98DdFd682dd2dc964a5BEda9861D54D5` | [View](https://testnet.bscscan.com/address/0x297f325e98DdFd682dd2dc964a5BEda9861D54D5) | ✅ Active |
 | **ChainlinkResolver** | `0x363eaff32ba46F804Bc7E6352A585A705ac97aBD` | [View](https://testnet.bscscan.com/address/0x363eaff32ba46F804Bc7E6352A585A705ac97aBD) | ✅ Active |
-| **Treasury** | `0x0000000000000000000000000000000000000000` | N/A | ❌ Not Deployed |
+| **Treasury** | `0xfa8CC09b570e7e35FA1C71A4986D856262Faf29a` | [View](https://testnet.bscscan.com/address/0xfa8CC09b570e7e35FA1C71A4986D856262Faf29a) | ✅ Deployed |
 | **Admin** | `0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F` | [View](https://testnet.bscscan.com/address/0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F) | ✅ Admin |
 
 ### External Contracts

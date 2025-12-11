@@ -39,7 +39,7 @@
 |----------|---------|---------|
 | **SpeculateCore** | `0x297f325e98DdFd682dd2dc964a5BEda9861D54D5` | [View](https://testnet.bscscan.com/address/0x297f325e98DdFd682dd2dc964a5BEda9861D54D5) |
 | **ChainlinkResolver** | `0x363eaff32ba46F804Bc7E6352A585A705ac97aBD` | [View](https://testnet.bscscan.com/address/0x363eaff32ba46F804Bc7E6352A585A705ac97aBD) |
-| **Treasury** | `0x0000000000000000000000000000000000000000` | N/A (לא נפרס) |
+| **Treasury** | `0xfa8CC09b570e7e35FA1C71A4986D856262Faf29a` | [View](https://testnet.bscscan.com/address/0xfa8CC09b570e7e35FA1C71A4986D856262Faf29a) |
 | **Admin** | `0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F` | [View](https://testnet.bscscan.com/address/0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F) |
 
 ### External Contracts
@@ -68,6 +68,7 @@
 ### Testnet
 - ✅ **SpeculateCore**: `0x297f325e98DdFd682dd2dc964a5BEda9861D54D5` (נפרס לאחרונה)
 - ✅ **ChainlinkResolver**: `0x363eaff32ba46F804Bc7E6352A585A705ac97aBD` (נפרס לאחרונה)
+- ✅ **Treasury**: `0xfa8CC09b570e7e35FA1C71A4986D856262Faf29a` (נפרס לאחרונה)
 - ✅ **MockUSDC**: `0x8e38899dEC73FbE6Bde8276b8729ac1a3A6C0b8e` (MockUSDC עם Faucet)
 
 ---

@@ -71,33 +71,6 @@ function CustomConnectButton() {
               return (
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={openChainModal}
-                    type="button"
-                    className="hidden lg:flex items-center gap-2 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all"
-                  >
-                    {chain.hasIcon && (
-                      <div
-                        className="w-5 h-5 rounded-full overflow-hidden shadow-sm"
-                        style={{ background: chain.iconBackground }}
-                      >
-                        {chain.iconUrl && (
-                          <Image
-                            alt={chain.name ?? 'Chain icon'}
-                            src={chain.iconUrl}
-                            width={20}
-                            height={20}
-                            className="object-cover"
-                            unoptimized
-                          />
-                        )}
-                      </div>
-                    )}
-                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                      {chain.name}
-                    </span>
-                  </button>
-
-                  <button
                     onClick={openAccountModal}
                     type="button"
                     className="group flex items-center gap-3 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 pl-3 pr-2 py-1.5 hover:border-[#14B8A6] dark:hover:border-[#14B8A6] hover:ring-2 hover:ring-[#14B8A6]/10 dark:hover:ring-[#14B8A6]/20 transition-all shadow-sm hover:shadow-md"
