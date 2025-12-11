@@ -5,56 +5,62 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: 0 0% 100%;
-  --foreground: 0 0% 9%;
-  --card: 0 0% 100%;
-  --card-foreground: 0 0% 9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 9%;
-  --primary: 173 80% 40%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222 47% 11%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 47%;
-  --accent: 210 40% 96%;
-  --accent-foreground: 222 47% 11%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 173 80% 40%;
-  --radius: 0.5rem;
-  --animation-delay: 0s;
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 173 80% 40%; /* #14B8A6 Teal */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 173 80% 40%;
+    --radius: 1rem;
+    --animation-delay: 0s;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 173 80% 40%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 173 80% 40%;
+  }
 }
 
-.dark {
-  --background: 222 47% 11%;
-  --foreground: 210 40% 98%;
-  --card: 217 33% 17%;
-  --card-foreground: 210 40% 98%;
-  --popover: 217 33% 17%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 173 80% 45%;
-    --primary-foreground: 0 0% 100%;
-  --secondary: 217 28% 20%;
-    --secondary-foreground: 210 40% 96%;
-  --muted: 217 28% 20%;
-  --muted-foreground: 215 20% 70%;
-  --accent: 217 28% 20%;
-    --accent-foreground: 210 40% 96%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-  --border: 217 25% 25%;
-  --input: 217 25% 25%;
-  --ring: 173 80% 45%;
-}
-
-body {
-  color: hsl(var(--foreground));
-  background: hsl(var(--background));
-  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
 }
 
 /* Custom Scrollbar */
@@ -68,25 +74,25 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
+  background: #cbd5e1;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e1;
+  background: #94a3b8;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #475569;
+  background: #334155;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+  background: #475569;
 }
 
 /* Selection Color */
 ::selection {
-  background-color: rgba(20, 184, 166, 0.2);
+  background-color: rgba(20, 184, 166, 0.2); /* Teal with opacity */
   color: #0f766e;
 }
 
@@ -95,6 +101,7 @@ body {
   color: #5eead4;
 }
 
+/* Animations */
 @keyframes fade-in {
   0% {
     opacity: 0;
@@ -107,7 +114,7 @@ body {
 }
 
 .animate-fade-in {
-  animation: fade-in 1s var(--animation-delay, 0s) ease forwards;
+  animation: fade-in 0.6s var(--animation-delay, 0s) ease-out forwards;
 }
 
 @keyframes blob {
@@ -136,10 +143,10 @@ body {
 
 @keyframes shimmer {
   0% {
-    transform: translateX(-100%);
+    transform: translateX(-100%) skewX(-15deg);
   }
   100% {
-    transform: translateX(100%);
+    transform: translateX(200%) skewX(-15deg);
   }
 }
 
@@ -147,18 +154,19 @@ body {
   animation: shimmer 2s linear infinite;
 }
 
-@keyframes gradient {
+@keyframes gradient-x {
   0%, 100% {
-    background-position: 0% 50%;
+    background-size: 200% 200%;
+    background-position: left center;
   }
   50% {
-    background-position: 100% 50%;
+    background-size: 200% 200%;
+    background-position: right center;
   }
 }
 
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradient 3s ease infinite;
+.animate-gradient-x {
+  animation: gradient-x 3s ease infinite;
 }
 
 /* Utility classes */
@@ -170,5 +178,3 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-
-

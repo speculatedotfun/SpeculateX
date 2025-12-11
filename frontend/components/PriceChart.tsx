@@ -19,46 +19,37 @@ interface PriceChartProps {
   useCentralizedData?: boolean;
 }
 
-export const PriceChart = memo(function PriceChart({ data, selectedSide, height = 340, marketId, useCentralizedData = false }: PriceChartProps) {
+export const PriceChart = memo(function PriceChart({ data, selectedSide, height = 340 }: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
-    const yesSeriesRef = useRef<ISeriesApi<'Area'> | null>(null);
-    const noSeriesRef = useRef<ISeriesApi<'Area'> | null>(null);
+  const yesSeriesRef = useRef<ISeriesApi<'Area'> | null>(null);
+  const noSeriesRef = useRef<ISeriesApi<'Area'> | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const throttledResizeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const moduleRef = useRef<typeof import('lightweight-charts') | null>(null);
+  
   const hasData = Array.isArray(data) && data.length > 0;
-  // Relax the loading condition: if we have ANY data (even just seed/sync points), show the chart
-  // This prevents the "Loading..." spinner from persisting when we have valid sync points
   const showLoadingOverlay = !hasData;
   const [chartError, setChartError] = useState<string | null>(null);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
   // Process data with visual breaks for gaps
-  const processDataWithBreaks = useCallback((rawData: PricePoint[]): { yesData: (LineData | { time: Time; value: undefined })[], noData: (LineData | { time: Time; value: undefined })[] } => {
+  const processDataWithBreaks = useCallback((rawData: PricePoint[]) => {
     if (!rawData.length) return { yesData: [], noData: [] };
 
-    // Sort by timestamp, then deduplicate by timestamp (keep last occurrence)
+    // Sort by timestamp, then deduplicate
     const sortedData = [...rawData].sort((a, b) => {
-      if (a.timestamp !== b.timestamp) {
-        return a.timestamp - b.timestamp;
-      }
-      // If timestamps are equal, sort by txHash to ensure consistent ordering
+      if (a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
       return (a.txHash || '').localeCompare(b.txHash || '');
     });
     
-    // Deduplicate: keep only the last point for each timestamp
     const dedupedData: PricePoint[] = [];
     const timestampMap = new Map<number, PricePoint>();
-    for (const point of sortedData) {
-      timestampMap.set(point.timestamp, point);
-    }
-    // Convert back to array, sorted by timestamp
+    for (const point of sortedData) timestampMap.set(point.timestamp, point);
     dedupedData.push(...Array.from(timestampMap.values()).sort((a, b) => a.timestamp - b.timestamp));
     
     const sortedDataFinal = dedupedData;
-
     const yesData: (LineData | { time: Time; value: undefined })[] = [];
     const noData: (LineData | { time: Time; value: undefined })[] = [];
 
@@ -72,35 +63,24 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
       const current = sortedDataFinal[i];
       const previous = sortedDataFinal[i - 1];
 
-      // Ensure timestamp is strictly greater than previous (fix any remaining duplicates)
+      // Ensure timestamp is strictly greater than previous
       let currentTimestamp = current.timestamp;
-      if (currentTimestamp <= previous.timestamp) {
-        currentTimestamp = previous.timestamp + 1;
-        console.warn('[PriceChart] Fixed duplicate timestamp:', { 
-          original: current.timestamp, 
-          fixed: currentTimestamp,
-          previous: previous.timestamp 
-        });
-      }
+      if (currentTimestamp <= previous.timestamp) currentTimestamp = previous.timestamp + 1;
 
       // Check for time gaps (> 2 minutes = significant break)
-      // Skip gap if previous point was 'seed' (always connect seed to first point)
       const timeGap = currentTimestamp - previous.timestamp;
       const isSeedPoint = previous.txHash === 'seed';
       
-      if (timeGap > 120 && !isSeedPoint) { // 2 minutes gap, unless connecting from seed
-        // Add break points (undefined creates visual gap)
-        const breakTime = previous.timestamp + 30; // 30 seconds after last point
+      if (timeGap > 120 && !isSeedPoint) {
+        const breakTime = previous.timestamp + 30;
         yesData.push({ time: breakTime as Time, value: undefined as any });
         noData.push({ time: breakTime as Time, value: undefined as any });
 
-        // Add another break point to ensure clear separation
-        const breakTime2 = currentTimestamp - 30; // 30 seconds before new point
+        const breakTime2 = currentTimestamp - 30;
         yesData.push({ time: breakTime2 as Time, value: undefined as any });
         noData.push({ time: breakTime2 as Time, value: undefined as any });
       }
 
-      // Add current data point with ensured unique timestamp
       yesData.push({ time: currentTimestamp as Time, value: current.priceYes });
       noData.push({ time: currentTimestamp as Time, value: current.priceNo });
     }
@@ -108,12 +88,9 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
     return { yesData, noData };
   }, []);
 
-  // Memoize processed data to prevent expensive recalculations
-  const processedData = useMemo(() => {
-    return processDataWithBreaks(data);
-  }, [data, processDataWithBreaks]);
+  const processedData = useMemo(() => processDataWithBreaks(data), [data, processDataWithBreaks]);
 
-  // Setup chart and series (runs once)
+  // Setup chart
   useEffect(() => {
     let disposed = false;
 
@@ -122,29 +99,26 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
 
       try {
         setChartError(null);
-        // Load lightweight-charts
         if (!moduleRef.current) {
           const mod = await import('lightweight-charts');
-          moduleRef.current = ((mod as unknown as { default?: unknown }).default ??
-            mod) as typeof import('lightweight-charts');
+          moduleRef.current = ((mod as unknown as { default?: unknown }).default ?? mod) as typeof import('lightweight-charts');
         }
 
         const { createChart, ColorType, CrosshairMode, LineStyle, AreaSeries, LineType } = moduleRef.current;
 
         if (!containerRef.current) return;
 
-        // Create chart with professional styling - supports dark mode
         const chart = createChart(containerRef.current, {
           width: containerRef.current.clientWidth,
           height,
           layout: {
-            background: { type: ColorType.Solid, color: isDark ? '#1e293b' : '#ffffff' },
-            textColor: isDark ? '#94a3b8' : '#64748b', // Slate-400
+            background: { type: ColorType.Solid, color: 'transparent' }, // Transparent for better integration
+            textColor: isDark ? '#94a3b8' : '#64748b',
             fontSize: 11,
             fontFamily: "'Geist', 'Inter', sans-serif",
           },
           grid: {
-            vertLines: { color: isDark ? '#334155' : '#f1f5f9', style: LineStyle.Solid, visible: false },
+            vertLines: { visible: false },
             horzLines: { color: isDark ? '#334155' : '#f1f5f9', style: LineStyle.Solid, visible: true },
           },
           crosshair: {
@@ -184,14 +158,10 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
               return new Date(timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             },
           },
-          watermark: {
-            visible: false,
-          },
           handleScroll: { mouseWheel: false, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
           handleScale: { axisPressedMouseMove: true, mouseWheel: false, pinch: true },
         });
 
-        // Create professional area series with enhanced styling
         const yesSeries = chart.addSeries(AreaSeries, {
           lineColor: '#22c55e',
           topColor: 'rgba(34, 197, 94, 0.4)',
@@ -224,15 +194,12 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
           crosshairMarkerRadius: 5,
         } as any);
 
-        // Store references
         chartRef.current = chart;
         yesSeriesRef.current = yesSeries as any;
         noSeriesRef.current = noSeries as any;
 
-        // Setup resize observer with throttling
         const observer = new ResizeObserver(entries => {
           if (throttledResizeRef.current) return;
-
           throttledResizeRef.current = setTimeout(() => {
             if (entries[0]?.target === containerRef.current && chartRef.current) {
               const newWidth = entries[0].contentRect.width;
@@ -246,9 +213,7 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
 
       } catch (error) {
         console.error('[PriceChart] Failed to setup chart:', error);
-        if (!disposed) {
-          setChartError('Failed to initialize chart');
-        }
+        if (!disposed) setChartError('Failed to initialize chart');
       }
     };
 
@@ -256,115 +221,57 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
 
     return () => {
       disposed = true;
-      if (throttledResizeRef.current) {
-        clearTimeout(throttledResizeRef.current);
-        throttledResizeRef.current = null;
-      }
+      if (throttledResizeRef.current) clearTimeout(throttledResizeRef.current);
       resizeObserverRef.current?.disconnect();
-      resizeObserverRef.current = null;
       chartRef.current?.remove();
       chartRef.current = null;
-      yesSeriesRef.current = null;
-      noSeriesRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array - setup runs once, height changes handled separately
+  }, [height, isDark]);
 
-  // Update chart height when prop changes
-  useEffect(() => {
-    if (chartRef.current && height > 0) {
-      chartRef.current.applyOptions({ height });
-    }
-  }, [height]);
-
-  const updateChartData = useCallback((chartData: PricePoint[]) => {
+  // Update data
+  const updateChartData = useCallback(() => {
     if (!yesSeriesRef.current || !noSeriesRef.current) return;
-
     const { yesData, noData } = processedData;
-
-    // Update data with smooth transition
     yesSeriesRef.current.setData(yesData);
     noSeriesRef.current.setData(noData);
-
-    // Smooth fit content after a brief delay to allow visual updates
-    setTimeout(() => {
-      chartRef.current?.timeScale().fitContent();
-    }, 50);
+    setTimeout(() => { chartRef.current?.timeScale().fitContent(); }, 50);
   }, [processedData]);
 
-  // Update chart data with visual breaks
+  // Update styling based on selected side
   const updateSeriesStyling = useCallback(() => {
     if (!yesSeriesRef.current || !noSeriesRef.current) return;
-
-    const yesLineWidth = selectedSide === 'yes' ? 3 : 2;
-    const noLineWidth = selectedSide === 'no' ? 3 : 2;
-
+    
     try {
-      // Only update line width as colors are static for area series now
       yesSeriesRef.current.applyOptions({
-        lineWidth: yesLineWidth,
-        topColor: selectedSide === 'yes' ? 'rgba(34, 197, 94, 0.4)' : 'rgba(34, 197, 94, 0.1)',
+        lineWidth: selectedSide === 'yes' ? 3 : 2,
+        topColor: selectedSide === 'yes' ? 'rgba(34, 197, 94, 0.4)' : 'rgba(34, 197, 94, 0.05)',
         bottomColor: selectedSide === 'yes' ? 'rgba(34, 197, 94, 0.0)' : 'rgba(34, 197, 94, 0.0)',
+        lineColor: selectedSide === 'yes' ? '#22c55e' : '#22c55e40', // Fade out inactive line
       } as any);
 
       noSeriesRef.current.applyOptions({
-        lineWidth: noLineWidth,
-        topColor: selectedSide === 'no' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(239, 68, 68, 0.1)',
+        lineWidth: selectedSide === 'no' ? 3 : 2,
+        topColor: selectedSide === 'no' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(239, 68, 68, 0.05)',
         bottomColor: selectedSide === 'no' ? 'rgba(239, 68, 68, 0.0)' : 'rgba(239, 68, 68, 0.0)',
+        lineColor: selectedSide === 'no' ? '#ef4444' : '#ef444440', // Fade out inactive line
       } as any);
-
-    } catch (error) {
-      console.warn('[PriceChart] Failed to apply styling:', error);
+    } catch (e) {
+      console.warn('Styling update failed', e);
     }
   }, [selectedSide]);
 
-  // Update data when data prop changes
   useEffect(() => {
-    if (data.length > 0) {
-      updateChartData(data);
-    }
+    if (data.length > 0) updateChartData();
   }, [data, updateChartData]);
 
-  // Update styling when selectedSide changes (separate from data updates)
   useEffect(() => {
     updateSeriesStyling();
   }, [selectedSide, updateSeriesStyling]);
 
-  // Update chart theme when theme changes
-  useEffect(() => {
-    if (!chartRef.current || !moduleRef.current) return;
-    const { ColorType, LineStyle } = moduleRef.current;
-    
-    chartRef.current.applyOptions({
-      layout: {
-        background: { type: ColorType.Solid, color: isDark ? '#1e293b' : '#ffffff' },
-        textColor: isDark ? '#94a3b8' : '#64748b',
-      },
-      grid: {
-        vertLines: { color: isDark ? '#334155' : '#f1f5f9', style: LineStyle.Solid },
-        horzLines: { color: isDark ? '#334155' : '#f1f5f9', style: LineStyle.Solid },
-      },
-      crosshair: {
-        vertLine: {
-          color: isDark ? '#64748b' : '#94a3b8',
-          labelBackgroundColor: isDark ? '#0f172a' : '#1e293b',
-        },
-        horzLine: {
-          color: isDark ? '#64748b' : '#94a3b8',
-          labelBackgroundColor: isDark ? '#0f172a' : '#1e293b',
-        },
-      },
-    });
-  }, [isDark]);
-
-  // Error fallback UI
   if (chartError) {
     return (
       <div className="relative w-full h-full flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-xl">
-        <div className="text-center p-4">
-          <div className="text-red-500 dark:text-red-400 mb-2">Chart Error</div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">{chartError}</div>
-        </div>
+        <div className="text-center p-4 text-red-500 text-sm">Chart Error</div>
       </div>
     );
   }

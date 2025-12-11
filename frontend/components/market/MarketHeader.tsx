@@ -27,99 +27,76 @@ export function MarketHeader({
       initial={{ y: 30, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6 }}
-      className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 sm:p-6 md:p-8 shadow-lg border border-gray-200 dark:border-gray-700 mb-6 sm:mb-8"
+      className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-[32px] p-6 sm:p-8 shadow-xl border border-white/20 dark:border-gray-700/50 mb-8"
       data-testid="market-header"
     >
-      {/* LIVE Indicator and Header */}
+      {/* Top Row: Status & Actions */}
       <div className="flex items-start justify-between mb-6">
-        {/* LIVE Indicator - Top Left */}
-        <div className="flex items-center gap-2">
-          {marketIsActive && (
-            <motion.div
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="w-2 h-2 bg-red-500 rounded-full"
-            />
-          )}
-          <span className={`text-xs font-bold uppercase tracking-wide ${marketIsActive ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
-            {marketIsActive ? 'LIVE' : 'CLOSED'}
+        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border ${
+          marketIsActive 
+            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400' 
+            : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400'
+        }`}>
+          <div className={`w-2 h-2 rounded-full ${marketIsActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+          <span className="text-[10px] font-black uppercase tracking-widest">
+            {marketIsActive ? 'Live Trading' : 'Closed'}
           </span>
         </div>
-        {/* Action Icons - Top Right */}
-        <div className="flex items-center gap-2">
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
-          >
-            <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-            </svg>
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
-          >
-            <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-            </svg>
-          </motion.button>
-        </div>
       </div>
-      {/* Market Icon and Question */}
-      <div className="flex items-start gap-3 sm:gap-4 md:gap-6 mb-4">
-        {/* Large Circular Icon with Logo */}
-        <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-white dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0 border-2 border-gray-200 dark:border-gray-600 shadow-sm overflow-hidden">
+
+      {/* Main Content */}
+      <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
+        {/* Logo */}
+        <div className="w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-white dark:bg-gray-700 p-2 shadow-sm border border-gray-100 dark:border-gray-600 flex-shrink-0 flex items-center justify-center">
           <Image
             src={logoSrc}
             alt={market.question as string}
             width={80}
             height={80}
-            className="w-full h-full object-contain p-1"
+            className="object-contain w-full h-full rounded-2xl"
             unoptimized
             onError={onLogoError}
           />
         </div>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-2 sm:mb-3 break-words">{market.question}</h1>
-          <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-            <span className="font-medium">
-              Vol ${totalVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-            <span className="mx-2">•</span>
-            <span>
-              Created{' '}
-              {createdAtDate
-                ? createdAtDate.toLocaleString(undefined, {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
-                : '—'}
-            </span>
+
+        {/* Text Details */}
+        <div className="flex-1 space-y-4">
+          <h1 className="text-2xl md:text-4xl font-black text-gray-900 dark:text-white leading-tight tracking-tight">
+            {market.question}
+          </h1>
+          
+          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400 font-medium">
+            <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg">
+              <span className="uppercase text-[10px] font-bold tracking-wider">Volume</span>
+              <span className="text-gray-900 dark:text-white font-bold">${totalVolume.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg">
+              <span className="uppercase text-[10px] font-bold tracking-wider">Created</span>
+              <span className="text-gray-900 dark:text-white font-bold">
+                {createdAtDate ? createdAtDate.toLocaleDateString() : '—'}
+              </span>
+            </div>
           </div>
         </div>
       </div>
-      {/* Rules Section */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="mt-6 pt-6 border-t border-gray-300 dark:border-gray-600"
-      >
-        <h3 className="text-base font-bold text-gray-900 dark:text-white mb-3">Rules</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-          {resolution?.oracleType === 0 ? 'This market will be resolved manually by the admin.' : ''}
-          {resolution?.oracleType === 1 ? `Market resolves YES if price is ${resolution?.comparison === 0 ? 'above' : resolution?.comparison === 1 ? 'below' : 'equal to'} $${Number(formatUnits(resolution?.targetValue || 0n, 8)).toLocaleString()} at expiry. Otherwise resolves NO.` : ''}
+
+      {/* Rules Footer */}
+      <div className="mt-8 pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
+        <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Resolution Rules</h3>
+        <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed font-medium">
+          {resolution?.oracleType === 0 ? 'This market is resolved manually by the platform administrators.' : ''}
+          {resolution?.oracleType === 1 ? (
+            <>
+              Resolves <strong>YES</strong> if price is 
+              <span className="mx-1 inline-block px-1.5 rounded bg-gray-100 dark:bg-gray-700 font-mono text-xs">
+                {resolution?.comparison === 0 ? '>' : resolution?.comparison === 1 ? '<' : '='}
+              </span>
+              <strong>${Number(formatUnits(resolution?.targetValue || 0n, 8)).toLocaleString()}</strong> 
+              at expiration. Data provided by Chainlink.
+            </>
+          ) : ''}
         </p>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }
-
-
-
-

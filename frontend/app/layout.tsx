@@ -1,10 +1,17 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import { Providers } from './providers';
 
+// Initialize font
+const inter = Inter({ subsets: ['latin'] });
+
 export const metadata: Metadata = {
-  title: 'SpeculateX v3',
-  description: 'Pure CPMM Prediction Markets',
+  title: 'SpeculateX | Decentralized Prediction Markets',
+  description: 'Trade on real-world events with infinite liquidity using AMM bonding curves.',
+  icons: {
+    icon: '/logo.jpg',
+  },
 };
 
 export default function RootLayout({
@@ -14,11 +21,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="bg-background">
-        <Providers>{children}</Providers>
+      <body 
+        className={`${inter.className} min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] text-slate-900 dark:text-slate-50 antialiased`}
+      >
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );
 }
-
-

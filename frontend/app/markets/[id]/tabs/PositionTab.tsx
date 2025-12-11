@@ -1,5 +1,6 @@
 'use client';
 import { motion } from 'framer-motion';
+import { Wallet } from 'lucide-react';
 
 interface PositionTabProps {
   isConnected: boolean;
@@ -16,89 +17,91 @@ export function PositionTab({
   priceYes,
   priceNo,
 }: PositionTabProps) {
+  const hasYes = parseFloat(yesBalance) > 0;
+  const hasNo = parseFloat(noBalance) > 0;
+
   if (!isConnected) {
     return (
-      <div className="text-center py-16">
-        <div className="w-16 h-16 bg-gradient-to-br from-[#14B8A6]/10 to-[#14B8A6]/5 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-[#14B8A6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+          <Wallet className="w-8 h-8 text-gray-400" />
         </div>
-        <p className="text-gray-500 font-semibold">Connect wallet to view your positions</p>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Wallet Not Connected</h3>
+        <p className="text-sm text-gray-500">Connect your wallet to view your active positions.</p>
       </div>
     );
   }
 
-  if (parseFloat(yesBalance) === 0 && parseFloat(noBalance) === 0) {
+  if (!hasYes && !hasNo) {
     return (
-      <div className="text-center py-16">
-        <div className="text-6xl mb-4">📊</div>
-        <p className="text-gray-500 font-semibold">No positions yet</p>
+      <div className="flex flex-col items-center justify-center py-12 text-center opacity-60">
+        <div className="text-4xl mb-3">📊</div>
+        <p className="text-sm font-medium">You don't have any positions in this market yet.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {parseFloat(yesBalance) > 0 && (
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="p-6 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-2xl border-2 border-green-200 dark:border-green-800 shadow-lg"
-        >
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <div className="text-sm font-bold text-green-600 dark:text-green-400 mb-2 uppercase tracking-wide">YES Position</div>
-              <div className="text-3xl font-black text-green-800 dark:text-green-100">{parseFloat(yesBalance).toFixed(4)} shares</div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1 font-semibold">Value</div>
-              <div className="text-2xl font-black text-gray-900 dark:text-white">
-                ${(parseFloat(yesBalance) * priceYes).toFixed(2)}
-              </div>
-            </div>
-          </div>
-          <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-800 text-xs text-gray-600 dark:text-gray-400">
-            <div className="flex justify-between">
-              <span className="font-semibold">Price per share:</span>
-              <span className="font-bold text-gray-900 dark:text-gray-200">${priceYes.toFixed(4)}</span>
-            </div>
-          </div>
-        </motion.div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {hasYes && (
+        <PositionCard 
+          type="yes" 
+          balance={yesBalance} 
+          price={priceYes} 
+        />
       )}
-      {parseFloat(noBalance) > 0 && (
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="p-6 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 rounded-2xl border-2 border-red-200 dark:border-red-800 shadow-lg"
-        >
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <div className="text-sm font-bold text-red-600 dark:text-red-400 mb-2 uppercase tracking-wide">NO Position</div>
-              <div className="text-3xl font-black text-red-800 dark:text-red-100">{parseFloat(noBalance).toFixed(4)} shares</div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1 font-semibold">Value</div>
-              <div className="text-2xl font-black text-gray-900 dark:text-white">
-                ${(parseFloat(noBalance) * priceNo).toFixed(2)}
-              </div>
-            </div>
-          </div>
-          <div className="mt-4 pt-4 border-t border-red-200 dark:border-red-800 text-xs text-gray-600 dark:text-gray-400">
-            <div className="flex justify-between">
-              <span className="font-semibold">Price per share:</span>
-              <span className="font-bold text-gray-900 dark:text-gray-200">${priceNo.toFixed(4)}</span>
-            </div>
-          </div>
-        </motion.div>
+      {hasNo && (
+        <PositionCard 
+          type="no" 
+          balance={noBalance} 
+          price={priceNo} 
+        />
       )}
     </div>
   );
 }
 
+function PositionCard({ type, balance, price }: { type: 'yes' | 'no', balance: string, price: number }) {
+  const isYes = type === 'yes';
+  const shares = parseFloat(balance);
+  const value = shares * price;
 
+  return (
+    <motion.div
+      initial={{ scale: 0.95, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      className={`p-6 rounded-[24px] border-2 relative overflow-hidden ${
+        isYes 
+          ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800/30' 
+          : 'bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-800/30'
+      }`}
+    >
+      <div className="flex justify-between items-start relative z-10">
+        <div>
+          <div className={`text-xs font-black uppercase tracking-widest mb-1 ${
+            isYes ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+          }`}>
+            {type.toUpperCase()} Shares
+          </div>
+          <div className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+            {shares.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+          </div>
+        </div>
+        <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+          isYes ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
+        }`}>
+          Avg ${(price).toFixed(2)}
+        </div>
+      </div>
 
-
-
-
+      <div className="mt-6 pt-4 border-t border-black/5 dark:border-white/5 flex justify-between items-end relative z-10">
+        <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Current Value</span>
+        <span className={`text-xl font-black ${
+          isYes ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'
+        }`}>
+          ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </span>
+      </div>
+    </motion.div>
+  );
+}

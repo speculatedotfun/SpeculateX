@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatUnits, decodeEventLog } from 'viem';
 import { useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 // Components
 import Header from '@/components/Header';
@@ -112,18 +113,18 @@ function MarketDetailSkeleton() {
   return (
     <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden">
       <Header />
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
-        <Skeleton className="h-6 w-32 mb-6 rounded-full" />
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <Skeleton className="h-6 w-32 mb-6 rounded-full bg-gray-200 dark:bg-gray-800" />
         
         {/* Header Skeleton */}
-        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mb-8">
+        <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-sm border border-gray-100 dark:border-gray-700 mb-8">
           <div className="flex flex-col md:flex-row gap-8 items-start">
-            <Skeleton className="w-20 h-20 rounded-2xl shrink-0" />
+            <Skeleton className="w-20 h-20 rounded-2xl shrink-0 bg-gray-200 dark:bg-gray-700" />
             <div className="flex-1 w-full space-y-4">
-              <Skeleton className="h-8 w-3/4" />
+              <Skeleton className="h-8 w-3/4 bg-gray-200 dark:bg-gray-700" />
               <div className="flex gap-3">
-                <Skeleton className="h-6 w-24 rounded-full" />
-                <Skeleton className="h-6 w-24 rounded-full" />
+                <Skeleton className="h-6 w-24 rounded-full bg-gray-200 dark:bg-gray-700" />
+                <Skeleton className="h-6 w-24 rounded-full bg-gray-200 dark:bg-gray-700" />
               </div>
             </div>
           </div>
@@ -131,12 +132,12 @@ function MarketDetailSkeleton() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
-            <Skeleton className="h-[500px] w-full rounded-3xl" />
-            <Skeleton className="h-[300px] w-full rounded-3xl" />
+            <Skeleton className="h-[500px] w-full rounded-3xl bg-gray-200 dark:bg-gray-700" />
+            <Skeleton className="h-[300px] w-full rounded-3xl bg-gray-200 dark:bg-gray-700" />
           </div>
           <div className="lg:col-span-1 space-y-8">
-            <Skeleton className="h-[400px] w-full rounded-3xl" />
-            <Skeleton className="h-[300px] w-full rounded-3xl" />
+            <Skeleton className="h-[400px] w-full rounded-3xl bg-gray-200 dark:bg-gray-700" />
+            <Skeleton className="h-[300px] w-full rounded-3xl bg-gray-200 dark:bg-gray-700" />
           </div>
         </div>
       </div>
@@ -185,7 +186,6 @@ export default function MarketDetailPage() {
   const snapshotLoading = snapshotQuery.isLoading;
 
   // Use both historical data and real-time data
-  // Pass market createdAt so chart shows 0.5/0.5 at market creation time immediately
   const {
     livePriceHistory,
     sortedChartData,
@@ -196,8 +196,8 @@ export default function MarketDetailPage() {
     timeRange,
     snapshotData,
     snapshotLoading,
-    market?.createdAt, // Pass market createdAt from blockchain event (available immediately)
-    marketData.currentPrices // Pass current prices to sync chart if history is lagging
+    market?.createdAt,
+    marketData.currentPrices
   );
 
   // Merge real-time data from useMarketData with historical data
@@ -222,11 +222,6 @@ export default function MarketDetailPage() {
     setError('');
   }, [marketId]);
 
-
-
-
-
-
   // Load market metadata
   useEffect(() => {
     const loadMarketMetadata = async () => {
@@ -235,11 +230,8 @@ export default function MarketDetailPage() {
       try {
         const marketIdBigInt = BigInt(marketIdNum);
         
-        // Check localStorage for newly created market timestamp (available immediately)
         try {
-          const storedMarkets = JSON.parse(
-            localStorage.getItem('newlyCreatedMarkets') || '[]'
-          );
+          const storedMarkets = JSON.parse(localStorage.getItem('newlyCreatedMarkets') || '[]');
           const storedMarket = storedMarkets.find((m: any) => m.marketId === marketIdNum);
           if (storedMarket?.createdAt) {
             console.log('[MarketDetail] Found stored createdAt for newly created market:', storedMarket.createdAt);
@@ -255,15 +247,11 @@ export default function MarketDetailPage() {
           return;
         }
 
-        // Check if we have a stored createdAt from localStorage (newly created market)
         let marketWithCreatedAt = onchainData as any;
         try {
-          const storedMarkets = JSON.parse(
-            localStorage.getItem('newlyCreatedMarkets') || '[]'
-          );
+          const storedMarkets = JSON.parse(localStorage.getItem('newlyCreatedMarkets') || '[]');
           const storedMarket = storedMarkets.find((m: any) => m.marketId === marketIdNum);
           if (storedMarket?.createdAt && !marketWithCreatedAt.createdAt) {
-            // Use stored createdAt immediately (from market creation transaction)
             marketWithCreatedAt.createdAt = BigInt(storedMarket.createdAt);
             console.log('[MarketDetail] Using stored createdAt from localStorage:', storedMarket.createdAt);
           }
@@ -284,46 +272,35 @@ export default function MarketDetailPage() {
     loadMarketMetadata();
   }, [isMarketIdValid, marketIdNum]);
 
-  // Watch for MarketCreated events and fetch historical events to capture createdAt timestamp immediately
-  // This ensures createdAt shows immediately even before subgraph indexes it
+  // Watch for MarketCreated events
   useEffect(() => {
     if (!publicClient || !isMarketIdValid) return;
-    
-    // If we already have createdAt, skip (subgraph already indexed it)
     if (market?.createdAt) return;
 
     const marketIdBigInt = BigInt(marketIdNum);
     
-    // First, check localStorage for newly created market timestamp (fastest)
     try {
-      const storedMarkets = JSON.parse(
-        localStorage.getItem('newlyCreatedMarkets') || '[]'
-      );
+      const storedMarkets = JSON.parse(localStorage.getItem('newlyCreatedMarkets') || '[]');
       const storedMarket = storedMarkets.find((m: any) => m.marketId === marketIdNum);
       if (storedMarket?.createdAt) {
         const createdAtTimestamp = BigInt(storedMarket.createdAt);
-        console.log('[MarketDetail] Using stored createdAt from localStorage:', createdAtTimestamp);
         setMarket((prev: any) => {
           if (!prev) return prev;
           if (prev.createdAt && prev.createdAt === createdAtTimestamp) return prev;
           return { ...prev, createdAt: createdAtTimestamp };
         });
-        return; // Found it, exit early
+        return; 
       }
     } catch (error) {
       console.warn('[MarketDetail] Failed to read localStorage:', error);
     }
     
-    // First, try to fetch the historical MarketCreated event for this market
     const fetchMarketCreatedEvent = async () => {
       try {
-        // Get current block to search backwards
-        // Search more recent blocks first (last 10k blocks) for newly created markets
         const currentBlock = await publicClient.getBlockNumber();
         const recentFromBlock = currentBlock > 10000n ? currentBlock - 10000n : 0n;
         const fromBlock = currentBlock > 100000n ? currentBlock - 100000n : 0n;
         
-        // Try recent blocks first (for newly created markets)
         let logs: any[] = [];
         try {
           logs = await publicClient.getLogs({
@@ -340,15 +317,11 @@ export default function MarketDetailPage() {
                 { type: 'uint256', name: 'expiryTimestamp', indexed: false },
               ],
             } as any,
-            args: {
-              id: marketIdBigInt,
-            } as any,
+            args: { id: marketIdBigInt } as any,
             fromBlock: recentFromBlock,
             toBlock: 'latest',
           });
         } catch (error) {
-          // If recent search fails, try full range
-          console.warn('[MarketDetail] Recent block search failed, trying full range:', error);
           logs = await publicClient.getLogs({
             address: addresses.core,
             event: {
@@ -363,15 +336,12 @@ export default function MarketDetailPage() {
                 { type: 'uint256', name: 'expiryTimestamp', indexed: false },
               ],
             } as any,
-            args: {
-              id: marketIdBigInt,
-            } as any,
+            args: { id: marketIdBigInt } as any,
             fromBlock,
             toBlock: 'latest',
           });
         }
 
-        // Find the event for this market
         for (const log of logs) {
           try {
             const decoded = decodeEventLog({
@@ -385,44 +355,38 @@ export default function MarketDetailPage() {
             const eventId = decoded.args?.id;
             if (Number(eventId) !== marketIdNum) continue;
 
-            // Get block timestamp for accurate createdAt
             if (log.blockNumber) {
               try {
                 const block = await publicClient.getBlock({ blockNumber: log.blockNumber });
                 if (block?.timestamp) {
                   const createdAtTimestamp = BigInt(Number(block.timestamp));
-                  console.log('[MarketDetail] Found MarketCreated event, setting createdAt:', createdAtTimestamp);
                   setMarket((prev: any) => {
                     if (!prev) return prev;
                     if (prev.createdAt && prev.createdAt === createdAtTimestamp) return prev;
                     return { ...prev, createdAt: createdAtTimestamp };
                   });
-                  return; // Found it, exit
+                  return; 
                 }
               } catch (error) {
-                console.warn('[MarketDetail] Failed to get block timestamp for MarketCreated', error);
+                console.warn('[MarketDetail] Failed to get block timestamp', error);
               }
             }
           } catch (error) {
-            console.warn('[MarketDetail] Failed to decode MarketCreated log:', error);
+            console.warn('[MarketDetail] Failed to decode log', error);
           }
         }
       } catch (error) {
-        console.warn('[MarketDetail] Failed to fetch MarketCreated event:', error);
+        console.warn('[MarketDetail] Failed to fetch event', error);
       }
     };
 
-    // Fetch historical event
     void fetchMarketCreatedEvent();
 
-    // Also watch for new MarketCreated events (in case market is created while viewing)
     const unwatchMarketCreated = publicClient.watchContractEvent({
       address: addresses.core,
       abi: coreAbi,
       eventName: 'MarketCreated',
-      args: {
-        id: marketIdBigInt,
-      } as any,
+      args: { id: marketIdBigInt } as any,
       onLogs: async (logs) => {
         for (const log of logs) {
           try {
@@ -433,17 +397,14 @@ export default function MarketDetailPage() {
             }) as { eventName: string; args: Record<string, unknown> };
 
             if (decoded.eventName !== 'MarketCreated') continue;
-
             const eventId = decoded.args?.id;
             if (Number(eventId) !== marketIdNum) continue;
 
-            // Get block timestamp for accurate createdAt
             if (log.blockNumber) {
               try {
                 const block = await publicClient.getBlock({ blockNumber: log.blockNumber });
                 if (block?.timestamp) {
                   const createdAtTimestamp = BigInt(Number(block.timestamp));
-                  console.log('[MarketDetail] MarketCreated event detected, setting createdAt:', createdAtTimestamp);
                   setMarket((prev: any) => {
                     if (!prev) return prev;
                     if (prev.createdAt && prev.createdAt === createdAtTimestamp) return prev;
@@ -451,11 +412,11 @@ export default function MarketDetailPage() {
                   });
                 }
               } catch (error) {
-                console.warn('[MarketDetail] Failed to get block timestamp for MarketCreated', error);
+                console.warn('Failed to get block timestamp', error);
               }
             }
           } catch (error) {
-            console.warn('[MarketDetail] Failed to decode MarketCreated log:', error);
+            console.warn('Failed to decode log', error);
           }
         }
       },
@@ -466,21 +427,16 @@ export default function MarketDetailPage() {
     };
   }, [publicClient, isMarketIdValid, marketIdNum, market?.createdAt]);
 
-  // Set logo when market loads
   useEffect(() => {
     if (market?.question) {
       setLogoSrc(getAssetLogo(String(market.question)));
     }
   }, [market?.question]);
 
-  // Subscription payload
   const subscriptionPayload = useMemo(() => {
     if (!isMarketIdValid) return null;
     const secondsRange = getSecondsForRange(timeRange);
-    const since =
-      secondsRange !== null
-        ? Math.max(0, Math.floor(Date.now() / 1000) - secondsRange)
-        : 0;
+    const since = secondsRange !== null ? Math.max(0, Math.floor(Date.now() / 1000) - secondsRange) : 0;
     return {
       query: MARKET_LIVE_SUBSCRIPTION,
       variables: {
@@ -492,70 +448,46 @@ export default function MarketDetailPage() {
     };
   }, [isMarketIdValid, marketIdNum, timeRange]);
 
-  // Process snapshot data when it arrives
-  const processSnapshotData = useCallback(
-    (snapshot: any) => {
-      if (!snapshot) return;
+  const processSnapshotData = useCallback((snapshot: any) => {
+    if (!snapshot) return;
+    const tradesAsc = snapshot.tradesAsc ?? [];
 
-      // Prices are now managed by centralized hook
-      const tradesAsc = snapshot.tradesAsc ?? [];
-
-      // Merge new trades into chart price history (for cross-browser updates)
-      if (tradesAsc.length > 0) {
-        const newPricePoints = tradesAsc
-          .map((trade: any) => {
-            if (!trade?.timestamp || trade.priceE6 === null || trade.priceE6 === undefined) {
-              return null;
-            }
-            const timestamp = Number(trade.timestamp);
-            const priceYesValue = Number(trade.priceE6) / 1e6;
-            if (!Number.isFinite(timestamp) || timestamp <= 0 || !Number.isFinite(priceYesValue)) {
-              return null;
-            }
-            return {
-              timestamp,
-              priceYes: Math.max(0, Math.min(1, priceYesValue)),
-              priceNo: Math.max(0, Math.min(1, 1 - priceYesValue)),
-              txHash: trade.txHash ?? undefined,
-            };
-          })
-          .filter((point: PricePoint | null): point is PricePoint => point !== null);
-        
-        if (newPricePoints.length > 0) {
-           // We need to update the history state in useMarketPriceHistory
-           // But since we can't directly access the setter from here,
-           // and useMarketPriceHistory handles snapshotData updates via useEffect,
-           // we might not need to do anything here if snapshotData is updated correctly.
-           // However, this callback is for subscription updates.
-           // Let's use the mergePricePoints function from useMarketPriceHistory!
-           mergePricePoints(newPricePoints);
-        }
+    if (tradesAsc.length > 0) {
+      const newPricePoints = tradesAsc.map((trade: any) => {
+        if (!trade?.timestamp || trade.priceE6 === null) return null;
+        const timestamp = Number(trade.timestamp);
+        const priceYesValue = Number(trade.priceE6) / 1e6;
+        if (!Number.isFinite(timestamp) || timestamp <= 0 || !Number.isFinite(priceYesValue)) return null;
+        return {
+          timestamp,
+          priceYes: Math.max(0, Math.min(1, priceYesValue)),
+          priceNo: Math.max(0, Math.min(1, 1 - priceYesValue)),
+          txHash: trade.txHash ?? undefined,
+        };
+      }).filter((point: PricePoint | null): point is PricePoint => point !== null);
+      
+      if (newPricePoints.length > 0) {
+         mergePricePoints(newPricePoints);
       }
+    }
 
-      // Update createdAt if available
-      if (snapshot.createdAt) {
-        try {
-          const createdAtBigInt = BigInt(snapshot.createdAt);
-          setMarket((prev: any) => {
-            if (!prev) return prev;
-            if (typeof prev.createdAt === 'bigint' && prev.createdAt === createdAtBigInt) {
-              return prev;
-            }
-            return { ...prev, createdAt: createdAtBigInt };
-          });
-        } catch (error) {
-          console.warn('Failed to parse createdAt', error);
-        }
+    if (snapshot.createdAt) {
+      try {
+        const createdAtBigInt = BigInt(snapshot.createdAt);
+        setMarket((prev: any) => {
+          if (!prev) return prev;
+          if (typeof prev.createdAt === 'bigint' && prev.createdAt === createdAtBigInt) return prev;
+          return { ...prev, createdAt: createdAtBigInt };
+        });
+      } catch (error) {
+        console.warn('Failed to parse createdAt', error);
       }
-    },
-    [mergePricePoints]
-  );
+    }
+  }, [mergePricePoints]);
 
-  // Subscribe to live updates
   useEffect(() => {
     if (!subscriptionPayload) return;
     let disposed = false;
-
     const unsubscribe = subscribeToSubgraph<{ market: any }>(
       subscriptionPayload,
       {
@@ -563,34 +495,22 @@ export default function MarketDetailPage() {
           if (disposed) return;
           processSnapshotData(payload.market ?? null);
         },
-        onError: error => {
-          console.error('[MarketDetail] Live subscription error', error);
-        },
+        onError: error => console.error('[MarketDetail] Live subscription error', error),
       },
     );
-
-    return () => {
-      disposed = true;
-      unsubscribe();
-    };
+    return () => { disposed = true; unsubscribe(); };
   }, [subscriptionPayload, processSnapshotData]);
 
-  // Process initial snapshot data to add createdAt to market
   useEffect(() => {
-    if (snapshotData) {
-      processSnapshotData(snapshotData);
-    }
+    if (snapshotData) processSnapshotData(snapshotData);
   }, [snapshotData, processSnapshotData]);
 
-  // Get user balances
   const { data: yesBal } = useReadContract({
     address: market?.yes as `0x${string}` | undefined,
     abi: positionTokenAbi,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
-    query: {
-      enabled: !!(address && market?.yes),
-    },
+    query: { enabled: !!(address && market?.yes) },
   });
 
   const { data: noBal } = useReadContract({
@@ -598,21 +518,14 @@ export default function MarketDetailPage() {
     abi: positionTokenAbi,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
-    query: {
-      enabled: !!(address && market?.no),
-    },
+    query: { enabled: !!(address && market?.no) },
   });
 
   useEffect(() => {
-    if (yesBal) {
-      setYesBalance(formatUnits(yesBal as bigint, 18));
-    }
-    if (noBal) {
-      setNoBalance(formatUnits(noBal as bigint, 18));
-    }
+    if (yesBal) setYesBalance(formatUnits(yesBal as bigint, 18));
+    if (noBal) setNoBalance(formatUnits(noBal as bigint, 18));
   }, [yesBal, noBal]);
 
-  // Calculate percentage change
   const currentPrice = chartSide === 'yes' ? marketData.currentPrices.yes : marketData.currentPrices.no;
   let chanceChangePercent = 0;
   if (sortedChartData.length > 0) {
@@ -622,12 +535,8 @@ export default function MarketDetailPage() {
     }
   }
 
-  // Resolved chart data (snap to 0 or 1 when resolved)
   const resolvedChartData = useMemo(() => {
-    if (!sortedChartData.length || !market?.resolution?.isResolved) {
-      return sortedChartData;
-    }
-
+    if (!sortedChartData.length || !market?.resolution?.isResolved) return sortedChartData;
     const yesWins = Boolean(market.resolution.yesWins);
     const lastPoint = sortedChartData[sortedChartData.length - 1];
     const finalTimestamp = (lastPoint?.timestamp ?? Math.floor(Date.now() / 1000)) + 1;
@@ -637,28 +546,19 @@ export default function MarketDetailPage() {
       priceNo: yesWins ? 0 : 1,
       txHash: 'resolution-snap',
     };
-    const alreadySnapped =
-      Math.abs(lastPoint.priceYes - snapPoint.priceYes) < 1e-6 &&
-      Math.abs(lastPoint.priceNo - snapPoint.priceNo) < 1e-6;
-    if (alreadySnapped) {
-      return sortedChartData;
-    }
+    const alreadySnapped = Math.abs(lastPoint.priceYes - snapPoint.priceYes) < 1e-6 && Math.abs(lastPoint.priceNo - snapPoint.priceNo) < 1e-6;
+    if (alreadySnapped) return sortedChartData;
     return [...sortedChartData, snapPoint];
   }, [sortedChartData, market?.resolution?.isResolved, market?.resolution?.yesWins]);
 
-  // Market status
   const totalVolume = marketData.marketState ? Number(formatUnits(marketData.marketState.vault ?? 0n, 6)) : 0;
   const createdAtDate = (() => {
     if (!market?.createdAt) return null;
     try {
-      const numeric = typeof market.createdAt === 'bigint'
-        ? Number(market.createdAt)
-        : Number(market.createdAt);
+      const numeric = typeof market.createdAt === 'bigint' ? Number(market.createdAt) : Number(market.createdAt);
       if (!Number.isFinite(numeric) || numeric <= 0) return null;
       return new Date(numeric * 1000);
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   })();
 
   const marketStatus = typeof market?.status === 'number' ? market.status : Number(market?.status ?? 0);
@@ -669,59 +569,23 @@ export default function MarketDetailPage() {
   const isChartRefreshing = snapshotLoading && sortedChartData.length > 0;
   const marketIsActive = marketStatus === 0 && !marketIsResolved && !marketIsExpired;
 
-  // Loading state - wait for market metadata, resolution, and market data
   if (marketData.isLoading || !market || !resolution) {
     return <MarketDetailSkeleton />;
   }
 
-  // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden">
-        {/* Animated Background Blobs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <motion.div 
-            className="absolute -top-[20%] -left-[10%] w-[800px] h-[800px] bg-gradient-to-br from-[#14B8A6]/10 to-purple-400/10 dark:from-[#14B8A6]/5 dark:to-purple-400/5 rounded-full blur-3xl"
-            animate={{
-              x: [0, 50, 0],
-              y: [0, 30, 0],
-              scale: [1, 1.05, 1],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          />
-          <motion.div 
-            className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] bg-gradient-to-br from-blue-400/10 to-[#14B8A6]/10 dark:from-blue-400/5 dark:to-[#14B8A6]/5 rounded-full blur-3xl"
-            animate={{
-              x: [0, -50, 0],
-              y: [0, -30, 0],
-              scale: [1, 1.1, 1],
-            }}
-            transition={{
-              duration: 25,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 2
-            }}
-          />
-        </div>
+      <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden flex flex-col">
         <Header />
-        <div className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] sm:min-h-[calc(100vh-5rem)]">
-          <div className="text-center">
+        <div className="flex-1 flex flex-col items-center justify-center p-4">
+          <div className="text-center max-w-md bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl rounded-3xl p-8 border border-gray-200 dark:border-gray-700 shadow-xl">
             <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
+              <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Market Not Found</h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
-            <Link href="/markets" className="inline-flex items-center px-4 py-2 bg-[#14B8A6] text-white rounded-lg hover:bg-[#14B8A6]/90 transition-colors">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
+            <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Market Not Found</h1>
+            <p className="text-gray-600 dark:text-gray-400 mb-6 font-medium">{error}</p>
+            <Link href="/markets" className="inline-flex items-center px-6 py-3 bg-[#14B8A6] text-white font-bold rounded-xl hover:bg-[#0D9488] transition-all shadow-lg hover:shadow-[#14B8A6]/20">
+              <ArrowLeft className="w-4 h-4 mr-2" />
               Browse Markets
             </Link>
           </div>
@@ -730,111 +594,45 @@ export default function MarketDetailPage() {
     );
   }
 
-  // Invalid market ID
   if (!isMarketIdValid) {
     return (
-      <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden">
-        {/* Animated Background Blobs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <motion.div 
-            className="absolute -top-[20%] -left-[10%] w-[800px] h-[800px] bg-gradient-to-br from-[#14B8A6]/10 to-purple-400/10 dark:from-[#14B8A6]/5 dark:to-purple-400/5 rounded-full blur-3xl"
-            animate={{
-              x: [0, 50, 0],
-              y: [0, 30, 0],
-              scale: [1, 1.05, 1],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          />
-          <motion.div 
-            className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] bg-gradient-to-br from-blue-400/10 to-[#14B8A6]/10 dark:from-blue-400/5 dark:to-[#14B8A6]/5 rounded-full blur-3xl"
-            animate={{
-              x: [0, -50, 0],
-              y: [0, -30, 0],
-              scale: [1, 1.1, 1],
-            }}
-            transition={{
-              duration: 25,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 2
-            }}
-          />
-        </div>
+      <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden flex flex-col">
         <Header />
-        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="text-center bg-white dark:bg-gray-800 rounded-2xl p-12 shadow-xl border border-gray-100 dark:border-gray-700"
-          >
-            <div className="text-6xl mb-4">❌</div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Market Not Found</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">The market you&apos;re looking for doesn&apos;t exist.</p>
-            <Link
-              href="/markets"
-              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#14B8A6] to-[#0D9488] text-white font-bold rounded-lg hover:shadow-lg transition-all"
-            >
+        <div className="flex-1 flex flex-col items-center justify-center p-4">
+          <div className="text-center max-w-md bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl rounded-3xl p-8 border border-gray-200 dark:border-gray-700 shadow-xl">
+            <div className="text-6xl mb-4">🔍</div>
+            <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Invalid Market</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6 font-medium">The market ID provided is invalid.</p>
+            <Link href="/markets" className="inline-flex items-center px-6 py-3 bg-[#14B8A6] text-white font-bold rounded-xl hover:bg-[#0D9488] transition-all shadow-lg hover:shadow-[#14B8A6]/20">
+              <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Markets
             </Link>
-          </motion.div>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Main content
   return (
-    <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden">
-      {/* Animated Background Blobs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          className="absolute -top-[20%] -left-[10%] w-[800px] h-[800px] bg-gradient-to-br from-[#14B8A6]/10 to-purple-400/10 dark:from-[#14B8A6]/5 dark:to-purple-400/5 rounded-full blur-3xl"
-          animate={{
-            x: [0, 50, 0],
-            y: [0, 30, 0],
-            scale: [1, 1.05, 1],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-        <motion.div
-          className="absolute -bottom-[20%] -right-[10%] w-[600px] h-[600px] bg-gradient-to-br from-blue-400/10 to-[#14B8A6]/10 dark:from-blue-400/5 dark:to-[#14B8A6]/5 rounded-full blur-3xl"
-          animate={{
-            x: [0, -50, 0],
-            y: [0, -30, 0],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 2
-          }}
-        />
+    <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-x-hidden font-sans">
+      
+      {/* --- UI Upgrade: Grid Background --- */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+        <div className="absolute left-1/2 top-0 -translate-x-1/2 -z-10 m-auto h-[500px] w-[500px] rounded-full bg-[#14B8A6] opacity-10 blur-[100px]"></div>
       </div>
+
       <Header />
    
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        
         {/* Back Link */}
-        <motion.div
-          initial={{ x: -20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-        >
-          <Link href="/markets" className="inline-flex items-center text-[#14B8A6] hover:text-[#0D9488] mb-4 sm:mb-6 font-semibold group text-sm sm:text-base" data-testid="back-button">
-            <motion.svg
-              className="w-4 h-4 sm:w-5 sm:h-5 mr-2 group-hover:-translate-x-1 transition-transform"
-              fill="none" stroke="currentColor" viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </motion.svg>
-            BACK TO MARKETS
+        <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="mb-6">
+          <Link href="/markets" className="inline-flex items-center text-gray-500 hover:text-[#14B8A6] dark:text-gray-400 dark:hover:text-[#14B8A6] font-bold text-sm transition-colors group">
+            <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center mr-3 group-hover:border-[#14B8A6] transition-colors shadow-sm">
+                <ArrowLeft className="w-4 h-4" />
+            </div>
+            Back to Markets
           </Link>
         </motion.div>
 
@@ -849,65 +647,53 @@ export default function MarketDetailPage() {
           onLogoError={() => setLogoSrc('/logos/default.png')}
         />
 
+        {/* Status Banner (Resolved/Expired) */}
         {(marketIsResolved || marketIsExpired) && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-4 px-5 py-3 rounded-2xl border border-gray-200 dark:border-yellow-900/30 bg-gradient-to-r from-[#fef3c7] to-[#fde68a] dark:from-yellow-900/20 dark:to-yellow-800/20 text-sm text-amber-900 dark:text-amber-200 shadow-inner flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+            className={`mt-6 px-6 py-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm ${
+                marketIsResolved 
+                ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800/50 text-purple-900 dark:text-purple-100'
+                : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50 text-amber-900 dark:text-amber-100'
+            }`}
           >
-            <span className="font-semibold">
-              {marketIsResolved
-                ? 'Market resolved — trading is closed.'
-                : 'Market expired — trading is closed.'}
-            </span>
+            <div className="flex items-center gap-3">
+               {marketIsResolved ? <CheckCircle2 className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
+               <span className="font-bold text-sm sm:text-base">
+                 {marketIsResolved ? 'Market Finalized' : 'Market Expired'}
+               </span>
+            </div>
             {marketIsResolved && (
-              <span className="text-[11px] tracking-widest uppercase text-gray-700 dark:text-gray-300 bg-white/70 dark:bg-gray-800/50 px-3 py-1 rounded-full shadow-sm">
-                Winner: {marketResolution?.yesWins ? 'YES' : 'NO'}
-              </span>
+              <div className="flex items-center gap-2 bg-white/60 dark:bg-black/20 px-3 py-1.5 rounded-full">
+                <span className="text-xs font-bold uppercase opacity-70">Winning Outcome:</span>
+                <span className={`text-xs font-black uppercase ${marketResolution?.yesWins ? 'text-[#14B8A6]' : 'text-red-500'}`}>
+                    {marketResolution?.yesWins ? 'YES' : 'NO'}
+                </span>
+              </div>
             )}
           </motion.div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-          {/* Left Column */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6 md:space-y-8 flex flex-col-reverse lg:block">
-            {/* Trading Card - Mobile */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
+          
+          {/* --- Left Column: Chart & Tabs (8 cols) --- */}
+          <div className="lg:col-span-8 space-y-8">
+            
+            {/* Chart Card */}
             <motion.div
-              initial={{ y: 50, opacity: 0 }}
+              initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="lg:hidden bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-xl border border-gray-100 dark:border-gray-700"
+              transition={{ delay: 0.2 }}
+              className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-[32px] p-6 sm:p-8 shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-white/20 dark:border-gray-700/50"
             >
-              {isMarketIdValid && market && (
-                <>
-                  <TradingCard marketId={marketIdNum} marketData={marketData} />
-                  {!marketIsActive && (
-                  <div className="mt-6 rounded-xl border border-amber-200 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
-                    Trading for this market is closed.
-                    {marketIsResolved
-                    ? ' The market has been resolved.'
-                    : marketIsExpired
-                      ? ' The market has expired.'
-                      : ' Trading is currently unavailable.'}
-                  </div>
-                  )}
-                </>
-              )}
-            </motion.div>
-
-              {/* Chart Card */}
-            <motion.div
-              initial={{ y: 50, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-gray-100 dark:border-gray-700"
-            >
+              {/* Chart Controls Header */}
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-8 gap-6">
                 <div>
                   <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                    Market Price
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${chartSide === 'yes' ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'}`}>
-                      {chartSide}
+                    Current Price
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${chartSide === 'yes' ? 'bg-[#14B8A6]/10 text-[#14B8A6]' : 'bg-red-500/10 text-red-500'}`}>
+                      {chartSide.toUpperCase()}
                     </span>
                   </div>
                   <div className="flex items-baseline gap-4 flex-wrap">
@@ -919,19 +705,20 @@ export default function MarketDetailPage() {
                     >
                       {formatPriceInCents(chartSide === 'yes' ? marketData.currentPrices.yes : marketData.currentPrices.no)}
                     </motion.div>
-                    <div className={`flex items-center font-bold text-lg ${chanceChangePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    <div className={`flex items-center font-bold text-lg ${chanceChangePercent >= 0 ? 'text-[#14B8A6]' : 'text-red-500'}`}>
                       {chanceChangePercent >= 0 ? '↑' : '↓'} {Math.abs(chanceChangePercent).toFixed(2)}%
-                      <span className="text-gray-400 dark:text-gray-500 text-xs font-medium ml-2">past {timeRange.toLowerCase()}</span>
+                      <span className="text-gray-400 dark:text-gray-500 text-xs font-medium ml-2 uppercase tracking-wide">past {timeRange}</span>
                     </div>
                   </div>
                 </div>
                 
-                <div className="flex bg-gray-100/80 dark:bg-gray-700/50 p-1 rounded-xl self-start sm:self-center w-full sm:w-auto backdrop-blur-sm">
+                {/* Outcome Toggle */}
+                <div className="bg-gray-100 dark:bg-gray-700/50 p-1.5 rounded-2xl flex w-full sm:w-auto">
                   <button
                     onClick={() => setChartSide('yes')}
-                    className={`flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all relative z-10 ${
+                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
                       chartSide === 'yes'
-                        ? 'bg-white dark:bg-gray-600 text-green-600 dark:text-green-400 shadow-sm'
+                        ? 'bg-white dark:bg-gray-600 text-[#14B8A6] shadow-sm ring-1 ring-black/5'
                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
                   >
@@ -939,9 +726,9 @@ export default function MarketDetailPage() {
                   </button>
                   <button
                     onClick={() => setChartSide('no')}
-                    className={`flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all relative z-10 ${
+                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
                       chartSide === 'no'
-                        ? 'bg-white dark:bg-gray-600 text-red-600 dark:text-red-400 shadow-sm'
+                        ? 'bg-white dark:bg-gray-600 text-red-500 shadow-sm ring-1 ring-black/5'
                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
                   >
@@ -950,17 +737,18 @@ export default function MarketDetailPage() {
                 </div>
               </div>
 
-              {/* Chart Container */}
-              <div className="h-[300px] sm:h-[400px] w-full mb-6 relative">
+              {/* Chart Visual */}
+              <div className="h-[350px] w-full mb-8 relative">
+                 {/*  */}
                 {snapshotLoading && sortedChartData.length === 0 ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gray-50/50 dark:bg-gray-800/50 rounded-xl">
+                  <div className="absolute inset-0 flex items-center justify-center">
                     <div className="flex flex-col items-center gap-3">
                       <motion.div
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                        className="w-8 h-8 border-2 border-[#14B8A6] border-t-transparent rounded-full"
+                        className="w-8 h-8 border-4 border-[#14B8A6] border-t-transparent rounded-full"
                       />
-                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Loading chart data...</span>
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Loading Data</span>
                     </div>
                   </div>
                 ) : (
@@ -972,156 +760,133 @@ export default function MarketDetailPage() {
                       useCentralizedData={true}
                     />
                     {isChartRefreshing && (
-                      <div className="absolute top-2 right-2 px-3 py-1.5 bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-full border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#14B8A6] animate-pulse" />
-                        <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Live</span>
+                      <div className="absolute top-2 right-2 px-3 py-1 bg-[#14B8A6]/10 backdrop-blur-md rounded-full border border-[#14B8A6]/20 flex items-center gap-2">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#14B8A6] opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-[#14B8A6]"></span>
+                        </span>
+                        <span className="text-[10px] font-bold text-[#14B8A6] uppercase tracking-wider">Live</span>
                       </div>
                     )}
                   </div>
                 )}
               </div>
 
-              {/* Time Range Controls */}
-              <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-4 overflow-x-auto">
-                <div className="flex gap-2 w-full sm:w-auto">
-                  {(['1D', '1W', '1M', 'ALL'] as const).map((range) => (
-                    <button
-                      key={range}
-                      onClick={() => setTimeRange(range)}
-                      className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${
-                        timeRange === range
-                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                          : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
-                      }`}
-                    >
-                      {range}
-                    </button>
-                  ))}
-                </div>
+              {/* Time Range Selector */}
+              <div className="flex items-center justify-start border-t border-gray-100 dark:border-gray-700/50 pt-6 gap-2 overflow-x-auto">
+                {(['1D', '1W', '1M', 'ALL'] as const).map((range) => (
+                  <button
+                    key={range}
+                    onClick={() => setTimeRange(range)}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                      timeRange === range
+                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {range}
+                  </button>
+                ))}
               </div>
             </motion.div>
 
             {/* Tabs Section */}
             <motion.div
-              initial={{ y: 50, opacity: 0 }}
+              initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-              className="bg-white dark:bg-gray-800 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-gray-100 dark:border-gray-700 overflow-hidden"
+              transition={{ delay: 0.3 }}
+              className="bg-white dark:bg-gray-800 rounded-[32px] shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-gray-100 dark:border-gray-700 overflow-hidden"
             >
-              <div className="flex border-b border-gray-100 dark:border-gray-700 overflow-x-auto">
+              <div className="flex border-b border-gray-100 dark:border-gray-700 overflow-x-auto scrollbar-hide">
                 {(['Position', 'Comments', 'Transactions', 'Resolution'] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`flex-1 px-6 py-4 text-sm font-bold whitespace-nowrap transition-colors relative ${
+                    className={`flex-1 px-6 py-5 text-sm font-bold whitespace-nowrap transition-colors relative ${
                       activeTab === tab
                         ? 'text-[#14B8A6]'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50'
                     }`}
                   >
                     {tab}
                     {activeTab === tab && (
-                      <motion.div
-                        layoutId="activeTabIndicator"
-                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#14B8A6]"
-                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                      />
+                      <motion.div layoutId="activeTabIndicator" className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#14B8A6]" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
                     )}
                   </button>
                 ))}
               </div>
 
-              <div className="p-6 sm:p-8 bg-gray-50/30 dark:bg-gray-900/30 min-h-[300px]">
+              <div className="p-6 sm:p-8 bg-gray-50/50 dark:bg-gray-900/50 min-h-[400px]">
                 <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeTab}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                  >
+                  <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
                     {activeTab === 'Position' && (
-                      <PositionTab
-                        isConnected={isConnected}
-                        yesBalance={yesBalance}
-                        noBalance={noBalance}
-                        priceYes={marketData.currentPrices.yes}
-                        priceNo={marketData.currentPrices.no}
-                      />
+                      <PositionTab isConnected={isConnected} yesBalance={yesBalance} noBalance={noBalance} priceYes={marketData.currentPrices.yes} priceNo={marketData.currentPrices.no} />
                     )}
-                    {activeTab === 'Comments' && (
-                      <CommentsTab
-                        marketId={marketId}
-                        isConnected={isConnected}
-                        address={address}
-                      />
-                    )}
-                    {activeTab === 'Transactions' && (
-                      <TransactionsTab
-                        transactions={transactions}
-                        loading={snapshotLoading && transactions.length === 0}
-                      />
-                    )}
-                    {activeTab === 'Resolution' && (
-                      <ResolutionTab resolution={resolution} />
-                    )}
+                    {activeTab === 'Comments' && <CommentsTab marketId={marketId} isConnected={isConnected} address={address} />}
+                    {activeTab === 'Transactions' && <TransactionsTab transactions={transactions} loading={snapshotLoading && transactions.length === 0} />}
+                    {activeTab === 'Resolution' && <ResolutionTab resolution={resolution} />}
                   </motion.div>
                 </AnimatePresence>
               </div>
             </motion.div>
           </div>
 
-          {/* Right Column */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Trading Card - Desktop */}
+          {/* --- Right Column: Trading & Stats (4 cols) --- */}
+          <div className="lg:col-span-4 space-y-6">
+            
+            {/* Trading Card (Desktop Sticky) */}
             <motion.div
-              initial={{ y: 50, opacity: 0 }}
+              initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              className="hidden lg:block"
+              transition={{ delay: 0.4 }}
+              className="sticky top-24 space-y-6"
             >
               {isMarketIdValid && market && (
-                <div className="sticky top-24 space-y-6">
-                  <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <>
+                  <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-[32px] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] dark:shadow-black/30 border border-white/20 dark:border-gray-700/50 overflow-hidden relative z-20">
                     <TradingCard marketId={marketIdNum} marketData={marketData} />
                   </div>
-                  
+
                   {!marketIsActive && (
-                    <div className="rounded-2xl border border-amber-200 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 p-4 text-sm text-amber-800 dark:text-amber-400 font-medium">
-                      ⚠️ Trading for this market is closed.
+                    <div className="rounded-2xl border border-amber-200 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 p-4 text-sm text-amber-800 dark:text-amber-400 font-medium flex items-center gap-3">
+                      <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                      <span>Trading is currently closed for this market.</span>
                     </div>
                   )}
 
-                  {/* Top Holders */}
-                  <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-gray-100 dark:border-gray-700 overflow-hidden">
-                    <TopHoldersCard
-                      holderTab={holderTab}
-                      setHolderTab={setHolderTab}
-                      topHoldersYes={topHoldersYes}
-                      topHoldersNo={topHoldersNo}
-                      address={address}
-                      yesBalance={yesBalance}
-                      noBalance={noBalance}
-                      priceYes={marketData.currentPrices.yes}
-                      priceNo={marketData.currentPrices.no}
+                  <div className="bg-white dark:bg-gray-800 rounded-[24px] shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    <TopHoldersCard 
+                        holderTab={holderTab} 
+                        setHolderTab={setHolderTab} 
+                        topHoldersYes={topHoldersYes} 
+                        topHoldersNo={topHoldersNo} 
+                        address={address} 
+                        yesBalance={yesBalance} 
+                        noBalance={noBalance} 
+                        priceYes={marketData.currentPrices.yes} 
+                        priceNo={marketData.currentPrices.no} 
                     />
                   </div>
-                </div>
+                </>
               )}
             </motion.div>
           </div>
+
         </div>
-                {showInstantUpdateBadge && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="fixed bottom-6 right-6 px-4 py-2 rounded-full bg-gray-900 text-white text-sm font-bold shadow-lg flex items-center gap-2 z-50"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-[#14B8A6] animate-pulse" />
-                    Prices updated
-                  </motion.div>
-                )}
+        
+        {/* Instant Update Toast */}
+        <AnimatePresence>
+            {showInstantUpdateBadge && (
+            <motion.div initial={{ opacity: 0, y: 20, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.9 }} className="fixed bottom-8 right-8 px-5 py-3 rounded-full bg-gray-900/90 dark:bg-white/90 backdrop-blur text-white dark:text-gray-900 text-sm font-bold shadow-2xl flex items-center gap-3 z-50">
+                <div className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#14B8A6] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#14B8A6]"></span>
+                </div>
+                Prices updated
+            </motion.div>
+            )}
+        </AnimatePresence>
+
       </div>
     </div>
   );

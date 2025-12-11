@@ -1,123 +1,102 @@
 'use client';
 import { formatUnits, keccak256, stringToBytes } from 'viem';
+import { CheckCircle2, Scale, Calendar, Rss, Clock } from 'lucide-react';
 
 interface ResolutionTabProps {
   resolution: any;
 }
 
 export function ResolutionTab({ resolution }: ResolutionTabProps) {
-  if (!resolution || !resolution.expiryTimestamp || resolution.expiryTimestamp === 0n) {
+  if (!resolution || !resolution.expiryTimestamp) {
     return (
-      <div className="p-4 sm:p-6 bg-gray-50 dark:bg-gray-800 rounded-xl">
-        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">No resolution information available</p>
+      <div className="p-8 text-center text-gray-400 text-sm">
+        Resolution data not available
       </div>
     );
   }
 
+  // Helper to decode feed name from ID
+  const getFeedName = (feedId: string) => {
+    const id = feedId.toLowerCase();
+    const knownFeeds: Record<string, string> = {
+        [keccak256(stringToBytes('BTC/USD')).toLowerCase()]: 'BTC/USD',
+        [keccak256(stringToBytes('ETH/USD')).toLowerCase()]: 'ETH/USD',
+        [keccak256(stringToBytes('BNB/USD')).toLowerCase()]: 'BNB/USD',
+    };
+    return knownFeeds[id] || `${id.slice(0, 6)}...${id.slice(-4)}`;
+  };
+
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Resolution Status */}
-      {resolution.isResolved ? (
-        <div className="p-4 sm:p-6 bg-gradient-to-br from-green-500/10 to-green-600/10 dark:from-green-500/20 dark:to-green-600/20 rounded-xl border border-green-500/20">
-          <div className="flex items-center gap-3 mb-2">
-            <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h4 className="text-sm sm:text-base font-bold text-green-900 dark:text-green-100">Market Resolved</h4>
+    <div className="space-y-6">
+      {/* Main Status Card */}
+      <div className={`p-6 rounded-2xl border ${
+        resolution.isResolved 
+          ? 'bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800/30'
+          : 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800/30'
+      }`}>
+        <div className="flex items-start gap-4">
+          <div className={`p-3 rounded-xl ${resolution.isResolved ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
+            {resolution.isResolved ? <CheckCircle2 className="w-6 h-6" /> : <Scale className="w-6 h-6" />}
           </div>
-          <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-            Winner: <span className="font-bold">{resolution.yesWins ? 'YES' : 'NO'}</span>
-          </p>
-        </div>
-      ) : (
-        <div className="p-4 sm:p-6 bg-gradient-to-br from-[#14B8A6]/5 to-[#14B8A6]/10 dark:from-[#14B8A6]/10 dark:to-[#14B8A6]/20 rounded-xl border border-[#14B8A6]/20">
-          <h4 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white mb-2 sm:mb-3 uppercase tracking-wide flex items-center gap-2">
-            <svg className="w-4 h-4 text-[#14B8A6] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>Resolution Criteria</span>
-          </h4>
-          {resolution.oracleType === 1 ? (
-            <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-              {resolution.comparison === 0 && `Market resolves YES if price is above $${Number(formatUnits(resolution.targetValue, 8)).toLocaleString()}`}
-              {resolution.comparison === 1 && `Market resolves YES if price is below $${Number(formatUnits(resolution.targetValue, 8)).toLocaleString()}`}
-              {resolution.comparison === 2 && `Market resolves YES if price equals $${Number(formatUnits(resolution.targetValue, 8)).toLocaleString()}`}
-              {' at expiry. Otherwise resolves NO.'}
+          <div>
+            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
+              {resolution.isResolved ? 'Market Resolved' : 'Resolution Criteria'}
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+              {resolution.isResolved ? (
+                <>
+                  This market has ended. The winning outcome is <span className={`font-black ${resolution.yesWins ? 'text-green-600' : 'text-red-600'}`}>{resolution.yesWins ? 'YES' : 'NO'}</span>.
+                </>
+              ) : (
+                <>
+                  Market resolves <strong>YES</strong> if price is {resolution.comparison === 0 ? 'above' : resolution.comparison === 1 ? 'below' : 'equal to'} 
+                  <span className="font-bold text-gray-900 dark:text-white ml-1">
+                    ${Number(formatUnits(resolution.targetValue, 8)).toLocaleString()}
+                  </span> at expiry.
+                </>
+              )}
             </p>
-          ) : (
-            <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-              This market will be resolved manually by the admin.
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Resolution Details Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
-        <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-          <div className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 sm:mb-2 uppercase">Resolution Type</div>
-          <div className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">
-            {resolution.oracleType === 0 ? 'Manual' : 'Chainlink Feed'}
           </div>
         </div>
+      </div>
 
+      {/* Details Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <DetailItem 
+          label="Oracle Source" 
+          value={resolution.oracleType === 1 ? 'Chainlink' : 'Manual'} 
+          icon={<Rss className="w-4 h-4" />}
+        />
         {resolution.oracleType === 1 && (
-          <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-            <div className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 sm:mb-2 uppercase">Price Feed</div>
-            <div className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">
-              {(() => {
-                const feedId = resolution.priceFeedId.toLowerCase();
-                const commonFeeds = ['BTC/USD', 'ETH/USD', 'BNB/USD', 'SOL/USD', 'ADA/USD', 'XRP/USD'];
-                for (const symbol of commonFeeds) {
-                  const hash = keccak256(stringToBytes(symbol)).toLowerCase();
-                  if (hash === feedId) {
-                    return symbol;
-                  }
-                }
-                return feedId.slice(0, 10) + '...';
-              })()}
-            </div>
-          </div>
+          <DetailItem 
+            label="Price Feed" 
+            value={getFeedName(resolution.priceFeedId)} 
+            icon={<Scale className="w-4 h-4" />}
+          />
         )}
-
-        {resolution.targetValue > 0n && (
-          <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-            <div className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 sm:mb-2 uppercase">Target Value</div>
-            <div className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">
-              ${Number(formatUnits(resolution.targetValue, 8)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-          </div>
-        )}
-
-        <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-          <div className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 sm:mb-2 uppercase">Resolution Date</div>
-          <div className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">
-            {new Date(Number(resolution.expiryTimestamp) * 1000).toLocaleString(undefined, {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              timeZoneName: 'short'
-            })}
-          </div>
-        </div>
-
-        {resolution.isResolved && (
-          <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-            <div className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 sm:mb-2 uppercase">Winner</div>
-            <div className={`text-xs sm:text-sm font-bold ${resolution.yesWins ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-              {resolution.yesWins ? 'YES' : 'NO'}
-            </div>
-          </div>
-        )}
+        <DetailItem 
+          label="Expiry Date" 
+          value={new Date(Number(resolution.expiryTimestamp) * 1000).toLocaleDateString(undefined, { dateStyle: 'medium' })} 
+          icon={<Calendar className="w-4 h-4" />}
+        />
+        <DetailItem 
+          label="Expiry Time" 
+          value={new Date(Number(resolution.expiryTimestamp) * 1000).toLocaleTimeString(undefined, { timeStyle: 'short' })} 
+          icon={<Clock className="w-4 h-4" />}
+        />
       </div>
     </div>
   );
 }
 
-
-
-
-
-
+function DetailItem({ label, value, icon }: { label: string, value: string, icon: any }) {
+  return (
+    <div className="flex items-center gap-3 p-4 bg-white/50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700/50">
+      <div className="text-gray-400">{icon}</div>
+      <div>
+        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{label}</div>
+        <div className="text-sm font-bold text-gray-900 dark:text-white">{value}</div>
+      </div>
+    </div>
+  );
+}
