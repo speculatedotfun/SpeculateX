@@ -24,6 +24,7 @@ export function useMarketPriceHistory(
 ) {
   const publicClient = usePublicClient();
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  const hasAttemptedRpcFetchRef = useRef<boolean>(false);
 
   const fallbackChartPointRef = useRef<PricePoint>({
     timestamp: Math.floor(Date.now() / 1000),
@@ -257,7 +258,8 @@ export function useMarketPriceHistory(
         if (Math.abs(priceYes - 0.5) > 0.0001) {
              // Check if we should fetch logs from RPC as fallback
              // Only fetch if we haven't already fetched logs and the market is active and we have no history
-             if (!isLoadingLogs && publicClient && marketIdNum > 0) {
+             if (!isLoadingLogs && !hasAttemptedRpcFetchRef.current && publicClient && marketIdNum > 0) {
+                hasAttemptedRpcFetchRef.current = true;
                 setIsLoadingLogs(true);
                 (async () => {
                   try {
@@ -461,7 +463,7 @@ export function useMarketPriceHistory(
       const merged = Array.from(mergedDedup.values()).sort((a, b) => a.timestamp - b.timestamp);
       return withSeedPoint(merged, fallbackChartPointRef.current);
     });
-  }, [historyLoading, snapshotData?.tradesAsc, snapshotData?.createdAt, currentPrices, isLoadingLogs, marketCreatedAt, marketIdNum, publicClient]);
+  }, [historyLoading, snapshotData?.tradesAsc, snapshotData?.createdAt, currentPrices, marketCreatedAt, marketIdNum, publicClient]);
 
   // Store refs for stable event handler
   const marketIdNumRef = useRef(marketIdNum);
@@ -476,6 +478,7 @@ export function useMarketPriceHistory(
   // Clear processed transaction hashes when market changes
   useEffect(() => {
     processedTxHashesRef.current.clear();
+    hasAttemptedRpcFetchRef.current = false; // Reset RPC fetch flag when market changes
   }, [marketIdNum]);
 
   // Listen for live trade updates and merge them into the history
