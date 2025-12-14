@@ -140,7 +140,6 @@ export function CommentsTab({ marketId, isConnected, address }: CommentsTabProps
       <div className="space-y-4">
         {comments.length === 0 ? (
           <div className="text-center py-16 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-            <div className="text-6xl mb-4">💬</div>
             <p className="text-gray-500 dark:text-gray-400 font-semibold">No comments yet</p>
             <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Be the first to share your thoughts!</p>
           </div>

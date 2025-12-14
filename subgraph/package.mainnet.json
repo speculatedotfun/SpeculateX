@@ -1,0 +1,17 @@
+{
+  "name": "speculate-subgraph-mainnet",
+  "version": "1.0.0",
+  "description": "Subgraph indexing SpeculateCore events on BSC Mainnet",
+  "scripts": {
+    "codegen": "graph codegen --subgraph-name speculate-core-mainnet",
+    "build": "graph build --subgraph-name speculate-core-mainnet",
+    "deploy": "goldsky subgraph deploy speculate-core-mainnet/production --version v1.0.0"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-ts": "^0.32.0"
+  },
+  "devDependencies": {
+    "@graphprotocol/graph-cli": "^0.61.0"
+  }
+}
+

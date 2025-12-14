@@ -19,7 +19,7 @@ const TESTNET_ADDRESSES = {
 };
 
 // Get current network from localStorage or default to testnet
-function getCurrentNetwork(): Network {
+export function getCurrentNetwork(): Network {
   if (typeof window === 'undefined') return 'testnet';
   const stored = localStorage.getItem('selectedNetwork') as Network | null;
   return stored === 'mainnet' || stored === 'testnet' ? stored : 'testnet';

@@ -4,18 +4,16 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SearchIcon, TrendingUp, Users, Activity, Clock } from 'lucide-react';
+import { SearchIcon, Activity, Clock, SlidersHorizontal, TrendingUp } from 'lucide-react';
 import Header from '@/components/Header';
-import { Badge, Input } from '@/components/ui';
 import { getMarketCount, getMarket, getPriceYes, getMarketResolution, getMarketState } from '@/lib/hooks';
 import { formatUnits } from 'viem';
-import { usePublicClient } from 'wagmi';
 import { useQuery } from '@tanstack/react-query';
 import { fetchSubgraph } from '@/lib/subgraphClient';
 
-// --- Helper Functions (Kept Logic, Improved Formatting) ---
+// --- Helper Functions ---
 
-const formatPriceInCents = (price: number): string => {
+const formatPriceLocal = (price: number): string => {
   const cents = price * 100;
   if (cents >= 100) return `$${cents.toFixed(2)}`;
   return `${cents.toFixed(1).replace(/\.0$/, '')}¢`;
@@ -43,7 +41,6 @@ type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 // --- Sub-Components ---
 
-// Real-time countdown component
 function MarketCountdown({ expiryTimestamp, isResolved }: { expiryTimestamp: bigint, isResolved: boolean }) {
   const [timeRemaining, setTimeRemaining] = useState<string>('');
   
@@ -73,36 +70,99 @@ function MarketCountdown({ expiryTimestamp, isResolved }: { expiryTimestamp: big
     return () => clearInterval(interval);
   }, [expiryTimestamp, isResolved]);
   
-  // Style based on status
   let colorClass = "text-gray-500 dark:text-gray-400";
-  if (timeRemaining === 'Expired') colorClass = "text-orange-500";
-  if (isResolved || timeRemaining === 'Ended') colorClass = "text-purple-500";
+  let bgClass = "bg-gray-100 dark:bg-gray-700/50";
+
+  if (timeRemaining === 'Expired') {
+     colorClass = "text-orange-600 dark:text-orange-400";
+     bgClass = "bg-orange-100 dark:bg-orange-500/10";
+  }
+  if (isResolved || timeRemaining === 'Ended') {
+     colorClass = "text-purple-600 dark:text-purple-400";
+     bgClass = "bg-purple-100 dark:bg-purple-500/10";
+  }
   
   return (
-    <div className="flex items-center gap-1.5 text-xs font-medium">
-      <Clock className={`w-3.5 h-3.5 ${colorClass}`} />
-      <span className={colorClass}>{timeRemaining || formatTimeRemaining(expiryTimestamp)}</span>
+    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${bgClass} ${colorClass}`}>
+      <Clock className="w-3 h-3" />
+      <span>{timeRemaining || formatTimeRemaining(expiryTimestamp)}</span>
     </div>
   );
 }
 
-// Stats Card Component
-function StatBox({ label, value, subtext, icon: Icon }: any) {
+// --- NEW STATS BANNER COMPONENT ---
+function StatsBanner({ liquidity, traders, liveMarkets }: { liquidity: string, traders: string, liveMarkets: number }) {
   return (
-    <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 backdrop-blur-sm">
-      <div className="w-12 h-12 rounded-xl bg-[#14B8A6]/10 flex items-center justify-center shrink-0">
-        <Icon className="w-6 h-6 text-[#14B8A6]" />
-      </div>
-      <div>
-        <div className="text-2xl font-black text-[#0f0a2e] dark:text-white tracking-tight leading-none mb-1">
-          {value}
+    <motion.div 
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.2 }}
+      className="relative w-full z-20 mt-12 mb-16 -mx-4 sm:-mx-6 lg:-mx-8"
+    >
+      {/* Container Card */}
+      <div className="bg-white dark:bg-slate-800 rounded-[30px] shadow-2xl shadow-[#14B8A6]/10 border border-gray-100 dark:border-gray-700 overflow-hidden relative min-h-[160px] flex items-center">
+        
+        {/* Left Decoration Image */}
+        <div className="absolute left-0 bottom-0 top-0 w-32 sm:w-48 md:w-64 lg:w-80">
+           <Image 
+             src="/leftside.png" 
+             alt="decoration" 
+             fill 
+             className="object-contain object-left-bottom"
+             priority
+           />
         </div>
-        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">
-          {label}
+
+        {/* Right Decoration Image */}
+        <div className="absolute right-0 top-0 bottom-0 w-32 sm:w-48 md:w-64 lg:w-80">
+           <Image 
+             src="/rightside.png" 
+             alt="decoration" 
+             fill 
+             className="object-contain object-right-top"
+             priority
+           />
         </div>
-        {subtext && <div className="text-[10px] text-gray-500 font-medium">{subtext}</div>}
+
+        {/* Stats Content (Centered) */}
+        <div className="relative z-10 w-full flex flex-col md:flex-row justify-around items-center gap-8 py-6 px-8 md:px-24 lg:px-32">
+            
+            {/* Stat 1: Volume */}
+            <div className="flex flex-col items-center text-center">
+                <span className="text-xs md:text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Total Volume</span>
+                <span className="text-3xl md:text-5xl font-black text-[#0f0a2e] dark:text-white tracking-tighter">
+                   {liquidity}
+                </span>
+                <span className="text-xs font-bold text-[#14B8A6] mt-1">+12%</span>
+            </div>
+
+            {/* Divider (Hidden on Mobile) */}
+            <div className="hidden md:block w-px h-16 bg-gray-100 dark:bg-gray-700"></div>
+
+            {/* Stat 2: Active Traders */}
+            <div className="flex flex-col items-center text-center">
+                <span className="text-xs md:text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Active Traders</span>
+                <span className="text-3xl md:text-5xl font-black text-[#0f0a2e] dark:text-white tracking-tighter">
+                   {traders}
+                </span>
+                <span className="text-xs font-bold text-[#14B8A6] mt-1">+18 today</span>
+            </div>
+
+            {/* Divider (Hidden on Mobile) */}
+            <div className="hidden md:block w-px h-16 bg-gray-100 dark:bg-gray-700"></div>
+
+            {/* Stat 3: Live Markets */}
+            <div className="flex flex-col items-center text-center">
+                <span className="text-xs md:text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Live Markets</span>
+                <span className="text-3xl md:text-5xl font-black text-[#0f0a2e] dark:text-white tracking-tighter">
+                   {liveMarkets}
+                </span>
+                <span className="text-xs font-bold text-[#14B8A6] mt-1">3 closing soon</span>
+            </div>
+
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -129,15 +189,14 @@ export default function MarketsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeStatusTab, setActiveStatusTab] = useState<StatusFilter>('Active');
-  const publicClient = usePublicClient();
-
+  
   useEffect(() => {
     loadMarkets();
     const interval = setInterval(loadMarkets, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  // --- Data Loading Logic (Unchanged) ---
+  // --- Data Loading Logic ---
   const loadMarkets = async () => {
     try {
       const count = await getMarketCount();
@@ -209,7 +268,6 @@ export default function MarketsPage() {
     }
   };
 
-  // --- Filtering Logic (Unchanged) ---
   const filteredMarkets = markets.filter(market => {
     if (searchTerm && !market.question.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     if (activeStatusTab) {
@@ -228,7 +286,6 @@ export default function MarketsPage() {
     return true;
   });
 
-  // --- Stats Calculation ---
   const stats = useMemo(() => {
     if (markets.length === 0) return { liquidity: 0, live: 0, resolved: 0, expired: 0, total: 0 };
     let liquidity = 0, live = 0, resolved = 0, expired = 0;
@@ -261,7 +318,7 @@ export default function MarketsPage() {
     refetchInterval: 120_000,
   });
 
-  const categories = ['All', 'Crypto', 'Bitcoin', 'Ethereum', 'Politics', 'Sports', 'Tech', 'Finance'];
+  const categories = ['All', 'Crypto', 'Politics', 'Sports', 'Tech', 'Finance'];
 
   const getMarketLogo = (question?: string | null): string => {
     const normalized = typeof question === 'string' ? question : question != null ? String(question) : '';
@@ -274,122 +331,103 @@ export default function MarketsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-x-hidden font-sans">
+    <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-x-hidden font-sans selection:bg-[#14B8A6]/30 selection:text-[#0f0a2e] dark:selection:text-white">
       
-      {/* Background Pattern */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-        <div className="absolute left-1/2 top-0 -translate-x-1/2 -z-10 m-auto h-[500px] w-[500px] rounded-full bg-[#14B8A6] opacity-10 blur-[100px]"></div>
+      {/* Background Gradient */}
+      <div className="absolute inset-0 pointer-events-none fixed">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#FAF9FF] via-[#F0F4F8] to-[#E8F0F5] dark:from-[#0f172a] dark:via-[#1a1f3a] dark:to-[#1e293b]"></div>
+        <div className="absolute left-1/2 top-0 -translate-x-1/2 -z-10 m-auto h-[500px] w-[500px] rounded-full bg-[#14B8A6] opacity-10 blur-[100px] animate-pulse"></div>
       </div>
 
       <Header />
 
-      <main className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+      <main className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         
-        {/* Page Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-             <div className="flex items-center gap-2 mb-2">
-                <Badge variant="outline" className="border-[#14B8A6]/30 text-[#0d9488] bg-[#14B8A6]/5 px-3 py-1 text-xs font-bold uppercase tracking-widest">
-                  Live Markets
-                </Badge>
-             </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-[#0f0a2e] dark:text-white tracking-tighter leading-none mb-4">
-              Explore <br className="hidden sm:block" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#14B8A6] to-teal-400">Opportunities.</span>
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 text-lg max-w-xl leading-relaxed">
-              Trade on the outcome of real-world events. Every market reflects real-time sentiment and deep liquidity.
-            </p>
-          </motion.div>
-
-          {/* Stats Dashboard */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full md:w-auto"
-          >
-            <StatBox 
-              label="Liquidity" 
-              value={`$${liquidityDisplay}`} 
-              subtext="Total Pooled"
-              icon={TrendingUp}
-            />
-            <StatBox 
-              label="Traders" 
-              value={formatNumber(Number(activeTraders))} 
-              subtext="Active Unique"
-              icon={Users}
-            />
-             <StatBox 
-              label="Markets" 
-              value={formatNumber(stats.total)} 
-              subtext={`${stats.live} Live`}
-              icon={Activity}
-            />
-          </motion.div>
+        {/* Page Header Area */}
+        <div className="flex flex-col items-center text-center justify-center gap-4 mb-2">
+           <div className="flex items-center gap-2 mb-2">
+              <div className="px-3 py-1 rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#0d9488] dark:text-[#2dd4bf] text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#14B8A6] animate-pulse" />
+                Live Markets
+              </div>
+           </div>
+          <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-[#0f0a2e] dark:text-white tracking-tighter leading-[0.9]">
+            Explore <br className="hidden sm:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#14B8A6] via-teal-400 to-emerald-400 animate-gradient-x">
+              Opportunities.
+            </span>
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 text-lg max-w-xl leading-relaxed font-medium">
+            Trade on the outcome of real-world events.
+          </p>
         </div>
 
-        {/* Controls: Search, Tabs, Categories */}
-        <div className="space-y-6 mb-10">
-          
+        {/* --- NEW STATS BANNER --- */}
+        <StatsBanner 
+            liquidity={`$${liquidityDisplay}`} 
+            traders={formatNumber(Number(activeTraders))} 
+            liveMarkets={stats.live}
+        />
+
+        {/* Controls Section */}
+        <div className="sticky top-20 z-30 bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-4 mb-8 shadow-sm transition-all">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-             {/* Status Tabs */}
-             <div className="bg-gray-100 dark:bg-gray-800/50 p-1 rounded-xl flex gap-1 w-full lg:w-auto">
-              {STATUS_FILTERS.map((tab) => (
+             
+             {/* Left: Filters & Search */}
+             <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto flex-1">
+                {/* Search Bar */}
+                <div className="relative w-full sm:w-80 group">
+                  <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#14B8A6] transition-colors" />
+                  <input
+                    placeholder="Search markets..."
+                    className="w-full pl-10 pr-4 h-11 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#14B8A6]/20 focus:border-[#14B8A6] outline-none transition-all placeholder:text-gray-400"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+
+                {/* Status Tabs */}
+                <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-xl flex gap-1 w-full sm:w-auto overflow-x-auto no-scrollbar">
+                  {STATUS_FILTERS.map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveStatusTab(tab)}
+                      className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 whitespace-nowrap ${
+                        activeStatusTab === tab
+                          ? 'bg-white dark:bg-gray-700 text-[#0f0a2e] dark:text-white shadow-sm ring-1 ring-black/5'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+            </div>
+
+            {/* Right: Category Pills */}
+            <div className="w-full lg:w-auto flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 no-scrollbar mask-gradient-right">
+              <SlidersHorizontal className="w-4 h-4 text-gray-400 shrink-0 mr-1" />
+              {categories.map((category) => (
                 <button
-                  key={tab}
-                  onClick={() => setActiveStatusTab(tab)}
-                  className={`flex-1 lg:flex-none px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
-                    activeStatusTab === tab
-                      ? 'bg-white dark:bg-gray-700 text-[#0f0a2e] dark:text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  key={category}
+                  onClick={() => setActiveCategory(category)}
+                  className={`px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 whitespace-nowrap border ${
+                    activeCategory === category
+                      ? "bg-[#14B8A6] border-[#14B8A6] text-white shadow-md shadow-[#14B8A6]/20"
+                      : "bg-transparent border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-[#14B8A6]/50 hover:text-[#14B8A6]"
                   }`}
                 >
-                  {tab}
+                  {category}
                 </button>
               ))}
             </div>
-
-            {/* Search Bar */}
-            <div className="relative w-full lg:w-96 group">
-              <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-[#14B8A6] transition-colors" />
-              <Input
-                placeholder="Search markets..."
-                className="pl-12 h-12 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-[#14B8A6]/20 focus:border-[#14B8A6] transition-all"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Categories */}
-          <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
-              <button
-                key={category}
-                onClick={() => setActiveCategory(category)}
-                className={`px-4 py-2 rounded-full text-sm font-bold border transition-all duration-200 ${
-                  activeCategory === category
-                    ? "bg-[#14B8A6] border-[#14B8A6] text-white shadow-lg shadow-[#14B8A6]/20"
-                    : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-[#14B8A6]/50 hover:text-[#14B8A6]"
-                }`}
-              >
-                {category}
-              </button>
-            ))}
           </div>
         </div>
 
         {/* Results Counter */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between px-2">
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            Showing <span className="text-gray-900 dark:text-white font-bold">{filteredMarkets.length}</span> markets
+            Showing <span className="text-gray-900 dark:text-white font-bold">{filteredMarkets.length}</span> results
           </p>
         </div>
 
@@ -398,19 +436,24 @@ export default function MarketsPage() {
           {loading ? (
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1,2,3,4,5,6].map(i => (
-                  <div key={i} className="h-64 rounded-3xl bg-gray-100 dark:bg-gray-800 animate-pulse border border-gray-200 dark:border-gray-700"></div>
+                  <div key={i} className="h-[340px] rounded-[32px] bg-gray-100 dark:bg-gray-800 animate-pulse border border-gray-200 dark:border-gray-700"></div>
                 ))}
              </div>
           ) : filteredMarkets.length === 0 ? (
             <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }}
-              className="text-center py-20 bg-white/50 dark:bg-gray-800/50 rounded-3xl border border-dashed border-gray-300 dark:border-gray-700"
+              initial={{ opacity: 0, scale: 0.95 }} 
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex flex-col items-center justify-center py-20 px-4 text-center bg-white/40 dark:bg-gray-800/40 rounded-[32px] border border-dashed border-gray-300 dark:border-gray-700"
             >
-              <div className="text-4xl mb-4">🔍</div>
+              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4 text-3xl">🔍</div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No markets found</h3>
-              <p className="text-gray-500 mb-6">Try adjusting your filters</p>
-              <button onClick={() => { setSearchTerm(''); setActiveCategory('All'); }} className="text-[#14B8A6] font-bold hover:underline">Clear all filters</button>
+              <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-xs">We couldn&apos;t find any markets matching your current filters.</p>
+              <button 
+                onClick={() => { setSearchTerm(''); setActiveCategory('All'); setActiveStatusTab('Active'); }} 
+                className="px-6 py-2 bg-[#14B8A6] hover:bg-[#0d9488] text-white rounded-full font-bold transition-colors shadow-lg shadow-teal-500/20"
+              >
+                Clear all filters
+              </button>
             </motion.div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -418,73 +461,97 @@ export default function MarketsPage() {
                 <motion.div
                   key={market.id}
                   layout
-                  initial={{ scale: 0.95, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.95, opacity: 0 }}
-                  transition={{ delay: index * 0.03 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
                 >
-                  <Link href={`/markets/${market.id}`} className="block h-full">
-                    <div className="group h-full bg-white dark:bg-gray-800/80 backdrop-blur-sm rounded-3xl p-5 border border-gray-100 dark:border-gray-700/60 hover:border-[#14B8A6] dark:hover:border-[#14B8A6] hover:shadow-xl hover:shadow-[#14B8A6]/5 transition-all duration-300 flex flex-col relative overflow-hidden">
+                  <Link href={`/markets/${market.id}`} className="block h-full group">
+                    <div className="h-full bg-white dark:bg-gray-800/60 backdrop-blur-xl rounded-[28px] p-1 border border-gray-100 dark:border-gray-700/50 hover:border-[#14B8A6] dark:hover:border-[#14B8A6] hover:shadow-2xl hover:shadow-[#14B8A6]/10 transition-all duration-300 flex flex-col relative overflow-hidden ring-1 ring-gray-900/5 dark:ring-white/5">
                       
-                      {/* Active Pulse */}
-                      {market.status === 'LIVE TRADING' && (
-                        <div className="absolute top-0 right-0 p-5">
-                          <span className="flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                          </span>
-                        </div>
-                      )}
+                      {/* Inner Card Content */}
+                      <div className="flex-1 p-5 flex flex-col">
+                        
+                        {/* Top Section: Logo & Status */}
+                        <div className="flex justify-between items-start mb-4">
+                           <div className="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600/50 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-300">
+                             {market.question ? (
+                               <Image
+                                src={getMarketLogo(market.question)}
+                                alt="Logo"
+                                width={32}
+                                height={32}
+                                className="object-contain"
+                                unoptimized
+                              />
+                             ) : <div className="text-xl">📈</div>}
+                           </div>
 
-                      {/* Card Header */}
-                      <div className="flex gap-4 mb-4 pr-4">
-                        <div className="w-12 h-12 rounded-full bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                           <Image
-                            src={getMarketLogo(market.question)}
-                            alt="Logo"
-                            width={32}
-                            height={32}
-                            className="object-contain"
-                            unoptimized
-                          />
+                           {market.status === 'LIVE TRADING' ? (
+                             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
+                                <span className="relative flex h-1.5 w-1.5">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                                </span>
+                                Live
+                             </div>
+                           ) : (
+                             <div className="px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-[10px] font-bold text-gray-500 uppercase tracking-wide">
+                               {market.status === 'RESOLVED' ? 'Ended' : 'Expired'}
+                             </div>
+                           )}
                         </div>
-                        <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 leading-tight line-clamp-2 group-hover:text-[#14B8A6] transition-colors">
+
+                        {/* Question */}
+                        <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 leading-snug line-clamp-2 mb-6 group-hover:text-[#14B8A6] transition-colors">
                           {market.question}
                         </h3>
-                      </div>
 
-                      {/* Probability Bar */}
-                      <div className="mt-auto mb-5 space-y-2">
-                         <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-gray-500">
-                           <span>Yes {market.yesPercent}%</span>
-                           <span>No {market.noPercent}%</span>
-                         </div>
-                         <div className="h-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden flex">
-                           <div style={{ width: `${market.yesPercent}%` }} className="h-full bg-gradient-to-r from-[#14B8A6] to-teal-400"></div>
-                         </div>
-                      </div>
+                        <div className="mt-auto space-y-5">
+                          
+                          {/* Probability Bar */}
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-[11px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                              <span>Yes Chance</span>
+                              <span>{market.yesPercent}%</span>
+                            </div>
+                            <div className="h-3 w-full bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden flex shadow-inner">
+                              <div 
+                                style={{ width: `${market.yesPercent}%` }} 
+                                className="h-full bg-gradient-to-r from-[#14B8A6] to-teal-400 transition-all duration-1000 ease-out relative"
+                              >
+                                <div className="absolute top-0 right-0 bottom-0 w-[1px] bg-white/30"></div>
+                              </div>
+                            </div>
+                          </div>
 
-                      {/* Price Grid */}
-                      <div className="grid grid-cols-2 gap-3 mb-5">
-                        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-500/20 rounded-xl p-2.5 text-center group-hover:border-emerald-300 transition-colors">
-                          <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase mb-0.5">Yes</div>
-                          <div className="text-lg font-black text-emerald-600 dark:text-emerald-400">{formatPriceInCents(market.yesPrice)}</div>
+                          {/* Price Cards */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-500/20 rounded-xl p-3 flex flex-col items-center justify-center group-hover:border-emerald-300 dark:group-hover:border-emerald-500/40 transition-colors">
+                              <span className="text-[10px] font-bold text-emerald-600/60 dark:text-emerald-400/60 uppercase">Yes</span>
+                              <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tight">
+                                {formatPriceLocal(market.yesPrice)}
+                              </span>
+                            </div>
+                            <div className="bg-rose-50/50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-500/20 rounded-xl p-3 flex flex-col items-center justify-center group-hover:border-rose-300 dark:group-hover:border-rose-500/40 transition-colors">
+                              <span className="text-[10px] font-bold text-rose-600/60 dark:text-rose-400/60 uppercase">No</span>
+                              <span className="text-lg font-black text-rose-600 dark:text-rose-400 font-mono tracking-tight">
+                                {formatPriceLocal(market.noPrice)}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* Footer Info */}
+                          <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700/40">
+                             <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                                <Activity className="w-3.5 h-3.5" />
+                                <span>${formatNumber(market.volume)} Vol</span>
+                             </div>
+                             <MarketCountdown expiryTimestamp={market.expiryTimestamp} isResolved={market.isResolved} />
+                          </div>
                         </div>
-                        <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-500/20 rounded-xl p-2.5 text-center group-hover:border-rose-300 transition-colors">
-                          <div className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase mb-0.5">No</div>
-                          <div className="text-lg font-black text-rose-600 dark:text-rose-400">{formatPriceInCents(market.noPrice)}</div>
-                        </div>
-                      </div>
 
-                      {/* Footer */}
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700/50">
-                        <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
-                          <Activity className="w-3.5 h-3.5" />
-                          ${formatNumber(market.volume)} Vol
-                        </div>
-                        <MarketCountdown expiryTimestamp={market.expiryTimestamp} isResolved={market.isResolved} />
                       </div>
-
                     </div>
                   </Link>
                 </motion.div>
@@ -495,16 +562,19 @@ export default function MarketsPage() {
 
       </main>
 
-      {/* Simplified Footer matching Home */}
-      <footer className="w-full bg-white/50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-800 mt-20">
+      {/* Simplified Footer */}
+      <footer className="w-full bg-white/50 dark:bg-gray-900/50 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 mt-12">
         <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            © 2025 SpeculateX. All rights reserved.
-          </p>
-          <div className="flex gap-6 text-sm font-medium text-gray-600 dark:text-gray-300">
-             <a href="#" className="hover:text-[#14B8A6]">Terms</a>
-             <a href="#" className="hover:text-[#14B8A6]">Privacy</a>
-             <a href="#" className="hover:text-[#14B8A6]">Docs</a>
+          <div className="flex items-center gap-2">
+             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#14B8A6] to-teal-600 flex items-center justify-center text-white font-bold text-xs">S</div>
+             <p className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+               © 2025 SpeculateX
+             </p>
+          </div>
+          <div className="flex gap-8 text-sm font-bold text-gray-500 dark:text-gray-400">
+             <a href="#" className="hover:text-[#14B8A6] transition-colors">Terms</a>
+             <a href="#" className="hover:text-[#14B8A6] transition-colors">Privacy</a>
+             <a href="#" className="hover:text-[#14B8A6] transition-colors">Docs</a>
           </div>
         </div>
       </footer>

@@ -41,7 +41,7 @@ export default function NetworkSelector() {
         className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
         type="button"
       >
-        <span className="text-sm font-medium">
+        <span className="text-sm font-medium whitespace-nowrap">
           {currentNetwork === 'mainnet' ? 'Mainnet' : 'Testnet'}
         </span>
         <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -84,4 +84,5 @@ export default function NetworkSelector() {
     </div>
   );
 }
+
 

@@ -25,7 +25,6 @@ export function TransactionsTab({ transactions, loading }: TransactionsTabProps)
   if (transactions.length === 0) {
     return (
       <div className="text-center py-12 opacity-50">
-        <div className="text-4xl mb-3">📜</div>
         <p className="text-sm font-medium">No transactions recorded yet</p>
       </div>
     );

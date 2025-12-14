@@ -2,12 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState, useMemo, memo } from 'react';
 import { motion } from 'framer-motion';
-import type {
-  IChartApi,
-  ISeriesApi,
-  LineData,
-  Time,
-} from 'lightweight-charts';
+import type { IChartApi, ISeriesApi, LineData, Time } from 'lightweight-charts';
 import type { PricePoint } from '@/lib/priceHistory/types';
 import { useTheme } from '@/lib/theme';
 
@@ -34,11 +29,9 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  // Process data with visual breaks for gaps
   const processDataWithBreaks = useCallback((rawData: PricePoint[]) => {
     if (!rawData.length) return { yesData: [], noData: [] };
 
-    // Sort by timestamp, then deduplicate
     const sortedData = [...rawData].sort((a, b) => {
       if (a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
       return (a.txHash || '').localeCompare(b.txHash || '');
@@ -53,21 +46,16 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
     const yesData: (LineData | { time: Time; value: undefined })[] = [];
     const noData: (LineData | { time: Time; value: undefined })[] = [];
 
-    // Always add first point
     const firstPoint = sortedDataFinal[0];
     yesData.push({ time: firstPoint.timestamp as Time, value: firstPoint.priceYes });
     noData.push({ time: firstPoint.timestamp as Time, value: firstPoint.priceNo });
 
-    // Process remaining points with gap detection
     for (let i = 1; i < sortedDataFinal.length; i++) {
       const current = sortedDataFinal[i];
       const previous = sortedDataFinal[i - 1];
-
-      // Ensure timestamp is strictly greater than previous
       let currentTimestamp = current.timestamp;
       if (currentTimestamp <= previous.timestamp) currentTimestamp = previous.timestamp + 1;
 
-      // Check for time gaps (> 2 minutes = significant break)
       const timeGap = currentTimestamp - previous.timestamp;
       const isSeedPoint = previous.txHash === 'seed';
       
@@ -90,7 +78,6 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
 
   const processedData = useMemo(() => processDataWithBreaks(data), [data, processDataWithBreaks]);
 
-  // Setup chart
   useEffect(() => {
     let disposed = false;
 
@@ -112,7 +99,7 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
           width: containerRef.current.clientWidth,
           height,
           layout: {
-            background: { type: ColorType.Solid, color: 'transparent' }, // Transparent for better integration
+            background: { type: ColorType.Solid, color: 'transparent' },
             textColor: isDark ? '#94a3b8' : '#64748b',
             fontSize: 11,
             fontFamily: "'Geist', 'Inter', sans-serif",
@@ -228,7 +215,6 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
     };
   }, [height, isDark]);
 
-  // Update data
   const updateChartData = useCallback(() => {
     if (!yesSeriesRef.current || !noSeriesRef.current) return;
     const { yesData, noData } = processedData;
@@ -237,7 +223,6 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
     setTimeout(() => { chartRef.current?.timeScale().fitContent(); }, 50);
   }, [processedData]);
 
-  // Update styling based on selected side
   const updateSeriesStyling = useCallback(() => {
     if (!yesSeriesRef.current || !noSeriesRef.current) return;
     
@@ -246,14 +231,14 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
         lineWidth: selectedSide === 'yes' ? 3 : 2,
         topColor: selectedSide === 'yes' ? 'rgba(34, 197, 94, 0.4)' : 'rgba(34, 197, 94, 0.05)',
         bottomColor: selectedSide === 'yes' ? 'rgba(34, 197, 94, 0.0)' : 'rgba(34, 197, 94, 0.0)',
-        lineColor: selectedSide === 'yes' ? '#22c55e' : '#22c55e40', // Fade out inactive line
+        lineColor: selectedSide === 'yes' ? '#22c55e' : '#22c55e40',
       } as any);
 
       noSeriesRef.current.applyOptions({
         lineWidth: selectedSide === 'no' ? 3 : 2,
         topColor: selectedSide === 'no' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(239, 68, 68, 0.05)',
         bottomColor: selectedSide === 'no' ? 'rgba(239, 68, 68, 0.0)' : 'rgba(239, 68, 68, 0.0)',
-        lineColor: selectedSide === 'no' ? '#ef4444' : '#ef444440', // Fade out inactive line
+        lineColor: selectedSide === 'no' ? '#ef4444' : '#ef444440',
       } as any);
     } catch (e) {
       console.warn('Styling update failed', e);

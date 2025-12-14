@@ -73,17 +73,26 @@ function CustomConnectButton() {
                   <button
                     onClick={openAccountModal}
                     type="button"
-                    className="group flex items-center gap-3 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 pl-3 pr-2 py-1.5 hover:border-[#14B8A6] dark:hover:border-[#14B8A6] hover:ring-2 hover:ring-[#14B8A6]/10 dark:hover:ring-[#14B8A6]/20 transition-all shadow-sm hover:shadow-md"
+                    className="group flex items-center gap-3 rounded-full bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 pl-4 pr-2 py-1.5 hover:border-[#14B8A6] dark:hover:border-[#14B8A6] transition-all shadow-sm"
                   >
                     <div className="flex flex-col items-end leading-none">
-                      <span className="text-xs font-bold text-gray-900 dark:text-gray-100">
-                        {account.displayBalance ? account.displayBalance : ''}
-                      </span>
-                      <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 group-hover:text-[#14B8A6] transition-colors">
+                       {/* Status Dot */}
+                       <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                          </span>
+                          <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 group-hover:text-[#14B8A6] transition-colors uppercase tracking-wider">
+                            Connected
+                          </span>
+                       </div>
+                       <span className="text-xs font-bold text-gray-900 dark:text-gray-100 font-mono">
                         {account.displayName}
-                      </span>
+                       </span>
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#14B8A6] to-emerald-600 flex items-center justify-center text-white shadow-sm">
+                    
+                    {/* Avatar */}
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#14B8A6] to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-teal-500/20">
                       <svg
                         className="w-4 h-4"
                         fill="none"
@@ -172,13 +181,23 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center group flex-shrink-0 relative z-20" onClick={() => setIsMobileMenuOpen(false)}>
             <div className="relative w-[140px] sm:w-[160px] h-10 sm:h-12 transition-transform duration-300 group-hover:scale-105">
+              {/* Light mode logo */}
               <Image
-                src="/logo.jpg"
+                src="/Whitelogo.png"
                 alt="SpeculateX Logo"
                 fill
                 sizes="(max-width: 640px) 140px, 160px"
                 priority
-                className="object-contain object-left"
+                className="object-contain object-left dark:hidden"
+              />
+              {/* Dark mode logo */}
+              <Image
+                src="/darklogo.png"
+                alt="SpeculateX Logo"
+                fill
+                sizes="(max-width: 640px) 140px, 160px"
+                priority
+                className="object-contain object-left hidden dark:block"
               />
             </div>
           </Link>

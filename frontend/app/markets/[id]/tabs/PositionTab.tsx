@@ -35,7 +35,6 @@ export function PositionTab({
   if (!hasYes && !hasNo) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center opacity-60">
-        <div className="text-4xl mb-3">📊</div>
         <p className="text-sm font-medium">You don&apos;t have any positions in this market yet.</p>
       </div>
     );

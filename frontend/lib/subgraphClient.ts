@@ -1,12 +1,27 @@
 // @ts-ignore - dependency installed in frontend workspace; typing resolved post-install
 import { createClient, type SubscribePayload } from 'graphql-ws';
+import { getCurrentNetwork } from './contracts';
 
-const SUBGRAPH_HTTP_URL =
-  process.env.NEXT_PUBLIC_GOLDSKY_HTTP_URL ?? process.env.NEXT_PUBLIC_SUBGRAPH_URL ?? 'https://api.goldsky.com/api/public/project_cmhtmu9wctrs301vt0wz1190b/subgraphs/speculate-core-v2/production/gn';
-const SUBGRAPH_WS_URL =
-  process.env.NEXT_PUBLIC_GOLDSKY_WS_URL ?? 
-  process.env.NEXT_PUBLIC_SUBGRAPH_WS_URL ?? 
-  null;
+// Get subgraph URL based on current network
+function getSubgraphUrl(): string {
+  const network = getCurrentNetwork();
+  const baseUrl = 'https://api.goldsky.com/api/public/project_cmhtmu9wctrs301vt0wz1190b/subgraphs';
+  const subgraphName = network === 'mainnet' ? 'speculate-core-mainnet' : 'speculate-core-v2';
+  return `${baseUrl}/${subgraphName}/production/gn`;
+}
+
+// Get subgraph URLs dynamically based on network
+function getSubgraphHttpUrl(): string {
+  return process.env.NEXT_PUBLIC_GOLDSKY_HTTP_URL ?? 
+         process.env.NEXT_PUBLIC_SUBGRAPH_URL ?? 
+         getSubgraphUrl();
+}
+
+function getSubgraphWsUrl(): string | null {
+  return process.env.NEXT_PUBLIC_GOLDSKY_WS_URL ?? 
+         process.env.NEXT_PUBLIC_SUBGRAPH_WS_URL ?? 
+         null;
+}
 
 interface GraphQLError {
   message: string;
@@ -27,14 +42,19 @@ export async function fetchSubgraph<T>(
   variables: Record<string, unknown> = {},
   init?: RequestInit,
 ): Promise<T> {
+  const SUBGRAPH_HTTP_URL = getSubgraphHttpUrl();
   if (!SUBGRAPH_HTTP_URL) {
     throw new Error('Missing Goldsky subgraph HTTP URL. Set NEXT_PUBLIC_GOLDSKY_HTTP_URL (or legacy NEXT_PUBLIC_SUBGRAPH_URL).');
   }
 
-  // Debug: Log URL (once)
-  if (typeof window !== 'undefined' && !(window as any)._sgUrlLogged) {
-    console.log('[subgraphClient] 🔗 Connected to Subgraph:', SUBGRAPH_HTTP_URL);
-    (window as any)._sgUrlLogged = true;
+  // Debug: Log URL (once per network change)
+  if (typeof window !== 'undefined') {
+    const network = getCurrentNetwork();
+    const logKey = `_sgUrlLogged_${network}`;
+    if (!(window as any)[logKey]) {
+      console.log('[subgraphClient] 🔗 Connected to Subgraph:', SUBGRAPH_HTTP_URL, `(${network})`);
+      (window as any)[logKey] = true;
+    }
   }
 
   let attempt = 0;
@@ -102,6 +122,7 @@ export function subscribeToSubgraph<TData = unknown>(
     onComplete?: () => void;
   },
 ): () => void {
+  const SUBGRAPH_WS_URL = getSubgraphWsUrl();
   if (!SUBGRAPH_WS_URL) {
     return () => {};
   }

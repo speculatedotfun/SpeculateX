@@ -159,9 +159,9 @@ export default function Home() {
   return (
     <div className="min-h-screen lg:h-screen w-full bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-x-hidden lg:overflow-hidden flex flex-col selection:bg-[#14B8A6]/30 selection:text-[#0f0a2e] dark:selection:text-white font-sans">
       
-      {/* --- UI Upgrade 1: Grid Background Pattern --- */}
+      {/* Background Gradient */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-[#FAF9FF] via-[#F0F4F8] to-[#E8F0F5] dark:from-[#0f172a] dark:via-[#1a1f3a] dark:to-[#1e293b]"></div>
         <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-[#14B8A6] opacity-20 blur-[100px]"></div>
       </div>
 
@@ -171,13 +171,23 @@ export default function Home() {
           <div className="flex h-16 sm:h-20 items-center justify-between">
             <Link href="/" className="flex items-center group flex-shrink-0">
               <div className="relative w-[140px] sm:w-[160px] h-10 sm:h-12 transition-transform duration-300 group-hover:scale-105">
+                {/* Light mode logo */}
                 <Image
-                  src="/logo.jpg"
+                  src="/Whitelogo.png"
                   alt="SpeculateX Logo"
                   fill
                   sizes="(max-width: 640px) 140px, 160px"
                   priority
-                  className="object-contain object-left"
+                  className="object-contain object-left dark:hidden"
+                />
+                {/* Dark mode logo */}
+                <Image
+                  src="/darklogo.png"
+                  alt="SpeculateX Logo"
+                  fill
+                  sizes="(max-width: 640px) 140px, 160px"
+                  priority
+                  className="object-contain object-left hidden dark:block"
                 />
               </div>
             </Link>
@@ -252,18 +262,6 @@ export default function Home() {
               </Link>
             </motion.div>
 
-            {/* Trust Badges */}
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="pt-8 flex flex-wrap justify-center lg:justify-start gap-6 opacity-60 grayscale hover:grayscale-0 transition-all duration-500"
-            >
-               {/* Example Placeholders for 'Powered By' icons if you have them, otherwise simpler text */}
-               <div className="text-xs font-semibold text-gray-400 uppercase tracking-widest border-t border-gray-200 dark:border-gray-800 pt-6 w-full text-left">
-                  Powered by <span className="text-[#14B8A6]">LMSR Bonding Curves</span> & <span className="text-[#F3BA2F]">BNB Chain</span>
-               </div>
-            </motion.div>
           </div>
 
           {/* --- Right Column: Stats & Visuals (Span 5 cols) --- */}
@@ -282,25 +280,21 @@ export default function Home() {
                   <StatCard 
                     title="Liquidity" 
                     value={liquidityDisplay} 
-                    icon="💧"
                     color="bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
                   />
                   <StatCard 
                     title="Traders" 
                     value={formatNumber(typeof traders === 'number' ? traders : Number(traders) || 0)} 
-                    icon="👥"
                     color="bg-purple-100 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400"
                   />
                   <StatCard 
                     title="Active Markets" 
                     value={formatNumber(stats.live)} 
-                    icon="📊"
                     color="bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
                   />
                   <StatCard 
                     title="Fees APY" 
                     value="2.0%" 
-                    icon="⚡"
                     color="bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400"
                   />
                 </div>
@@ -350,18 +344,42 @@ export default function Home() {
                             </h3>
                           </div>
 
-                          {/* Trading Bars */}
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-500/30 rounded-lg p-3 text-center transition-all hover:border-emerald-400 cursor-pointer">
-                              <div className="text-xs font-bold text-emerald-600/70 dark:text-emerald-400 uppercase mb-1">Yes</div>
-                              <div className="text-xl font-black text-emerald-600 dark:text-emerald-400">
-                                {formatPriceInCents(featuredMarket.priceYes)}
+                          {/* NEW: Probability Visualization */}
+                          <div className="space-y-4">
+                            
+                            {/* Visual Probability Bar */}
+                            <div className="h-4 w-full bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden flex relative">
+                              <div 
+                                className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 transition-all duration-1000 ease-out"
+                                style={{ width: `${featuredMarket.priceYes * 100}%` }}
+                              />
+                              {/* Percentage Indicator on Bar */}
+                              <div className="absolute inset-0 flex justify-between px-2 items-center text-[9px] font-black uppercase tracking-wider text-black/40 dark:text-white/40 mix-blend-overlay">
+                                <span>Yes</span>
+                                <span>No</span>
                               </div>
                             </div>
-                            <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-500/30 rounded-lg p-3 text-center transition-all hover:border-rose-400 cursor-pointer">
-                              <div className="text-xs font-bold text-rose-600/70 dark:text-rose-400 uppercase mb-1">No</div>
-                              <div className="text-xl font-black text-rose-600 dark:text-rose-400">
-                                {formatPriceInCents(featuredMarket.priceNo)}
+
+                            {/* Price Cards */}
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 rounded-xl p-3 flex flex-col items-center justify-center transition-all group-hover:border-emerald-300 dark:group-hover:border-emerald-500/50">
+                                <span className="text-[10px] font-bold text-emerald-600/60 dark:text-emerald-400/60 uppercase">Yes Probability</span>
+                                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                                  {(featuredMarket.priceYes * 100).toFixed(0)}%
+                                </span>
+                                <span className="text-[10px] text-emerald-600/40 dark:text-emerald-400/40 font-mono mt-0.5">
+                                  {formatPriceInCents(featuredMarket.priceYes)}
+                                </span>
+                              </div>
+
+                              <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 rounded-xl p-3 flex flex-col items-center justify-center transition-all group-hover:border-rose-300 dark:group-hover:border-rose-500/50">
+                                <span className="text-[10px] font-bold text-rose-600/60 dark:text-rose-400/60 uppercase">No Probability</span>
+                                <span className="text-2xl font-black text-rose-600 dark:text-rose-400">
+                                  {(featuredMarket.priceNo * 100).toFixed(0)}%
+                                </span>
+                                <span className="text-[10px] text-rose-600/40 dark:text-rose-400/40 font-mono mt-0.5">
+                                  {formatPriceInCents(featuredMarket.priceNo)}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -386,13 +404,10 @@ export default function Home() {
   );
 }
 
-// --- Updated Stat Card Component ---
-function StatCard({ title, value, icon, color }: { title: string, value: string, icon: string, color: string }) {
+// --- Stat Card Component ---
+function StatCard({ title, value, color }: { title: string, value: string, color: string }) {
   return (
     <div className="bg-gray-50/50 dark:bg-gray-800/40 rounded-2xl p-4 border border-gray-100 dark:border-gray-700/50 hover:bg-white dark:hover:bg-gray-800 transition-colors">
-      <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center text-lg mb-3`}>
-        {icon}
-      </div>
       <div className="font-black text-lg sm:text-xl text-gray-900 dark:text-white tracking-tight">{value}</div>
       <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">{title}</div>
     </div>
