@@ -16,7 +16,7 @@ import { motion } from 'framer-motion';
 interface Market {
   id: number;
   question: string;
-  status: 'active' | 'resolved';
+  status: 'active' | 'resolved' | 'expired';
   vault: number;
   residual: number;
   yesToken: `0x${string}`;
@@ -49,13 +49,23 @@ export default function AdminPage() {
 
             if (!market.exists) return null;
 
-            const statusNames = ['active', 'resolved'] as const;
-            const statusIndex = Math.min(Number(market.status ?? 0), 1);
+            const statusNames = ['active', 'resolved', 'cancelled'] as const;
+            const contractStatus = Number(market.status ?? 0);
             const vaultValue = state?.vault ?? 0n;
             const residualValue = residualPot ?? 0n;
             const resolution = market.resolution;
             const isResolved = Boolean(resolution?.isResolved);
             const yesWins = Boolean(resolution?.yesWins);
+            const expiryTimestamp = resolution?.expiryTimestamp ? BigInt(resolution.expiryTimestamp) : 0n;
+            const isExpired = !isResolved && expiryTimestamp > 0n && BigInt(Math.floor(Date.now() / 1000)) > expiryTimestamp;
+
+            // Determine status: if expired, use 'expired', otherwise use contract status
+            let status: 'active' | 'resolved' | 'expired';
+            if (isExpired) {
+              status = 'expired';
+            } else {
+              status = statusNames[Math.min(contractStatus, 2)] as 'active' | 'resolved' | 'expired';
+            }
 
             let winningSupply: bigint = 0n;
             if (isResolved && publicClient) {
@@ -77,7 +87,7 @@ export default function AdminPage() {
             return {
               id,
               question: market.question as string,
-              status: statusNames[statusIndex],
+              status,
               vault: Number(formatUnits(vaultValue, 6)),
               residual: Number(formatUnits(residualValue, 6)),
               yesToken: market.yes as `0x${string}`,

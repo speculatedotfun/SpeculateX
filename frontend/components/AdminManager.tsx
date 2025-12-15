@@ -8,20 +8,22 @@ import { isAdmin as checkIsAdmin } from '@/lib/hooks';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
-import { Shield, UserPlus, X } from 'lucide-react';
+import { Shield, UserPlus, X, Link } from 'lucide-react';
 
 export default function AdminManager() {
   const { address } = useAccount();
   const { pushToast } = useToast();
   const [newAdminAddress, setNewAdminAddress] = useState('');
+  const [chainlinkResolverAddress, setChainlinkResolverAddress] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentAdmins, setCurrentAdmins] = useState<string[]>([]);
-  
+
   // Contracts hooks... (same logic as before)
   const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000';
-  
+
   const { writeContract: addAdmin } = useWriteContract();
   const { writeContract: removeAdmin } = useWriteContract();
+  const { writeContract: setChainlinkResolver } = useWriteContract();
 
   // Load initial admin (check if current user is admin)
   useEffect(() => {
@@ -46,6 +48,22 @@ export default function AdminManager() {
     }
   };
 
+  const handleSetChainlinkResolver = async () => {
+    if (!chainlinkResolverAddress) return;
+    try {
+      const addresses = getAddresses();
+      await setChainlinkResolver({
+        address: addresses.core,
+        abi: coreAbi,
+        functionName: 'setChainlinkResolver',
+        args: [chainlinkResolverAddress as `0x${string}`],
+      });
+      pushToast({ title: 'Success', description: 'Chainlink resolver registration submitted', type: 'success' });
+    } catch (e: any) {
+      pushToast({ title: 'Error', description: e.message, type: 'error' });
+    }
+  };
+
   if (!isAdmin) return null;
 
   return (
@@ -64,16 +82,31 @@ export default function AdminManager() {
         <div>
            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 mb-2 block">Grant Admin Role</label>
            <div className="flex gap-3">
-             <Input 
-               value={newAdminAddress} 
-               onChange={(e) => setNewAdminAddress(e.target.value)} 
-               placeholder="0x..." 
+             <Input
+               value={newAdminAddress}
+               onChange={(e) => setNewAdminAddress(e.target.value)}
+               placeholder="0x..."
                className="font-mono"
              />
              <Button onClick={handleAdd} className="bg-purple-600 hover:bg-purple-700 text-white min-w-[120px]">
                <UserPlus className="w-4 h-4 mr-2" /> Add
              </Button>
            </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 mb-2 block">Register Chainlink Resolver</label>
+          <div className="flex gap-3">
+            <Input
+              value={chainlinkResolverAddress}
+              onChange={(e) => setChainlinkResolverAddress(e.target.value)}
+              placeholder="0x..."
+              className="font-mono"
+            />
+            <Button onClick={handleSetChainlinkResolver} className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px]">
+              <Link className="w-4 h-4 mr-2" /> Register
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-3 pt-4 border-t border-gray-100 dark:border-gray-700">

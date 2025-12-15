@@ -12,7 +12,7 @@ const MAINNET_ADDRESSES = {
 
 const TESTNET_ADDRESSES = {
   core: '0x297f325e98DdFd682dd2dc964a5BEda9861D54D5' as `0x${string}`,
-  usdc: '0x8e38899dEC73FbE6Bde8276b8729ac1a3A6C0b8e' as `0x${string}`,
+  usdc: '0xbc6a3d7B894dF692d64D90C0aaddA8B9154dB169' as `0x${string}`,
   chainlinkResolver: (process.env.NEXT_PUBLIC_CHAINLINK_RESOLVER_ADDRESS || '0x363eaff32ba46F804Bc7E6352A585A705ac97aBD') as `0x${string}`,
   treasury: '0xfa8CC09b570e7e35FA1C71A4986D856262Faf29a' as `0x${string}`,
   admin: '0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F' as `0x${string}`,

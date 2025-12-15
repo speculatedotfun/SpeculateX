@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useState, useEffect, useMemo } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient } from 'wagmi';
-import { parseUnits, keccak256, stringToBytes, decodeEventLog } from 'viem';
+import { parseUnits, keccak256, stringToBytes } from 'viem';
 import { addresses } from '@/lib/contracts';
 import { coreAbi, usdcAbi } from '@/lib/abis';
-import { motion } from 'framer-motion';
-import { AlertCircle, CheckCircle2, ChevronDown, Info, Zap, Calendar, DollarSign, Tag, ArrowUpDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Calendar, DollarSign, ArrowUpCircle, ArrowDownCircle, Target, Wallet, Search, Info, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -15,60 +14,88 @@ interface CreateMarketFormProps {
   standalone?: boolean;
 }
 
-const QUESTION_TEMPLATES = [
-  {
-    label: 'BTC Target',
-    question: 'Will Bitcoin (BTC) reach $100,000 by Dec 31, 2025?',
-    category: 'Crypto',
-    icon: '₿'
-  },
-  {
-    label: 'ETH Flip',
-    question: 'Will Ethereum market cap exceed Bitcoin market cap?',
-    category: 'Crypto',
-    icon: 'Ξ'
-  },
-  {
-    label: 'Fed Rates',
-    question: 'Will the Fed cut interest rates in the next FOMC?',
-    category: 'Economics',
-    icon: '🏦'
-  },
-  {
-    label: 'SOL ATH',
-    question: 'Will Solana (SOL) reach a new All-Time High in 2025?',
-    category: 'Crypto',
-    icon: '◎'
-  },
+// --- Verified Chainlink Supported Assets ---
+const CRYPTO_ASSETS = [
+  // Majors
+  { symbol: 'BTC', name: 'Bitcoin', icon: '₿', feedId: 'BTC/USD' },
+  { symbol: 'ETH', name: 'Ethereum', icon: 'Ξ', feedId: 'ETH/USD' },
+  { symbol: 'SOL', name: 'Solana', icon: '◎', feedId: 'SOL/USD' },
+  { symbol: 'BNB', name: 'Binance Coin', icon: '🔶', feedId: 'BNB/USD' },
+  { symbol: 'XRP', name: 'Ripple', icon: '✕', feedId: 'XRP/USD' },
+  { symbol: 'ADA', name: 'Cardano', icon: '₳', feedId: 'ADA/USD' },
+  { symbol: 'AVAX', name: 'Avalanche', icon: '🔺', feedId: 'AVAX/USD' },
+  { symbol: 'LINK', name: 'Chainlink', icon: '⬡', feedId: 'LINK/USD' },
+  { symbol: 'DOGE', name: 'Dogecoin', icon: 'Ð', feedId: 'DOGE/USD' },
+  { symbol: 'MATIC', name: 'Polygon', icon: '💜', feedId: 'MATIC/USD' },
+  { symbol: 'DOT', name: 'Polkadot', icon: '🟣', feedId: 'DOT/USD' },
+  { symbol: 'TRX', name: 'Tron', icon: '♦️', feedId: 'TRX/USD' },
+  { symbol: 'LTC', name: 'Litecoin', icon: 'Ł', feedId: 'LTC/USD' },
+  { symbol: 'SHIB', name: 'Shiba Inu', icon: '🐕', feedId: 'SHIB/USD' },
+  // DeFi & L2s
+  { symbol: 'UNI', name: 'Uniswap', icon: '🦄', feedId: 'UNI/USD' },
+  { symbol: 'AAVE', name: 'Aave', icon: '👻', feedId: 'AAVE/USD' },
+  { symbol: 'ARB', name: 'Arbitrum', icon: '💙', feedId: 'ARB/USD' },
+  { symbol: 'OP', name: 'Optimism', icon: '🔴', feedId: 'OP/USD' },
+  { symbol: 'MKR', name: 'Maker', icon: 'MKR', feedId: 'MKR/USD' },
+  { symbol: 'SNX', name: 'Synthetix', icon: '⚔️', feedId: 'SNX/USD' },
+  { symbol: 'LDO', name: 'Lido DAO', icon: '💧', feedId: 'LDO/USD' },
+  { symbol: 'CRV', name: 'Curve', icon: '🌀', feedId: 'CRV/USD' },
+  { symbol: 'APT', name: 'Aptos', icon: '🌐', feedId: 'APT/USD' },
+  { symbol: 'RNDR', name: 'Render', icon: '🎨', feedId: 'RNDR/USD' },
+  { symbol: 'INJ', name: 'Injective', icon: '💉', feedId: 'INJ/USD' },
+  { symbol: 'ATOM', name: 'Cosmos', icon: '⚛️', feedId: 'ATOM/USD' },
+  { symbol: 'NEAR', name: 'Near', icon: '∞', feedId: 'NEAR/USD' },
+  { symbol: 'FIL', name: 'Filecoin', icon: '💾', feedId: 'FIL/USD' },
+  { symbol: 'APE', name: 'ApeCoin', icon: '🦍', feedId: 'APE/USD' },
+  { symbol: 'GRT', name: 'The Graph', icon: '📊', feedId: 'GRT/USD' },
+  { symbol: 'SAND', name: 'Sandbox', icon: '🏖️', feedId: 'SAND/USD' },
+  { symbol: 'FTM', name: 'Fantom', icon: '👻', feedId: 'FTM/USD' },
 ];
 
 export default function CreateMarketForm({ standalone = false }: CreateMarketFormProps) {
   const { address } = useAccount();
   const publicClient = usePublicClient();
 
-  // Form State
-  const [question, setQuestion] = useState('');
-  const [category, setCategory] = useState('Crypto');
+  // --- Form State ---
+  const [selectedAsset, setSelectedAsset] = useState(CRYPTO_ASSETS[0]);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const filteredAssets = useMemo(() => {
+    return CRYPTO_ASSETS.filter(asset => 
+      asset.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      asset.symbol.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery]);
+  
+  const [comparison, setComparison] = useState<'above' | 'below'>('above');
+  const [targetPrice, setTargetPrice] = useState('');
   const [resolutionDate, setResolutionDate] = useState('');
   const [initUsdc, setInitUsdc] = useState('1000');
-  const [oracleType, setOracleType] = useState<'none' | 'chainlink'>('none');
-  const [priceFeedSymbol, setPriceFeedSymbol] = useState('BTC/USD');
-  const [targetValue, setTargetValue] = useState('');
-  const [comparison, setComparison] = useState<'above' | 'below' | 'equals'>('above');
-  
-  // Token Names (Auto-generated)
-  const [yesName, setYesName] = useState('');
-  const [yesSymbol, setYesSymbol] = useState('');
-  const [noName, setNoName] = useState('');
-  const [noSymbol, setNoSymbol] = useState('');
 
-  // Contract State
-  const { data: hash, writeContractAsync, isPending } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  // --- EXACT QUESTION FORMATTING ---
+  const generatedQuestion = useMemo(() => {
+    if (!targetPrice || !resolutionDate) return '...';
+    
+    const dateObj = new Date(resolutionDate);
+    
+    // Format Date: "Dec, 15"
+    const month = dateObj.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
+    const day = dateObj.toLocaleString('en-US', { day: 'numeric', timeZone: 'UTC' });
+    
+    // Format Time: "20:00"
+    const time = dateObj.toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
 
+    // Format Price: "90,000"
+    const formattedPrice = Number(targetPrice).toLocaleString('en-US');
+
+    // Format: Will BTC trade above 90,000$ on Dec, 15 at 20:00 UTC?
+    return `Will ${selectedAsset.symbol} trade ${comparison} ${formattedPrice}$ on ${month}, ${day} at ${time} UTC?`;
+  }, [selectedAsset, comparison, targetPrice, resolutionDate]);
+
+  // --- Contract Interaction ---
   const { data: approvalHash, writeContractAsync: writeApproveAsync, isPending: isApproving } = useWriteContract();
-  const { isLoading: isApprovalConfirming, isSuccess: isApprovalSuccess } = useWaitForTransactionReceipt({ hash: approvalHash });
-
+  const { isLoading: isApprovalConfirming } = useWaitForTransactionReceipt({ hash: approvalHash });
+  
   const { data: currentAllowance } = useReadContract({
     address: addresses.usdc,
     abi: usdcAbi,
@@ -76,17 +103,10 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
     args: address && addresses.core ? [address, addresses.core] : undefined,
     query: { enabled: !!address, refetchInterval: 2000 },
   });
-
+  
   const [needsApproval, setNeedsApproval] = useState(false);
-
-  useEffect(() => {
-    if (!question) return;
-    const shortId = question.replace(/[^a-zA-Z0-9]/g, '').substring(0, 12).toUpperCase();
-    setYesName(`${shortId} YES`);
-    setYesSymbol(`${shortId}-Y`);
-    setNoName(`${shortId} NO`);
-    setNoSymbol(`${shortId}-N`);
-  }, [question]);
+  const { data: hash, writeContractAsync, isPending } = useWriteContract();
+  const { isLoading: isConfirming } = useWaitForTransactionReceipt({ hash });
 
   useEffect(() => {
     if (address && addresses.core && currentAllowance !== undefined) {
@@ -113,21 +133,42 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
     e.preventDefault();
     if (!address || !publicClient) return;
 
-    const initUsdcE6 = parseUnits(initUsdc, 6);
-    const expiry = Math.floor(new Date(resolutionDate).getTime() / 1000);
-    const targetValueBigInt = oracleType === 'chainlink' && targetValue ? parseUnits(targetValue, 8) : 0n;
-    const comparisonEnum = comparison === 'above' ? 0 : comparison === 'below' ? 1 : 2;
-
-    // Simplified oracle logic for display:
-    const oracleAddress = '0x0000000000000000000000000000000000000000'; 
-    const feedId = oracleType === 'chainlink' ? keccak256(stringToBytes(priceFeedSymbol)) : '0x0000000000000000000000000000000000000000000000000000000000000000';
-
     try {
+      const initUsdcE6 = parseUnits(initUsdc, 6);
+      const expiry = Math.floor(new Date(resolutionDate).getTime() / 1000);
+      const targetValueBigInt = parseUnits(targetPrice, 8);
+      const comparisonEnum = comparison === 'above' ? 0 : 1; 
+      
+      const oracleAddress = process.env.NEXT_PUBLIC_CHAINLINK_RESOLVER_ADDRESS as `0x${string}`; 
+      const feedId = keccak256(stringToBytes(selectedAsset.feedId));
+
+      // Token Naming
+      const dateObj = new Date(resolutionDate);
+      const shortDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+      const symbolBase = `${selectedAsset.symbol}${comparison === 'above' ? 'UP' : 'DOWN'}${targetPrice}`;
+      
+      const yesName = `${selectedAsset.symbol} ${comparison === 'above' ? '>' : '<'} ${targetPrice} ${shortDate} YES`;
+      const yesSymbol = `Y-${symbolBase}`;
+      const noName = `${selectedAsset.symbol} ${comparison === 'above' ? '>' : '<'} ${targetPrice} ${shortDate} NO`;
+      const noSymbol = `N-${symbolBase}`;
+
       await writeContractAsync({
         address: addresses.core,
         abi: coreAbi,
         functionName: 'createMarket',
-        args: [question, yesName, yesSymbol, noName, noSymbol, initUsdcE6, BigInt(expiry), oracleAddress, feedId as `0x${string}`, targetValueBigInt, comparisonEnum],
+        args: [
+          generatedQuestion, 
+          yesName, 
+          yesSymbol, 
+          noName, 
+          noSymbol, 
+          initUsdcE6, 
+          BigInt(expiry), 
+          oracleAddress, 
+          feedId as `0x${string}`, 
+          targetValueBigInt, 
+          comparisonEnum
+        ],
       });
     } catch (err) {
       console.error(err);
@@ -135,194 +176,192 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
   };
 
   return (
-    <div className="space-y-8">
-      {/* Quick Templates */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {QUESTION_TEMPLATES.map((t) => (
-          <button
-            key={t.label}
-            type="button"
-            onClick={() => { setQuestion(t.question); setCategory(t.category); }}
-            className="flex flex-col items-center justify-center p-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 hover:border-[#14B8A6] hover:bg-[#14B8A6]/5 transition-all group"
-          >
-            <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">{t.icon}</span>
-            <span className="text-xs font-bold text-gray-600 dark:text-gray-300">{t.label}</span>
-          </button>
-        ))}
+    <div className="max-w-2xl mx-auto space-y-8">
+      
+      <div className="text-center space-y-2">
+        <h2 className="text-2xl font-bold tracking-tight">Create Prediction Market</h2>
+        <p className="text-gray-500 text-sm">
+          Select a token, set a price target, and choose an expiry time.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 mb-1.5 block">Question</label>
-            <Input
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder="e.g. Will Bitcoin hit $100k?"
-              className="font-medium text-lg h-14"
-              required
-            />
+        
+        {/* 1. Asset Selector */}
+        <div className="space-y-3">
+          <label className="text-xs font-bold text-gray-500 uppercase ml-1">1. Choose Token ($TOKEN)</label>
+          
+          <div className="relative">
+             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+             <Input 
+                placeholder="Search tokens..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-10 mb-3 bg-white dark:bg-gray-800"
+             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 mb-1.5 block">Category</label>
-              <div className="relative">
-                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input value={category} onChange={(e) => setCategory(e.target.value)} className="pl-10" />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+            {filteredAssets.length > 0 ? (
+              filteredAssets.map((asset) => {
+                const isSelected = selectedAsset.symbol === asset.symbol;
+                return (
+                  <button
+                    key={asset.symbol}
+                    type="button"
+                    onClick={() => setSelectedAsset(asset)}
+                    className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all group ${
+                      isSelected 
+                        ? 'border-[#14B8A6] bg-[#14B8A6]/10 shadow-sm' 
+                        : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-700'
+                    }`}
+                  >
+                    <span className="text-xl mb-1 group-hover:scale-110 transition-transform">{asset.icon}</span>
+                    <span className={`text-xs font-bold ${isSelected ? 'text-[#14B8A6]' : 'text-gray-600 dark:text-gray-400'}`}>
+                      {asset.symbol}
+                    </span>
+                    {isSelected && (
+                      <motion.div layoutId="check" className="absolute top-2 right-2 text-[#14B8A6]">
+                        <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                      </motion.div>
+                    )}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="col-span-full text-center py-8 text-sm text-gray-400 border border-dashed rounded-xl">
+                No tokens found matching "{searchQuery}"
               </div>
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 mb-1.5 block">Resolution Date</label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input type="datetime-local" value={resolutionDate} onChange={(e) => setResolutionDate(e.target.value)} className="pl-10" required />
-              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 2. Logic & Price */}
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+          <div className="sm:col-span-4 space-y-3">
+            <label className="text-xs font-bold text-gray-500 uppercase ml-1">2. Direction</label>
+            <div className="grid grid-cols-2 gap-2 h-12">
+              <button
+                type="button"
+                onClick={() => setComparison('above')}
+                className={`flex items-center justify-center gap-2 rounded-lg border font-bold text-sm transition-colors ${
+                  comparison === 'above'
+                    ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400'
+                    : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700'
+                }`}
+              >
+                <ArrowUpCircle className="w-4 h-4" /> Above
+              </button>
+              <button
+                type="button"
+                onClick={() => setComparison('below')}
+                className={`flex items-center justify-center gap-2 rounded-lg border font-bold text-sm transition-colors ${
+                  comparison === 'below'
+                    ? 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400'
+                    : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700'
+                }`}
+              >
+                <ArrowDownCircle className="w-4 h-4" /> Below
+              </button>
             </div>
           </div>
 
-          <div>
-            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 mb-1.5 block">Initial Liquidity</label>
+          <div className="sm:col-span-8 space-y-3">
+            <label className="text-xs font-bold text-gray-500 uppercase ml-1">3. Target Price ($PRICE)</label>
+            <div className="relative">
+              <Target className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Input
+                type="number"
+                value={targetPrice}
+                onChange={(e) => setTargetPrice(e.target.value)}
+                placeholder="e.g. 90000"
+                className="pl-10 h-12 text-lg font-mono font-medium"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Date & Liquidity */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-gray-500 uppercase ml-1">4. Resolution ($DATE & $TIME)</label>
+            <div className="relative">
+              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input 
+                type="datetime-local" 
+                value={resolutionDate} 
+                onChange={(e) => setResolutionDate(e.target.value)} 
+                className="pl-10 h-12 font-mono text-sm" 
+                required 
+              />
+            </div>
+            <p className="text-[10px] text-gray-400 text-right pr-1">* Selected time will be converted to UTC</p>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-gray-500 uppercase ml-1">5. Initial Liquidity</label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input type="number" value={initUsdc} onChange={(e) => setInitUsdc(e.target.value)} className="pl-10 font-mono" required />
+              <Input 
+                type="number" 
+                value={initUsdc} 
+                onChange={(e) => setInitUsdc(e.target.value)} 
+                className="pl-10 h-12 font-mono" 
+                required 
+              />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">USDC</div>
             </div>
           </div>
         </div>
 
-        {/* Oracle Section - styled as a card */}
-        <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-bold text-gray-900 dark:text-white">Resolution Source</label>
-            <div className="flex bg-white dark:bg-gray-800 p-1 rounded-lg border border-gray-200 dark:border-gray-700">
-              {(['none', 'chainlink'] as const).map(type => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setOracleType(type)}
-                  className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${
-                    oracleType === type ? 'bg-[#14B8A6] text-white' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
-                  }`}
-                >
-                  {type === 'none' ? 'Manual' : 'Oracle'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {oracleType === 'chainlink' && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 pt-2">
-              <div className="grid grid-cols-12 gap-4">
-                <div className="col-span-12 sm:col-span-4">
-                   <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Feed</label>
-                   <select 
-                     value={priceFeedSymbol} 
-                     onChange={(e) => setPriceFeedSymbol(e.target.value)}
-                     className="w-full h-10 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-[#14B8A6]/20"
-                   >
-                     <option value="BTC/USD">BTC/USD</option>
-                     <option value="ETH/USD">ETH/USD</option>
-                     <option value="BNB/USD">BNB/USD</option>
-                   </select>
-                </div>
-                
-                <div className="col-span-12 sm:col-span-4">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Logic</label>
-                  <div className="relative">
-                    <select
-                      value={comparison}
-                      onChange={(e) => setComparison(e.target.value as 'above' | 'below' | 'equals')}
-                      className="w-full h-10 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-[#14B8A6]/20 appearance-none"
-                    >
-                      <option value="above">Above</option>
-                      <option value="below">Below</option>
-                      <option value="equals">Equals</option>
-                    </select>
-                    <ArrowUpDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                  </div>
-                </div>
-
-                <div className="col-span-12 sm:col-span-4">
-                   <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Target Price</label>
-                   <Input 
-                     type="number" 
-                     value={targetValue} 
-                     onChange={(e) => setTargetValue(e.target.value)} 
-                     placeholder="50000"
-                     className="h-10 text-sm font-mono"
-                   />
+        {/* Preview Card */}
+        <AnimatePresence>
+          {targetPrice && resolutionDate && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-start gap-4"
+            >
+              <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg text-blue-600 dark:text-blue-400">
+                <Wallet className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-xs font-bold text-gray-500 uppercase">Final Question Text</h4>
+                <p className="font-medium text-lg leading-snug font-mono text-blue-600 dark:text-blue-400 break-words">
+                  "{generatedQuestion}"
+                </p>
+                <div className="flex items-center gap-2 text-[10px] text-gray-400 font-mono mt-1">
+                   <Info className="w-3 h-3" />
+                   <span>ORACLE: Chainlink {selectedAsset.feedId}</span>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 italic">
-                Resolves YES if the price is <strong>{comparison}</strong> the target price at expiry.
-              </p>
             </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Action Buttons */}
+        <div className="pt-2">
+          {needsApproval ? (
+            <Button 
+              type="button" 
+              onClick={handleApprove} 
+              disabled={isApproving || isApprovalConfirming} 
+              className="w-full h-14 bg-amber-500 hover:bg-amber-600 text-white font-bold text-lg rounded-xl shadow-lg shadow-amber-500/20"
+            >
+              {isApproving || isApprovalConfirming ? 'Approving USDC...' : 'Approve USDC'}
+            </Button>
+          ) : (
+            <Button 
+              type="submit" 
+              disabled={isPending || isConfirming || !targetPrice || !resolutionDate} 
+              className="w-full h-14 bg-gradient-to-r from-[#14B8A6] to-[#0D9488] hover:from-[#0D9488] hover:to-[#0f766e] text-white font-bold text-lg rounded-xl shadow-lg shadow-[#14B8A6]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isPending || isConfirming ? 'Creating Market...' : 'Launch Market'}
+            </Button>
           )}
         </div>
 
-        {/* Token Details Toggle/Section - Optional for advanced users, kept simple here */}
-        <details className="group">
-          <summary className="flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-900 dark:hover:text-white">
-            <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
-            Advanced Token Settings
-          </summary>
-          <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-green-50/50 dark:bg-green-900/10 p-4 rounded-xl border border-green-100 dark:border-green-900/30">
-              <div className="text-xs font-bold text-green-700 dark:text-green-400 mb-2 uppercase">YES Token</div>
-              <div className="space-y-2">
-                <input
-                  value={yesName}
-                  onChange={(e) => setYesName(e.target.value)}
-                  placeholder="Name"
-                  className="w-full bg-white dark:bg-gray-800 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-green-500 dark:focus:border-green-600 text-gray-900 dark:text-white"
-                />
-                <input
-                  value={yesSymbol}
-                  onChange={(e) => setYesSymbol(e.target.value)}
-                  placeholder="Symbol"
-                  className="w-full bg-white dark:bg-gray-800 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-green-500 dark:focus:border-green-600 text-gray-900 dark:text-white"
-                />
-              </div>
-            </div>
-            <div className="bg-red-50/50 dark:bg-red-900/10 p-4 rounded-xl border border-red-100 dark:border-red-900/30">
-              <div className="text-xs font-bold text-red-700 dark:text-red-400 mb-2 uppercase">NO Token</div>
-              <div className="space-y-2">
-                <input
-                  value={noName}
-                  onChange={(e) => setNoName(e.target.value)}
-                  placeholder="Name"
-                  className="w-full bg-white dark:bg-gray-800 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-red-500 dark:focus:border-red-600 text-gray-900 dark:text-white"
-                />
-                <input
-                  value={noSymbol}
-                  onChange={(e) => setNoSymbol(e.target.value)}
-                  placeholder="Symbol"
-                  className="w-full bg-white dark:bg-gray-800 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-red-500 dark:focus:border-red-600 text-gray-900 dark:text-white"
-                />
-              </div>
-            </div>
-          </div>
-        </details>
-
-        {needsApproval ? (
-          <Button 
-            type="button" 
-            onClick={handleApprove} 
-            disabled={isApproving || isApprovalConfirming} 
-            className="w-full h-12 bg-amber-500 hover:bg-amber-600 text-white font-bold text-lg shadow-lg shadow-amber-500/20"
-          >
-            {isApproving || isApprovalConfirming ? 'Approving...' : 'Approve USDC'}
-          </Button>
-        ) : (
-          <Button 
-            type="submit" 
-            disabled={isPending || isConfirming} 
-            className="w-full h-12 bg-gradient-to-r from-[#14B8A6] to-[#0D9488] hover:from-[#0D9488] hover:to-[#0f766e] text-white font-bold text-lg shadow-lg shadow-[#14B8A6]/20"
-          >
-            {isPending || isConfirming ? 'Creating...' : 'Launch Market'}
-          </Button>
-        )}
       </form>
     </div>
   );
