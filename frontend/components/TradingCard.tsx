@@ -562,7 +562,7 @@ export default function TradingCard({
         await sleep(150);
     }
     await refetchAll();
-  }, [marketIdBI, isTradeable, side, writeContractAsync, publicClient, refetchAll, marketState, refetchMarketState, maxJumpE6, bE18, feeTreasuryBps, feeVaultBps, feeLpBps]);
+  }, [marketIdBI, isTradeable, side, writeContractAsync, publicClient, refetchAll, marketState, refetchMarketState, maxJumpE6, bE18, feeTreasuryBps, feeVaultBps, feeLpBps, addresses.core]);
 
   const handleConfirmSplit = useCallback(async () => {
     if (pendingSplitAmount === 0n) {
@@ -668,7 +668,7 @@ export default function TradingCard({
       setPendingTrade(false);
       setBusyLabel('');
     }
-  }, [amount, amountBigInt, isTradeable, tradeMode, address, publicClient, writeContractAsync, usdcAllowanceValue, tokenAllowanceValue, overJumpCap, refetchAll, showToast, showErrorToast, bE18, feeLpBps, feeTreasuryBps, feeVaultBps, marketIdBI, qNo, qYes, side, tokenAddr, tradeDisabledReason]);
+  }, [amount, amountBigInt, isTradeable, tradeMode, address, publicClient, writeContractAsync, usdcAllowanceValue, tokenAllowanceValue, overJumpCap, refetchAll, showToast, showErrorToast, bE18, feeLpBps, feeTreasuryBps, feeVaultBps, marketIdBI, qNo, qYes, side, tokenAddr, tradeDisabledReason, addresses.core, addresses.usdc]);
 
   const handleAddLiquidity = useCallback(async () => {
     if (!addLiquidityAmount) return;
@@ -699,7 +699,7 @@ export default function TradingCard({
     } finally {
       setPendingLpAction(null);
     }
-  }, [addLiquidityAmount, address, marketIdBI, publicClient, writeContractAsync, refetchAll, showErrorToast, usdcAllowanceValue]);
+  }, [addLiquidityAmount, address, marketIdBI, publicClient, writeContractAsync, refetchAll, showErrorToast, usdcAllowanceValue, addresses.core, addresses.usdc]);
 
   const handleClaimAllLp = useCallback(async () => {
     try {
@@ -723,7 +723,7 @@ export default function TradingCard({
     } finally {
         setPendingLpAction(null);
     }
-  }, [marketIdBI, pendingFeesValue, pendingResidualValue, writeContractAsync, publicClient, refetchAll, showToast, showErrorToast]);
+  }, [marketIdBI, pendingFeesValue, pendingResidualValue, writeContractAsync, publicClient, refetchAll, showToast, showErrorToast, addresses.core]);
 
   const handleRedeem = useCallback(async (isYes: boolean) => {
     try {
@@ -739,7 +739,7 @@ export default function TradingCard({
     } finally {
         setBusyLabel('');
     }
-  }, [marketIdBI, writeContractAsync, publicClient, refetchAll, showToast, showErrorToast]);
+  }, [marketIdBI, writeContractAsync, publicClient, refetchAll, showToast, showErrorToast, addresses.core]);
 
   // --- Render ---
   return (

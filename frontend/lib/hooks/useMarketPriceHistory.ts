@@ -463,7 +463,7 @@ export function useMarketPriceHistory(
       const merged = Array.from(mergedDedup.values()).sort((a, b) => a.timestamp - b.timestamp);
       return withSeedPoint(merged, fallbackChartPointRef.current);
     });
-  }, [historyLoading, snapshotData?.tradesAsc, snapshotData?.createdAt, currentPrices, marketCreatedAt, marketIdNum, publicClient]);
+  }, [historyLoading, snapshotData?.tradesAsc, snapshotData?.createdAt, currentPrices, marketCreatedAt, marketIdNum, publicClient, isLoadingLogs]);
 
   // Store refs for stable event handler
   const marketIdNumRef = useRef(marketIdNum);
