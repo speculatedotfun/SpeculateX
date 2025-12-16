@@ -20,6 +20,7 @@ export default function AdminManager() {
 
   // Contracts hooks... (same logic as before)
   const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000';
+  const MARKET_CREATOR_ROLE = '0xd5391398cc5c3bf6da19cf6bfc65db3b0a4f2312eb6b5b4c6a2b1c6ce1d8b8c4b'; // keccak256("MARKET_CREATOR_ROLE")
 
   const { writeContract: addAdmin } = useWriteContract();
   const { writeContract: removeAdmin } = useWriteContract();
@@ -36,13 +37,24 @@ export default function AdminManager() {
     if (!newAdminAddress) return;
     try {
       const addresses = getAddresses();
+
+      // Grant DEFAULT_ADMIN_ROLE
       await addAdmin({
         address: addresses.core,
         abi: coreAbi,
         functionName: 'grantRole',
         args: [DEFAULT_ADMIN_ROLE as `0x${string}`, newAdminAddress as `0x${string}`],
       });
-      pushToast({ title: 'Success', description: 'Admin grant transaction submitted', type: 'success' });
+
+      // Grant MARKET_CREATOR_ROLE
+      await addAdmin({
+        address: addresses.core,
+        abi: coreAbi,
+        functionName: 'grantRole',
+        args: [MARKET_CREATOR_ROLE as `0x${string}`, newAdminAddress as `0x${string}`],
+      });
+
+      pushToast({ title: 'Success', description: 'Admin and market creator roles granted', type: 'success' });
     } catch (e: any) {
       pushToast({ title: 'Error', description: e.message, type: 'error' });
     }
@@ -73,7 +85,7 @@ export default function AdminManager() {
           <Shield className="w-5 h-5 text-purple-600 dark:text-purple-400 mt-0.5" />
           <div className="text-sm text-purple-900 dark:text-purple-100">
             <p className="font-bold">Super Admin Access</p>
-            <p className="opacity-80 leading-relaxed">Admins can create markets, resolve disputes, and manage other admins.</p>
+            <p className="opacity-80 leading-relaxed">Admins can create markets, resolve disputes, manage liquidity, and grant admin privileges to others.</p>
           </div>
         </div>
       </div>
