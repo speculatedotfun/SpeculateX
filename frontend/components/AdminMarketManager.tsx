@@ -1,14 +1,25 @@
 'use client';
 import { useEffect } from 'react';
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import { getAddresses } from '@/lib/contracts';
 import { coreAbi } from '@/lib/abis';
-import { formatUnits } from 'viem';
+import { formatUnits, encodeAbiParameters, keccak256, stringToBytes } from 'viem';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
-import { CheckCircle, XCircle, DollarSign, Trophy, Activity } from 'lucide-react';
+import { CheckCircle, XCircle, DollarSign, Trophy, Activity, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
+import chainlinkResolverAbiData from '@/lib/abis/ChainlinkResolver.json';
+const chainlinkResolverAbi = Array.isArray(chainlinkResolverAbiData) 
+  ? chainlinkResolverAbiData 
+  : (chainlinkResolverAbiData as any).abi || chainlinkResolverAbiData;
+
+// BSC Chapel Testnet Chainlink feed addresses
+const KNOWN_FEEDS: Record<string, string> = {
+  'BTC/USD': '0x5741306c21795FdCBb9b265Ea0255F499DFe515C',
+  'ETH/USD': '0x143db3CEEfbdfe5631aDD3E50f7614B6ba708BA7',
+  'BNB/USD': '0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526',
+};
 
 interface Market {
   id: number;
@@ -22,9 +33,10 @@ interface Market {
 }
 
 export default function AdminMarketManager({ markets }: { markets: Market[] }) {
-  const { data: hash, writeContract, isPending } = useWriteContract();
+  const { data: hash, writeContract, writeContractAsync, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
   const { pushToast } = useToast();
+  const publicClient = usePublicClient();
   const addresses = getAddresses();
 
   const handleResolve = (id: number, yesWins: boolean) => {
@@ -43,6 +55,219 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
       functionName: 'finalizeResidual',
       args: [BigInt(id)],
     });
+  };
+
+  const handleRegisterFeedForMarket = async (marketId: number) => {
+    try {
+      if (!publicClient) {
+        throw new Error('Public client not available');
+      }
+
+      pushToast({ title: 'Checking Market', description: `Getting feed info for market #${marketId}...`, type: 'info' });
+
+      // Get market resolution to find the priceFeedId
+      const resolution = await publicClient.readContract({
+        address: addresses.core,
+        abi: coreAbi,
+        functionName: 'getMarketResolution',
+        args: [BigInt(marketId)],
+      }) as any;
+
+      const priceFeedId = resolution.priceFeedId as `0x${string}`;
+      
+      // Try to find the feed ID string from known feeds
+      let feedIdString: string | null = null;
+      let feedAddress: string | null = null;
+      
+      for (const [feedId, addr] of Object.entries(KNOWN_FEEDS)) {
+        const hash = keccak256(stringToBytes(feedId));
+        if (hash.toLowerCase() === priceFeedId.toLowerCase()) {
+          feedIdString = feedId;
+          feedAddress = addr;
+          break;
+        }
+      }
+
+      if (!feedIdString || !feedAddress) {
+        pushToast({ 
+          title: 'Unknown Feed', 
+          description: `Feed ID ${priceFeedId.slice(0, 10)}... not found in known feeds. Please register manually.`, 
+          type: 'error' 
+        });
+        return;
+      }
+
+      pushToast({ 
+        title: 'Registering Feed', 
+        description: `Registering ${feedIdString} feed...`, 
+        type: 'info' 
+      });
+      
+      // Call setGlobalFeed (0x73330f46)
+      const hash = await writeContractAsync({
+        address: addresses.chainlinkResolver,
+        abi: chainlinkResolverAbi,
+        functionName: 'setGlobalFeed',
+        args: [priceFeedId, feedAddress as `0x${string}`],
+      });
+
+      if (hash && publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash });
+        pushToast({ title: 'Success', description: `${feedIdString} feed registered! Chainlink will resolve this market automatically.`, type: 'success' });
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    } catch (e: any) {
+      console.error('Feed registration error:', e);
+      const errorMessage = e.message || 'Failed to register feed';
+      let userMessage = errorMessage;
+      
+      if (errorMessage.includes('not owner')) {
+        userMessage = 'You are not the owner of ChainlinkResolver. Only the owner can register feeds.';
+      }
+      
+      pushToast({ 
+        title: 'Error', 
+        description: userMessage, 
+        type: 'error' 
+      });
+    }
+  };
+
+  const handleTriggerChainlinkResolution = async (marketId: number) => {
+    try {
+      pushToast({ title: 'Checking Market Status', description: `Checking if market #${marketId} needs resolution...`, type: 'info' });
+      
+      // First check if upkeep is needed
+      if (!publicClient) {
+        throw new Error('Public client not available');
+      }
+
+      const upkeepNeeded = await publicClient.readContract({
+        address: addresses.core,
+        abi: coreAbi,
+        functionName: 'checkUpkeep',
+        args: [BigInt(marketId)],
+      }) as [boolean, string];
+
+      if (!upkeepNeeded[0]) {
+        pushToast({ 
+          title: 'Cannot Resolve', 
+          description: `Market #${marketId} does not need resolution. It may already be resolved, not expired, or not a Chainlink market.`, 
+          type: 'error' 
+        });
+        return;
+      }
+
+      // Get market resolution to find the priceFeedId
+      const resolution = await publicClient.readContract({
+        address: addresses.core,
+        abi: coreAbi,
+        functionName: 'getMarketResolution',
+        args: [BigInt(marketId)],
+      }) as any;
+
+      // Check if feed is registered
+      const priceFeedId = resolution.priceFeedId as `0x${string}`;
+      const feedAddress = await publicClient.readContract({
+        address: addresses.chainlinkResolver,
+        abi: chainlinkResolverAbi,
+        functionName: 'globalFeeds',
+        args: [priceFeedId],
+      }) as `0x${string}`;
+
+      // Try to find the feed ID string from known feeds
+      let feedIdString: string | null = null;
+      let knownFeedAddress: string | null = null;
+      
+      for (const [feedId, addr] of Object.entries(KNOWN_FEEDS)) {
+        const hash = keccak256(stringToBytes(feedId));
+        if (hash.toLowerCase() === priceFeedId.toLowerCase()) {
+          feedIdString = feedId;
+          knownFeedAddress = addr;
+          break;
+        }
+      }
+
+      if (!feedIdString || !knownFeedAddress) {
+        pushToast({ 
+          title: 'Unknown Feed', 
+          description: `Feed ID ${priceFeedId.slice(0, 10)}... not found in known feeds. Please register manually.`, 
+          type: 'error' 
+        });
+        return;
+      }
+
+      // If feed is not registered, register it first
+      if (!feedAddress || feedAddress === '0x0000000000000000000000000000000000000000') {
+        pushToast({ title: 'Registering Feed', description: `Registering ${feedIdString} feed for market #${marketId}...`, type: 'info' });
+        
+        // Call setGlobalFeed (0x73330f46) - this is what MetaMask will show
+        const registerHash = await writeContractAsync({
+          address: addresses.chainlinkResolver,
+          abi: chainlinkResolverAbi,
+          functionName: 'setGlobalFeed',
+          args: [priceFeedId, knownFeedAddress as `0x${string}`],
+        });
+
+        if (registerHash && publicClient) {
+          await publicClient.waitForTransactionReceipt({ hash: registerHash });
+          pushToast({ title: 'Feed Registered', description: `${feedIdString} feed registered! Now resolving market...`, type: 'success' });
+        }
+      }
+
+      // Now resolve the market using performUpkeep
+      pushToast({ title: 'Resolving Market', description: `Resolving market #${marketId} via Chainlink...`, type: 'info' });
+      
+      // Encode performData: (marketId, nextBatchStart)
+      const performData = encodeAbiParameters(
+        [{ type: 'uint256' }, { type: 'uint256' }],
+        [BigInt(marketId), BigInt(marketId + 1)]
+      );
+
+      const hash = await writeContractAsync({
+        address: addresses.chainlinkResolver,
+        abi: chainlinkResolverAbi,
+        functionName: 'performUpkeep',
+        args: [performData],
+      });
+
+      if (hash && publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash });
+        pushToast({ title: 'Success', description: `Market #${marketId} resolved via Chainlink!`, type: 'success' });
+        setTimeout(() => window.location.reload(), 1500);
+      }
+
+      if (hash && publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash });
+        pushToast({ title: 'Success', description: `Market #${marketId} resolved via Chainlink!`, type: 'success' });
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    } catch (e: any) {
+      console.error('Chainlink resolution error:', e);
+      const errorMessage = e.message || 'Failed to trigger Chainlink resolution';
+      let userMessage = errorMessage;
+      
+      // Provide more helpful error messages
+      if (errorMessage.includes('upkeep not needed')) {
+        userMessage = 'Market does not need resolution. It may already be resolved or not expired yet.';
+      } else if (errorMessage.includes('feed not registered')) {
+        userMessage = 'Price feed not registered. Please register the feed in Admin Manager first.';
+      } else if (errorMessage.includes('not chainlink')) {
+        userMessage = 'This market is not configured for Chainlink resolution.';
+      } else if (errorMessage.includes('paused')) {
+        userMessage = 'ChainlinkResolver is paused. Please unpause it first.';
+      } else if (errorMessage.includes('price out of bounds')) {
+        userMessage = 'Price change is too large. This is a safety check.';
+      } else if (errorMessage.includes('not owner')) {
+        userMessage = 'You are not the owner of ChainlinkResolver. Only the owner can register feeds.';
+      }
+      
+      pushToast({ 
+        title: 'Error', 
+        description: userMessage, 
+        type: 'error' 
+      });
+    }
   };
 
   useEffect(() => {
@@ -103,9 +328,27 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
                   )}
                 </div>
               ) : market.status === 'expired' ? (
-                <div className="flex items-center gap-2 text-sm font-medium text-orange-600 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/20 px-3 py-2 rounded-lg">
-                  <Activity className="w-4 h-4" />
-                  Market expired - awaiting Chainlink resolution
+                <div className="flex items-center gap-3 w-full">
+                  <div className="flex-1 flex items-center gap-2 text-sm font-medium text-orange-600 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/20 px-3 py-2 rounded-lg">
+                    <Activity className="w-4 h-4" />
+                    Market expired - awaiting Chainlink resolution
+                  </div>
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleRegisterFeedForMarket(market.id)} 
+                    disabled={isPending} 
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Zap className="w-4 h-4 mr-2" /> Register Feed
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleTriggerChainlinkResolution(market.id)} 
+                    disabled={isPending} 
+                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    <Zap className="w-4 h-4 mr-2" /> Trigger Resolution
+                  </Button>
                 </div>
               ) : null}
             </div>

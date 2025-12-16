@@ -77,11 +77,15 @@ export function handleMarketCreated(event: MarketCreated): void {
   }
 
   market = new Market(marketId);
+  
+  // Try to use event params first (if ABI matches deployed contract)
+  // The ABI shows the event has: id, yes, no, question, initUsdc, expiryTimestamp
   market.yesToken = event.params.yes;
   market.noToken = event.params.no;
   market.question = event.params.question;
   market.initUsdc = event.params.initUsdc;
   market.expiryTimestamp = event.params.expiryTimestamp;
+  
   market.createdAt = event.block.timestamp;
   market.blockNumber = event.block.number;
   market.txHash = event.transaction.hash;

@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: SpeculateCore
-    network: bsc
+    network: chapel
     source:
-      address: "0xDCdAf5219c7Cb8aB83475A4562e2c6Eb7B2a3725"
+      address: "0x7A06375bF7E7a2969b6145Aa2B1683cbBe2430FD"
       abi: SpeculateCore
-      startBlock: 77000000  # Will find events from deployment
+      startBlock: 77000000    # Will be updated to actual deployment block
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7

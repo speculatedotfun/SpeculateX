@@ -28,6 +28,7 @@ import { useUserPortfolio, type PortfolioPosition } from '@/lib/hooks/useUserPor
 import { coreAbi, positionTokenAbi } from '@/lib/abis';
 import { addresses } from '@/lib/contracts';
 import { useWriteContract, usePublicClient, useReadContract } from 'wagmi';
+import { getMarketResolution } from '@/lib/hooks';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -61,12 +62,27 @@ export default function PortfolioPage() {
 
   const redeemedMarketIds = new Set(redemptions.map(r => r.marketId));
 
-  const claimablePositions = positions.filter(p => 
-    p.status === 'Resolved' && 
-    p.won && 
-    p.balance > 0.000001 &&
-    !redeemedMarketIds.has(p.marketId)
-  );
+  const claimablePositions = positions.filter(p => {
+    const isResolved = p.status === 'Resolved';
+    const hasWon = p.won === true;
+    const hasBalance = p.balance > 0.000001;
+    const notRedeemed = !redeemedMarketIds.has(p.marketId);
+    
+    // Debug logging
+    if (isResolved && hasBalance && notRedeemed && !hasWon) {
+      console.log('Position that should be claimable but won is false:', {
+        marketId: p.marketId,
+        side: p.side,
+        status: p.status,
+        won: p.won,
+        balance: p.balance,
+        yesWins: p.yesWins,
+        marketResolved: p.marketResolved
+      });
+    }
+    
+    return isResolved && hasWon && hasBalance && notRedeemed;
+  });
 
   const lostPositions = positions.filter(p => 
     p.status === 'Resolved' && !p.won
@@ -492,22 +508,32 @@ function EmptyState({ title, description, actionLink, actionText }: any) {
 
 function PositionCard({ position, onClaimSuccess, isRedeemed = false }: { position: PortfolioPosition, onClaimSuccess: () => void, isRedeemed?: boolean }) {
   const { address } = useAccount();
-  const isWinner = position.won;
-  const canRedeem = position.status === 'Resolved' && isWinner && position.balance > 0.000001 && !isRedeemed;
-  const isLost = position.status === 'Resolved' && !isWinner;
   const { writeContractAsync, isPending } = useWriteContract();
   const publicClient = usePublicClient();
   const [isClaiming, setIsClaiming] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Contract Reads for validation (kept minimal)
-  const { data: marketData } = useReadContract({
+  // Contract Reads for validation - check resolution directly from contract
+  const { data: resolutionData } = useReadContract({
     address: addresses.core,
     abi: coreAbi,
-    functionName: 'markets',
+    functionName: 'getMarketResolution',
     args: [BigInt(position.marketId)],
-    query: { enabled: canRedeem },
+    query: { enabled: position.status === 'Resolved' || position.marketResolved },
   }) as any;
+
+  // Recalculate isWinner from on-chain data if available
+  const actualIsResolved = resolutionData?.isResolved ?? position.marketResolved ?? (position.status === 'Resolved');
+  const actualYesWins = resolutionData?.yesWins ?? position.yesWins;
+  const actualIsWinner = actualIsResolved && (
+    (actualYesWins === true && position.side === 'YES') ||
+    (actualYesWins === false && position.side === 'NO')
+  );
+
+  // Use on-chain data if available, otherwise fall back to position data
+  const isWinner = actualIsWinner !== undefined ? actualIsWinner : (position.won ?? false);
+  const canRedeem = actualIsResolved && isWinner && position.balance > 0.000001 && !isRedeemed;
+  const isLost = actualIsResolved && !isWinner;
 
   const handleClaim = async () => {
     try {

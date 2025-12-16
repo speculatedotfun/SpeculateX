@@ -359,10 +359,19 @@ export default function MarketDetailPage() {
   }, [sortedChartData, market?.resolution?.isResolved, market?.resolution?.yesWins]);
 
   const totalVolume = marketData.marketState ? Number(formatUnits(marketData.marketState.vault ?? 0n, 6)) : 0;
+  
+  // Merge createdAt from snapshotData if available (subgraph has it, on-chain doesn't)
+  const marketWithCreatedAt = useMemo(() => {
+    if (!market) return market;
+    const createdAt = snapshotData?.createdAt ?? market.createdAt;
+    return { ...market, createdAt };
+  }, [market, snapshotData?.createdAt]);
+  
   const createdAtDate = (() => {
-    if (!market?.createdAt) return null;
+    const createdAt = marketWithCreatedAt?.createdAt ?? snapshotData?.createdAt;
+    if (!createdAt) return null;
     try {
-      const numeric = typeof market.createdAt === 'bigint' ? Number(market.createdAt) : Number(market.createdAt);
+      const numeric = typeof createdAt === 'bigint' ? Number(createdAt) : Number(createdAt);
       if (!Number.isFinite(numeric) || numeric <= 0) return null;
       return new Date(numeric * 1000);
     } catch { return null; }
@@ -446,7 +455,7 @@ export default function MarketDetailPage() {
 
         {/* Market Header - Now contains the 3D Stats Banner inside */}
         <MarketHeader
-          market={market}
+          market={marketWithCreatedAt ?? market}
           resolution={resolution}
           totalVolume={totalVolume}
           totalVolumeDisplay={totalVolumeDisplay}

@@ -5,10 +5,12 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadCont
 import { parseUnits, keccak256, stringToBytes } from 'viem';
 import { addresses } from '@/lib/contracts';
 import { coreAbi, usdcAbi } from '@/lib/abis';
+import { canCreateMarkets } from '@/lib/hooks';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, DollarSign, ArrowUpCircle, ArrowDownCircle, Target, Wallet, Search, Info, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/toast';
 
 interface CreateMarketFormProps {
   standalone?: boolean;
@@ -55,6 +57,7 @@ const CRYPTO_ASSETS = [
 export default function CreateMarketForm({ standalone = false }: CreateMarketFormProps) {
   const { address } = useAccount();
   const publicClient = usePublicClient();
+  const { pushToast } = useToast();
 
   // --- Form State ---
   const [selectedAsset, setSelectedAsset] = useState(CRYPTO_ASSETS[0]);
@@ -71,6 +74,7 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
   const [targetPrice, setTargetPrice] = useState('');
   const [resolutionDate, setResolutionDate] = useState('');
   const [initUsdc, setInitUsdc] = useState('1000');
+  const [hasMarketCreatorRole, setHasMarketCreatorRole] = useState<boolean | null>(null);
 
   // --- EXACT QUESTION FORMATTING ---
   const generatedQuestion = useMemo(() => {
@@ -94,7 +98,7 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
 
   // --- Contract Interaction ---
   const { data: approvalHash, writeContractAsync: writeApproveAsync, isPending: isApproving } = useWriteContract();
-  const { isLoading: isApprovalConfirming } = useWaitForTransactionReceipt({ hash: approvalHash });
+  const { isLoading: isApprovalConfirming, isSuccess: isApprovalSuccess } = useWaitForTransactionReceipt({ hash: approvalHash });
   
   const { data: currentAllowance } = useReadContract({
     address: addresses.usdc,
@@ -106,7 +110,7 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
   
   const [needsApproval, setNeedsApproval] = useState(false);
   const { data: hash, writeContractAsync, isPending } = useWriteContract();
-  const { isLoading: isConfirming } = useWaitForTransactionReceipt({ hash });
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
   useEffect(() => {
     if (address && addresses.core && currentAllowance !== undefined) {
@@ -115,23 +119,92 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
     }
   }, [address, currentAllowance, initUsdc]);
 
+  useEffect(() => {
+    const checkMarketCreatorRole = async () => {
+      if (address) {
+        const canCreate = await canCreateMarkets(address);
+        setHasMarketCreatorRole(canCreate);
+        if (!canCreate) {
+          pushToast({ 
+            title: 'Access Denied', 
+            description: 'You do not have permission to create markets. Please contact an admin.', 
+            type: 'error' 
+          });
+        }
+      } else {
+        setHasMarketCreatorRole(null);
+      }
+    };
+    checkMarketCreatorRole();
+  }, [address, pushToast]);
+
+  useEffect(() => {
+    if (isApprovalSuccess) {
+      pushToast({ title: 'Approval Confirmed', description: 'USDC approval successful. You can now create the market.', type: 'success' });
+    }
+  }, [isApprovalSuccess, pushToast]);
+
+  useEffect(() => {
+    if (isSuccess) {
+      pushToast({ title: 'Success', description: 'Market created successfully!', type: 'success' });
+      // Reset form
+      setTargetPrice('');
+      setResolutionDate('');
+      setInitUsdc('1000');
+      // Reload page after a short delay to show the new market
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    }
+  }, [isSuccess, pushToast]);
+
   const handleApprove = async () => {
     try {
       const amount = parseUnits(initUsdc || '1000', 6);
-      await writeApproveAsync({
+      const txHash = await writeApproveAsync({
         address: addresses.usdc,
         abi: usdcAbi,
         functionName: 'approve',
         args: [addresses.core, amount],
       });
+      
+      if (txHash) {
+        pushToast({ title: 'Approval Submitted', description: 'Waiting for confirmation...', type: 'info' });
+      }
     } catch (err: any) {
       console.error(err);
+      pushToast({ 
+        title: 'Approval Failed', 
+        description: err?.message || 'Failed to approve USDC. Please try again.', 
+        type: 'error' 
+      });
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!address || !publicClient) return;
+
+    // Check if user has market creator role
+    if (hasMarketCreatorRole === false) {
+      pushToast({ 
+        title: 'Access Denied', 
+        description: 'You do not have permission to create markets. Please contact an admin to grant you MARKET_CREATOR_ROLE.', 
+        type: 'error' 
+      });
+      return;
+    }
+
+    // Double-check role before submitting
+    const canCreate = await canCreateMarkets(address);
+    if (!canCreate) {
+      pushToast({ 
+        title: 'Access Denied', 
+        description: 'You do not have permission to create markets. Please contact an admin.', 
+        type: 'error' 
+      });
+      return;
+    }
 
     try {
       const initUsdcE6 = parseUnits(initUsdc, 6);
@@ -152,7 +225,7 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
       const noName = `${selectedAsset.symbol} ${comparison === 'above' ? '>' : '<'} ${targetPrice} ${shortDate} NO`;
       const noSymbol = `N-${symbolBase}`;
 
-      await writeContractAsync({
+      const txHash = await writeContractAsync({
         address: addresses.core,
         abi: coreAbi,
         functionName: 'createMarket',
@@ -170,8 +243,17 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
           comparisonEnum
         ],
       });
-    } catch (err) {
+      
+      if (txHash) {
+        pushToast({ title: 'Transaction Submitted', description: 'Waiting for confirmation...', type: 'info' });
+      }
+    } catch (err: any) {
       console.error(err);
+      pushToast({ 
+        title: 'Error', 
+        description: err?.message || 'Failed to create market. Please try again.', 
+        type: 'error' 
+      });
     }
   };
 
@@ -342,6 +424,19 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
 
         {/* Action Buttons */}
         <div className="pt-2">
+          {hasMarketCreatorRole === false && (
+            <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+              <div className="flex items-start gap-3">
+                <Info className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-red-900 dark:text-red-100">
+                  <p className="font-bold mb-1">No Permission to Create Markets</p>
+                  <p className="opacity-80 leading-relaxed">
+                    Your address does not have the MARKET_CREATOR_ROLE. Please contact an admin to grant you this permission.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           {needsApproval ? (
             <Button 
               type="button" 
@@ -354,10 +449,10 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
           ) : (
             <Button 
               type="submit" 
-              disabled={isPending || isConfirming || !targetPrice || !resolutionDate} 
+              disabled={isPending || isConfirming || !targetPrice || !resolutionDate || hasMarketCreatorRole === false} 
               className="w-full h-14 bg-gradient-to-r from-[#14B8A6] to-[#0D9488] hover:from-[#0D9488] hover:to-[#0f766e] text-white font-bold text-lg rounded-xl shadow-lg shadow-[#14B8A6]/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isPending || isConfirming ? 'Creating Market...' : 'Launch Market'}
+              {isPending || isConfirming ? 'Creating Market...' : hasMarketCreatorRole === false ? 'No Permission' : 'Launch Market'}
             </Button>
           )}
         </div>

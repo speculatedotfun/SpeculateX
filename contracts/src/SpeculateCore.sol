@@ -112,7 +112,7 @@ contract SpeculateCore is AccessControl, ReentrancyGuard, Pausable {
     // ==========================
     // Events
     // ==========================
-    event MarketCreated(uint256 indexed id, string question, uint256 initUsdc);
+    event MarketCreated(uint256 indexed id, address yes, address no, string question, uint256 initUsdc, uint256 expiryTimestamp);
     event Buy(uint256 indexed id, address indexed user, bool isYes, uint256 usdcIn, uint256 tokensOut, uint256 priceE6);
     event Sell(uint256 indexed id, address indexed user, bool isYes, uint256 tokensIn, uint256 usdcOut, uint256 priceE6);
     event MarketResolved(uint256 indexed id, bool yesWins);
@@ -236,7 +236,7 @@ contract SpeculateCore is AccessControl, ReentrancyGuard, Pausable {
         lpShares[id][msg.sender] = initUsdc;
         m.totalLpUsdc = initUsdc;
 
-        emit MarketCreated(id, question, initUsdc);
+        emit MarketCreated(id, address(yes), address(no), question, initUsdc, expiryTimestamp);
         emit LiquidityParameterUpdated(id, newB, initUsdc);
     }
 

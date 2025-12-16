@@ -1,30 +1,46 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient } from 'wagmi';
 import { getAddresses } from '@/lib/contracts';
 import { coreAbi } from '@/lib/abis';
 import { isAdmin as checkIsAdmin } from '@/lib/hooks';
+import { keccak256, stringToBytes } from 'viem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
-import { Shield, UserPlus, X, Link } from 'lucide-react';
+import { Shield, UserPlus, X, Link, Database } from 'lucide-react';
+import chainlinkResolverAbiData from '@/lib/abis/ChainlinkResolver.json';
+const chainlinkResolverAbi = Array.isArray(chainlinkResolverAbiData) 
+  ? chainlinkResolverAbiData 
+  : (chainlinkResolverAbiData as any).abi || chainlinkResolverAbiData;
 
 export default function AdminManager() {
   const { address } = useAccount();
+  const publicClient = usePublicClient();
   const { pushToast } = useToast();
   const [newAdminAddress, setNewAdminAddress] = useState('');
   const [chainlinkResolverAddress, setChainlinkResolverAddress] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentAdmins, setCurrentAdmins] = useState<string[]>([]);
+  const [selectedFeed, setSelectedFeed] = useState('');
+  const [feedAddress, setFeedAddress] = useState('');
 
   // Contracts hooks... (same logic as before)
   const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000';
-  const MARKET_CREATOR_ROLE = '0xd5391398cc5c3bf6da19cf6bfc65db3b0a4f2312eb6b5b4c6a2b1c6ce1d8b8c4b'; // keccak256("MARKET_CREATOR_ROLE")
+  const MARKET_CREATOR_ROLE = keccak256(stringToBytes('MARKET_CREATOR_ROLE'));
 
-  const { writeContract: addAdmin } = useWriteContract();
+  const { writeContractAsync: addAdminAsync } = useWriteContract();
   const { writeContract: removeAdmin } = useWriteContract();
   const { writeContract: setChainlinkResolver } = useWriteContract();
+  const { writeContractAsync: setGlobalFeedAsync } = useWriteContract();
+
+  // BSC Chapel Testnet Chainlink feed addresses
+  const KNOWN_FEEDS = [
+    { id: 'BTC/USD', address: '0x5741306c21795FdCBb9b265Ea0255F499DFe515C' },
+    { id: 'ETH/USD', address: '0x143db3CEEfbdfe5631aDD3E50f7614B6ba708BA7' },
+    { id: 'BNB/USD', address: '0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526' },
+  ];
 
   // Load initial admin (check if current user is admin)
   useEffect(() => {
@@ -34,29 +50,39 @@ export default function AdminManager() {
   }, [address]);
 
   const handleAdd = async () => {
-    if (!newAdminAddress) return;
+    if (!newAdminAddress || !publicClient) return;
     try {
       const addresses = getAddresses();
 
       // Grant DEFAULT_ADMIN_ROLE
-      await addAdmin({
+      pushToast({ title: 'Granting Admin Role', description: 'Please confirm the transaction...', type: 'info' });
+      const adminHash = await addAdminAsync({
         address: addresses.core,
         abi: coreAbi,
         functionName: 'grantRole',
         args: [DEFAULT_ADMIN_ROLE as `0x${string}`, newAdminAddress as `0x${string}`],
       });
 
+      if (adminHash) {
+        await publicClient.waitForTransactionReceipt({ hash: adminHash });
+        pushToast({ title: 'Admin Role Granted', description: 'Now granting market creator role...', type: 'success' });
+      }
+
       // Grant MARKET_CREATOR_ROLE
-      await addAdmin({
+      const creatorHash = await addAdminAsync({
         address: addresses.core,
         abi: coreAbi,
         functionName: 'grantRole',
         args: [MARKET_CREATOR_ROLE as `0x${string}`, newAdminAddress as `0x${string}`],
       });
 
-      pushToast({ title: 'Success', description: 'Admin and market creator roles granted', type: 'success' });
+      if (creatorHash) {
+        await publicClient.waitForTransactionReceipt({ hash: creatorHash });
+        pushToast({ title: 'Success', description: 'Admin and market creator roles granted successfully!', type: 'success' });
+        setNewAdminAddress(''); // Clear the input
+      }
     } catch (e: any) {
-      pushToast({ title: 'Error', description: e.message, type: 'error' });
+      pushToast({ title: 'Error', description: e.message || 'Failed to grant roles', type: 'error' });
     }
   };
 
@@ -73,6 +99,39 @@ export default function AdminManager() {
       pushToast({ title: 'Success', description: 'Chainlink resolver registration submitted', type: 'success' });
     } catch (e: any) {
       pushToast({ title: 'Error', description: e.message, type: 'error' });
+    }
+  };
+
+  const handleRegisterFeed = async (feedId?: string, feedAddr?: string) => {
+    const feed = feedId || selectedFeed;
+    const addr = feedAddr || feedAddress;
+    
+    if (!feed || !addr) {
+      pushToast({ title: 'Error', description: 'Please select a feed and provide an address', type: 'error' });
+      return;
+    }
+
+    try {
+      const addresses = getAddresses();
+      const feedIdHash = keccak256(stringToBytes(feed));
+      
+      pushToast({ title: 'Registering Feed', description: `Registering ${feed}...`, type: 'info' });
+      
+      const hash = await setGlobalFeedAsync({
+        address: addresses.chainlinkResolver,
+        abi: chainlinkResolverAbi,
+        functionName: 'setGlobalFeed',
+        args: [feedIdHash, addr as `0x${string}`],
+      });
+
+      if (hash && publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash });
+        pushToast({ title: 'Success', description: `${feed} feed registered successfully!`, type: 'success' });
+        setSelectedFeed('');
+        setFeedAddress('');
+      }
+    } catch (e: any) {
+      pushToast({ title: 'Error', description: e.message || 'Failed to register feed', type: 'error' });
     }
   };
 
@@ -118,6 +177,50 @@ export default function AdminManager() {
             <Button onClick={handleSetChainlinkResolver} className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px]">
               <Link className="w-4 h-4 mr-2" /> Register
             </Button>
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 mb-2 block">Register Price Feeds</label>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+            Markets need their price feeds registered in ChainlinkResolver to be auto-resolved. Register feeds here.
+          </p>
+          
+          {/* Quick register buttons for known feeds */}
+          <div className="flex flex-wrap gap-2 mb-3">
+            {KNOWN_FEEDS.map((feed) => (
+              <Button
+                key={feed.id}
+                onClick={() => handleRegisterFeed(feed.id, feed.address)}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+              >
+                <Database className="w-3 h-3 mr-1" />
+                {feed.id}
+              </Button>
+            ))}
+          </div>
+
+          {/* Manual feed registration */}
+          <div className="space-y-2">
+            <Input
+              value={selectedFeed}
+              onChange={(e) => setSelectedFeed(e.target.value)}
+              placeholder="Feed ID (e.g., BTC/USD, ETH/USD)"
+              className="font-mono text-sm"
+            />
+            <div className="flex gap-3">
+              <Input
+                value={feedAddress}
+                onChange={(e) => setFeedAddress(e.target.value)}
+                placeholder="Chainlink feed address (0x...)"
+                className="font-mono"
+              />
+              <Button onClick={() => handleRegisterFeed()} className="bg-green-600 hover:bg-green-700 text-white min-w-[120px]">
+                <Database className="w-4 h-4 mr-2" /> Register
+              </Button>
+            </div>
           </div>
         </div>
 

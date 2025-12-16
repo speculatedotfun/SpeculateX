@@ -86,7 +86,13 @@ export function MarketHeader({
                 </span>
               </div>
               <span className="text-xs font-medium text-gray-400 dark:text-gray-500">
-                Created {createdAtDate ? createdAtDate.toLocaleDateString() : '—'}
+                Created {createdAtDate ? createdAtDate.toLocaleString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric', 
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                }) : '—'}
               </span>
             </div>
 
