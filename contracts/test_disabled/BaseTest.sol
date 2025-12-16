@@ -36,7 +36,11 @@ contract BaseTest is Test {
 
         // Admin already has roles from constructor, grant market creator role
         core.grantRole(core.MARKET_CREATOR_ROLE(), marketCreator);
-        core.setChainlinkResolver(address(resolver));
+        // Schedule resolver set on core (requires timelock)
+        bytes32 OP_SET_RESOLVER = keccak256("OP_SET_RESOLVER");
+        bytes32 opId = core.scheduleOp(OP_SET_RESOLVER, abi.encode(address(resolver)));
+        vm.warp(block.timestamp + 24 hours + 1);
+        core.executeSetResolver(opId, address(resolver));
 
         // Set SpeculateCore address on USDC for minting authorization
         usdc.setSpeculateCore(address(core));

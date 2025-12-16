@@ -3,117 +3,98 @@ pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
 
-// ייבוא החוזים - וודא שהנתיבים תואמים לתיקיית src שלך
-import {Treasury} from "../src/Treasury.sol";
+import {SpeculateCoreRouter} from "../src/SpeculateCoreRouter.sol";
+import {MarketFacet} from "../src/facets/MarketFacet.sol";
+import {TradingFacet} from "../src/facets/TradingFacet.sol";
+import {LiquidityFacet} from "../src/facets/LiquidityFacet.sol";
+import {SettlementFacet} from "../src/facets/SettlementFacet.sol";
+
 import {MockUSDC} from "../src/MockUSDC.sol";
-import {SpeculateCore} from "../src/SpeculateCore.sol";
+import {Treasury} from "../src/Treasury.sol";
 import {ChainlinkResolver} from "../src/ChainlinkResolver.sol";
 
-contract DeployScript is Script {
-    // כתובות של Chainlink ב-BSC Testnet (לצורך דוגמה בשלב 4)
-    address constant BTC_FEED_BSC_TESTNET = 0x5741306c21795FdCBb9b265Ea0255F499DFe515C;
-    address constant ETH_FEED_BSC_TESTNET = 0x143db3CEEfbdfe5631aDD3E50f7614B6ba708BA7;
-
+contract DeployAndSchedule is Script {
     function run() public {
-        string memory privateKeyStr = vm.envString("PRIVATE_KEY");
-        uint256 deployerPrivateKey;
-        bytes memory pkBytes = bytes(privateKeyStr);
-        if (pkBytes.length >= 2 && pkBytes[0] == bytes1("0") && pkBytes[1] == bytes1("x")) {
-            deployerPrivateKey = vm.parseUint(privateKeyStr);
+        string memory pkStr = vm.envString("PRIVATE_KEY");
+        uint256 pk;
+        if (bytes(pkStr).length >= 2 && bytes(pkStr)[0] == "0" && bytes(pkStr)[1] == "x") {
+            pk = vm.parseUint(pkStr);
         } else {
-            deployerPrivateKey = vm.parseUint(string.concat("0x", privateKeyStr));
+            pk = vm.parseUint(string.concat("0x", pkStr));
         }
-        address deployer = vm.addr(deployerPrivateKey);
+        address admin = vm.addr(pk);
+
+        vm.startBroadcast(pk);
+
+        console.log("Deploying contracts...");
         
-        // התחלת הקלטת הטרנזקציות לבלוקצ'יין
-        vm.startBroadcast(deployerPrivateKey);
+        Treasury treasury = new Treasury(admin, 20_000e6);
+        console.log("Treasury:", address(treasury));
 
-        // ====================================================
-        // שלב 1: ספריות ותשתיות
-        // ====================================================
-        console.log("--- Step 1: Deploying Infrastructure ---");
+        MockUSDC usdc = new MockUSDC(admin);
+        console.log("MockUSDC:", address(usdc));
 
-        // 1. פריסת LMSRMath
-        // הערה: LMSRMath היא ספריית פנימית ולכן Foundry מקשר אותה אוטומטית ואינה נפרסת כ-contract נפרד.
-        console.log("LMSRMath is an internal library and is linked automatically (no separate address)");
+        SpeculateCoreRouter core = new SpeculateCoreRouter(admin, address(usdc), address(treasury));
+        console.log("Core Router:", address(core));
 
-        // 2. פריסת Treasury
-        Treasury treasury = new Treasury(deployer);
-        console.log("Treasury deployed to:", address(treasury));
+        ChainlinkResolver resolver = new ChainlinkResolver(admin, address(core));
+        console.log("Resolver:", address(resolver));
 
-        // 3. פריסת MockUSDC
-        MockUSDC usdc = new MockUSDC(); 
-        console.log("MockUSDC deployed to:", address(usdc));
-
-
-        // ====================================================
-        // שלב 2: הליבה (Core)
-        // ====================================================
-        console.log("--- Step 2: Deploying Core ---");
-
-        // הערה לגבי Library Linking ב-Foundry:
-        // Foundry מזהה אוטומטית שימוש ב-Libraries ומקשר אותם.
-        // אם SpeculateCore משתמש ב-LMSRMath, הסקריפט ידע להשתמש בכתובת שכבר נפרסה
-        // או לפרוס מחדש אם צריך (תלוי בהגדרה בחוזה).
+        console.log("\nDeploying facets...");
         
-        SpeculateCore core = new SpeculateCore(
-            address(usdc),     // _usdc
-            address(treasury)  // _treasury
-        );
-        console.log("SpeculateCore deployed to:", address(core));
-
-
-        // ====================================================
-        // שלב 3: הפותר (Resolver)
-        // ====================================================
-        console.log("--- Step 3: Deploying Resolver ---");
-
-        ChainlinkResolver resolver = new ChainlinkResolver(
-            address(core) // _core
-        );
-        console.log("ChainlinkResolver deployed to:", address(resolver));
-
-
-        // ====================================================
-        // שלב 4: חיבור והרשאות (Wiring)
-        // ====================================================
-        console.log("--- Step 4: Wiring & Permissions ---");
-
-        // A. חיבור ה-Resolver ל-Core
-        core.setChainlinkResolver(address(resolver));
-        console.log("Core: setChainlinkResolver -> DONE");
-
-        // B. הרשאות ל-MockUSDC (כדי שיוכלו לעשות Mint)
-        usdc.setSpeculateCore(address(core));
-        console.log("MockUSDC: setSpeculateCore -> DONE");
+        MarketFacet marketFacet = new MarketFacet();
+        console.log("MarketFacet:", address(marketFacet));
         
-        // C. הוספת SpeculateCore כ-minter כדי שה-faucet יעבוד
-        usdc.addMinter(address(core));
-        console.log("MockUSDC: addMinter (SpeculateCore) -> DONE");
-
-        // D. הגדרת Feeds ב-Resolver (דוגמה ל-BSC Testnet)
-        // כאן אתה מגדיר איזה נכסים המערכת תומכת
-        // feedId הוא bytes32 hash של המחרוזת (למשל keccak256("BTC/USD"))
+        TradingFacet tradingFacet = new TradingFacet();
+        console.log("TradingFacet:", address(tradingFacet));
         
-        // דוגמה: BTC/USD feed
-        bytes32 btcFeedId = keccak256("BTC/USD");
-        resolver.setGlobalFeed(btcFeedId, BTC_FEED_BSC_TESTNET);
-        console.log("Resolver: setGlobalFeed (BTC/USD) -> DONE");
-
-        // דוגמה: ETH/USD feed
-        bytes32 ethFeedId = keccak256("ETH/USD");
-        resolver.setGlobalFeed(ethFeedId, ETH_FEED_BSC_TESTNET);
-        console.log("Resolver: setGlobalFeed (ETH/USD) -> DONE");
-
+        LiquidityFacet liquidityFacet = new LiquidityFacet();
+        console.log("LiquidityFacet:", address(liquidityFacet));
         
+        SettlementFacet settlementFacet = new SettlementFacet();
+        console.log("SettlementFacet:", address(settlementFacet));
+
+        console.log("\nGranting roles...");
+        bytes32 MINTER_ROLE = keccak256("MINTER_ROLE");
+        usdc.grantRole(MINTER_ROLE, address(core));
+        console.log("MINTER_ROLE granted to core");
+
+        console.log("\nScheduling operations...");
+        bytes32 OP_SET_RESOLVER = keccak256("OP_SET_RESOLVER");
+        bytes32 opSetResolver = core.scheduleOp(OP_SET_RESOLVER, abi.encode(address(resolver)));
+        console.log("OP_SET_RESOLVER scheduled:", vm.toString(opSetResolver));
+
+        bytes32 OP_SET_FACET = keccak256("OP_SET_FACET");
+        
+        // Market facet
+        _schedule(core, OP_SET_FACET, "createMarket(string,string,string,string,string,uint256,uint256,address,bytes32,uint256,uint8)", address(marketFacet));
+        _schedule(core, OP_SET_FACET, "getMarketState(uint256)", address(marketFacet));
+        _schedule(core, OP_SET_FACET, "getMarketResolution(uint256)", address(marketFacet));
+
+        // Trading facet
+        _schedule(core, OP_SET_FACET, "spotPriceYesE18(uint256)", address(tradingFacet));
+        _schedule(core, OP_SET_FACET, "spotPriceYesE6(uint256)", address(tradingFacet));
+        _schedule(core, OP_SET_FACET, "buy(uint256,bool,uint256,uint256)", address(tradingFacet));
+        _schedule(core, OP_SET_FACET, "sell(uint256,bool,uint256,uint256)", address(tradingFacet));
+
+        // Liquidity facet
+        _schedule(core, OP_SET_FACET, "addLiquidity(uint256,uint256)", address(liquidityFacet));
+        _schedule(core, OP_SET_FACET, "claimLpFees(uint256)", address(liquidityFacet));
+
+        // Settlement facet
+        _schedule(core, OP_SET_FACET, "resolveMarketWithPrice(uint256,uint256)", address(settlementFacet));
+        _schedule(core, OP_SET_FACET, "redeem(uint256,bool)", address(settlementFacet));
+        _schedule(core, OP_SET_FACET, "pendingLpResidual(uint256,address)", address(settlementFacet));
+        _schedule(core, OP_SET_FACET, "claimLpResidual(uint256)", address(settlementFacet));
+
         vm.stopBroadcast();
-        
-        // סיכום סופי לקונסול
-        console.log("========================================");
-        console.log("DEPLOYMENT COMPLETE");
-        console.log("Core Address:", address(core));
-        console.log("Resolver Address:", address(resolver));
-        console.log("USDC Address:", address(usdc));
-        console.log("========================================");
+
+        console.log("\n=== DEPLOYMENT COMPLETE ===");
+        console.log("Wait 24h then execute scheduled operations");
+    }
+
+    function _schedule(SpeculateCoreRouter core, bytes32 tag, string memory sig, address facet) internal {
+        bytes4 selector = bytes4(keccak256(bytes(sig)));
+        core.scheduleOp(tag, abi.encode(selector, facet));
     }
 }

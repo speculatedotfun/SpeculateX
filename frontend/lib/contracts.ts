@@ -3,19 +3,30 @@ export type Network = 'mainnet' | 'testnet';
 
 // Contract addresses for each network
 const MAINNET_ADDRESSES = {
+  // Mainnet uses old monolithic SpeculateCore
   core: '0xDCdAf5219c7Cb8aB83475A4562e2c6Eb7B2a3725' as `0x${string}`,
   usdc: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d' as `0x${string}`,
   chainlinkResolver: '0x93793866F3AB07a34cb89C6751167f0EBaCf0ce3' as `0x${string}`,
   treasury: '0x5ca1b0EFE9Eb303606ddec5EA6e931Fe57A08778' as `0x${string}`,
   admin: '0x4dc74a8532550ffca11fb958549ca0b72e3f1f1c' as `0x${string}`,
+  // Mainnet doesn't have facets (monolithic)
+  facets: undefined,
 };
 
 const TESTNET_ADDRESSES = {
-  core: '0x7A06375bF7E7a2969b6145Aa2B1683cbBe2430FD' as `0x${string}`,
-  usdc: '0xA2268A03Fe3e4B122C06cE3DaDf319a32AF40272' as `0x${string}`,
-  chainlinkResolver: '0x753155B174d72509c82fB65938e21BA10eF076c6' as `0x${string}`,
-  treasury: '0xA1a74A2cA09fa96A78451F3DE762466Ce34653df' as `0x${string}`,
+  // Testnet uses Diamond architecture (Router + Facets)
+  core: '0x77dF457e9DD84881702996Bd75F59817786e9D59' as `0x${string}`,
+  usdc: '0xcC12497956DBdE4cE52566476679C2445d29Ea0F' as `0x${string}`,
+  chainlinkResolver: '0xFB94C0F7396a5Cf927270FAe3eC542c35d5A6601' as `0x${string}`,
+  treasury: '0x7D3e9D7E08caF9E0922256360a92F521d7B868C3' as `0x${string}`,
   admin: '0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F' as `0x${string}`,
+  // Diamond facets
+  facets: {
+    market: '0x4F6457D9C07Aa15f7804e17be79F31Fd0004BEeA' as `0x${string}`,
+    trading: '0xC9CEC1366A387EeB86d926633c5858297d8b7165' as `0x${string}`,
+    liquidity: '0x78F54898A4a6B69ef9846c940E3c018513162434' as `0x${string}`,
+    settlement: '0x6ccc6aFF2FC3246597D0c03d77E24c3fF79a7D8C' as `0x${string}`,
+  },
 };
 
 // Get current network from localStorage or default to testnet
