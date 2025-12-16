@@ -24,4 +24,11 @@ contract MockUSDC is ERC20, AccessControl {
         if (amount == 0) revert BadAmount();
         _mint(to, amount);
     }
+
+    // Public faucet for testnet - allows anyone to mint up to 1M USDC per call
+    function faucet(uint256 amount) external {
+        if (amount == 0) revert BadAmount();
+        if (amount > 1_000_000e6) revert BadAmount(); // Max 1M USDC per call
+        _mint(msg.sender, amount);
+    }
 }

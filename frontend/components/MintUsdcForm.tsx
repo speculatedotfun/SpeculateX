@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
-import { getAddresses, getNetwork } from '@/lib/contracts';
-import { usdcAbi, coreAbi } from '@/lib/abis';
+import { getAddresses, getNetwork, getCurrentNetwork } from '@/lib/contracts';
+import { usdcAbi, getCoreAbi } from '@/lib/abis';
 import { motion } from 'framer-motion';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
@@ -60,9 +60,10 @@ export default function MintUsdcForm() {
     if (!address || !mintAmount) return;
     try {
       const amount = parseUnits(mintAmount, 6);
+      // Call faucet directly on MockUSDC (testnet only)
       writeContract({
-        address: addresses.core,
-        abi: coreAbi,
+        address: addresses.usdc,
+        abi: usdcAbi,
         functionName: 'faucet',
         args: [amount],
       });

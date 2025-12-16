@@ -15,17 +15,17 @@ const MAINNET_ADDRESSES = {
 
 const TESTNET_ADDRESSES = {
   // Testnet uses Diamond architecture (Router + Facets)
-  core: '0x77dF457e9DD84881702996Bd75F59817786e9D59' as `0x${string}`,
-  usdc: '0xcC12497956DBdE4cE52566476679C2445d29Ea0F' as `0x${string}`,
-  chainlinkResolver: '0xFB94C0F7396a5Cf927270FAe3eC542c35d5A6601' as `0x${string}`,
-  treasury: '0x7D3e9D7E08caF9E0922256360a92F521d7B868C3' as `0x${string}`,
+  core: '0xE2BD9a1ac99B8215620628FC43838e4361D476a0' as `0x${string}`,
+  usdc: '0xbCD27B18f51FCB7536b9e7DDB5cAFC9628CA9489' as `0x${string}`,
+  chainlinkResolver: '0x39FD1A9AE3556340D2aBfED7654F900db688b464' as `0x${string}`,
+  treasury: '0xDB6787414d4Ed14Dbd46eB58129bd72352725948' as `0x${string}`,
   admin: '0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F' as `0x${string}`,
   // Diamond facets
   facets: {
-    market: '0x4F6457D9C07Aa15f7804e17be79F31Fd0004BEeA' as `0x${string}`,
-    trading: '0xC9CEC1366A387EeB86d926633c5858297d8b7165' as `0x${string}`,
-    liquidity: '0x78F54898A4a6B69ef9846c940E3c018513162434' as `0x${string}`,
-    settlement: '0x6ccc6aFF2FC3246597D0c03d77E24c3fF79a7D8C' as `0x${string}`,
+    market: '0x62ECF466B3AC466a9874d9dFA8F22a2E3Df73aa4' as `0x${string}`,
+    trading: '0x2188635103765aBD7b81fB9C71d44e38d79Aa405' as `0x${string}`,
+    liquidity: '0x2CF2d8818DE346d72925bBcbe52c056c64B4D320' as `0x${string}`,
+    settlement: '0x572B3607EbE805e9f7C18c0c19a17B8d185d2bf3' as `0x${string}`,
   },
 };
 

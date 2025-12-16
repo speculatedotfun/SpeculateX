@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient } from 'wagmi';
 import { parseUnits, keccak256, stringToBytes } from 'viem';
-import { addresses } from '@/lib/contracts';
-import { coreAbi, usdcAbi } from '@/lib/abis';
+import { addresses, getCurrentNetwork } from '@/lib/contracts';
+import { getCoreAbi, usdcAbi } from '@/lib/abis';
 import { canCreateMarkets } from '@/lib/hooks';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, DollarSign, ArrowUpCircle, ArrowDownCircle, Target, Wallet, Search, Info, Clock } from 'lucide-react';
@@ -227,7 +227,7 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
 
       const txHash = await writeContractAsync({
         address: addresses.core,
-        abi: coreAbi,
+        abi: getCoreAbi(getCurrentNetwork()),
         functionName: 'createMarket',
         args: [
           generatedQuestion, 

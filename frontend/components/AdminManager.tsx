@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient } from 'wagmi';
-import { getAddresses } from '@/lib/contracts';
-import { coreAbi } from '@/lib/abis';
+import { getAddresses, getCurrentNetwork } from '@/lib/contracts';
+import { getCoreAbi } from '@/lib/abis';
 import { isAdmin as checkIsAdmin } from '@/lib/hooks';
 import { keccak256, stringToBytes } from 'viem';
 import { Button } from '@/components/ui/button';
@@ -58,7 +58,7 @@ export default function AdminManager() {
       pushToast({ title: 'Granting Admin Role', description: 'Please confirm the transaction...', type: 'info' });
       const adminHash = await addAdminAsync({
         address: addresses.core,
-        abi: coreAbi,
+        abi: getCoreAbi(getCurrentNetwork()),
         functionName: 'grantRole',
         args: [DEFAULT_ADMIN_ROLE as `0x${string}`, newAdminAddress as `0x${string}`],
       });
@@ -71,7 +71,7 @@ export default function AdminManager() {
       // Grant MARKET_CREATOR_ROLE
       const creatorHash = await addAdminAsync({
         address: addresses.core,
-        abi: coreAbi,
+        abi: getCoreAbi(getCurrentNetwork()),
         functionName: 'grantRole',
         args: [MARKET_CREATOR_ROLE as `0x${string}`, newAdminAddress as `0x${string}`],
       });
@@ -92,7 +92,7 @@ export default function AdminManager() {
       const addresses = getAddresses();
       await setChainlinkResolver({
         address: addresses.core,
-        abi: coreAbi,
+        abi: getCoreAbi(getCurrentNetwork()),
         functionName: 'setChainlinkResolver',
         args: [chainlinkResolverAddress as `0x${string}`],
       });

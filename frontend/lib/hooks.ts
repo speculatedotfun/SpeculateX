@@ -1,8 +1,8 @@
 import { readContract, getPublicClient } from 'wagmi/actions';
 import { config } from './wagmi';
-import { getAddresses, getChainId, MAINNET_CHAIN_ID, TESTNET_CHAIN_ID } from './contracts';
+import { getAddresses, getChainId, getCurrentNetwork, MAINNET_CHAIN_ID, TESTNET_CHAIN_ID } from './contracts';
 import { formatUnits, keccak256, stringToBytes } from 'viem';
-import { coreAbi } from './abis';
+import { getCoreAbi } from './abis';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -20,7 +20,7 @@ export async function getMarketCount(): Promise<bigint> {
     const publicClient = getClientForCurrentNetwork();
     const result = await publicClient.readContract({
       address: addresses.core,
-      abi: coreAbi,
+      abi: getCoreAbi(getCurrentNetwork()),
       functionName: 'marketCount',
       args: [],
     });
@@ -43,7 +43,7 @@ export async function getMarket(id: bigint) {
     const publicClient = getClientForCurrentNetwork();
     const result = await publicClient.readContract({
       address: addresses.core,
-      abi: coreAbi,
+      abi: getCoreAbi(getCurrentNetwork()),
       functionName: 'markets',
       args: [id],
     }) as any;
@@ -138,7 +138,7 @@ export async function getSpotPriceYesE6(marketId: bigint): Promise<bigint> {
   const publicClient = getClientForCurrentNetwork();
   return await publicClient.readContract({
     address: addresses.core,
-    abi: coreAbi,
+    abi: getCoreAbi(getCurrentNetwork()),
     functionName: 'spotPriceYesE6',
     args: [marketId],
   }) as bigint;
@@ -149,7 +149,7 @@ export async function getSpotPriceNoE6(marketId: bigint): Promise<bigint> {
   const publicClient = getClientForCurrentNetwork();
   return await publicClient.readContract({
     address: addresses.core,
-    abi: coreAbi,
+    abi: getCoreAbi(getCurrentNetwork()),
     functionName: 'spotPriceNoE6',
     args: [marketId],
   }) as bigint;
@@ -170,7 +170,7 @@ export async function getMarketState(id: bigint) {
   const publicClient = getClientForCurrentNetwork();
   const [qYes, qNo, vault, b, pYesE6] = await publicClient.readContract({
     address: addresses.core,
-    abi: coreAbi,
+    abi: getCoreAbi(getCurrentNetwork()),
     functionName: 'getMarketState',
     args: [id],
   }) as [bigint, bigint, bigint, bigint, bigint];
@@ -191,7 +191,7 @@ export async function getMarketResolution(id: bigint) {
     const publicClient = getClientForCurrentNetwork();
     const result = await publicClient.readContract({
       address: addresses.core,
-      abi: coreAbi,
+      abi: getCoreAbi(getCurrentNetwork()),
       functionName: 'getMarketResolution',
       args: [id],
     }) as any;
@@ -239,7 +239,7 @@ export async function isAdmin(address: `0x${string}`): Promise<boolean> {
     const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000';
     const hasAdminRole = await publicClient.readContract({
       address: addresses.core,
-      abi: coreAbi,
+      abi: getCoreAbi(getCurrentNetwork()),
       functionName: 'hasRole',
       args: [DEFAULT_ADMIN_ROLE as `0x${string}`, address],
     }) as boolean;
@@ -272,7 +272,7 @@ export async function canCreateMarkets(address: `0x${string}`): Promise<boolean>
     const MARKET_CREATOR_ROLE = keccak256(stringToBytes('MARKET_CREATOR_ROLE'));
     const hasCreatorRole = await publicClient.readContract({
       address: addresses.core,
-      abi: coreAbi,
+      abi: getCoreAbi(getCurrentNetwork()),
       functionName: 'hasRole',
       args: [MARKET_CREATOR_ROLE, address],
     }) as boolean;
@@ -293,7 +293,7 @@ export async function getPendingLpFees(id: bigint, user: `0x${string}`) {
   const publicClient = getClientForCurrentNetwork();
   return await publicClient.readContract({
     address: addresses.core,
-    abi: coreAbi,
+    abi: getCoreAbi(getCurrentNetwork()),
     functionName: 'pendingLpFees',
     args: [id, user],
   }) as bigint;
@@ -304,7 +304,7 @@ export async function getInvariantUsdc(id: bigint) {
   const publicClient = getClientForCurrentNetwork();
   return await publicClient.readContract({
     address: addresses.core,
-    abi: coreAbi,
+    abi: getCoreAbi(getCurrentNetwork()),
     functionName: 'invariantUsdc',
     args: [id],
   }) as bigint;
@@ -315,7 +315,7 @@ export async function getLpResidualPot(id: bigint): Promise<bigint> {
   const publicClient = getClientForCurrentNetwork();
   return await publicClient.readContract({
     address: addresses.core,
-    abi: coreAbi,
+    abi: getCoreAbi(getCurrentNetwork()),
     functionName: 'lpResidualUSDC',
     args: [id],
   }) as bigint;
