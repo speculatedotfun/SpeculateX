@@ -1,15 +1,73 @@
 import { readContract, getPublicClient } from 'wagmi/actions';
 import { config } from './wagmi';
 import { getAddresses, getChainId, getCurrentNetwork, MAINNET_CHAIN_ID, TESTNET_CHAIN_ID } from './contracts';
-import { formatUnits, keccak256, stringToBytes } from 'viem';
+import { formatUnits, keccak256, stringToBytes, parseAbiItem } from 'viem';
 import { getCoreAbi } from './abis';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
 
+const questionCache = new Map<string, string>();
+
+function cacheKey(core: string, chainId: number, marketId: bigint) {
+  return `${chainId}:${core.toLowerCase()}:${marketId.toString()}`;
+}
+
 function isNoFacetError(err: any) {
   const msg = (err?.shortMessage || err?.message || '').toString();
   return msg.includes('NO_FACET') || msg.includes('no facet') || msg.includes('NO_FACET');
+}
+
+async function getQuestionFromMarketCreatedEvent(marketId: bigint): Promise<string | null> {
+  const addresses = getAddresses();
+  const chainId = getChainId();
+  const key = cacheKey(addresses.core, chainId, marketId);
+
+  if (questionCache.has(key)) return questionCache.get(key)!;
+  if (typeof window !== 'undefined') {
+    const ls = localStorage.getItem(`marketQuestion:${key}`);
+    if (ls) {
+      questionCache.set(key, ls);
+      return ls;
+    }
+  }
+
+  const publicClient = getClientForCurrentNetwork();
+  const currentBlock = await publicClient.getBlockNumber();
+
+  // Adaptive scan: start small and expand if not found (avoid RPC limits)
+  const ranges = [50_000n, 150_000n, 450_000n, 1_000_000n];
+  const event = parseAbiItem(
+    'event MarketCreated(uint256 indexed id, address yes, address no, bytes32 questionHash, string question, uint256 initUsdc, uint256 expiryTimestamp)'
+  );
+
+  for (const span of ranges) {
+    const fromBlock = currentBlock > span ? (currentBlock - span) : 0n;
+    try {
+      const logs = await publicClient.getLogs({
+        address: addresses.core,
+        event,
+        args: { id: marketId },
+        fromBlock,
+        toBlock: 'latest',
+      });
+      if (logs && logs.length > 0) {
+        const q = ((logs[0] as any).args?.question ?? '') as string;
+        const trimmed = (q || '').trim();
+        if (trimmed) {
+          questionCache.set(key, trimmed);
+          if (typeof window !== 'undefined') {
+            try { localStorage.setItem(`marketQuestion:${key}`, trimmed); } catch {}
+          }
+          return trimmed;
+        }
+      }
+    } catch {
+      // ignore and expand range
+    }
+  }
+
+  return null;
 }
 
 // Helper to get public client for current network
@@ -93,6 +151,13 @@ export async function getMarket(id: bigint) {
 
     const exists = !!yes && yes !== ZERO_ADDRESS;
 
+    // If question is not stored (Diamond testnet), try to recover it from MarketCreated event logs.
+    let question = ((isObject && result.question ? result.question : '') ?? '') as string;
+    if (!question || question.trim() === '') {
+      const recovered = await getQuestionFromMarketCreatedEvent(id);
+      if (recovered) question = recovered;
+    }
+
     return {
       yes: yes ?? ZERO_ADDRESS,
       no: no ?? ZERO_ADDRESS,
@@ -105,7 +170,7 @@ export async function getMarket(id: bigint) {
       feeLpBps,
       totalFeeBps: feeTreasuryBps + feeVaultBps + feeLpBps,
       status,
-      question: (isObject && result.question ? result.question : '') ?? '',
+      question,
       questionHash,
       creator,
       resolution,
