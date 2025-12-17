@@ -2,18 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient } from 'wagmi';
-import { getAddresses, getCurrentNetwork } from '@/lib/contracts';
-import { getCoreAbi } from '@/lib/abis';
+import { getAddresses, getCurrentNetwork, getNetwork } from '@/lib/contracts';
+import { getCoreAbi, getChainlinkResolverAbi } from '@/lib/abis';
 import { isAdmin as checkIsAdmin } from '@/lib/hooks';
 import { keccak256, stringToBytes } from 'viem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
 import { Shield, UserPlus, X, Link, Database } from 'lucide-react';
-import chainlinkResolverAbiData from '@/lib/abis/ChainlinkResolver.json';
-const chainlinkResolverAbi = Array.isArray(chainlinkResolverAbiData) 
-  ? chainlinkResolverAbiData 
-  : (chainlinkResolverAbiData as any).abi || chainlinkResolverAbiData;
+const chainlinkResolverAbi = getChainlinkResolverAbi(getNetwork());
 
 export default function AdminManager() {
   const { address } = useAccount();
@@ -88,6 +85,15 @@ export default function AdminManager() {
 
   const handleSetChainlinkResolver = async () => {
     if (!chainlinkResolverAddress) return;
+    // Diamond Testnet uses timelocked executeSetResolver; no direct setter.
+    if (getNetwork() === 'testnet') {
+      pushToast({
+        title: 'Not supported on Testnet',
+        description: 'Testnet Diamond uses a 24h timelock. Use contracts/script/ExecuteAfterDelay.s.sol to activate resolver + facets.',
+        type: 'error',
+      });
+      return;
+    }
     try {
       const addresses = getAddresses();
       await setChainlinkResolver({
@@ -103,6 +109,14 @@ export default function AdminManager() {
   };
 
   const handleRegisterFeed = async (feedId?: string, feedAddr?: string) => {
+    if (getNetwork() === 'testnet') {
+      pushToast({
+        title: 'Not supported on Testnet',
+        description: 'New Testnet resolver has no feed registry. Each market stores the Chainlink feed address directly.',
+        type: 'error',
+      });
+      return;
+    }
     const feed = feedId || selectedFeed;
     const addr = feedAddr || feedAddress;
     

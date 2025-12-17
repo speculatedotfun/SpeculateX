@@ -1,8 +1,8 @@
 'use client';
 import { useEffect } from 'react';
 import { useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
-import { getAddresses } from '@/lib/contracts';
-import { coreAbi } from '@/lib/abis';
+import { getAddresses, getNetwork } from '@/lib/contracts';
+import { getCoreAbi } from '@/lib/abis';
 import { formatUnits, encodeAbiParameters, keccak256, stringToBytes } from 'viem';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,11 +38,16 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
   const { pushToast } = useToast();
   const publicClient = usePublicClient();
   const addresses = getAddresses();
+  const network = getNetwork();
+  const coreAbiForNetwork = getCoreAbi(network);
+
+  // This component is for the old monolithic core admin flow.
+  // Diamond Testnet uses different admin operations (timelock + resolver.resolve()).
 
   const handleResolve = (id: number, yesWins: boolean) => {
     writeContract({
       address: addresses.core,
-      abi: coreAbi,
+      abi: coreAbiForNetwork,
       functionName: 'resolveMarket',
       args: [BigInt(id), yesWins],
     });
@@ -51,7 +56,7 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
   const handleFinalize = (id: number) => {
     writeContract({
       address: addresses.core,
-      abi: coreAbi,
+      abi: coreAbiForNetwork,
       functionName: 'finalizeResidual',
       args: [BigInt(id)],
     });
@@ -68,7 +73,7 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
       // Get market resolution to find the priceFeedId
       const resolution = await publicClient.readContract({
         address: addresses.core,
-        abi: coreAbi,
+        abi: coreAbiForNetwork,
         functionName: 'getMarketResolution',
         args: [BigInt(marketId)],
       }) as any;
@@ -144,7 +149,7 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
 
       const upkeepNeeded = await publicClient.readContract({
         address: addresses.core,
-        abi: coreAbi,
+        abi: coreAbiForNetwork,
         functionName: 'checkUpkeep',
         args: [BigInt(marketId)],
       }) as [boolean, string];
@@ -161,7 +166,7 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
       // Get market resolution to find the priceFeedId
       const resolution = await publicClient.readContract({
         address: addresses.core,
-        abi: coreAbi,
+        abi: coreAbiForNetwork,
         functionName: 'getMarketResolution',
         args: [BigInt(marketId)],
       }) as any;
@@ -276,6 +281,8 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
       setTimeout(() => window.location.reload(), 1500);
     }
   }, [isSuccess, pushToast]);
+
+  if (network === 'testnet') return null;
 
   return (
     <div className="space-y-4">

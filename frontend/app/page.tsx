@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { getMarketCount, getMarket, getMarketState, getSpotPriceYesE6, getSpotPriceNoE6, getMarketResolution } from '@/lib/hooks';
+import { getMarketCount, getMarket, getMarketState, getSpotPriceYesE6, getMarketResolution } from '@/lib/hooks';
 import { formatUnits } from 'viem';
 import { useQuery } from '@tanstack/react-query';
 import { fetchSubgraph } from '@/lib/subgraphClient';
@@ -78,13 +78,9 @@ export default function Home() {
 
           if (!foundFeatured && market.status === 0 && (!resolution || !resolution.isResolved)) {
             try {
-              const [priceYesE6, priceNoE6] = await Promise.all([
-                getSpotPriceYesE6(marketId),
-                getSpotPriceNoE6(marketId),
-              ]);
-
+              const priceYesE6 = await getSpotPriceYesE6(marketId);
               const priceYes = Number(priceYesE6) / 1e6;
-              const priceNo = Number(priceNoE6) / 1e6;
+              const priceNo = Math.max(0, Math.min(1, 1 - priceYes));
 
               setFeaturedMarket({
                 id: i,

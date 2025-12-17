@@ -5,6 +5,12 @@ import { formatUnits, keccak256, stringToBytes } from 'viem';
 import { getCoreAbi } from './abis';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
+
+function isNoFacetError(err: any) {
+  const msg = (err?.shortMessage || err?.message || '').toString();
+  return msg.includes('NO_FACET') || msg.includes('no facet') || msg.includes('NO_FACET');
+}
 
 // Helper to get public client for current network
 function getClientForCurrentNetwork() {
@@ -56,15 +62,23 @@ export async function getMarket(id: bigint) {
     const qNo = BigInt(isObject ? result.qNo ?? 0n : result?.[3] ?? 0n);
     const bE18 = BigInt(isObject ? result.bE18 ?? 0n : result?.[4] ?? 0n);
     const usdcVault = BigInt(isObject ? result.usdcVault ?? 0n : result?.[5] ?? 0n);
-    const feeTreasuryBps = Number(isObject ? result.feeTreasuryBps ?? 0 : result?.[6] ?? 0);
-    const feeVaultBps = Number(isObject ? result.feeVaultBps ?? 0 : result?.[7] ?? 0);
-    const feeLpBps = Number(isObject ? result.feeLpBps ?? 0 : result?.[8] ?? 0);
-    const status = Number(isObject ? result.status ?? 0 : result?.[9] ?? 0);
-    const question = (isObject ? result.question : result?.[10]) ?? '';
-    const lp = (isObject ? result.lp : result?.[11]) as `0x${string}` | undefined;
-    const resolutionRaw = isObject ? result.resolution : result?.[12];
-    const totalLpUsdc = BigInt(isObject ? result.totalLpUsdc ?? 0n : result?.[13] ?? 0n);
-    const lpFeesUSDC = BigInt(isObject ? result.lpFeesUSDC ?? 0n : result?.[14] ?? 0n);
+    const feeTreasuryBps = Number(isObject ? (result.feeTreasuryBps ?? 0) : (result?.[6] ?? 0));
+    const feeLpBps = Number(isObject ? (result.feeLpBps ?? 0) : (result?.[7] ?? 0));
+    const feeVaultBps = Number(isObject ? (result.feeVaultBps ?? 0) : (result?.[8] ?? 0));
+    const status = Number(isObject ? (result.status ?? 0) : (result?.[9] ?? 0));
+
+    // Mainnet old core had `question` + `lp` in the struct getter; Diamond testnet stores only `questionHash`.
+    const questionHash = (isObject ? (result.questionHash ?? ZERO_BYTES32) : (result?.[10] ?? ZERO_BYTES32)) as `0x${string}`;
+    const creator = (isObject ? (result.creator ?? ZERO_ADDRESS) : (result?.[11] ?? ZERO_ADDRESS)) as `0x${string}`;
+
+    // Diamond `Market` struct layout ends with `resolution` (index 17).
+    // Legacy monolith had a different layout, so we also tolerate older indices.
+    const resolutionRaw = isObject
+      ? result.resolution
+      : (Array.isArray(result) ? (result?.[17] ?? result?.[16] ?? result?.[12]) : undefined);
+    const totalLpUsdc = BigInt(isObject ? (result.totalLpUsdc ?? 0n) : (result?.[12] ?? 0n));
+    const lpFeesUSDC = BigInt(isObject ? (result.lpFeesUSDC ?? 0n) : (result?.[13] ?? 0n));
+    const residualUSDC = BigInt(isObject ? (result.residualUSDC ?? 0n) : (result?.[14] ?? 0n));
 
     const resolution = {
       expiryTimestamp: BigInt(resolutionRaw?.expiryTimestamp ?? resolutionRaw?.[0] ?? 0n),
@@ -91,11 +105,13 @@ export async function getMarket(id: bigint) {
       feeLpBps,
       totalFeeBps: feeTreasuryBps + feeVaultBps + feeLpBps,
       status,
-      question,
-      lp: lp ?? ZERO_ADDRESS,
+      question: (isObject && result.question ? result.question : '') ?? '',
+      questionHash,
+      creator,
       resolution,
       totalLpUsdc,
       lpFeesUSDC,
+      residualUSDC,
       exists,
     };
   } catch (error: any) {
@@ -136,23 +152,17 @@ export async function getMarket(id: bigint) {
 export async function getSpotPriceYesE6(marketId: bigint): Promise<bigint> {
   const addresses = getAddresses();
   const publicClient = getClientForCurrentNetwork();
-  return await publicClient.readContract({
-    address: addresses.core,
-    abi: getCoreAbi(getCurrentNetwork()),
-    functionName: 'spotPriceYesE6',
-    args: [marketId],
-  }) as bigint;
-}
-
-export async function getSpotPriceNoE6(marketId: bigint): Promise<bigint> {
-  const addresses = getAddresses();
-  const publicClient = getClientForCurrentNetwork();
-  return await publicClient.readContract({
-    address: addresses.core,
-    abi: getCoreAbi(getCurrentNetwork()),
-    functionName: 'spotPriceNoE6',
-    args: [marketId],
-  }) as bigint;
+  try {
+    return await publicClient.readContract({
+      address: addresses.core,
+      abi: getCoreAbi(getCurrentNetwork()),
+      functionName: 'spotPriceYesE6',
+      args: [marketId],
+    }) as bigint;
+  } catch (e: any) {
+    if (isNoFacetError(e)) return 500000n; // neutral 50/50 until activated
+    throw e;
+  }
 }
 
 export async function getPriceYes(marketId: bigint): Promise<string> {
@@ -161,27 +171,51 @@ export async function getPriceYes(marketId: bigint): Promise<string> {
 }
 
 export async function getPriceNo(marketId: bigint): Promise<string> {
-  const priceE6 = await getSpotPriceNoE6(marketId);
-  return (Number(priceE6) / 1e6).toFixed(6);
+  const priceYesE6 = await getSpotPriceYesE6(marketId);
+  const priceNoE6 = 1_000_000n - (priceYesE6 > 1_000_000n ? 1_000_000n : priceYesE6);
+  return (Number(priceNoE6) / 1e6).toFixed(6);
 }
 
 export async function getMarketState(id: bigint) {
   const addresses = getAddresses();
   const publicClient = getClientForCurrentNetwork();
-  const [qYes, qNo, vault, b, pYesE6] = await publicClient.readContract({
-    address: addresses.core,
-    abi: getCoreAbi(getCurrentNetwork()),
-    functionName: 'getMarketState',
-    args: [id],
-  }) as [bigint, bigint, bigint, bigint, bigint];
+  try {
+    const raw = await publicClient.readContract({
+      address: addresses.core,
+      abi: getCoreAbi(getCurrentNetwork()),
+      functionName: 'getMarketState',
+      args: [id],
+    }) as any;
 
-  return {
-    qYes,
-    qNo,
-    vault,
-    b,
-    priceYesE6: pYesE6,
-  };
+    // Mainnet (old): [qYes,qNo,vault,b,priceYesE6]
+    // Testnet (diamond): [qYes,qNo,vault,bE18,status,questionHash]
+    const arr = Array.isArray(raw) ? raw : [raw];
+    const qYes = BigInt(arr?.[0] ?? 0n);
+    const qNo = BigInt(arr?.[1] ?? 0n);
+    const vault = BigInt(arr?.[2] ?? 0n);
+    const bE18 = BigInt(arr?.[3] ?? 0n);
+
+    let status = 0;
+    let questionHash = ZERO_BYTES32 as `0x${string}`;
+    let priceYesE6: bigint;
+
+    if (arr.length >= 6) {
+      status = Number(arr?.[4] ?? 0);
+      questionHash = (arr?.[5] ?? ZERO_BYTES32) as `0x${string}`;
+      // diamond doesn't return price; read from trading facet
+      priceYesE6 = await getSpotPriceYesE6(id);
+    } else {
+      priceYesE6 = BigInt(arr?.[4] ?? 0n);
+    }
+
+    return { qYes, qNo, vault, bE18, status, questionHash, priceYesE6 };
+  } catch (e: any) {
+    if (isNoFacetError(e)) {
+      // router not activated yet (facets not wired)
+      return { qYes: 0n, qNo: 0n, vault: 0n, bE18: 0n, status: 0, questionHash: ZERO_BYTES32 as `0x${string}`, priceYesE6: 500000n, notActivated: true };
+    }
+    throw e;
+  }
 }
 
 // Get market resolution config

@@ -6,7 +6,7 @@ import { getMarketState, getSpotPriceYesE6, getMarket, getMarketCount, getMarket
 import { readContract } from 'wagmi/actions';
 import { config } from '@/lib/wagmi';
 import { addresses } from '@/lib/contracts';
-import { coreAbi, positionTokenAbi } from '@/lib/abis';
+import { positionTokenAbi } from '@/lib/abis';
 
 export interface PortfolioPosition {
   marketId: number;

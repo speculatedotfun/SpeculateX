@@ -3,7 +3,6 @@ import type { PricePoint } from '../priceHistory/types';
 import { withSeedPoint } from '../marketUtils';
 import type { SnapshotTrade, SnapshotTimeRange } from '../useMarketSnapshot';
 import { usePublicClient } from 'wagmi';
-import { coreAbi } from '@/lib/abis';
 import { getAddresses } from '@/lib/contracts';
 import { decodeEventLog, parseAbiItem } from 'viem';
 

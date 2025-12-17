@@ -4,8 +4,8 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useAccount, useWriteContract, useReadContract, usePublicClient, useBlockNumber } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
-import { getAddresses } from '@/lib/contracts';
-import { coreAbi, usdcAbi, positionTokenAbi } from '@/lib/abis';
+import { getAddresses, getCurrentNetwork } from '@/lib/contracts';
+import { getCoreAbi, usdcAbi, positionTokenAbi } from '@/lib/abis';
 import { useToast } from '@/components/ui/toast';
 import { clamp, formatBalanceDisplay, toBigIntSafe } from '@/lib/tradingUtils';
 import { costFunction, spotPriceYesE18, findSharesOut, simulateBuyChunk } from '@/lib/lmsrMath';
@@ -96,6 +96,7 @@ export default function TradingCard({
 }: TradingCardProps) {
   const { address } = useAccount();
   const marketIdBI = useMemo(() => BigInt(marketId), [marketId]);
+  const coreAbiForNetwork = useMemo(() => getCoreAbi(getCurrentNetwork()), []);
   
   // --- UI State ---
   const [tradeMode, setTradeMode] = useState<'buy' | 'sell'>('buy');
@@ -158,7 +159,7 @@ export default function TradingCard({
   // --- Contract Reads ---
   const { data: contractData } = useReadContract({
     address: addresses.core,
-    abi: coreAbi,
+    abi: coreAbiForNetwork,
     functionName: 'markets',
     args: [marketIdBI],
     query: { enabled: marketId >= 0 },
@@ -166,12 +167,12 @@ export default function TradingCard({
 
   const marketStateQuery = useReadContract({
     address: addresses.core,
-    abi: coreAbi,
+    abi: coreAbiForNetwork,
     functionName: 'getMarketState',
     args: [marketIdBI],
     query: { enabled: marketId >= 0 },
   });
-  const marketState = marketStateQuery.data as (readonly [bigint, bigint, bigint, bigint, bigint]) | undefined;
+  const marketState = marketStateQuery.data as any;
   const refetchMarketState = marketStateQuery.refetch;
 
   // --- Derived Contract Data ---
@@ -202,7 +203,7 @@ export default function TradingCard({
   // --- Resolution Data ---
   const { data: resolutionData } = useReadContract({
     address: addresses.core,
-    abi: coreAbi,
+    abi: coreAbiForNetwork,
     functionName: 'getMarketResolution',
     args: [marketIdBI],
     query: { enabled: marketId >= 0 },
@@ -235,25 +236,40 @@ export default function TradingCard({
   // --- LP Data ---
   const lpSharesResult = useReadContract({
     address: addresses.core,
-    abi: coreAbi,
+    abi: coreAbiForNetwork,
     functionName: 'lpShares',
     args: address ? [marketIdBI, address] : undefined,
     query: { enabled: !!address && marketId >= 0 },
   });
   const lpSharesValue = (lpSharesResult.data as bigint | undefined) ?? 0n;
 
-  const pendingFeesResult = useReadContract({
+  // Diamond: there is no `pendingLpFees` function. Compute from public mappings:
+  // pending = (lpShares * accFeePerUSDCE18) / 1e18 - lpFeeDebt
+  const accFeeResult = useReadContract({
     address: addresses.core,
-    abi: coreAbi,
-    functionName: 'pendingLpFees',
+    abi: coreAbiForNetwork,
+    functionName: 'accFeePerUSDCE18',
+    args: [marketIdBI],
+    query: { enabled: marketId >= 0 },
+  });
+  const lpFeeDebtResult = useReadContract({
+    address: addresses.core,
+    abi: coreAbiForNetwork,
+    functionName: 'lpFeeDebt',
     args: address ? [marketIdBI, address] : undefined,
     query: { enabled: !!address && marketId >= 0 },
   });
-  const pendingFeesValue = (pendingFeesResult.data as bigint | undefined) ?? 0n;
+  const accFeePerUSDCE18 = (accFeeResult.data as bigint | undefined) ?? 0n;
+  const lpFeeDebt = (lpFeeDebtResult.data as bigint | undefined) ?? 0n;
+  const pendingFeesValue = useMemo(() => {
+    if (!address) return 0n;
+    const entitled = (lpSharesValue * accFeePerUSDCE18) / 1_000_000_000_000_000_000n;
+    return entitled > lpFeeDebt ? (entitled - lpFeeDebt) : 0n;
+  }, [address, lpSharesValue, accFeePerUSDCE18, lpFeeDebt]);
 
   const pendingResidualResult = useReadContract({
     address: addresses.core,
-    abi: coreAbi,
+    abi: coreAbiForNetwork,
     functionName: 'pendingLpResidual',
     args: address ? [marketIdBI, address] : undefined,
     query: { enabled: !!address && marketId >= 0 && isResolved },
@@ -268,9 +284,9 @@ export default function TradingCard({
   // --- Max Jump ---
   const maxJumpQuery = useReadContract({
     address: addresses.core,
-    abi: coreAbi,
-    functionName: 'maxUsdcBeforeJump',
-    args: [marketIdBI, side === 'yes'],
+    abi: coreAbiForNetwork,
+    functionName: 'maxUsdcPerTrade',
+    args: [],
     query: { enabled: marketId >= 0 },
   });
   const maxJumpE6 = (maxJumpQuery.data as bigint | undefined) ?? 0n;
@@ -309,7 +325,8 @@ export default function TradingCard({
       refetchMarketState?.(),
       refetchMaxJump?.(),
       lpSharesResult.refetch?.(),
-      pendingFeesResult.refetch?.(),
+      accFeeResult.refetch?.(),
+      lpFeeDebtResult.refetch?.(),
       pendingResidualResult.refetch?.(),
       usdcBalQuery.refetch?.(),
       yesBalQuery.refetch?.(),
@@ -319,7 +336,8 @@ export default function TradingCard({
     refetchMarketState,
     refetchMaxJump,
     lpSharesResult,
-    pendingFeesResult,
+    accFeeResult,
+    lpFeeDebtResult,
     pendingResidualResult,
     usdcBalQuery,
     yesBalQuery,
@@ -549,10 +567,10 @@ export default function TradingCard({
         
         const minOut = simulation.minOut > 0n ? simulation.minOut : 1n;
         const txHash = await writeContractAsync({
-            address: addresses.core,
-            abi: coreAbi,
-            functionName: side === 'yes' ? 'buyYes' : 'buyNo',
-            args: [marketIdBI, chunk, minOut],
+          address: addresses.core,
+          abi: coreAbiForNetwork,
+          functionName: 'buy',
+          args: [marketIdBI, side === 'yes', chunk, minOut],
         });
         
         await waitForReceipt(publicClient, txHash);
@@ -562,7 +580,7 @@ export default function TradingCard({
         await sleep(150);
     }
     await refetchAll();
-  }, [marketIdBI, isTradeable, side, writeContractAsync, publicClient, refetchAll, marketState, refetchMarketState, maxJumpE6, bE18, feeTreasuryBps, feeVaultBps, feeLpBps, addresses.core]);
+  }, [marketIdBI, isTradeable, side, writeContractAsync, publicClient, refetchAll, marketState, refetchMarketState, maxJumpE6, bE18, feeTreasuryBps, feeVaultBps, feeLpBps, addresses.core, coreAbiForNetwork]);
 
   const handleConfirmSplit = useCallback(async () => {
     if (pendingSplitAmount === 0n) {
@@ -623,20 +641,13 @@ export default function TradingCard({
         setBusyLabel('Submitting buy…');
         const txHash = await writeContractAsync({
           address: addresses.core,
-          abi: coreAbi,
-          functionName: side === 'yes' ? 'buyYes' : 'buyNo',
-          args: [marketIdBI, amountParsed, minOut],
+          abi: coreAbiForNetwork,
+          functionName: 'buy',
+          args: [marketIdBI, side === 'yes', amountParsed, minOut],
         });
         await waitForReceipt(publicClient, txHash);
       } else {
-        if (address && tokenAddr) {
-          await ensureAllowance({
-            publicClient, owner: address as `0x${string}`, tokenAddress: tokenAddr, spender: addresses.core,
-            required: amountParsed, currentAllowance: tokenAllowanceValue, writeContractAsync,
-            setBusyLabel, approvalLabel: 'Approving shares…', abi: positionTokenAbi
-          });
-        }
-        
+        // NOTE: Diamond `sell()` burns shares directly via core role – no ERC20 allowance needed.
         const tokensIn = amountParsed;
         const oldCost = costFunction(qYes, qNo, bE18);
         const newQYes = side === 'yes' ? qYes - tokensIn : qYes;
@@ -649,10 +660,10 @@ export default function TradingCard({
 
         setBusyLabel('Submitting sell…');
         const txHash = await writeContractAsync({
-            address: addresses.core,
-            abi: coreAbi,
-            functionName: side === 'yes' ? 'sellYes' : 'sellNo',
-            args: [marketIdBI, tokensIn, minUsdcOut],
+          address: addresses.core,
+          abi: coreAbiForNetwork,
+          functionName: 'sell',
+          args: [marketIdBI, side === 'yes', tokensIn, minUsdcOut],
         });
         await waitForReceipt(publicClient, txHash);
       }
@@ -668,7 +679,7 @@ export default function TradingCard({
       setPendingTrade(false);
       setBusyLabel('');
     }
-  }, [amount, amountBigInt, isTradeable, tradeMode, address, publicClient, writeContractAsync, usdcAllowanceValue, tokenAllowanceValue, overJumpCap, refetchAll, showToast, showErrorToast, bE18, feeLpBps, feeTreasuryBps, feeVaultBps, marketIdBI, qNo, qYes, side, tokenAddr, tradeDisabledReason, addresses.core, addresses.usdc]);
+  }, [amount, amountBigInt, isTradeable, tradeMode, address, publicClient, writeContractAsync, usdcAllowanceValue, tokenAllowanceValue, overJumpCap, refetchAll, showToast, showErrorToast, bE18, feeLpBps, feeTreasuryBps, feeVaultBps, marketIdBI, qNo, qYes, side, tokenAddr, tradeDisabledReason, addresses.core, addresses.usdc, coreAbiForNetwork]);
 
   const handleAddLiquidity = useCallback(async () => {
     if (!addLiquidityAmount) return;
@@ -686,7 +697,7 @@ export default function TradingCard({
       }
       const txHash = await writeContractAsync({
         address: addresses.core,
-        abi: coreAbi,
+        abi: coreAbiForNetwork,
         functionName: 'addLiquidity',
         args: [marketIdBI, amountParsed],
       });
@@ -699,20 +710,20 @@ export default function TradingCard({
     } finally {
       setPendingLpAction(null);
     }
-  }, [addLiquidityAmount, address, marketIdBI, publicClient, writeContractAsync, refetchAll, showErrorToast, usdcAllowanceValue, addresses.core, addresses.usdc]);
+  }, [addLiquidityAmount, address, marketIdBI, publicClient, writeContractAsync, refetchAll, showErrorToast, usdcAllowanceValue, addresses.core, addresses.usdc, coreAbiForNetwork]);
 
   const handleClaimAllLp = useCallback(async () => {
     try {
       setPendingLpAction('claim');
       if (pendingFeesValue > 0n) {
         const tx = await writeContractAsync({
-            address: addresses.core, abi: coreAbi, functionName: 'claimLpFees', args: [marketIdBI]
+            address: addresses.core, abi: coreAbiForNetwork, functionName: 'claimLpFees', args: [marketIdBI]
         });
         await waitForReceipt(publicClient, tx);
       }
       if (pendingResidualValue > 0n) {
         const tx = await writeContractAsync({
-            address: addresses.core, abi: coreAbi, functionName: 'claimLpResidual', args: [marketIdBI]
+            address: addresses.core, abi: coreAbiForNetwork, functionName: 'claimLpResidual', args: [marketIdBI]
         });
         await waitForReceipt(publicClient, tx);
       }
@@ -723,13 +734,13 @@ export default function TradingCard({
     } finally {
         setPendingLpAction(null);
     }
-  }, [marketIdBI, pendingFeesValue, pendingResidualValue, writeContractAsync, publicClient, refetchAll, showToast, showErrorToast, addresses.core]);
+  }, [marketIdBI, pendingFeesValue, pendingResidualValue, writeContractAsync, publicClient, refetchAll, showToast, showErrorToast, addresses.core, coreAbiForNetwork]);
 
   const handleRedeem = useCallback(async (isYes: boolean) => {
     try {
         setBusyLabel('Redeeming...');
         const tx = await writeContractAsync({
-            address: addresses.core, abi: coreAbi, functionName: 'redeem', args: [marketIdBI, isYes]
+            address: addresses.core, abi: coreAbiForNetwork, functionName: 'redeem', args: [marketIdBI, isYes]
         });
         await waitForReceipt(publicClient, tx);
         await refetchAll();
@@ -739,7 +750,7 @@ export default function TradingCard({
     } finally {
         setBusyLabel('');
     }
-  }, [marketIdBI, writeContractAsync, publicClient, refetchAll, showToast, showErrorToast, addresses.core]);
+  }, [marketIdBI, writeContractAsync, publicClient, refetchAll, showToast, showErrorToast, addresses.core, coreAbiForNetwork]);
 
   // --- Render ---
   return (

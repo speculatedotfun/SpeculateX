@@ -7,6 +7,8 @@ import liquidityFacetAbiData from './abis/LiquidityFacet.json';
 import settlementFacetAbiData from './abis/SettlementFacet.json';
 import usdcAbiData from './abis/MockUSDC.json';
 import positionTokenAbiData from './abis/PositionToken.json';
+import chainlinkResolverLegacyAbiData from './abis/ChainlinkResolver.legacy.json';
+import chainlinkResolverV2AbiData from './abis/ChainlinkResolver.v2.json';
 import type { Network } from './contracts';
 
 // Helper to extract ABI from wrapped or unwrapped format
@@ -48,3 +50,12 @@ export const coreAbi = coreAbiTestnet;
 // Token ABIs
 export const usdcAbi = extractAbi(usdcAbiData) as any;
 export const positionTokenAbi = extractAbi(positionTokenAbiData) as any;
+
+// Resolver ABIs
+export const chainlinkResolverAbiLegacy = extractAbi(chainlinkResolverLegacyAbiData) as any;
+export const chainlinkResolverAbiV2 = extractAbi(chainlinkResolverV2AbiData) as any;
+
+export function getChainlinkResolverAbi(network: Network) {
+  // Mainnet currently uses legacy resolver; Testnet Diamond uses the new resolver.
+  return network === 'mainnet' ? chainlinkResolverAbiLegacy : chainlinkResolverAbiV2;
+}

@@ -5,17 +5,17 @@
 **Deployed:** December 2024 (Diamond Architecture)
 
 ### Core Contracts
-- **Core Router**: `0x77dF457e9DD84881702996Bd75F59817786e9D59`
-- **Treasury**: `0x7D3e9D7E08caF9E0922256360a92F521d7B868C3`
-- **MockUSDC**: `0xcC12497956DBdE4cE52566476679C2445d29Ea0F`
-- **ChainlinkResolver**: `0xFB94C0F7396a5Cf927270FAe3eC542c35d5A6601`
+- **Core Router**: `0xE2BD9a1ac99B8215620628FC43838e4361D476a0`
+- **Treasury**: `0xDB6787414d4Ed14Dbd46eB58129bd72352725948`
+- **MockUSDC (with faucet)**: `0xbCD27B18f51FCB7536b9e7DDB5cAFC9628CA9489`
+- **ChainlinkResolver**: `0x39FD1A9AE3556340D2aBfED7654F900db688b464`
 - **Admin**: `0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F`
 
 ### Facets
-- **MarketFacet**: `0x4F6457D9C07Aa15f7804e17be79F31Fd0004BEeA`
-- **TradingFacet**: `0xC9CEC1366A387EeB86d926633c5858297d8b7165`
-- **LiquidityFacet**: `0x78F54898A4a6B69ef9846c940E3c018513162434`
-- **SettlementFacet**: `0x6ccc6aFF2FC3246597D0c03d77E24c3fF79a7D8C`
+- **MarketFacet**: `0x62ECF466B3AC466a9874d9dFA8F22a2E3Df73aa4`
+- **TradingFacet**: `0x2188635103765aBD7b81fB9C71d44e38d79Aa405`
+- **LiquidityFacet**: `0x2CF2d8818DE346d72925bBcbe52c056c64B4D320`
+- **SettlementFacet**: `0x572B3607EbE805e9f7C18c0c19a17B8d185d2bf3`
 
 ### Timelock Operations
 All facets and resolver are scheduled via 24-hour timelock.
@@ -23,7 +23,8 @@ See `opids-testnet.json` for operation IDs.
 
 **Next Step:** After 24 hours, execute operations:
 ```bash
-forge script script/ExecuteAfterDelay.s.sol --rpc-url bsc_testnet --broadcast
+cd contracts
+forge script script/ExecuteAfterDelay.s.sol --rpc-url https://data-seed-prebsc-1-s1.bnbchain.org:8545 --broadcast --legacy --gas-price 1000000000
 ```
 
 ---

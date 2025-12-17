@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useBlockNumber, useReadContract, usePublicClient } from 'wagmi';
-import { addresses } from '@/lib/contracts';
-import { coreAbi } from '@/lib/abis';
-import { getSpotPriceYesE6, getMarketResolution } from '@/lib/hooks';
+import { useBlockNumber, usePublicClient } from 'wagmi';
+import { getMarketState as fetchMarketState, getSpotPriceYesE6, getMarketResolution } from '@/lib/hooks';
 import type { PricePoint } from '@/lib/priceHistory/types';
 
 export interface MarketPrices {
@@ -60,15 +58,6 @@ export function useMarketData(marketId: number): UseMarketDataResult {
   const lastPriceUpdateTimeRef = useRef<number>(0);
   const processedTxHashesRef = useRef<Set<string>>(new Set());
 
-  // Market state query
-  const { refetch: refetchMarketState } = useReadContract({
-    address: addresses.core,
-    abi: coreAbi,
-    functionName: 'getMarketState',
-    args: [marketIdBigInt],
-    query: { enabled: marketId > 0 },
-  });
-
   // Load initial data
   const loadInitialData = useCallback(async () => {
     if (!publicClient || marketId <= 0) return;
@@ -78,16 +67,21 @@ export function useMarketData(marketId: number): UseMarketDataResult {
       setError(null);
 
       // Load market state
-      const stateResult = await refetchMarketState();
+      const stateResult = await fetchMarketState(marketIdBigInt);
       
       // Also check resolution status
       const resolution = await getMarketResolution(marketIdBigInt);
       
-      if (stateResult.data) {
-        const [qYes, qNo, vault, b, priceYes] = stateResult.data as [bigint, bigint, bigint, bigint, bigint];
-        setMarketState({ qYes, qNo, vault, b, priceYes });
+      if (stateResult) {
+        const qYes = (stateResult as any).qYes as bigint;
+        const qNo = (stateResult as any).qNo as bigint;
+        const vault = (stateResult as any).vault as bigint;
+        const b = (stateResult as any).bE18 as bigint;
+        const priceYesE6 = (stateResult as any).priceYesE6 as bigint;
 
-        let yesPrice = Number(priceYes) / 1e6;
+        setMarketState({ qYes, qNo, vault, b, priceYes: priceYesE6 });
+
+        let yesPrice = Number(priceYesE6) / 1e6;
         let noPrice = 1 - yesPrice;
 
         // Override prices if resolved
@@ -111,7 +105,7 @@ export function useMarketData(marketId: number): UseMarketDataResult {
     } finally {
       setIsLoading(false);
     }
-  }, [publicClient, marketId, refetchMarketState, marketIdBigInt]);
+  }, [publicClient, marketId, marketIdBigInt]);
 
   // Block polling for price changes
   useEffect(() => {

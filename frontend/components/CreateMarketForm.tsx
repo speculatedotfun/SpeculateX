@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient } from 'wagmi';
 import { parseUnits, keccak256, stringToBytes } from 'viem';
-import { addresses, getCurrentNetwork } from '@/lib/contracts';
+import { addresses, getCurrentNetwork, getNetwork } from '@/lib/contracts';
 import { getCoreAbi, usdcAbi } from '@/lib/abis';
 import { canCreateMarkets } from '@/lib/hooks';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,10 +19,10 @@ interface CreateMarketFormProps {
 // --- Verified Chainlink Supported Assets ---
 const CRYPTO_ASSETS = [
   // Majors
-  { symbol: 'BTC', name: 'Bitcoin', icon: '₿', feedId: 'BTC/USD' },
-  { symbol: 'ETH', name: 'Ethereum', icon: 'Ξ', feedId: 'ETH/USD' },
+  { symbol: 'BTC', name: 'Bitcoin', icon: '₿', feedId: 'BTC/USD', testnetFeed: '0x5741306c21795FdCBb9b265Ea0255F499DFe515C' },
+  { symbol: 'ETH', name: 'Ethereum', icon: 'Ξ', feedId: 'ETH/USD', testnetFeed: '0x143db3CEEfbdfe5631aDD3E50f7614B6ba708BA7' },
   { symbol: 'SOL', name: 'Solana', icon: '◎', feedId: 'SOL/USD' },
-  { symbol: 'BNB', name: 'Binance Coin', icon: '🔶', feedId: 'BNB/USD' },
+  { symbol: 'BNB', name: 'Binance Coin', icon: '🔶', feedId: 'BNB/USD', testnetFeed: '0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526' },
   { symbol: 'XRP', name: 'Ripple', icon: '✕', feedId: 'XRP/USD' },
   { symbol: 'ADA', name: 'Cardano', icon: '₳', feedId: 'ADA/USD' },
   { symbol: 'AVAX', name: 'Avalanche', icon: '🔺', feedId: 'AVAX/USD' },
@@ -58,17 +58,23 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const { pushToast } = useToast();
+  const network = getNetwork();
 
   // --- Form State ---
   const [selectedAsset, setSelectedAsset] = useState(CRYPTO_ASSETS[0]);
   const [searchQuery, setSearchQuery] = useState('');
   
   const filteredAssets = useMemo(() => {
-    return CRYPTO_ASSETS.filter(asset => 
-      asset.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const base = CRYPTO_ASSETS.filter(asset =>
+      asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       asset.symbol.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [searchQuery]);
+    // Testnet Diamond only supports assets with known testnet feeds.
+    if (network === 'testnet') {
+      return base.filter((a: any) => !!a.testnetFeed);
+    }
+    return base;
+  }, [searchQuery, network]);
   
   const [comparison, setComparison] = useState<'above' | 'below'>('above');
   const [targetPrice, setTargetPrice] = useState('');
@@ -212,7 +218,21 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
       const targetValueBigInt = parseUnits(targetPrice, 8);
       const comparisonEnum = comparison === 'above' ? 0 : 1; 
       
-      const oracleAddress = process.env.NEXT_PUBLIC_CHAINLINK_RESOLVER_ADDRESS as `0x${string}`; 
+      // Mainnet (old monolithic core): expects resolver-style oracle address (kept as-is).
+      // Testnet (diamond): expects the *Chainlink Aggregator feed* address in `oracleAddress`.
+      const oracleAddress =
+        network === 'testnet'
+          ? ((selectedAsset as any).testnetFeed as `0x${string}`)
+          : (process.env.NEXT_PUBLIC_CHAINLINK_RESOLVER_ADDRESS as `0x${string}`);
+
+      if (network === 'testnet' && (!oracleAddress || oracleAddress === ('0x0000000000000000000000000000000000000000' as any))) {
+        pushToast({
+          title: 'Unsupported asset on Testnet',
+          description: 'This asset does not have a configured Chainlink testnet feed. Please select BTC/ETH/BNB.',
+          type: 'error',
+        });
+        return;
+      }
       const feedId = keccak256(stringToBytes(selectedAsset.feedId));
 
       // Token Naming

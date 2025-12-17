@@ -40,14 +40,12 @@ The protocol features a "Be The Market" architecture where users can provide liq
 
 The protocol consists of several modular smart contracts:
 
-### 1. 🧠 SpeculateCore.sol (The Engine)
+### 1. 🧠 Core (Engine)
 
 The central hub of the protocol.
 
-- **Market Management:** Handles creation, trading, and liquidity provisioning.
-- **Positions:** Mints and burns `YES` and `NO` ERC20 tokens.
-- **Fees:** Distributes fees between the Treasury, the Market Vault, and Liquidity Providers.
-- **Safety:** Implements slippage protection, price jump caps, and reentrancy guards.
+- **BSC Mainnet** uses the legacy **monolithic** `SpeculateCore`.
+- **BSC Testnet** uses a **Diamond-style** architecture: `SpeculateCoreRouter` + Facets (`MarketFacet`, `TradingFacet`, `LiquidityFacet`, `SettlementFacet`).
 
 ### 2. 🧮 LMSRMath.sol (The Logic)
 
@@ -61,8 +59,8 @@ A specialized math library implementing the Logarithmic Market Scoring Rule.
 
 Ensures trustless and automated settlement.
 
-- **Automation:** Implements `checkUpkeep` and `performUpkeep` for Chainlink Keepers to auto-resolve markets upon expiry.
-- **Validation:** Checks for staleness, price bounds (±50% safety), and supports multi-source verification.
+- **Resolution:** Fetches Chainlink Aggregator price at expiry and calls the core settlement function.
+- **Validation:** Checks for staleness and answer validity.
 - **Data Feeds:** Fetches real-time price data (e.g., BTC/USD) from Chainlink Aggregators.
 
 ### 4. 💰 Financial Primitives
@@ -137,11 +135,13 @@ Fees are calculated in Basis Points (BPS) and split three ways:
 
 | Contract | Address | Explorer |
 |----------|---------|----------|
-| **SpeculateCore** | `0x297f325e98DdFd682dd2dc964a5BEda9861D54D5` | [View on BscScan](https://testnet.bscscan.com/address/0x297f325e98DdFd682dd2dc964a5BEda9861D54D5) |
-| **ChainlinkResolver** | `0x363eaff32ba46F804Bc7E6352A585A705ac97aBD` | [View on BscScan](https://testnet.bscscan.com/address/0x363eaff32ba46F804Bc7E6352A585A705ac97aBD) |
-| **Treasury** | `0xfa8CC09b570e7e35FA1C71A4986D856262Faf29a` | [View on BscScan](https://testnet.bscscan.com/address/0xfa8CC09b570e7e35FA1C71A4986D856262Faf29a) |
-| **MockUSDC** | `0x8e38899dEC73FbE6Bde8276b8729ac1a3A6C0b8e` | [View on BscScan](https://testnet.bscscan.com/address/0x8e38899dEC73FbE6Bde8276b8729ac1a3A6C0b8e) |
+| **SpeculateCoreRouter** | `0xE2BD9a1ac99B8215620628FC43838e4361D476a0` | [View on BscScan](https://testnet.bscscan.com/address/0xE2BD9a1ac99B8215620628FC43838e4361D476a0) |
+| **ChainlinkResolver** | `0x39FD1A9AE3556340D2aBfED7654F900db688b464` | [View on BscScan](https://testnet.bscscan.com/address/0x39FD1A9AE3556340D2aBfED7654F900db688b464) |
+| **Treasury** | `0xDB6787414d4Ed14Dbd46eB58129bd72352725948` | [View on BscScan](https://testnet.bscscan.com/address/0xDB6787414d4Ed14Dbd46eB58129bd72352725948) |
+| **MockUSDC (faucet)** | `0xbCD27B18f51FCB7536b9e7DDB5cAFC9628CA9489` | [View on BscScan](https://testnet.bscscan.com/address/0xbCD27B18f51FCB7536b9e7DDB5cAFC9628CA9489) |
 | **Admin** | `0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F` | [View on BscScan](https://testnet.bscscan.com/address/0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F) |
+
+**Important (Testnet activation):** after deploying the Diamond contracts, facets/resolver are **scheduled** behind a 24h timelock. Until you execute them, `createMarket/buy/sell` will revert with `NO_FACET`. See `contracts/DEPLOYMENT_INFO.md` and `contracts/script/ExecuteAfterDelay.s.sol`.
 
 **📋 Full Address List:** See [CONTRACT_ADDRESSES.md](./CONTRACT_ADDRESSES.md) for complete details.
 
