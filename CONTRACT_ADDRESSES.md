@@ -37,16 +37,25 @@
 
 | Contract | Address | BscScan |
 |----------|---------|---------|
-| **SpeculateCore** | `0x297f325e98DdFd682dd2dc964a5BEda9861D54D5` | [View](https://testnet.bscscan.com/address/0x297f325e98DdFd682dd2dc964a5BEda9861D54D5) |
-| **ChainlinkResolver** | `0x363eaff32ba46F804Bc7E6352A585A705ac97aBD` | [View](https://testnet.bscscan.com/address/0x363eaff32ba46F804Bc7E6352A585A705ac97aBD) |
-| **Treasury** | `0xfa8CC09b570e7e35FA1C71A4986D856262Faf29a` | [View](https://testnet.bscscan.com/address/0xfa8CC09b570e7e35FA1C71A4986D856262Faf29a) |
-| **Admin** | `0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F` | [View](https://testnet.bscscan.com/address/0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F) |
+| **SpeculateCoreRouter** | `0x601c5DA28dacc049481eD853E5b59b9F20Dd44a8` | [View](https://testnet.bscscan.com/address/0x601c5DA28dacc049481eD853E5b59b9F20Dd44a8) |
+| **ChainlinkResolver** | `0x18cA980383C16ee6C601a7a110D048e12e95e9F5` | [View](https://testnet.bscscan.com/address/0x18cA980383C16ee6C601a7a110D048e12e95e9F5) |
+| **Treasury** | `0x155FB12aD27259212f000443531fAe8a629F2A19` | [View](https://testnet.bscscan.com/address/0x155FB12aD27259212f000443531fAe8a629F2A19) |
+| **Admin** | *(deployer wallet)* | `vm.addr(PRIVATE_KEY)` |
 
 ### External Contracts
 
 | Contract | Address | BscScan |
 |----------|---------|---------|
-| **MockUSDC** | `0x8e38899dEC73FbE6Bde8276b8729ac1a3A6C0b8e` | [View](https://testnet.bscscan.com/address/0x8e38899dEC73FbE6Bde8276b8729ac1a3A6C0b8e) |
+| **MockUSDC** | `0x845740D345ECba415534df44C580ebb3A2432719` | [View](https://testnet.bscscan.com/address/0x845740D345ECba415534df44C580ebb3A2432719) |
+
+### Facets (Testnet / Diamond)
+
+| Facet | Address | BscScan |
+|------|---------|---------|
+| **MarketFacet** | `0x12886B7d5C5Ebb15B29F70e3De1c90A359a74B93` | [View](https://testnet.bscscan.com/address/0x12886B7d5C5Ebb15B29F70e3De1c90A359a74B93) |
+| **TradingFacet** | `0xe9521eA09C960780fe58bf625CA2b94D60E37a70` | [View](https://testnet.bscscan.com/address/0xe9521eA09C960780fe58bf625CA2b94D60E37a70) |
+| **LiquidityFacet** | `0xe975a09183a61Cdb1f7279265B75da6EEB24e6A4` | [View](https://testnet.bscscan.com/address/0xe975a09183a61Cdb1f7279265B75da6EEB24e6A4) |
+| **SettlementFacet** | `0x88A7F6DdeA0BCD7998d78331313E6fb8504039c1` | [View](https://testnet.bscscan.com/address/0x88A7F6DdeA0BCD7998d78331313E6fb8504039c1) |
 
 ### Chainlink Price Feeds (Testnet)
 
@@ -66,10 +75,11 @@
 - ✅ **USDC**: `0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d` (USDC אמיתי)
 
 ### Testnet
-- ✅ **SpeculateCore**: `0x297f325e98DdFd682dd2dc964a5BEda9861D54D5` (נפרס לאחרונה)
-- ✅ **ChainlinkResolver**: `0x363eaff32ba46F804Bc7E6352A585A705ac97aBD` (נפרס לאחרונה)
-- ✅ **Treasury**: `0xfa8CC09b570e7e35FA1C71A4986D856262Faf29a` (נפרס לאחרונה)
-- ✅ **MockUSDC**: `0x8e38899dEC73FbE6Bde8276b8729ac1a3A6C0b8e` (MockUSDC עם Faucet)
+- ✅ **SpeculateCoreRouter**: `0x601c5DA28dacc049481eD853E5b59b9F20Dd44a8` (Diamond)
+- ✅ **ChainlinkResolver**: `0x18cA980383C16ee6C601a7a110D048e12e95e9F5`
+- ✅ **Treasury**: `0x155FB12aD27259212f000443531fAe8a629F2A19`
+- ✅ **MockUSDC**: `0x845740D345ECba415534df44C580ebb3A2432719` (MockUSDC עם Faucet)
+- ✅ **Facets**: see table above
 
 ---
 
@@ -85,8 +95,8 @@ CHAINLINK_RESOLVER_ADDRESS=0x93793866F3AB07a34cb89C6751167f0EBaCf0ce3
 TREASURY_ADDRESS=0x5ca1b0EFE9Eb303606ddec5EA6e931Fe57A08778
 
 # כתובות Testnet (לאחר פריסה)
-# SPECULATE_CORE_ADDRESS=0x297f325e98DdFd682dd2dc964a5BEda9861D54D5
-# CHAINLINK_RESOLVER_ADDRESS=0x363eaff32ba46F804Bc7E6352A585A705ac97aBD
+# SPECULATE_CORE_ADDRESS=0x601c5DA28dacc049481eD853E5b59b9F20Dd44a8
+# CHAINLINK_RESOLVER_ADDRESS=0x18cA980383C16ee6C601a7a110D048e12e95e9F5
 ```
 
 ### `frontend/.env.local` (אופציונלי - לדריסה)

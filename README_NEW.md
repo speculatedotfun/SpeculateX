@@ -1,5 +1,7 @@
 # SpeculateX Protocol
 
+> Note: `README_NEW.md` is kept for historical reference. The up-to-date documentation is in `README.md`.
+
 <div align="center">
 
 ![SpeculateX Banner](./docs/images/home-page.png)

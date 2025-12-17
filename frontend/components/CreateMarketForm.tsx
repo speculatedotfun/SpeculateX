@@ -7,7 +7,7 @@ import { addresses, getCurrentNetwork, getNetwork } from '@/lib/contracts';
 import { getCoreAbi, usdcAbi } from '@/lib/abis';
 import { canCreateMarkets } from '@/lib/hooks';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, DollarSign, ArrowUpCircle, ArrowDownCircle, Target, Wallet, Search, Info, Clock } from 'lucide-react';
+import { Calendar, DollarSign, ArrowUpCircle, ArrowDownCircle, Target, Wallet, Search, Info, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
@@ -82,16 +82,66 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
   const [initUsdc, setInitUsdc] = useState('1000');
   const [hasMarketCreatorRole, setHasMarketCreatorRole] = useState<boolean | null>(null);
 
+  // --- Validation State ---
+  const [validationErrors, setValidationErrors] = useState({
+    targetPrice: '',
+    resolutionDate: '',
+    initUsdc: '',
+  });
+
+  // --- Real-time Validation ---
+  useEffect(() => {
+    const errors = { targetPrice: '', resolutionDate: '', initUsdc: '' };
+
+    // Target Price Validation
+    if (targetPrice) {
+      const price = parseFloat(targetPrice);
+      if (isNaN(price) || price <= 0) {
+        errors.targetPrice = 'Price must be greater than 0';
+      } else if (price > 1e15) {
+        errors.targetPrice = 'Price is unrealistically high';
+      }
+    }
+
+    // Resolution Date Validation
+    if (resolutionDate) {
+      const now = new Date();
+      const selected = new Date(resolutionDate);
+      const minDate = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
+      const maxDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000); // 1 year from now
+
+      if (selected <= now) {
+        errors.resolutionDate = 'Resolution date must be in the future';
+      } else if (selected < minDate) {
+        errors.resolutionDate = 'Market must last at least 1 hour';
+      } else if (selected > maxDate) {
+        errors.resolutionDate = 'Resolution date cannot exceed 1 year';
+      }
+    }
+
+    // Initial Liquidity Validation
+    if (initUsdc) {
+      const amount = parseFloat(initUsdc);
+      if (isNaN(amount) || amount < 100) {
+        errors.initUsdc = 'Minimum liquidity is 100 USDC';
+      } else if (amount > 1000000) {
+        errors.initUsdc = 'Maximum liquidity is 1,000,000 USDC';
+      }
+    }
+
+    setValidationErrors(errors);
+  }, [targetPrice, resolutionDate, initUsdc]);
+
   // --- EXACT QUESTION FORMATTING ---
   const generatedQuestion = useMemo(() => {
     if (!targetPrice || !resolutionDate) return '...';
-    
+
     const dateObj = new Date(resolutionDate);
-    
+
     // Format Date: "Dec, 15"
     const month = dateObj.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
     const day = dateObj.toLocaleString('en-US', { day: 'numeric', timeZone: 'UTC' });
-    
+
     // Format Time: "20:00"
     const time = dateObj.toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
 
@@ -303,7 +353,7 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
              />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-h-64 overflow-y-auto pr-1 custom-scrollbar" role="radiogroup" aria-label="Select cryptocurrency">
             {filteredAssets.length > 0 ? (
               filteredAssets.map((asset) => {
                 const isSelected = selectedAsset.symbol === asset.symbol;
@@ -312,18 +362,21 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
                     key={asset.symbol}
                     type="button"
                     onClick={() => setSelectedAsset(asset)}
-                    className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all group ${
-                      isSelected 
-                        ? 'border-[#14B8A6] bg-[#14B8A6]/10 shadow-sm' 
+                    role="radio"
+                    aria-checked={isSelected}
+                    aria-label={`${asset.name} (${asset.symbol})`}
+                    className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all group focus:outline-none focus:ring-2 focus:ring-[#14B8A6] focus:ring-offset-2 dark:focus:ring-offset-gray-900 ${
+                      isSelected
+                        ? 'border-[#14B8A6] bg-[#14B8A6]/10 shadow-sm'
                         : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-700'
                     }`}
                   >
-                    <span className="text-xl mb-1 group-hover:scale-110 transition-transform">{asset.icon}</span>
+                    <span className="text-xl mb-1 group-hover:scale-110 transition-transform" aria-hidden="true">{asset.icon}</span>
                     <span className={`text-xs font-bold ${isSelected ? 'text-[#14B8A6]' : 'text-gray-600 dark:text-gray-400'}`}>
                       {asset.symbol}
                     </span>
                     {isSelected && (
-                      <motion.div layoutId="check" className="absolute top-2 right-2 text-[#14B8A6]">
+                      <motion.div layoutId="check" className="absolute top-2 right-2 text-[#14B8A6]" aria-hidden="true">
                         <div className="w-1.5 h-1.5 rounded-full bg-current" />
                       </motion.div>
                     )}
@@ -331,7 +384,7 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
                 );
               })
             ) : (
-              <div className="col-span-full text-center py-8 text-sm text-gray-400 border border-dashed rounded-xl">
+              <div className="col-span-full text-center py-8 text-sm text-gray-400 border border-dashed rounded-xl" role="status">
                 No tokens found matching &quot;{searchQuery}&quot;
               </div>
             )}
@@ -369,17 +422,48 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
           </div>
 
           <div className="sm:col-span-8 space-y-3">
-            <label className="text-xs font-bold text-gray-500 uppercase ml-1">3. Target Price ($PRICE)</label>
-            <div className="relative">
-              <Target className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <Input
-                type="number"
-                value={targetPrice}
-                onChange={(e) => setTargetPrice(e.target.value)}
-                placeholder="e.g. 90000"
-                className="pl-10 h-12 text-lg font-mono font-medium"
-                required
-              />
+            <label htmlFor="target-price-input" className="text-xs font-bold text-gray-500 uppercase ml-1">
+              3. Target Price ($PRICE)
+            </label>
+            <div className="space-y-2">
+              <div className="relative">
+                <Target className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${validationErrors.targetPrice ? 'text-red-400' : 'text-gray-400'}`} aria-hidden="true" />
+                {targetPrice && !validationErrors.targetPrice && (
+                  <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" aria-hidden="true" />
+                )}
+                <Input
+                  id="target-price-input"
+                  type="number"
+                  value={targetPrice}
+                  onChange={(e) => setTargetPrice(e.target.value)}
+                  placeholder="e.g. 90000"
+                  className={`pl-10 h-12 text-lg font-mono font-medium ${
+                    validationErrors.targetPrice
+                      ? 'border-red-500 dark:border-red-400 focus:ring-red-500'
+                      : targetPrice && !validationErrors.targetPrice
+                      ? 'border-green-500 dark:border-green-400 focus:ring-green-500'
+                      : ''
+                  }`}
+                  aria-invalid={!!validationErrors.targetPrice}
+                  aria-describedby={validationErrors.targetPrice ? "target-price-error" : undefined}
+                  required
+                />
+              </div>
+              <AnimatePresence>
+                {validationErrors.targetPrice && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    id="target-price-error"
+                    className="flex items-start gap-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg"
+                    role="alert"
+                  >
+                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                    <span>{validationErrors.targetPrice}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
@@ -387,32 +471,95 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
         {/* 3. Date & Liquidity */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-3">
-            <label className="text-xs font-bold text-gray-500 uppercase ml-1">4. Resolution ($DATE & $TIME)</label>
-            <div className="relative">
-              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input 
-                type="datetime-local" 
-                value={resolutionDate} 
-                onChange={(e) => setResolutionDate(e.target.value)} 
-                className="pl-10 h-12 font-mono text-sm" 
-                required 
-              />
+            <label htmlFor="resolution-date-input" className="text-xs font-bold text-gray-500 uppercase ml-1">
+              4. Resolution ($DATE & $TIME)
+            </label>
+            <div className="space-y-2">
+              <div className="relative">
+                <Clock className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${validationErrors.resolutionDate ? 'text-red-400' : 'text-gray-400'}`} aria-hidden="true" />
+                {resolutionDate && !validationErrors.resolutionDate && (
+                  <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" aria-hidden="true" />
+                )}
+                <Input
+                  id="resolution-date-input"
+                  type="datetime-local"
+                  value={resolutionDate}
+                  onChange={(e) => setResolutionDate(e.target.value)}
+                  className={`pl-10 h-12 font-mono text-sm ${
+                    validationErrors.resolutionDate
+                      ? 'border-red-500 dark:border-red-400 focus:ring-red-500'
+                      : resolutionDate && !validationErrors.resolutionDate
+                      ? 'border-green-500 dark:border-green-400 focus:ring-green-500'
+                      : ''
+                  }`}
+                  aria-invalid={!!validationErrors.resolutionDate}
+                  aria-describedby={validationErrors.resolutionDate ? "resolution-date-error" : "resolution-date-hint"}
+                  required
+                />
+              </div>
+              <p id="resolution-date-hint" className="text-[10px] text-gray-400 text-right pr-1">
+                * Selected time will be converted to UTC
+              </p>
+              <AnimatePresence>
+                {validationErrors.resolutionDate && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    id="resolution-date-error"
+                    className="flex items-start gap-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg"
+                    role="alert"
+                  >
+                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                    <span>{validationErrors.resolutionDate}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-            <p className="text-[10px] text-gray-400 text-right pr-1">* Selected time will be converted to UTC</p>
           </div>
 
           <div className="space-y-3">
-            <label className="text-xs font-bold text-gray-500 uppercase ml-1">5. Initial Liquidity</label>
-            <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input 
-                type="number" 
-                value={initUsdc} 
-                onChange={(e) => setInitUsdc(e.target.value)} 
-                className="pl-10 h-12 font-mono" 
-                required 
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">USDC</div>
+            <label htmlFor="init-usdc-input" className="text-xs font-bold text-gray-500 uppercase ml-1">
+              5. Initial Liquidity
+            </label>
+            <div className="space-y-2">
+              <div className="relative">
+                <DollarSign className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${validationErrors.initUsdc ? 'text-red-400' : 'text-gray-400'}`} aria-hidden="true" />
+                <Input
+                  id="init-usdc-input"
+                  type="number"
+                  value={initUsdc}
+                  onChange={(e) => setInitUsdc(e.target.value)}
+                  className={`pl-10 pr-16 h-12 font-mono ${
+                    validationErrors.initUsdc
+                      ? 'border-red-500 dark:border-red-400 focus:ring-red-500'
+                      : initUsdc && !validationErrors.initUsdc
+                      ? 'border-green-500 dark:border-green-400 focus:ring-green-500'
+                      : ''
+                  }`}
+                  aria-invalid={!!validationErrors.initUsdc}
+                  aria-describedby={validationErrors.initUsdc ? "init-usdc-error" : undefined}
+                  required
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400" aria-hidden="true">
+                  USDC
+                </div>
+              </div>
+              <AnimatePresence>
+                {validationErrors.initUsdc && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    id="init-usdc-error"
+                    className="flex items-start gap-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg"
+                    role="alert"
+                  >
+                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                    <span>{validationErrors.initUsdc}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
@@ -458,21 +605,64 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
             </div>
           )}
           {needsApproval ? (
-            <Button 
-              type="button" 
-              onClick={handleApprove} 
-              disabled={isApproving || isApprovalConfirming} 
-              className="w-full h-14 bg-amber-500 hover:bg-amber-600 text-white font-bold text-lg rounded-xl shadow-lg shadow-amber-500/20"
+            <Button
+              type="button"
+              onClick={handleApprove}
+              disabled={isApproving || isApprovalConfirming}
+              className="w-full h-14 bg-amber-500 hover:bg-amber-600 text-white font-bold text-lg rounded-xl shadow-lg shadow-amber-500/20 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+              aria-label={isApproving || isApprovalConfirming ? 'Approving USDC transaction' : 'Approve USDC spending'}
             >
-              {isApproving || isApprovalConfirming ? 'Approving USDC...' : 'Approve USDC'}
+              {isApproving || isApprovalConfirming ? (
+                <span className="flex items-center justify-center gap-2">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                    aria-hidden="true"
+                  />
+                  Approving USDC...
+                </span>
+              ) : (
+                'Approve USDC'
+              )}
             </Button>
           ) : (
-            <Button 
-              type="submit" 
-              disabled={isPending || isConfirming || !targetPrice || !resolutionDate || hasMarketCreatorRole === false} 
-              className="w-full h-14 bg-gradient-to-r from-[#14B8A6] to-[#0D9488] hover:from-[#0D9488] hover:to-[#0f766e] text-white font-bold text-lg rounded-xl shadow-lg shadow-[#14B8A6]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            <Button
+              type="submit"
+              disabled={
+                isPending ||
+                isConfirming ||
+                !targetPrice ||
+                !resolutionDate ||
+                hasMarketCreatorRole === false ||
+                !!validationErrors.targetPrice ||
+                !!validationErrors.resolutionDate ||
+                !!validationErrors.initUsdc
+              }
+              className="w-full h-14 bg-gradient-to-r from-[#14B8A6] to-[#0D9488] hover:from-[#0D9488] hover:to-[#0f766e] text-white font-bold text-lg rounded-xl shadow-lg shadow-[#14B8A6]/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all focus:outline-none focus:ring-2 focus:ring-[#14B8A6] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+              aria-label={
+                isPending || isConfirming
+                  ? 'Creating market transaction'
+                  : hasMarketCreatorRole === false
+                  ? 'No permission to create markets'
+                  : 'Launch prediction market'
+              }
             >
-              {isPending || isConfirming ? 'Creating Market...' : hasMarketCreatorRole === false ? 'No Permission' : 'Launch Market'}
+              {isPending || isConfirming ? (
+                <span className="flex items-center justify-center gap-2">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                    aria-hidden="true"
+                  />
+                  Creating Market...
+                </span>
+              ) : hasMarketCreatorRole === false ? (
+                'No Permission'
+              ) : (
+                'Launch Market'
+              )}
             </Button>
           )}
         </div>

@@ -31,6 +31,12 @@ contract TradingFacet is CoreStorage {
         return spotPriceYesE18(id) / 1e12;
     }
 
+    function getMaxJumpE18(uint256 id) public view returns (uint256) {
+        Market storage m = markets[id];
+        if (address(m.yes) == address(0)) revert InvalidMarket();
+        return m.maxJumpE18 > 0 ? m.maxJumpE18 : maxInstantJumpE18;
+    }
+
     function buy(uint256 id, bool isYes, uint256 usdcIn, uint256 minSharesOut)
         external
         nonReentrant
@@ -133,11 +139,20 @@ contract TradingFacet is CoreStorage {
             if (isYes) nextQYes -= delta; else nextQNo -= delta;
         }
 
-        // vault must cover worst-case payout: max(qYes,qNo)/1e12
-        uint256 maxQ = nextQYes > nextQNo ? nextQYes : nextQNo;
-        uint256 liabilityUSDC = maxQ / 1e12;
+        // vault must cover worst-case payout for *circulating* supply.
+        // We may hold "locked" shares on the router (address(this)) to preserve spot price when liquidity changes.
+        // Those locked shares must NOT count towards user payouts / liabilities.
+        uint256 lockedYes = m.yes.balanceOf(address(this));
+        uint256 lockedNo  = m.no.balanceOf(address(this));
 
-        if (m.usdcVault + 10 < liabilityUSDC) revert BackingInsufficient();
+        uint256 cirYes = nextQYes > lockedYes ? (nextQYes - lockedYes) : 0;
+        uint256 cirNo  = nextQNo  > lockedNo  ? (nextQNo  - lockedNo)  : 0;
+
+        uint256 maxCir = cirYes > cirNo ? cirYes : cirNo;
+        uint256 liabilityUSDC = maxCir / 1e12;
+
+        uint256 bufferUSDC = 1000; // 0.001 USDC (6 decimals)
+        if (m.usdcVault + bufferUSDC < liabilityUSDC) revert BackingInsufficient();
 
         if (m.usdcVault < m.priceBandThresholdUSDC) {
             uint256 pOld = LMSRMath.calculateSpotPrice(m.qYes, m.qNo, m.bE18);

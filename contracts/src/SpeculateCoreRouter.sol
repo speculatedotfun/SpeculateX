@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./CoreStorage.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract SpeculateCoreRouter is AccessControl, CoreStorage {
+/// @notice Diamond-style router that delegatecalls into facets.
+/// @dev IMPORTANT: `CoreStorage` MUST be the first base contract so its storage layout
+///      starts at slot 0 for both the router and all facets (which inherit `CoreStorage`).
+contract SpeculateCoreRouter is CoreStorage, AccessControl {
     event OperationScheduled(bytes32 indexed opId, bytes32 indexed tag, uint256 readyAt);
     event OperationExecuted(bytes32 indexed opId);
     event OperationCancelled(bytes32 indexed opId);
@@ -19,13 +22,14 @@ contract SpeculateCoreRouter is AccessControl, CoreStorage {
     error TagMismatch();
     error DataMismatch();
 
-    constructor(address admin, address usdc_, address treasury_) {
+    constructor(address admin, address usdc_, address treasury_, uint256 minTimelockDelay_) {
         if (admin == address(0) || usdc_ == address(0) || treasury_ == address(0)) revert ZeroAddress();
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(MARKET_CREATOR_ROLE, admin);
 
         usdc = usdc_;
         treasury = treasury_;
+        minTimelockDelay = minTimelockDelay_;
 
         maxUsdcPerTrade = 100_000e6;
         minMarketSeed   = 500e6;
@@ -53,7 +57,7 @@ contract SpeculateCoreRouter is AccessControl, CoreStorage {
         ops[opId] = Op({
             tag: tag,
             dataHash: dataHash_,
-            readyAt: block.timestamp + MIN_TIMELOCK_DELAY,
+            readyAt: block.timestamp + minTimelockDelay,
             status: OpStatus.Scheduled
         });
 

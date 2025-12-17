@@ -255,22 +255,72 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
 
   if (chartError) {
     return (
-      <div className="relative w-full h-full flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-xl">
-        <div className="text-center p-4 text-red-500 text-sm">Chart Error</div>
+      <div className="relative w-full h-full flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6" role="alert" aria-live="polite">
+        <svg className="w-12 h-12 text-red-500 dark:text-red-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <div className="text-center">
+          <p className="text-red-600 dark:text-red-400 font-semibold text-sm mb-1">Unable to load chart</p>
+          <p className="text-gray-500 dark:text-gray-400 text-xs">Please try refreshing the page</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full h-full" style={{ minHeight: height }} data-testid="price-chart">
-      <div ref={containerRef} className="w-full h-full" />
+    <div className="relative w-full h-full" style={{ minHeight: height }} data-testid="price-chart" role="img" aria-label={`Price chart showing ${selectedSide === 'yes' ? 'YES' : 'NO'} outcome price over time`}>
+      <div ref={containerRef} className="w-full h-full" aria-hidden={showLoadingOverlay} />
+
       {showLoadingOverlay && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm z-10">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-8 h-8 border-2 border-[#14B8A6] border-t-transparent rounded-full"
-          />
+        <div className="absolute inset-0 bg-gray-50 dark:bg-gray-800 rounded-xl z-10 overflow-hidden" role="status" aria-live="polite" aria-label="Loading chart data">
+          {/* Skeleton Loader */}
+          <div className="w-full h-full p-4 space-y-3">
+            {/* Y-axis labels skeleton */}
+            <div className="flex justify-between items-start h-8">
+              <div className="w-12 h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              <div className="w-16 h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            </div>
+
+            {/* Chart bars skeleton */}
+            <div className="flex items-end justify-between h-48 gap-1 sm:gap-2">
+              {[...Array(12)].map((_, i) => {
+                const heights = [60, 75, 55, 80, 70, 65, 85, 60, 75, 70, 80, 65];
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: `${heights[i]}%`, opacity: 1 }}
+                    transition={{ delay: i * 0.05, duration: 0.3 }}
+                    className="flex-1 bg-gradient-to-t from-gray-300 dark:from-gray-600 to-gray-200 dark:to-gray-700 rounded-t"
+                    style={{ maxWidth: '40px' }}
+                  />
+                );
+              })}
+            </div>
+
+            {/* X-axis labels skeleton */}
+            <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="w-12 h-2.5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              ))}
+            </div>
+
+            {/* Loading text */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl px-4 py-3 shadow-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-3">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="w-5 h-5 border-2 border-[#14B8A6] border-t-transparent rounded-full"
+                    aria-hidden="true"
+                  />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Loading chart data...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <span className="sr-only">Loading price chart</span>
         </div>
       )}
     </div>

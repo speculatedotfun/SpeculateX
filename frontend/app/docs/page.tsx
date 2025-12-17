@@ -11,16 +11,22 @@ import { ArrowLeft, BookOpen } from 'lucide-react';
 export default function DocsPage() {
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    fetch('/docs/be-the-market.md')
-      .then((res) => res.text())
+    setError('');
+    fetch('/docs/be-the-market.md', { cache: 'no-store' })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Failed to load docs (${res.status})`);
+        return res.text();
+      })
       .then((text) => {
         setContent(text);
         setLoading(false);
       })
       .catch((err) => {
         console.error('Error loading docs:', err);
+        setError('Docs failed to load. Please refresh the page. If it still fails, open /docs/be-the-market.md directly to confirm the file is available.');
         setLoading(false);
       });
   }, []);
@@ -91,13 +97,33 @@ export default function DocsPage() {
               </div>
               <div className="h-64 bg-gray-100 dark:bg-gray-700/50 rounded-2xl mt-8"></div>
             </div>
+          ) : error ? (
+            <div className="space-y-4">
+              <p className="text-gray-700 dark:text-gray-200 font-bold">{error}</p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link
+                  href="/docs/be-the-market.md"
+                  className="inline-flex items-center justify-center rounded-full bg-[#14B8A6] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#0D9488] transition-colors"
+                >
+                  Open raw markdown
+                </Link>
+                <Link
+                  href="/"
+                  className="inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 px-5 py-2.5 text-sm font-bold text-gray-900 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Back to Home
+                </Link>
+              </div>
+            </div>
           ) : (
             <article className="
               prose prose-lg max-w-none
+              text-gray-700 dark:text-gray-200
               prose-headings:font-black prose-headings:tracking-tight prose-headings:text-gray-900 dark:prose-headings:text-white
               prose-p:text-gray-600 dark:prose-p:text-gray-300 prose-p:leading-relaxed
               prose-a:text-[#14B8A6] prose-a:font-bold prose-a:no-underline hover:prose-a:underline
               prose-strong:text-gray-900 dark:prose-strong:text-white prose-strong:font-bold
+              prose-li:text-gray-700 dark:prose-li:text-gray-300
               prose-code:text-[#14B8A6] prose-code:bg-[#14B8A6]/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:before:content-none prose-code:after:content-none
               prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:rounded-2xl prose-pre:shadow-lg
               prose-blockquote:border-l-4 prose-blockquote:border-[#14B8A6] prose-blockquote:bg-gray-50 dark:prose-blockquote:bg-gray-900/50 prose-blockquote:py-2 prose-blockquote:px-6 prose-blockquote:rounded-r-xl prose-blockquote:not-italic

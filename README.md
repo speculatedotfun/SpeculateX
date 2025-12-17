@@ -20,11 +20,11 @@
 
 ## 📖 Overview
 
-**SpeculateX** is a decentralized prediction market protocol that allows users to trade on real-world events (Crypto Prices, Sports, Economics). Unlike traditional order-book exchanges, SpeculateX utilizes an **Automated Market Maker (AMM)** based on the **Logarithmic Market Scoring Rule (LMSR)** to ensure constant liquidity and fair pricing.
+**SpeculateX** is a decentralized prediction market protocol that allows users to trade on real-world events (crypto prices, sports, economics). Unlike traditional order-book exchanges, SpeculateX uses an **Automated Market Maker (AMM)** based on **LMSR** to ensure constant liquidity and continuous pricing.
 
 The protocol features a "Be The Market" architecture where users can provide liquidity to specific markets and earn trading fees, alongside a robust **Chainlink Automation** system for trustless market resolution.
 
-**Now Live on BSC Mainnet!** 🎉
+**Status:** Mainnet is deployed (legacy monolith). Current development focus is Testnet (Diamond Router + Facets).
 
 -----
 
@@ -101,7 +101,7 @@ Fees are calculated in Basis Points (BPS) and split three ways:
 
 - **Max Price Jump:** Prevents manipulation by limiting how much a single trade can move the price (Default: 15%).
 - **Staleness Checks:** Markets won't resolve if Oracle data is older than 1 hour.
-- **Admin Timelock:** Manual overrides require a 2-day delay for transparency.
+- **Admin Timelock:** Router upgrades/admin actions are timelocked on production-like deployments (Testnet script uses timelock=0 for convenience).
 
 ### Multi-Network Support
 
@@ -135,15 +135,26 @@ Fees are calculated in Basis Points (BPS) and split three ways:
 
 | Contract | Address | Explorer |
 |----------|---------|----------|
-| **SpeculateCoreRouter** | `0xE2BD9a1ac99B8215620628FC43838e4361D476a0` | [View on BscScan](https://testnet.bscscan.com/address/0xE2BD9a1ac99B8215620628FC43838e4361D476a0) |
-| **ChainlinkResolver** | `0x39FD1A9AE3556340D2aBfED7654F900db688b464` | [View on BscScan](https://testnet.bscscan.com/address/0x39FD1A9AE3556340D2aBfED7654F900db688b464) |
-| **Treasury** | `0xDB6787414d4Ed14Dbd46eB58129bd72352725948` | [View on BscScan](https://testnet.bscscan.com/address/0xDB6787414d4Ed14Dbd46eB58129bd72352725948) |
-| **MockUSDC (faucet)** | `0xbCD27B18f51FCB7536b9e7DDB5cAFC9628CA9489` | [View on BscScan](https://testnet.bscscan.com/address/0xbCD27B18f51FCB7536b9e7DDB5cAFC9628CA9489) |
-| **Admin** | `0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F` | [View on BscScan](https://testnet.bscscan.com/address/0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F) |
+| **SpeculateCoreRouter** | `0x601c5DA28dacc049481eD853E5b59b9F20Dd44a8` | [View on BscScan](https://testnet.bscscan.com/address/0x601c5DA28dacc049481eD853E5b59b9F20Dd44a8) |
+| **ChainlinkResolver** | `0x18cA980383C16ee6C601a7a110D048e12e95e9F5` | [View on BscScan](https://testnet.bscscan.com/address/0x18cA980383C16ee6C601a7a110D048e12e95e9F5) |
+| **Treasury** | `0x155FB12aD27259212f000443531fAe8a629F2A19` | [View on BscScan](https://testnet.bscscan.com/address/0x155FB12aD27259212f000443531fAe8a629F2A19) |
+| **MockUSDC (faucet)** | `0x845740D345ECba415534df44C580ebb3A2432719` | [View on BscScan](https://testnet.bscscan.com/address/0x845740D345ECba415534df44C580ebb3A2432719) |
+| **Admin** | *(deployer wallet)* | `vm.addr(PRIVATE_KEY)` |
 
-**Important (Testnet activation):** after deploying the Diamond contracts, facets/resolver are **scheduled** behind a 24h timelock. Until you execute them, `createMarket/buy/sell` will revert with `NO_FACET`. See `contracts/DEPLOYMENT_INFO.md` and `contracts/script/ExecuteAfterDelay.s.sol`.
+### Testnet Facets (Diamond)
 
-**📋 Full Address List:** See [CONTRACT_ADDRESSES.md](./CONTRACT_ADDRESSES.md) for complete details.
+| Facet | Address | Explorer |
+|------|---------|----------|
+| **MarketFacet** | `0x12886B7d5C5Ebb15B29F70e3De1c90A359a74B93` | [View](https://testnet.bscscan.com/address/0x12886B7d5C5Ebb15B29F70e3De1c90A359a74B93) |
+| **TradingFacet** | `0xe9521eA09C960780fe58bf625CA2b94D60E37a70` | [View](https://testnet.bscscan.com/address/0xe9521eA09C960780fe58bf625CA2b94D60E37a70) |
+| **LiquidityFacet** | `0xe975a09183a61Cdb1f7279265B75da6EEB24e6A4` | [View](https://testnet.bscscan.com/address/0xe975a09183a61Cdb1f7279265B75da6EEB24e6A4) |
+| **SettlementFacet** | `0x88A7F6DdeA0BCD7998d78331313E6fb8504039c1` | [View](https://testnet.bscscan.com/address/0x88A7F6DdeA0BCD7998d78331313E6fb8504039c1) |
+
+**Important (Testnet):** the deploy script uses **timelock=0** (testnet convenience), so facets + resolver are executed immediately. For production-like staging, increase the timelock and execute ops after the delay.
+
+**Market titles without subgraph:** questions are stored on-chain and read via `getMarketQuestion(uint256)` (no dependency on the subgraph for titles).
+
+**📋 Full Address List:** See [CONTRACT_ADDRESSES.md](./CONTRACT_ADDRESSES.md) and [DEPLOYED_ADDRESSES.md](./DEPLOYED_ADDRESSES.md).
 
 -----
 
@@ -261,22 +272,16 @@ npm start
 
 ```bash
 cd contracts
-forge script script/DeployCoreOnly.s.sol:DeployCoreOnly \
-  --rpc-url $BSC_TESTNET_RPC_URL \
-  --private-key $PRIVATE_KEY \
+forge script script/deploy.sol:DeployAndSchedule \
+  --rpc-url bsc_testnet \
   --broadcast \
-  --verify
+  --legacy \
+  --gas-price 1000000000
 ```
 
 #### Mainnet
 
-```bash
-cd contracts
-forge script script/DeployMainnet.s.sol:DeployMainnet \
-  --rpc-url bsc_mainnet \
-  --broadcast \
-  --verify
-```
+Mainnet deployment docs are in `contracts/MAINNET_DEPLOYMENT.md` (legacy monolith).
 
 **⚠️ Important:** Before deploying to Mainnet:
 1. Verify all Chainlink feed addresses
@@ -292,19 +297,21 @@ forge script script/DeployMainnet.s.sol:DeployMainnet \
 
 ### 1. Creating a Market
 
-Call `createMarket` on `SpeculateCore`:
+Call `createMarket` (Diamond/Testnet: via Router → `MarketFacet`):
 
 ```solidity
 createMarket(
-    "Will BTC hit 100k?", // Question
-    "BTC100k-YES",        // Yes Symbol
-    "BTC100k-NO",         // No Symbol
-    1000 * 1e6,           // Initial Liquidity (USDC)
-    expiryTimestamp,      // Unix Timestamp
-    oracleAddress,        // Chainlink Feed Address (or 0x0 for manual)
-    feedId,               // bytes32 ID (e.g. keccak256("BTC/USD"))
-    targetValue,          // e.g. 100000 * 1e8
-    Comparison.Above      // 0 = Above, 1 = Below, 2 = Equal
+    "Will BTC hit 100k?",  // question
+    "BTC100K YES",         // yesName
+    "BTC100K-YES",         // yesSymbol
+    "BTC100K NO",          // noName
+    "BTC100K-NO",          // noSymbol
+    1000 * 1e6,            // initUsdc (6 decimals)
+    expiryTimestamp,       // unix timestamp
+    oracleFeed,            // Chainlink feed address (or address(0) for OracleType.None)
+    priceFeedId,           // bytes32 (optional metadata)
+    targetValue,           // scaled to feed decimals
+    Comparison.Above       // 0=Above, 1=Below, 2=Equals
 )
 ```
 
@@ -319,10 +326,11 @@ core.buy(marketId, true, 50 * 1e6, minTokensOut);
 
 ### 3. Resolution (Automated)
 
-1. Chainlink Keepers call `checkUpkeep` to scan for expired markets.
-2. If `upkeepNeeded` is true, Keepers call `performUpkeep`.
-3. `ChainlinkResolver` fetches the price, verifies it, and calls `resolveMarketWithPrice` on the Core.
-4. Winning outcome is set, and trading stops.
+Resolution is triggered by calling the resolver after expiry:
+
+1. Anyone (or an off-chain bot/automation) calls `ChainlinkResolver.resolve(marketId)` after `expiryTimestamp`.
+2. The resolver reads the Chainlink feed, enforces staleness + decimals guardrails, then calls `resolveMarketWithPrice(marketId, price)` on the core.
+3. The market is marked resolved and trading stops.
 
 -----
 
@@ -356,10 +364,10 @@ forge test -vvv
 
 ## 🔗 Links
 
-- **BscScan Mainnet:** https://bscscan.com/
-- **BscScan Testnet:** https://testnet.bscscan.com/
-- **Chainlink Price Feeds:** https://docs.chain.link/data-feeds/price-feeds/addresses?network=bnb-chain
-- **WalletConnect Cloud:** https://cloud.reown.com/
+- **BscScan Mainnet**: `https://bscscan.com/`
+- **BscScan Testnet**: `https://testnet.bscscan.com/`
+- **Chainlink Price Feeds**: `https://docs.chain.link/data-feeds/price-feeds/addresses?network=bnb-chain`
+- **WalletConnect Cloud**: `https://cloud.reown.com/`
 
 -----
 

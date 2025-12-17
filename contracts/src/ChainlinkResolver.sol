@@ -18,6 +18,7 @@ interface ICoreResolutionView {
         uint8 comparison; // not used here
         bool yesWins;
         bool isResolved;
+        uint8 oracleDecimals;
     }
     function getMarketResolution(uint256 id) external view returns (ResolutionConfig memory);
     function resolveMarketWithPrice(uint256 id, uint256 price) external;
@@ -67,6 +68,7 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable {
     error FeedMissing();
     error InvalidAnswer();
     error Stale(uint256 updatedAt, uint256 nowTs, uint256 maxStale);
+    error OracleDecimalsMismatch(uint8 expected, uint8 got);
 
     constructor(address admin, address core_) {
         if (admin == address(0) || core_ == address(0)) revert ZeroAddress();
@@ -131,6 +133,10 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable {
         if (r.oracleAddress == address(0)) revert FeedMissing();
 
         AggregatorV3Interface feed = AggregatorV3Interface(r.oracleAddress);
+        uint8 decNow = feed.decimals();
+        if (r.oracleDecimals != 0 && decNow != r.oracleDecimals) {
+            revert OracleDecimalsMismatch(r.oracleDecimals, decNow);
+        }
 
         (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound) =
             feed.latestRoundData();

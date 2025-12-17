@@ -241,8 +241,10 @@ export default function Header() {
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#14B8A6] dark:hover:text-[#14B8A6] transition-colors border border-transparent focus:border-[#14B8A6]/20 focus:bg-[#14B8A6]/5 dark:focus:bg-[#14B8A6]/10 focus:text-[#14B8A6] outline-none"
-              aria-label="Toggle menu"
+              className="md:hidden p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#14B8A6] dark:hover:text-[#14B8A6] transition-colors border border-transparent focus:border-[#14B8A6]/20 focus:bg-[#14B8A6]/5 dark:focus:bg-[#14B8A6]/10 focus:text-[#14B8A6] outline-none focus:ring-2 focus:ring-[#14B8A6] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+              aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-navigation"
             >
               <AnimatePresence mode="wait">
                 {isMobileMenuOpen ? (
@@ -294,13 +296,15 @@ export default function Header() {
         {/* Mobile Menu Overlay */}
         <AnimatePresence>
           {isMobileMenuOpen && (
-            <motion.div
+            <motion.nav
+              id="mobile-navigation"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               className="md:hidden absolute top-full left-0 right-0 border-t border-gray-100 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-xl overflow-hidden"
+              aria-label="Mobile navigation"
             >
-              <div className="flex flex-col p-4 space-y-2">
+              <div className="flex flex-col p-4 space-y-2" role="menu">
                 {navLinks.map((link) => {
                   const active = isActive(link.href);
                   return (
@@ -308,11 +312,13 @@ export default function Header() {
                       key={link.href}
                       href={link.href}
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={`relative px-4 py-3 rounded-xl text-base font-bold transition-all ${
+                      role="menuitem"
+                      className={`relative px-4 py-3 rounded-xl text-base font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#14B8A6] focus:ring-offset-2 dark:focus:ring-offset-gray-900 ${
                         active
                           ? 'text-[#14B8A6] bg-[#14B8A6]/5 dark:bg-[#14B8A6]/10'
                           : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800'
                       }`}
+                      aria-current={active ? 'page' : undefined}
                     >
                       <div className="flex items-center justify-between">
                         {link.label}
@@ -320,15 +326,16 @@ export default function Header() {
                           <motion.div
                             layoutId="mobile-menu-indicator"
                             className="w-1.5 h-1.5 rounded-full bg-[#14B8A6]"
+                            aria-hidden="true"
                           />
                         )}
                       </div>
                     </Link>
                   );
                 })}
-                
+
                 {/* Mobile Connect Button */}
-                <div className="pt-4 mt-2 border-t border-gray-100 dark:border-gray-800">
+                <div className="pt-4 mt-2 border-t border-gray-100 dark:border-gray-800" role="none">
                   <div className="w-full">
                     <ConnectButton.Custom>
                       {({ openConnectModal, openAccountModal, mounted, account }) => {
@@ -336,7 +343,8 @@ export default function Header() {
                         return (
                           <button
                             onClick={connected ? openAccountModal : openConnectModal}
-                            className="w-full py-3 rounded-xl bg-[#14B8A6] text-white font-bold shadow-lg shadow-[#14B8A6]/20 active:scale-95 transition-all"
+                            className="w-full py-3 rounded-xl bg-[#14B8A6] text-white font-bold shadow-lg shadow-[#14B8A6]/20 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-[#14B8A6] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                            aria-label={connected ? `Manage wallet: ${account.displayName}` : 'Connect your wallet'}
                           >
                             {connected ? account.displayName : 'Connect Wallet'}
                           </button>
@@ -346,7 +354,7 @@ export default function Header() {
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </motion.nav>
           )}
         </AnimatePresence>
       </div>

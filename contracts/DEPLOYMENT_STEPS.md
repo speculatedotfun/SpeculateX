@@ -1,36 +1,43 @@
-# Deployment Steps for New Core Contract
+# Deployment Steps (Testnet / Diamond Router)
 
-## Step 1: Set SpeculateCore Address on USDC
-This allows the Core contract to mint USDC when needed.
+These steps describe the current Testnet deployment flow for the **Diamond-style** architecture:
+`SpeculateCoreRouter` + Facets (`MarketFacet`, `TradingFacet`, `LiquidityFacet`, `SettlementFacet`) + `ChainlinkResolver`.
+
+## Step 1: Set environment variables
+
+Create `contracts/.env`:
+
+```bash
+PRIVATE_KEY=0x...
+BSC_TESTNET_RPC_URL=https://bsc-testnet.publicnode.com
+```
+
+## Step 2: Deploy + wire facets/resolver (timelock = 0 on Testnet)
+
+The deploy script does everything:
+- Deploys `Treasury`, `MockUSDC`, `SpeculateCoreRouter`, `ChainlinkResolver`, and all facets
+- Grants `MINTER_ROLE` on `MockUSDC` to the router
+- Schedules + executes facet wiring ops immediately (timelock=0)
 
 ```bash
 cd contracts
-
-# Set environment variables
-export USDC_ADDRESS=0x8e38899dEC73FbE6Bde8276b8729ac1a3A6C0b8e
-export SPECULATE_CORE_ADDRESS=0x62E390c9251186E394cEF754FbB42b8391331d0F
-export BSC_TESTNET_RPC_URL=https://bsc-testnet.publicnode.com
-
-# Run the script
-forge script script/SetSpeculateCoreOnUSDC.s.sol --rpc-url $BSC_TESTNET_RPC_URL --broadcast --legacy
+forge script script/deploy.sol:DeployAndSchedule --rpc-url bsc_testnet --broadcast --legacy --gas-price 1000000000
 ```
 
-## Step 2: Add Admin as Minter (Optional)
-This allows the admin wallet to manually mint USDC if needed.
+## Step 3: Update the frontend addresses
 
-```bash
-# Set environment variables
-export USDC_ADDRESS=0x8e38899dEC73FbE6Bde8276b8729ac1a3A6C0b8e
-export ADMIN_ADDRESS=0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F  # Your admin wallet address
-export BSC_TESTNET_RPC_URL=https://bsc-testnet.publicnode.com
+Update:
+- `frontend/lib/contracts.ts` (Testnet addresses)
 
-# Run the script
-forge script script/AddMinterToUSDC.s.sol --rpc-url $BSC_TESTNET_RPC_URL --broadcast --legacy
+## Step 4: Update frontend ABIs (when facet signatures change)
+
+After a contract change, copy the updated artifact(s) into `frontend/lib/abis/`.
+Example (PowerShell):
+
+```powershell
+Copy-Item contracts\out\MarketFacet.sol\MarketFacet.json frontend\lib\abis\MarketFacet.json -Force
 ```
 
-## Important Notes:
-- `ADMIN_ADDRESS` should be your **wallet address** (0x9D767...), NOT the Core contract address
-- `SPECULATE_CORE_ADDRESS` is the Core contract address (0x62E390c...)
-- Step 1 is **required** for the Core to function properly
-- Step 2 is **optional** (only if you want to manually mint USDC)
-
+## Notes
+- **Market titles do not require the subgraph**: questions are stored on-chain and read via `getMarketQuestion(uint256)`.
+- Public RPC providers can prune logs/history; avoid relying on event-log scans for critical UX.

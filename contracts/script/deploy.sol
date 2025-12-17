@@ -34,7 +34,9 @@ contract DeployAndSchedule is Script {
         MockUSDC usdc = new MockUSDC(admin);
         console.log("MockUSDC:", address(usdc));
 
-        SpeculateCoreRouter core = new SpeculateCoreRouter(admin, address(usdc), address(treasury));
+        // Testnet convenience: set timelock delay to 0 so you can wire facets/resolver immediately.
+        // DO NOT use 0 on production deployments.
+        SpeculateCoreRouter core = new SpeculateCoreRouter(admin, address(usdc), address(treasury), 0);
         console.log("Core Router:", address(core));
 
         ChainlinkResolver resolver = new ChainlinkResolver(admin, address(core));
@@ -67,34 +69,66 @@ contract DeployAndSchedule is Script {
         bytes32 OP_SET_FACET = keccak256("OP_SET_FACET");
         
         // Market facet
-        _schedule(core, OP_SET_FACET, "createMarket(string,string,string,string,string,uint256,uint256,address,bytes32,uint256,uint8)", address(marketFacet));
-        _schedule(core, OP_SET_FACET, "getMarketState(uint256)", address(marketFacet));
-        _schedule(core, OP_SET_FACET, "getMarketResolution(uint256)", address(marketFacet));
+        bytes32 opCreateMarket = _schedule(core, OP_SET_FACET, "createMarket(string,string,string,string,string,uint256,uint256,address,bytes32,uint256,uint8)", address(marketFacet));
+        bytes32 opGetMarketState = _schedule(core, OP_SET_FACET, "getMarketState(uint256)", address(marketFacet));
+        bytes32 opGetMarketResolution = _schedule(core, OP_SET_FACET, "getMarketResolution(uint256)", address(marketFacet));
+        bytes32 opGetMarketQuestion = _schedule(core, OP_SET_FACET, "getMarketQuestion(uint256)", address(marketFacet));
 
         // Trading facet
-        _schedule(core, OP_SET_FACET, "spotPriceYesE18(uint256)", address(tradingFacet));
-        _schedule(core, OP_SET_FACET, "spotPriceYesE6(uint256)", address(tradingFacet));
-        _schedule(core, OP_SET_FACET, "buy(uint256,bool,uint256,uint256)", address(tradingFacet));
-        _schedule(core, OP_SET_FACET, "sell(uint256,bool,uint256,uint256)", address(tradingFacet));
+        bytes32 opSpotE18 = _schedule(core, OP_SET_FACET, "spotPriceYesE18(uint256)", address(tradingFacet));
+        bytes32 opSpotE6 = _schedule(core, OP_SET_FACET, "spotPriceYesE6(uint256)", address(tradingFacet));
+        bytes32 opBuy = _schedule(core, OP_SET_FACET, "buy(uint256,bool,uint256,uint256)", address(tradingFacet));
+        bytes32 opSell = _schedule(core, OP_SET_FACET, "sell(uint256,bool,uint256,uint256)", address(tradingFacet));
 
         // Liquidity facet
-        _schedule(core, OP_SET_FACET, "addLiquidity(uint256,uint256)", address(liquidityFacet));
-        _schedule(core, OP_SET_FACET, "claimLpFees(uint256)", address(liquidityFacet));
+        bytes32 opAddLiq = _schedule(core, OP_SET_FACET, "addLiquidity(uint256,uint256)", address(liquidityFacet));
+        bytes32 opClaimFees = _schedule(core, OP_SET_FACET, "claimLpFees(uint256)", address(liquidityFacet));
 
         // Settlement facet
-        _schedule(core, OP_SET_FACET, "resolveMarketWithPrice(uint256,uint256)", address(settlementFacet));
-        _schedule(core, OP_SET_FACET, "redeem(uint256,bool)", address(settlementFacet));
-        _schedule(core, OP_SET_FACET, "pendingLpResidual(uint256,address)", address(settlementFacet));
-        _schedule(core, OP_SET_FACET, "claimLpResidual(uint256)", address(settlementFacet));
+        bytes32 opResolve = _schedule(core, OP_SET_FACET, "resolveMarketWithPrice(uint256,uint256)", address(settlementFacet));
+        bytes32 opRedeem = _schedule(core, OP_SET_FACET, "redeem(uint256,bool)", address(settlementFacet));
+        bytes32 opPendingResidual = _schedule(core, OP_SET_FACET, "pendingLpResidual(uint256,address)", address(settlementFacet));
+        bytes32 opClaimResidual = _schedule(core, OP_SET_FACET, "claimLpResidual(uint256)", address(settlementFacet));
+
+        // If timelock is 0 (testnet convenience), execute everything immediately.
+        if (core.minTimelockDelay() == 0) {
+            console.log("\nTimelock is 0: executing ops immediately...");
+
+            core.executeSetResolver(opSetResolver, address(resolver));
+
+            _execFacet(core, opCreateMarket, "createMarket(string,string,string,string,string,uint256,uint256,address,bytes32,uint256,uint8)", address(marketFacet));
+            _execFacet(core, opGetMarketState, "getMarketState(uint256)", address(marketFacet));
+            _execFacet(core, opGetMarketResolution, "getMarketResolution(uint256)", address(marketFacet));
+            _execFacet(core, opGetMarketQuestion, "getMarketQuestion(uint256)", address(marketFacet));
+
+            _execFacet(core, opSpotE18, "spotPriceYesE18(uint256)", address(tradingFacet));
+            _execFacet(core, opSpotE6, "spotPriceYesE6(uint256)", address(tradingFacet));
+            _execFacet(core, opBuy, "buy(uint256,bool,uint256,uint256)", address(tradingFacet));
+            _execFacet(core, opSell, "sell(uint256,bool,uint256,uint256)", address(tradingFacet));
+
+            _execFacet(core, opAddLiq, "addLiquidity(uint256,uint256)", address(liquidityFacet));
+            _execFacet(core, opClaimFees, "claimLpFees(uint256)", address(liquidityFacet));
+
+            _execFacet(core, opResolve, "resolveMarketWithPrice(uint256,uint256)", address(settlementFacet));
+            _execFacet(core, opRedeem, "redeem(uint256,bool)", address(settlementFacet));
+            _execFacet(core, opPendingResidual, "pendingLpResidual(uint256,address)", address(settlementFacet));
+            _execFacet(core, opClaimResidual, "claimLpResidual(uint256)", address(settlementFacet));
+        }
 
         vm.stopBroadcast();
 
         console.log("\n=== DEPLOYMENT COMPLETE ===");
-        console.log("Wait 24h then execute scheduled operations");
+        if (core.minTimelockDelay() == 0) console.log("Ops executed immediately (timelock=0)");
+        else console.log("Wait 24h then execute scheduled operations");
     }
 
-    function _schedule(SpeculateCoreRouter core, bytes32 tag, string memory sig, address facet) internal {
+    function _schedule(SpeculateCoreRouter core, bytes32 tag, string memory sig, address facet) internal returns (bytes32 opId) {
         bytes4 selector = bytes4(keccak256(bytes(sig)));
-        core.scheduleOp(tag, abi.encode(selector, facet));
+        opId = core.scheduleOp(tag, abi.encode(selector, facet));
+    }
+
+    function _execFacet(SpeculateCoreRouter core, bytes32 opId, string memory sig, address facet) internal {
+        bytes4 selector = bytes4(keccak256(bytes(sig)));
+        core.executeSetFacet(opId, selector, facet);
     }
 }

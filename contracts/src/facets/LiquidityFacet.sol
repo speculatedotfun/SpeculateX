@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../CoreStorage.sol";
 
@@ -32,8 +33,29 @@ contract LiquidityFacet is CoreStorage {
         lpShares[id][msg.sender] += usdcAdd;
         m.totalLpUsdc += usdcAdd;
 
+        // Preserve the current spot price when increasing liquidity depth:
+        // LMSR price depends on (qYes, qNo, b). We change b, so we also scale q's by the same factor.
+        // We mint the delta to the router (address(this)) so circulating supply / user balances are unchanged.
+        uint256 oldB = m.bE18;
         uint256 ln2E18 = 693147180559945309;
-        m.bE18 = (m.totalLpUsdc * liquidityMultiplierE18 * USDC_TO_E18) / ln2E18;
+        uint256 newB = (m.totalLpUsdc * liquidityMultiplierE18 * USDC_TO_E18) / ln2E18;
+
+        if (oldB > 0 && newB > oldB) {
+            // qNew = qOld * newB / oldB
+            uint256 qYesNew = Math.mulDiv(m.qYes, newB, oldB);
+            uint256 qNoNew  = Math.mulDiv(m.qNo,  newB, oldB);
+
+            uint256 dYes = qYesNew > m.qYes ? (qYesNew - m.qYes) : 0;
+            uint256 dNo  = qNoNew  > m.qNo  ? (qNoNew  - m.qNo)  : 0;
+
+            if (dYes > 0) m.yes.mint(address(this), dYes);
+            if (dNo  > 0) m.no.mint(address(this), dNo);
+
+            m.qYes = qYesNew;
+            m.qNo  = qNoNew;
+        }
+
+        m.bE18 = newB;
 
         emit LiquidityAdded(id, msg.sender, usdcAdd, m.bE18);
     }

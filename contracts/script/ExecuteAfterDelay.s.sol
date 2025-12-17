@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {Script, console} from "forge-std/Script.sol";
+import {Script, console2} from "forge-std/Script.sol";
 
 import {SpeculateCoreRouter} from "../src/SpeculateCoreRouter.sol";
+import {CoreStorage} from "../src/CoreStorage.sol";
 
 /// @notice Executes the scheduled timelock operations created by `script/deploy.sol`
 /// after the 24h delay has passed (sets resolver + wires all facet selectors).
@@ -65,18 +66,18 @@ contract ExecuteAfterDelay is Script {
 
         vm.stopBroadcast();
 
-        console.log("Done. If some ops were not ready, re-run after the timelock expires.");
+        console2.log("Done. If some ops were not ready, re-run after the timelock expires.");
     }
 
     function _opId(bytes32 tag, bytes memory data, uint256 nonce) internal pure returns (bytes32) {
         return keccak256(abi.encode("CORE_OP_V1", tag, keccak256(data), nonce));
     }
 
-    function _statusName(uint8 status) internal pure returns (string memory) {
-        if (status == 0) return "None";
-        if (status == 1) return "Scheduled";
-        if (status == 2) return "Executed";
-        if (status == 3) return "Cancelled";
+    function _statusName(CoreStorage.OpStatus status) internal pure returns (string memory) {
+        if (status == CoreStorage.OpStatus.None) return "None";
+        if (status == CoreStorage.OpStatus.Scheduled) return "Scheduled";
+        if (status == CoreStorage.OpStatus.Executed) return "Executed";
+        if (status == CoreStorage.OpStatus.Cancelled) return "Cancelled";
         return "Unknown";
     }
 
@@ -89,16 +90,20 @@ contract ExecuteAfterDelay is Script {
         bytes memory data = abi.encode(resolver);
         bytes32 opId = _opId(OP_SET_RESOLVER, data, nonce);
 
-        (bytes32 tag, , uint256 readyAt, uint8 status) = core.ops(opId);
-        console.log("Resolver opId:", vm.toString(opId));
-        console.log("  status:", _statusName(status), " readyAt:", readyAt);
+        (bytes32 tag, , uint256 readyAt, CoreStorage.OpStatus status) = core.ops(opId);
+        console2.log("Resolver opId:");
+        console2.logBytes32(opId);
+        console2.log("  status:");
+        console2.log(_statusName(status));
+        console2.log("  readyAt:");
+        console2.logUint(readyAt);
 
-        if (status != 1) return; // not scheduled
+        if (status != CoreStorage.OpStatus.Scheduled) return; // not scheduled
         if (block.timestamp < readyAt) return;
         if (tag != OP_SET_RESOLVER) return;
 
         core.executeSetResolver(opId, resolver);
-        console.log("  executed setResolver");
+        console2.log("  executed setResolver");
     }
 
     function _tryExecuteFacet(
@@ -112,14 +117,23 @@ contract ExecuteAfterDelay is Script {
         bytes memory data = abi.encode(selector, facet);
         bytes32 opId = _opId(OP_SET_FACET, data, nonce);
 
-        (bytes32 tag, , uint256 readyAt, uint8 status) = core.ops(opId);
-        console.log("Facet op:", sig);
-        console.log("  selector:", vm.toString(selector), " facet:", facet);
-        console.log("  opId:", vm.toString(opId), " status:", _statusName(status), " readyAt:", readyAt);
+        (bytes32 tag, , uint256 readyAt, CoreStorage.OpStatus status) = core.ops(opId);
+        console2.log("Facet op:");
+        console2.log(sig);
+        console2.log("  selector:");
+        console2.logBytes4(selector);
+        console2.log("  facet:");
+        console2.logAddress(facet);
+        console2.log("  opId:");
+        console2.logBytes32(opId);
+        console2.log("  status:");
+        console2.log(_statusName(status));
+        console2.log("  readyAt:");
+        console2.logUint(readyAt);
 
-        if (status == 1 && block.timestamp >= readyAt && tag == OP_SET_FACET) {
+        if (status == CoreStorage.OpStatus.Scheduled && block.timestamp >= readyAt && tag == OP_SET_FACET) {
             core.executeSetFacet(opId, selector, facet);
-            console.log("  executed setFacet");
+            console2.log("  executed setFacet");
         }
 
         return nonce + 1;

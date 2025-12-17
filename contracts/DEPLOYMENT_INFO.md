@@ -2,30 +2,29 @@
 
 ## BSC Testnet (Chain ID: 97)
 
-**Deployed:** December 2024 (Diamond Architecture)
+**Deployed:** December 2024 (Diamond Architecture) — redeployed with question string on-chain storage + `getMarketQuestion` getter
 
 ### Core Contracts
-- **Core Router**: `0xE2BD9a1ac99B8215620628FC43838e4361D476a0`
-- **Treasury**: `0xDB6787414d4Ed14Dbd46eB58129bd72352725948`
-- **MockUSDC (with faucet)**: `0xbCD27B18f51FCB7536b9e7DDB5cAFC9628CA9489`
-- **ChainlinkResolver**: `0x39FD1A9AE3556340D2aBfED7654F900db688b464`
-- **Admin**: `0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F`
+- **Core Router**: `0x601c5DA28dacc049481eD853E5b59b9F20Dd44a8`
+- **Treasury**: `0x155FB12aD27259212f000443531fAe8a629F2A19`
+- **MockUSDC (with faucet)**: `0x845740D345ECba415534df44C580ebb3A2432719`
+- **ChainlinkResolver**: `0x18cA980383C16ee6C601a7a110D048e12e95e9F5`
+- **Admin**: `0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F` (update with actual deployer)
 
 ### Facets
-- **MarketFacet**: `0x62ECF466B3AC466a9874d9dFA8F22a2E3Df73aa4`
-- **TradingFacet**: `0x2188635103765aBD7b81fB9C71d44e38d79Aa405`
-- **LiquidityFacet**: `0x2CF2d8818DE346d72925bBcbe52c056c64B4D320`
-- **SettlementFacet**: `0x572B3607EbE805e9f7C18c0c19a17B8d185d2bf3`
+- **MarketFacet**: `0x12886B7d5C5Ebb15B29F70e3De1c90A359a74B93`
+- **TradingFacet**: `0xe9521eA09C960780fe58bf625CA2b94D60E37a70`
+- **LiquidityFacet**: `0xe975a09183a61Cdb1f7279265B75da6EEB24e6A4`
+- **SettlementFacet**: `0x88A7F6DdeA0BCD7998d78331313E6fb8504039c1`
+
+### New Features
+- **Question string stored on-chain**: Market questions are now stored directly in the `Market` struct, eliminating dependency on event logs or subgraph for market titles.
+- **`getMarketQuestion(uint256)` getter**: Separate function to read question string (handles dynamic type encoding correctly).
 
 ### Timelock Operations
-All facets and resolver are scheduled via 24-hour timelock.
-See `opids-testnet.json` for operation IDs.
+**Testnet convenience:** timelock delay is set to `0` in `script/deploy.sol`, so resolver + facets are executed immediately after deployment.
 
-**Next Step:** After 24 hours, execute operations:
-```bash
-cd contracts
-forge script script/ExecuteAfterDelay.s.sol --rpc-url https://data-seed-prebsc-1-s1.bnbchain.org:8545 --broadcast --legacy --gas-price 1000000000
-```
+**Production note:** For real deployments, set the timelock delay back to `24 hours` and execute operations after the delay.
 
 ---
 
@@ -51,8 +50,18 @@ forge script script/ExecuteAfterDelay.s.sol --rpc-url https://data-seed-prebsc-1
 - **Facets**: Modular logic contracts (upgradeable)
 - **Timelock**: 24h delay for all upgrades
 
+### Oracle semantics (important)
+- **Snapshot at resolve-time**: Chainlink markets resolve based on the **price returned by the feed at the time `ChainlinkResolver.resolve(marketId)` is called**, as long as `block.timestamp >= expiryTimestamp`.
+- This is **not** “touched at any time during the market window”.
+- To reduce timing discretion, use **Automation / a keeper bot** to call `resolve()` close to expiry.
+
+### Decimals guardrails (safety)
+- At market creation, the core records the feed `decimals()` as `oracleDecimals`.
+- It also sanity-checks `targetValue` against the **current** feed price to catch common scaling mistakes (e.g. `1e6` vs `1e8`).
+- At resolution, the resolver verifies the feed decimals still match `oracleDecimals`.
+
 ### Facet Functions
-- **MarketFacet**: `createMarket`, `getMarketState`, `getMarketResolution`
+- **MarketFacet**: `createMarket`, `getMarketState`, `getMarketResolution`, `getMarketQuestion`
 - **TradingFacet**: `buy`, `sell`, `spotPriceYesE6`, `spotPriceYesE18`
 - **LiquidityFacet**: `addLiquidity`, `claimLpFees`
 - **SettlementFacet**: `resolveMarketWithPrice`, `redeem`, `claimLpResidual`

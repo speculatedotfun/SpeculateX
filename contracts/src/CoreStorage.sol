@@ -58,6 +58,9 @@ abstract contract CoreStorage {
         Comparison comparison;
         bool yesWins;
         bool isResolved;
+        // Chainlink feed decimals recorded at market creation (0 for OracleType.None).
+        // Used as a guardrail to avoid accidental decimal mismatches.
+        uint8 oracleDecimals;
     }
 
     struct Market {
@@ -76,8 +79,9 @@ abstract contract CoreStorage {
 
         MarketStatus status;
 
-        // ✅ במקום string: hash בלבד (חוסך גם code + storage)
+        // Store both hash (for indexing) and full question (for frontend)
         bytes32 questionHash;
+        string question;
         address creator;
 
         // LP
@@ -109,7 +113,8 @@ abstract contract CoreStorage {
     mapping(bytes4 => address) public facetOf; // selector => facet
 
     // ===== Timelock ops (for facet upgrades / admin changes) =====
-    uint256 public constant MIN_TIMELOCK_DELAY = 24 hours;
+    // Configurable delay (set in router constructor). For production, use >= 24 hours.
+    uint256 public minTimelockDelay;
     uint256 public opNonce;
 
     enum OpStatus { None, Scheduled, Executed, Cancelled }

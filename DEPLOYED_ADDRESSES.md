@@ -37,16 +37,25 @@
 
 | Contract | Address | BscScan | Status |
 |----------|---------|---------|--------|
-| **SpeculateCore** | `0x297f325e98DdFd682dd2dc964a5BEda9861D54D5` | [View](https://testnet.bscscan.com/address/0x297f325e98DdFd682dd2dc964a5BEda9861D54D5) | ✅ Active |
-| **ChainlinkResolver** | `0x363eaff32ba46F804Bc7E6352A585A705ac97aBD` | [View](https://testnet.bscscan.com/address/0x363eaff32ba46F804Bc7E6352A585A705ac97aBD) | ✅ Active |
-| **Treasury** | `0xfa8CC09b570e7e35FA1C71A4986D856262Faf29a` | [View](https://testnet.bscscan.com/address/0xfa8CC09b570e7e35FA1C71A4986D856262Faf29a) | ✅ Deployed |
-| **Admin** | `0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F` | [View](https://testnet.bscscan.com/address/0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F) | ✅ Admin |
+| **SpeculateCoreRouter** | `0x601c5DA28dacc049481eD853E5b59b9F20Dd44a8` | [View](https://testnet.bscscan.com/address/0x601c5DA28dacc049481eD853E5b59b9F20Dd44a8) | ✅ Active |
+| **ChainlinkResolver** | `0x18cA980383C16ee6C601a7a110D048e12e95e9F5` | [View](https://testnet.bscscan.com/address/0x18cA980383C16ee6C601a7a110D048e12e95e9F5) | ✅ Active |
+| **Treasury** | `0x155FB12aD27259212f000443531fAe8a629F2A19` | [View](https://testnet.bscscan.com/address/0x155FB12aD27259212f000443531fAe8a629F2A19) | ✅ Deployed |
+| **Admin** | *(deployer wallet)* | *(see `vm.addr(PRIVATE_KEY)`)* | ✅ Admin |
 
 ### External Contracts
 
 | Contract | Address | BscScan | Type |
 |----------|---------|---------|------|
-| **MockUSDC** | `0x8e38899dEC73FbE6Bde8276b8729ac1a3A6C0b8e` | [View](https://testnet.bscscan.com/address/0x8e38899dEC73FbE6Bde8276b8729ac1a3A6C0b8e) | Mock Token (Faucet) |
+| **MockUSDC** | `0x845740D345ECba415534df44C580ebb3A2432719` | [View](https://testnet.bscscan.com/address/0x845740D345ECba415534df44C580ebb3A2432719) | Mock Token (Faucet) |
+
+### Facets (Diamond)
+
+| Facet | Address | BscScan | Status |
+|------|---------|---------|--------|
+| **MarketFacet** | `0x12886B7d5C5Ebb15B29F70e3De1c90A359a74B93` | [View](https://testnet.bscscan.com/address/0x12886B7d5C5Ebb15B29F70e3De1c90A359a74B93) | ✅ Active |
+| **TradingFacet** | `0xe9521eA09C960780fe58bf625CA2b94D60E37a70` | [View](https://testnet.bscscan.com/address/0xe9521eA09C960780fe58bf625CA2b94D60E37a70) | ✅ Active |
+| **LiquidityFacet** | `0xe975a09183a61Cdb1f7279265B75da6EEB24e6A4` | [View](https://testnet.bscscan.com/address/0xe975a09183a61Cdb1f7279265B75da6EEB24e6A4) | ✅ Active |
+| **SettlementFacet** | `0x88A7F6DdeA0BCD7998d78331313E6fb8504039c1` | [View](https://testnet.bscscan.com/address/0x88A7F6DdeA0BCD7998d78331313E6fb8504039c1) | ✅ Active |
 
 ### Chainlink Price Feeds (Testnet)
 

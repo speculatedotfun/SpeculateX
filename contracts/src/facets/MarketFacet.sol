@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "../CoreStorage.sol";
 import "../PositionToken.sol";
+import "../interfaces/AggregatorV3Interface.sol";
 
 contract MarketFacet is CoreStorage {
     using SafeERC20 for IERC20;
@@ -24,6 +25,8 @@ contract MarketFacet is CoreStorage {
     error InvalidMarket();
     error InvalidExpiry();
     error InsufficientSeed();
+    error InvalidOracleFeed();
+    error TargetOutOfRange(uint256 targetValue, uint256 priceNow, uint8 oracleDecimals);
 
     modifier onlyRole(bytes32 role) {
         require(IAccessControl(address(this)).hasRole(role, msg.sender), "NO_ROLE");
@@ -59,6 +62,29 @@ contract MarketFacet is CoreStorage {
         OracleType oType = oracleFeed == address(0) ? OracleType.None : OracleType.ChainlinkFeed;
         bytes32 qh = keccak256(bytes(question));
 
+        // Basic guardrails for Chainlink markets:
+        // - record `feed.decimals()` on-chain
+        // - sanity-check targetValue magnitude against the current price to catch common 1e6 vs 1e8 mistakes
+        uint8 oracleDecimals = 0;
+        if (oType == OracleType.ChainlinkFeed) {
+            AggregatorV3Interface feed = AggregatorV3Interface(oracleFeed);
+            oracleDecimals = feed.decimals();
+
+            (, int256 answer, uint256 startedAt, uint256 updatedAt, ) = feed.latestRoundData();
+            if (answer <= 0 || startedAt == 0 || updatedAt == 0) revert InvalidOracleFeed();
+
+            uint256 priceNow = uint256(answer);
+
+            // Allow wide range, but still catch most scaling mistakes:
+            // require target in [price/50, price*50]
+            uint256 minTarget = priceNow / 50;
+            if (minTarget == 0) minTarget = 1;
+            uint256 maxTarget = priceNow * 50;
+            if (targetValue < minTarget || targetValue > maxTarget) {
+                revert TargetOutOfRange(targetValue, priceNow, oracleDecimals);
+            }
+        }
+
         markets[id] = Market({
             yes: yes,
             no: no,
@@ -71,6 +97,7 @@ contract MarketFacet is CoreStorage {
             feeVaultBps: defaultFeeVaultBps,
             status: MarketStatus.Active,
             questionHash: qh,
+            question: question,
             creator: msg.sender,
             totalLpUsdc: initUsdc,
             lpFeesUSDC: 0,
@@ -85,7 +112,8 @@ contract MarketFacet is CoreStorage {
                 targetValue: targetValue,
                 comparison: comparison,
                 yesWins: false,
-                isResolved: false
+                isResolved: false,
+                oracleDecimals: oracleDecimals
             })
         });
 
@@ -108,5 +136,11 @@ contract MarketFacet is CoreStorage {
         Market storage m = markets[id];
         if (address(m.yes) == address(0)) revert InvalidMarket();
         return m.resolution;
+    }
+
+    function getMarketQuestion(uint256 id) external view returns (string memory) {
+        Market storage m = markets[id];
+        if (address(m.yes) == address(0)) revert InvalidMarket();
+        return m.question;
     }
 }

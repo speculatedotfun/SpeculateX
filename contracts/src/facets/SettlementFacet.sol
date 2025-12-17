@@ -44,11 +44,9 @@ contract SettlementFacet is CoreStorage {
         _finalizeMarket(id, yesWins);
     }
 
-    function cancelMarket(uint256 id) external {
-        // אם אתה רוצה לבטל לגמרי אדמין כאן – תוריד פונקציה זו,
-        // ותשאיר רק pause+קוד חירום. כרגע זה “סופר-אדמין” רק במקרי קצה.
-        // מומלץ להוציא לביטול timelocked facet נפרד אם תרצה.
-        revert("DISABLED_IN_100_100"); // כדי שזה יהיה 100/100 אמיתי.
+    function cancelMarket(uint256) external pure {
+        // Disabled intentionally.
+        revert("DISABLED_IN_100_100");
     }
 
     function _finalizeMarket(uint256 id, bool yesWins) internal {
@@ -60,8 +58,11 @@ contract SettlementFacet is CoreStorage {
 
         emit MarketResolved(id, yesWins);
 
-        // requiredUSDC = winnerSupply / 1e12
-        uint256 winnerSupply = yesWins ? m.yes.totalSupply() : m.no.totalSupply();
+        // requiredUSDC = circulatingWinnerSupply / 1e12
+        // Exclude router-held "locked" shares (used to preserve spot price when liquidity changes).
+        uint256 winnerSupply = yesWins
+            ? (m.yes.totalSupply() - m.yes.balanceOf(address(this)))
+            : (m.no.totalSupply()  - m.no.balanceOf(address(this)));
         uint256 requiredUSDC = winnerSupply / 1e12;
 
         if (m.usdcVault > requiredUSDC) {

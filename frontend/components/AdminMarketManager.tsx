@@ -285,30 +285,44 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
   if (network === 'testnet') return null;
 
   return (
-    <div className="space-y-4">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="space-y-4"
+    >
       {markets.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">No markets found</div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700"
+        >
+          <Activity className="w-12 h-12 mx-auto mb-3 text-gray-400" aria-hidden="true" />
+          <p className="text-gray-500 dark:text-gray-400 font-medium" role="status">No markets found</p>
+        </motion.div>
       ) : (
-        markets.map((market) => (
+        markets.map((market, index) => (
           <motion.div
             key={market.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="group bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 hover:border-[#14B8A6] transition-all"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            className="group bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 hover:border-[#14B8A6] dark:hover:border-[#14B8A6] transition-all shadow-sm hover:shadow-md"
+            role="article"
+            aria-label={`Market ${market.id}: ${market.question}`}
           >
-            <div className="flex justify-between items-start gap-4 mb-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="secondary">#{market.id}</Badge>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center flex-wrap gap-2 mb-2">
+                  <Badge variant="secondary" className="font-mono">#{market.id}</Badge>
                   <Badge variant={market.isResolved ? "secondary" : "default"}>
                     {market.status}
                   </Badge>
                 </div>
-                <h4 className="font-bold text-gray-900 dark:text-white text-lg leading-tight">{market.question}</h4>
+                <h4 className="font-bold text-gray-900 dark:text-white text-lg leading-tight text-balance">{market.question}</h4>
               </div>
-              <div className="text-right">
-                <div className="text-xs font-medium text-gray-500">Vault</div>
-                <div className="font-mono font-bold">${market.vault.toLocaleString()}</div>
+              <div className="text-left sm:text-right shrink-0">
+                <div className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-0.5">Vault</div>
+                <div className="font-mono font-bold text-xl text-gray-900 dark:text-white">${market.vault.toLocaleString()}</div>
               </div>
             </div>
 
@@ -362,6 +376,6 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
           </motion.div>
         ))
       )}
-    </div>
+    </motion.div>
   );
 }

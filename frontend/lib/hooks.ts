@@ -125,18 +125,34 @@ export async function getMarket(id: bigint) {
     const feeVaultBps = Number(isObject ? (result.feeVaultBps ?? 0) : (result?.[8] ?? 0));
     const status = Number(isObject ? (result.status ?? 0) : (result?.[9] ?? 0));
 
-    // Mainnet old core had `question` + `lp` in the struct getter; Diamond testnet stores only `questionHash`.
+    // Updated struct layout: questionHash (index 10), question (index 11), creator (index 12)
+    // Note: string is a dynamic type, so we read it via a separate getter function
     const questionHash = (isObject ? (result.questionHash ?? ZERO_BYTES32) : (result?.[10] ?? ZERO_BYTES32)) as `0x${string}`;
-    const creator = (isObject ? (result.creator ?? ZERO_ADDRESS) : (result?.[11] ?? ZERO_ADDRESS)) as `0x${string}`;
+    const creator = (isObject ? (result.creator ?? ZERO_ADDRESS) : (result?.[12] ?? ZERO_ADDRESS)) as `0x${string}`;
+    
+    // Read question via separate getter (string is dynamic type, not in tuple)
+    let question = '';
+    try {
+      const questionResult = await publicClient.readContract({
+        address: addresses.core,
+        abi: getCoreAbi(getCurrentNetwork()),
+        functionName: 'getMarketQuestion',
+        args: [id],
+      });
+      question = (questionResult as string) || '';
+    } catch (e) {
+      // If getter doesn't exist (old contract), question will be empty and we'll fallback to events
+      console.warn(`[getMarket] getMarketQuestion not available for market ${id}, will try event fallback`);
+    }
 
-    // Diamond `Market` struct layout ends with `resolution` (index 17).
+    // Diamond `Market` struct layout ends with `resolution` (index 18 now, since we added question field).
     // Legacy monolith had a different layout, so we also tolerate older indices.
     const resolutionRaw = isObject
       ? result.resolution
-      : (Array.isArray(result) ? (result?.[17] ?? result?.[16] ?? result?.[12]) : undefined);
-    const totalLpUsdc = BigInt(isObject ? (result.totalLpUsdc ?? 0n) : (result?.[12] ?? 0n));
-    const lpFeesUSDC = BigInt(isObject ? (result.lpFeesUSDC ?? 0n) : (result?.[13] ?? 0n));
-    const residualUSDC = BigInt(isObject ? (result.residualUSDC ?? 0n) : (result?.[14] ?? 0n));
+      : (Array.isArray(result) ? (result?.[18] ?? result?.[17] ?? result?.[16] ?? result?.[12]) : undefined);
+    const totalLpUsdc = BigInt(isObject ? (result.totalLpUsdc ?? 0n) : (result?.[13] ?? 0n));
+    const lpFeesUSDC = BigInt(isObject ? (result.lpFeesUSDC ?? 0n) : (result?.[14] ?? 0n));
+    const residualUSDC = BigInt(isObject ? (result.residualUSDC ?? 0n) : (result?.[15] ?? 0n));
 
     const resolution = {
       expiryTimestamp: BigInt(resolutionRaw?.expiryTimestamp ?? resolutionRaw?.[0] ?? 0n),
@@ -151,11 +167,11 @@ export async function getMarket(id: bigint) {
 
     const exists = !!yes && yes !== ZERO_ADDRESS;
 
-    // If question is not stored (Diamond testnet), try to recover it from MarketCreated event logs.
-    let question = ((isObject && result.question ? result.question : '') ?? '') as string;
-    if (!question || question.trim() === '') {
+    // Question is now stored on-chain, but fallback to event logs for backwards compatibility with old markets
+    let questionFinal = question?.trim() || '';
+    if (!questionFinal) {
       const recovered = await getQuestionFromMarketCreatedEvent(id);
-      if (recovered) question = recovered;
+      if (recovered) questionFinal = recovered;
     }
 
     return {
@@ -170,7 +186,7 @@ export async function getMarket(id: bigint) {
       feeLpBps,
       totalFeeBps: feeTreasuryBps + feeVaultBps + feeLpBps,
       status,
-      question,
+      question: questionFinal,
       questionHash,
       creator,
       resolution,
@@ -410,12 +426,8 @@ export async function getInvariantUsdc(id: bigint) {
 }
 
 export async function getLpResidualPot(id: bigint): Promise<bigint> {
-  const addresses = getAddresses();
-  const publicClient = getClientForCurrentNetwork();
-  return await publicClient.readContract({
-    address: addresses.core,
-    abi: getCoreAbi(getCurrentNetwork()),
-    functionName: 'lpResidualUSDC',
-    args: [id],
-  }) as bigint;
+  // Diamond (testnet): residual pot is stored per-market on the Market struct as `residualUSDC`.
+  // Monolithic (mainnet): keep this working by using getMarket() which normalizes both layouts.
+  const market = await getMarket(id);
+  return BigInt((market as any)?.residualUSDC ?? 0n);
 }
