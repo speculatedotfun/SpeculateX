@@ -66,9 +66,18 @@ const config: Config = {
             transform: 'none',
           },
         },
+        shimmer: {
+          '0%': {
+            transform: 'translateX(-100%)',
+          },
+          '100%': {
+            transform: 'translateX(100%)',
+          },
+        },
       },
       animation: {
         'fade-in': 'fade-in 1s ease forwards',
+        shimmer: 'shimmer 2s infinite',
       },
     },
   },

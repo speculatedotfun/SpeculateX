@@ -8,22 +8,35 @@ import { isAdmin as checkIsAdmin } from '@/lib/hooks';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
-import { ShieldCheck, Plus, Trash2, Key } from 'lucide-react';
+import { ShieldCheck, Plus, Trash2, Key, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function USDCMinterManager() {
   const { address } = useAccount();
   const { pushToast } = useToast();
   const [newMinterAddress, setNewMinterAddress] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
-  
+  const [isLoadingAdmin, setIsLoadingAdmin] = useState(true);
+  const [validAddress, setValidAddress] = useState(false);
+
   // Get addresses for current network
   const addresses = getAddresses();
+
+  // Real-time address validation
+  useEffect(() => {
+    const isValid = /^0x[a-fA-F0-9]{40}$/.test(newMinterAddress);
+    setValidAddress(isValid);
+  }, [newMinterAddress]);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
       if (address) {
+        setIsLoadingAdmin(true);
         const adminStatus = await checkIsAdmin(address);
         setIsAdmin(adminStatus);
+        setIsLoadingAdmin(false);
+      } else {
+        setIsLoadingAdmin(false);
       }
     };
     checkAdminStatus();
@@ -80,7 +93,7 @@ export default function USDCMinterManager() {
   };
 
   const MinterChecker = ({ addressToCheck }: { addressToCheck: string }) => {
-    const { data: isMinterData } = useReadContract({
+    const { data: isMinterData, isLoading: isCheckingMinter } = useReadContract({
       address: addresses.usdc,
       abi: usdcAbi,
       functionName: 'minters',
@@ -91,80 +104,189 @@ export default function USDCMinterManager() {
     const isMinter = Boolean(isMinterData);
 
     return (
-      <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+        role="article"
+        aria-label={`Minter status for ${addressToCheck}`}
+      >
         <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-xl ${isMinter ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'}`}>
-            <Key className="w-4 h-4" />
-          </div>
+          <motion.div
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            className={`p-2 rounded-xl shadow-sm transition-colors ${isMinter ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'}`}
+          >
+            {isCheckingMinter ? (
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Key className="w-4 h-4" aria-hidden="true" />
+            )}
+          </motion.div>
           <div>
             <p className="text-sm font-bold text-gray-900 dark:text-white font-mono">{addressToCheck.slice(0, 6)}...{addressToCheck.slice(-4)}</p>
-            <p className={`text-xs font-medium ${isMinter ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
-              {isMinter ? 'Active Minter' : 'No Permissions'}
+            <p className={`text-xs font-medium flex items-center gap-1 ${isMinter ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+              {isCheckingMinter ? (
+                'Checking...'
+              ) : isMinter ? (
+                <>
+                  <CheckCircle2 className="w-3 h-3" aria-hidden="true" /> Active Minter
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="w-3 h-3" aria-hidden="true" /> No Permissions
+                </>
+              )}
             </p>
           </div>
         </div>
         {isMinter && (
-          <Button
-            onClick={() => handleRemoveMinter(addressToCheck)}
-            disabled={isRemoving || isConfirmingRemove}
-            variant="destructive"
-            size="sm"
-            className="h-8 w-8 p-0 rounded-lg"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              onClick={() => handleRemoveMinter(addressToCheck)}
+              disabled={isRemoving || isConfirmingRemove}
+              variant="destructive"
+              size="sm"
+              className="h-8 w-8 p-0 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label={`Remove minter permissions from ${addressToCheck}`}
+            >
+              {isRemoving || isConfirmingRemove ? (
+                <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Trash2 className="w-4 h-4" aria-hidden="true" />
+              )}
+            </Button>
+          </motion.div>
         )}
-      </div>
+      </motion.div>
     );
   };
+
+  if (isLoadingAdmin) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex items-center justify-center py-12"
+      >
+        <Loader2 className="w-6 h-6 animate-spin text-blue-500" aria-hidden="true" />
+        <span className="ml-3 text-sm font-medium text-gray-600 dark:text-gray-400" role="status">Checking admin access...</span>
+      </motion.div>
+    );
+  }
 
   if (!isAdmin) return null;
 
   return (
-    <div className="space-y-6">
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl p-5">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-6"
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.1 }}
+        className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-5 shadow-sm"
+        role="region"
+        aria-label="Minter permissions information"
+      >
         <div className="flex items-start gap-3">
-          <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+          <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+            <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+          </div>
           <div className="text-sm text-blue-900 dark:text-blue-100 space-y-1">
-            <p className="font-bold">Minter Permissions</p>
+            <p className="font-bold mb-1">Minter Permissions</p>
             <p className="opacity-80 leading-relaxed">
               Minters can generate new MockUSDC tokens. Ensure only trusted addresses (like the Faucet or Admin) have this role.
             </p>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       <div className="space-y-4">
-        <div>
-          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 mb-2 block">Grant Permission</label>
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <label htmlFor="minter-address" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 mb-2 block">Grant Permission</label>
           <div className="flex gap-3">
-            <Input
-              value={newMinterAddress}
-              onChange={(e) => setNewMinterAddress(e.target.value)}
-              placeholder="0x..."
-              className="font-mono"
-            />
+            <div className="relative flex-1">
+              <Input
+                id="minter-address"
+                value={newMinterAddress}
+                onChange={(e) => setNewMinterAddress(e.target.value)}
+                placeholder="0x..."
+                className="font-mono pr-10"
+                aria-label="Minter Ethereum address"
+                aria-invalid={newMinterAddress.length > 0 && !validAddress}
+                aria-describedby={newMinterAddress.length > 0 && !validAddress ? "minter-address-error" : undefined}
+              />
+              <AnimatePresence>
+                {validAddress && (
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                  >
+                    <CheckCircle2 className="w-5 h-5 text-green-500" aria-hidden="true" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <Button
               onClick={handleAddMinter}
-              disabled={isAdding || isConfirmingAdd || !newMinterAddress}
-              className="bg-green-600 hover:bg-green-700 text-white min-w-[120px]"
+              disabled={isAdding || isConfirmingAdd || !validAddress}
+              className="bg-green-600 hover:bg-green-700 text-white min-w-[120px] disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Add minter permissions"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Add
+              {isAdding || isConfirmingAdd ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+                  {isAdding ? 'Adding...' : 'Confirming...'}
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" aria-hidden="true" />
+                  Add
+                </>
+              )}
             </Button>
           </div>
-        </div>
+          {newMinterAddress.length > 0 && !validAddress && (
+            <motion.p
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              id="minter-address-error"
+              className="text-xs text-red-600 dark:text-red-400 mt-1.5 ml-1"
+              role="alert"
+            >
+              Invalid Ethereum address format
+            </motion.p>
+          )}
+        </motion.div>
 
-        <div className="pt-4 border-t border-gray-100 dark:border-gray-700 space-y-3">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="pt-4 border-t border-gray-100 dark:border-gray-700 space-y-3"
+        >
           <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1">Status Check</h4>
-          {address && (
-            <MinterChecker addressToCheck={address} />
-          )}
-          {newMinterAddress && newMinterAddress !== address && (
-            <MinterChecker addressToCheck={newMinterAddress} />
-          )}
-        </div>
+          <AnimatePresence mode="popLayout">
+            {address && (
+              <MinterChecker key={address} addressToCheck={address} />
+            )}
+            {newMinterAddress && newMinterAddress !== address && validAddress && (
+              <MinterChecker key={newMinterAddress} addressToCheck={newMinterAddress} />
+            )}
+          </AnimatePresence>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

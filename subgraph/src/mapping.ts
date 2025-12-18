@@ -78,8 +78,8 @@ export function handleMarketCreated(event: MarketCreated): void {
 
   market = new Market(marketId);
   
-  // Try to use event params first (if ABI matches deployed contract)
-  // The ABI shows the event has: id, yes, no, question, initUsdc, expiryTimestamp
+  // Event params: id, yes, no, questionHash, question, initUsdc, expiryTimestamp
+  // (questionHash is ignored, we use question string directly)
   market.yesToken = event.params.yes;
   market.noToken = event.params.no;
   market.question = event.params.question;
@@ -113,21 +113,21 @@ export function handleBuy(event: Buy): void {
   trade.user = user.id;
   trade.action = 'buy';
   trade.side = event.params.isYes ? 'yes' : 'no';
-  trade.tokenDelta = event.params.tokensOut;
+  trade.tokenDelta = event.params.sharesOut;
   trade.usdcDelta = event.params.usdcIn.times(NEG_ONE);
-  trade.priceE6 = event.params.priceE6;
+  trade.priceE6 = event.params.pYesE6;
   trade.save();
 
   market.totalVolumeUsdc = market.totalVolumeUsdc.plus(event.params.usdcIn);
   if (event.params.isYes) {
-    market.totalTokensYes = market.totalTokensYes.plus(event.params.tokensOut);
+    market.totalTokensYes = market.totalTokensYes.plus(event.params.sharesOut);
   } else {
-    market.totalTokensNo = market.totalTokensNo.plus(event.params.tokensOut);
+    market.totalTokensNo = market.totalTokensNo.plus(event.params.sharesOut);
   }
   market.save();
 
   const balance = getOrCreatePositionBalance(marketId, user.id, trade.side);
-  balance.tokenBalance = balance.tokenBalance.plus(event.params.tokensOut);
+  balance.tokenBalance = balance.tokenBalance.plus(event.params.sharesOut);
   balance.save();
 }
 
@@ -148,21 +148,21 @@ export function handleSell(event: Sell): void {
   trade.user = user.id;
   trade.action = 'sell';
   trade.side = event.params.isYes ? 'yes' : 'no';
-  trade.tokenDelta = event.params.tokensIn.times(NEG_ONE);
+  trade.tokenDelta = event.params.sharesIn.times(NEG_ONE);
   trade.usdcDelta = event.params.usdcOut;
-  trade.priceE6 = event.params.priceE6;
+  trade.priceE6 = event.params.pYesE6;
   trade.save();
 
   market.totalVolumeUsdc = market.totalVolumeUsdc.plus(event.params.usdcOut);
   if (event.params.isYes) {
-    market.totalTokensYes = subtractSafely(market.totalTokensYes, event.params.tokensIn);
+    market.totalTokensYes = subtractSafely(market.totalTokensYes, event.params.sharesIn);
   } else {
-    market.totalTokensNo = subtractSafely(market.totalTokensNo, event.params.tokensIn);
+    market.totalTokensNo = subtractSafely(market.totalTokensNo, event.params.sharesIn);
   }
   market.save();
 
   const balance = getOrCreatePositionBalance(marketId, user.id, trade.side);
-  balance.tokenBalance = subtractSafely(balance.tokenBalance, event.params.tokensIn);
+  balance.tokenBalance = subtractSafely(balance.tokenBalance, event.params.sharesIn);
   balance.save();
 }
 
@@ -177,7 +177,7 @@ export function handleRedeemed(event: Redeemed): void {
   const redemption = new Redemption(createTradeId(event.transaction.hash, event.logIndex));
   redemption.market = marketId;
   redemption.user = user.id;
-  redemption.amount = event.params.usdcOut;
+  redemption.amount = event.params.payoutUSDC;
   redemption.txHash = event.transaction.hash;
   redemption.blockNumber = event.block.number;
   redemption.timestamp = event.block.timestamp;

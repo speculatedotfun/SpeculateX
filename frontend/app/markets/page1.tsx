@@ -4,13 +4,12 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SearchIcon, Activity, Clock, SlidersHorizontal, TrendingUp, Loader2 } from 'lucide-react';
+import { SearchIcon, Activity, Clock, SlidersHorizontal, TrendingUp } from 'lucide-react';
 import Header from '@/components/Header';
 import { getMarketCount, getMarket, getPriceYes, getMarketResolution, getMarketState } from '@/lib/hooks';
 import { formatUnits } from 'viem';
 import { useQuery } from '@tanstack/react-query';
 import { fetchSubgraph } from '@/lib/subgraphClient';
-import { Skeleton } from '@/components/ui/skeleton';
 
 // --- Helper Functions ---
 
@@ -84,12 +83,8 @@ function MarketCountdown({ expiryTimestamp, isResolved }: { expiryTimestamp: big
   }
   
   return (
-    <div
-      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${bgClass} ${colorClass}`}
-      role="status"
-      aria-label={`Market ${isResolved ? 'ended' : timeRemaining === 'Expired' ? 'expired' : `expires in ${timeRemaining}`}`}
-    >
-      <Clock className="w-3 h-3" aria-hidden="true" />
+    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${bgClass} ${colorClass}`}>
+      <Clock className="w-3 h-3" />
       <span>{timeRemaining || formatTimeRemaining(expiryTimestamp)}</span>
     </div>
   );
@@ -98,13 +93,11 @@ function MarketCountdown({ expiryTimestamp, isResolved }: { expiryTimestamp: big
 // --- NEW STATS BANNER COMPONENT ---
 function StatsBanner({ liquidity, traders, liveMarkets }: { liquidity: string, traders: string, liveMarkets: number }) {
   return (
-    <motion.div
+    <motion.div 
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: 0.2 }}
       className="relative w-full z-20 mt-12 mb-16 -mx-4 sm:-mx-6 lg:-mx-8"
-      role="region"
-      aria-label="Platform statistics"
     >
       {/* Container Card */}
       <div className="bg-white dark:bg-slate-800 rounded-[30px] shadow-2xl shadow-[#14B8A6]/10 border border-gray-100 dark:border-gray-700 overflow-hidden relative min-h-[160px] flex items-center">
@@ -133,69 +126,39 @@ function StatsBanner({ liquidity, traders, liveMarkets }: { liquidity: string, t
 
         {/* Stats Content (Centered) */}
         <div className="relative z-10 w-full flex flex-col md:flex-row justify-around items-center gap-8 py-6 px-8 md:px-24 lg:px-32">
-
+            
             {/* Stat 1: Volume */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-              className="flex flex-col items-center text-center"
-            >
+            <div className="flex flex-col items-center text-center">
                 <span className="text-xs md:text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Total Volume</span>
-                <motion.span
-                  initial={{ scale: 0.5 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
-                  className="text-3xl md:text-5xl font-black text-[#0f0a2e] dark:text-white tracking-tighter"
-                >
+                <span className="text-3xl md:text-5xl font-black text-[#0f0a2e] dark:text-white tracking-tighter">
                    {liquidity}
-                </motion.span>
-                <span className="text-xs font-bold text-[#14B8A6] mt-1" role="status" aria-label="12% increase">+12%</span>
-            </motion.div>
+                </span>
+                <span className="text-xs font-bold text-[#14B8A6] mt-1">+12%</span>
+            </div>
 
             {/* Divider (Hidden on Mobile) */}
-            <div className="hidden md:block w-px h-16 bg-gray-100 dark:bg-gray-700" aria-hidden="true"></div>
+            <div className="hidden md:block w-px h-16 bg-gray-100 dark:bg-gray-700"></div>
 
             {/* Stat 2: Active Traders */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
-              className="flex flex-col items-center text-center"
-            >
+            <div className="flex flex-col items-center text-center">
                 <span className="text-xs md:text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Active Traders</span>
-                <motion.span
-                  initial={{ scale: 0.5 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
-                  className="text-3xl md:text-5xl font-black text-[#0f0a2e] dark:text-white tracking-tighter"
-                >
+                <span className="text-3xl md:text-5xl font-black text-[#0f0a2e] dark:text-white tracking-tighter">
                    {traders}
-                </motion.span>
-                <span className="text-xs font-bold text-[#14B8A6] mt-1" role="status" aria-label="18 new traders today">+18 today</span>
-            </motion.div>
+                </span>
+                <span className="text-xs font-bold text-[#14B8A6] mt-1">+18 today</span>
+            </div>
 
             {/* Divider (Hidden on Mobile) */}
-            <div className="hidden md:block w-px h-16 bg-gray-100 dark:bg-gray-700" aria-hidden="true"></div>
+            <div className="hidden md:block w-px h-16 bg-gray-100 dark:bg-gray-700"></div>
 
             {/* Stat 3: Live Markets */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
-              className="flex flex-col items-center text-center"
-            >
+            <div className="flex flex-col items-center text-center">
                 <span className="text-xs md:text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Live Markets</span>
-                <motion.span
-                  initial={{ scale: 0.5 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.6, type: "spring", stiffness: 200 }}
-                  className="text-3xl md:text-5xl font-black text-[#0f0a2e] dark:text-white tracking-tighter"
-                >
+                <span className="text-3xl md:text-5xl font-black text-[#0f0a2e] dark:text-white tracking-tighter">
                    {liveMarkets}
-                </motion.span>
-                <span className="text-xs font-bold text-[#14B8A6] mt-1" role="status" aria-label="3 markets closing soon">3 closing soon</span>
-            </motion.div>
+                </span>
+                <span className="text-xs font-bold text-[#14B8A6] mt-1">3 closing soon</span>
+            </div>
 
         </div>
       </div>
@@ -414,20 +377,17 @@ export default function MarketsPage() {
              <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto flex-1">
                 {/* Search Bar */}
                 <div className="relative w-full sm:w-80 group">
-                  <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#14B8A6] transition-colors" aria-hidden="true" />
+                  <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#14B8A6] transition-colors" />
                   <input
-                    type="search"
                     placeholder="Search markets..."
                     className="w-full pl-10 pr-4 h-11 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#14B8A6]/20 focus:border-[#14B8A6] outline-none transition-all placeholder:text-gray-400"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    aria-label="Search markets by question"
-                    role="searchbox"
                   />
                 </div>
 
                 {/* Status Tabs */}
-                <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-xl flex gap-1 w-full sm:w-auto overflow-x-auto no-scrollbar" role="group" aria-label="Market status filter">
+                <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-xl flex gap-1 w-full sm:w-auto overflow-x-auto no-scrollbar">
                   {STATUS_FILTERS.map((tab) => (
                     <button
                       key={tab}
@@ -437,9 +397,6 @@ export default function MarketsPage() {
                           ? 'bg-white dark:bg-gray-700 text-[#0f0a2e] dark:text-white shadow-sm ring-1 ring-black/5'
                           : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                       }`}
-                      role="radio"
-                      aria-checked={activeStatusTab === tab}
-                      aria-label={`Filter ${tab.toLowerCase()} markets`}
                     >
                       {tab}
                     </button>
@@ -448,24 +405,20 @@ export default function MarketsPage() {
             </div>
 
             {/* Right: Category Pills */}
-            <div className="w-full lg:w-auto flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 no-scrollbar mask-gradient-right" role="group" aria-label="Category filter">
-              <SlidersHorizontal className="w-4 h-4 text-gray-400 shrink-0 mr-1" aria-hidden="true" />
+            <div className="w-full lg:w-auto flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 no-scrollbar mask-gradient-right">
+              <SlidersHorizontal className="w-4 h-4 text-gray-400 shrink-0 mr-1" />
               {categories.map((category) => (
-                <motion.button
+                <button
                   key={category}
                   onClick={() => setActiveCategory(category)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
                   className={`px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 whitespace-nowrap border ${
                     activeCategory === category
                       ? "bg-[#14B8A6] border-[#14B8A6] text-white shadow-md shadow-[#14B8A6]/20"
                       : "bg-transparent border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-[#14B8A6]/50 hover:text-[#14B8A6]"
                   }`}
-                  aria-label={`Filter ${category} markets`}
-                  aria-pressed={activeCategory === category}
                 >
                   {category}
-                </motion.button>
+                </button>
               ))}
             </div>
           </div>
@@ -481,16 +434,9 @@ export default function MarketsPage() {
         {/* Market Cards Grid */}
         <AnimatePresence mode="popLayout">
           {loading ? (
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="status" aria-label="Loading markets">
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1,2,3,4,5,6].map(i => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                  >
-                    <Skeleton className="h-[340px] rounded-[28px]" />
-                  </motion.div>
+                  <div key={i} className="h-[340px] rounded-[32px] bg-gray-100 dark:bg-gray-800 animate-pulse border border-gray-200 dark:border-gray-700"></div>
                 ))}
              </div>
           ) : filteredMarkets.length === 0 ? (
@@ -520,16 +466,8 @@ export default function MarketsPage() {
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                 >
-                  <Link
-                    href={`/markets/${market.id}`}
-                    className="block h-full group"
-                    aria-label={`Market ${market.id}: ${market.question}. ${market.status === 'LIVE TRADING' ? 'Live trading' : market.status === 'RESOLVED' ? 'Ended' : 'Expired'}. Yes price: ${formatPriceLocal(market.yesPrice)}, No price: ${formatPriceLocal(market.noPrice)}`}
-                  >
-                    <motion.div
-                      className="h-full bg-white dark:bg-gray-800/60 backdrop-blur-xl rounded-[28px] p-1 border border-gray-100 dark:border-gray-700/50 hover:border-[#14B8A6] dark:hover:border-[#14B8A6] hover:shadow-2xl hover:shadow-[#14B8A6]/10 transition-all duration-300 flex flex-col relative overflow-hidden ring-1 ring-gray-900/5 dark:ring-white/5"
-                      whileHover={{ y: -5 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
+                  <Link href={`/markets/${market.id}`} className="block h-full group">
+                    <div className="h-full bg-white dark:bg-gray-800/60 backdrop-blur-xl rounded-[28px] p-1 border border-gray-100 dark:border-gray-700/50 hover:border-[#14B8A6] dark:hover:border-[#14B8A6] hover:shadow-2xl hover:shadow-[#14B8A6]/10 transition-all duration-300 flex flex-col relative overflow-hidden ring-1 ring-gray-900/5 dark:ring-white/5">
                       
                       {/* Inner Card Content */}
                       <div className="flex-1 p-5 flex flex-col">
@@ -606,7 +544,7 @@ export default function MarketsPage() {
                           {/* Footer Info */}
                           <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700/40">
                              <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400">
-                                <Activity className="w-3.5 h-3.5" aria-hidden="true" />
+                                <Activity className="w-3.5 h-3.5" />
                                 <span>${formatNumber(market.volume)} Vol</span>
                              </div>
                              <MarketCountdown expiryTimestamp={market.expiryTimestamp} isResolved={market.isResolved} />
@@ -614,7 +552,7 @@ export default function MarketsPage() {
                         </div>
 
                       </div>
-                    </motion.div>
+                    </div>
                   </Link>
                 </motion.div>
               ))}

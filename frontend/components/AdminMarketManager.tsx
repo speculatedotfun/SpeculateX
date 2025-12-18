@@ -7,8 +7,8 @@ import { formatUnits, encodeAbiParameters, keccak256, stringToBytes } from 'viem
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
-import { CheckCircle, XCircle, DollarSign, Trophy, Activity, Zap } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { CheckCircle, XCircle, DollarSign, Trophy, Activity, Zap, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import chainlinkResolverAbiData from '@/lib/abis/ChainlinkResolver.json';
 const chainlinkResolverAbi = Array.isArray(chainlinkResolverAbiData) 
   ? chainlinkResolverAbiData 
@@ -326,50 +326,116 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-100 dark:border-gray-700">
+            <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-100 dark:border-gray-700" role="group" aria-label="Market actions">
               {!market.isResolved && market.status !== 'expired' ? (
                 <>
-                  <Button size="sm" onClick={() => handleResolve(market.id, true)} disabled={isPending} className="bg-green-600 hover:bg-green-700 text-white">
-                    <CheckCircle className="w-4 h-4 mr-2" /> Yes Wins
-                  </Button>
-                  <Button size="sm" onClick={() => handleResolve(market.id, false)} disabled={isPending} className="bg-red-600 hover:bg-red-700 text-white">
-                    <XCircle className="w-4 h-4 mr-2" /> No Wins
-                  </Button>
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <Button
+                      size="sm"
+                      onClick={() => handleResolve(market.id, true)}
+                      disabled={isPending || isConfirming}
+                      className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label={`Resolve market ${market.id} as Yes wins`}
+                    >
+                      {isPending || isConfirming ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4 mr-2" aria-hidden="true" />
+                      )}
+                      Yes Wins
+                    </Button>
+                  </motion.div>
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <Button
+                      size="sm"
+                      onClick={() => handleResolve(market.id, false)}
+                      disabled={isPending || isConfirming}
+                      className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label={`Resolve market ${market.id} as No wins`}
+                    >
+                      {isPending || isConfirming ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <XCircle className="w-4 h-4 mr-2" aria-hidden="true" />
+                      )}
+                      No Wins
+                    </Button>
+                  </motion.div>
                 </>
               ) : market.isResolved ? (
-                <div className="flex items-center gap-3 w-full">
-                  <div className="flex-1 flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50 px-3 py-2 rounded-lg">
-                    <Trophy className="w-4 h-4 text-yellow-500" />
-                    Winner: <span className="font-bold">{market.yesWins ? 'YES' : 'NO'}</span>
-                  </div>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex-1 flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700"
+                  >
+                    <Trophy className="w-4 h-4 text-yellow-500 animate-pulse" aria-hidden="true" />
+                    Winner: <span className={`font-bold ${market.yesWins ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{market.yesWins ? 'YES' : 'NO'}</span>
+                  </motion.div>
                   {market.residual > 0 && (
-                     <Button size="sm" onClick={() => handleFinalize(market.id)} disabled={isPending} variant="outline">
-                       <DollarSign className="w-4 h-4 mr-2" /> Finalize (${market.residual.toFixed(2)})
-                     </Button>
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button
+                        size="sm"
+                        onClick={() => handleFinalize(market.id)}
+                        disabled={isPending || isConfirming}
+                        variant="outline"
+                        className="w-full sm:w-auto hover:border-green-500 hover:text-green-600 dark:hover:text-green-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label={`Finalize market ${market.id} with residual $${market.residual.toFixed(2)}`}
+                      >
+                        {isPending || isConfirming ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+                        ) : (
+                          <DollarSign className="w-4 h-4 mr-2" aria-hidden="true" />
+                        )}
+                        Finalize (${market.residual.toFixed(2)})
+                      </Button>
+                    </motion.div>
                   )}
                 </div>
               ) : market.status === 'expired' ? (
-                <div className="flex items-center gap-3 w-full">
-                  <div className="flex-1 flex items-center gap-2 text-sm font-medium text-orange-600 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/20 px-3 py-2 rounded-lg">
-                    <Activity className="w-4 h-4" />
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex-1 flex items-center gap-2 text-sm font-medium text-orange-600 dark:text-orange-300 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 px-4 py-2.5 rounded-lg border border-orange-200 dark:border-orange-800"
+                  >
+                    <Activity className="w-4 h-4 animate-pulse" aria-hidden="true" />
                     Market expired - awaiting Chainlink resolution
+                  </motion.div>
+                  <div className="flex flex-wrap gap-2">
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button
+                        size="sm"
+                        onClick={() => handleRegisterFeedForMarket(market.id)}
+                        disabled={isPending || isConfirming}
+                        className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label={`Register price feed for market ${market.id}`}
+                      >
+                        {isPending || isConfirming ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+                        ) : (
+                          <Zap className="w-4 h-4 mr-2" aria-hidden="true" />
+                        )}
+                        Register Feed
+                      </Button>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button
+                        size="sm"
+                        onClick={() => handleTriggerChainlinkResolution(market.id)}
+                        disabled={isPending || isConfirming}
+                        className="bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label={`Trigger Chainlink resolution for market ${market.id}`}
+                      >
+                        {isPending || isConfirming ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+                        ) : (
+                          <Zap className="w-4 h-4 mr-2" aria-hidden="true" />
+                        )}
+                        Trigger Resolution
+                      </Button>
+                    </motion.div>
                   </div>
-                  <Button 
-                    size="sm" 
-                    onClick={() => handleRegisterFeedForMarket(market.id)} 
-                    disabled={isPending} 
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <Zap className="w-4 h-4 mr-2" /> Register Feed
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={() => handleTriggerChainlinkResolution(market.id)} 
-                    disabled={isPending} 
-                    className="bg-orange-600 hover:bg-orange-700 text-white"
-                  >
-                    <Zap className="w-4 h-4 mr-2" /> Trigger Resolution
-                  </Button>
                 </div>
               ) : null}
             </div>

@@ -6,9 +6,9 @@ dataSources:
     name: SpeculateCore
     network: chapel
     source:
-      address: "0x7A06375bF7E7a2969b6145Aa2B1683cbBe2430FD"
+      address: "0x601c5DA28dacc049481eD853E5b59b9F20Dd44a8"
       abi: SpeculateCore
-      startBlock: 77000000    # Will be updated to actual deployment block
+      startBlock: 79091059    # Deployed December 2024 (Diamond Router)
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -24,7 +24,7 @@ dataSources:
         - name: SpeculateCore
           file: ./abis/SpeculateCore.json
       eventHandlers:
-        - event: MarketCreated(indexed uint256,address,address,string,uint256,uint256)
+        - event: MarketCreated(indexed uint256,address,address,bytes32,string,uint256,uint256)
           handler: handleMarketCreated
         - event: Buy(indexed uint256,indexed address,bool,uint256,uint256,uint256)
           handler: handleBuy

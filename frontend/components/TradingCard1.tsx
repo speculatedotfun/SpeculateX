@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, ChangeEvent, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, ChangeEvent, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useAccount, useWriteContract, useReadContract, usePublicClient, useBlockNumber } from 'wagmi';
@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/toast';
 import { clamp, formatBalanceDisplay, toBigIntSafe } from '@/lib/tradingUtils';
 import { costFunction, spotPriceYesE18, findSharesOut, simulateBuyChunk } from '@/lib/lmsrMath';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, AlertTriangle, Droplets, Wallet, ArrowRightLeft, TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import { ChevronDown, AlertTriangle, Droplets, Wallet, ArrowRightLeft } from 'lucide-react';
 
 // --- Imports for Sub-Components ---
 import { SplitOrderModal } from './trading/SplitOrderModal';
@@ -831,34 +831,22 @@ export default function TradingCard({
         onConfirm={handleConfirmSplit}
       />
 
-      <div className="p-1 space-y-6" data-testid="trading-card" role="main" aria-label="Trading interface">
+      <div className="p-1 space-y-6" data-testid="trading-card">
         {!isTradeable && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 p-4 flex gap-3 items-start"
-            role="alert"
-            aria-live="polite"
-          >
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 p-4 flex gap-3 items-start">
              <div className="p-1.5 bg-amber-100 dark:bg-amber-900/30 rounded-full text-amber-600 dark:text-amber-400 mt-0.5">
-               <AlertTriangle className="w-4 h-4" aria-hidden="true" />
+               <AlertTriangle className="w-4 h-4" />
              </div>
             <div className="text-sm text-amber-800 dark:text-amber-200 font-medium leading-relaxed">{tradeDisabledReason}</div>
           </motion.div>
         )}
 
         {/* Trade Mode Toggle - Segmented Control */}
-        <div
-          className="flex bg-gray-100 dark:bg-gray-800/80 p-1.5 rounded-2xl relative"
-          role="group"
-          aria-label="Trade mode selection"
-        >
-          <motion.div
-            className="absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-white dark:bg-gray-700 rounded-xl shadow-sm"
-            animate={{
-              x: tradeMode === 'sell' ? 'calc(100% + 6px)' : 0
-            }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+        <div className="flex bg-gray-100 dark:bg-gray-800/80 p-1.5 rounded-2xl relative">
+          <div
+            className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-white dark:bg-gray-700 rounded-xl shadow-sm transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+              tradeMode === 'sell' ? 'translate-x-[calc(100%+6px)]' : 'translate-x-0'
+            }`}
           />
           {(['buy', 'sell'] as const).map(m => (
             <button
@@ -868,45 +856,37 @@ export default function TradingCard({
                 tradeMode === m ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
               disabled={!isTradeable}
-              role="radio"
-              aria-checked={tradeMode === m}
-              aria-label={`${m === 'buy' ? 'Buy' : 'Sell'} mode`}
-              tabIndex={tradeMode === m ? 0 : -1}
             >
               {m === 'buy' ? 'Buy' : 'Sell'}
+              {m === 'sell' && side !== 'yes' && side !== 'no' ? '' : ''}
             </button>
           ))}
         </div>
 
         {/* Outcome Selection - Big Trading Cards */}
-        <div className="grid grid-cols-2 gap-4" role="group" aria-label="Outcome selection">
+        <div className="grid grid-cols-2 gap-4">
           {(['yes', 'no'] as const).map(s => {
             const price = s === 'yes' ? priceYes : priceNo;
             const isSelected = side === s;
-            const balance = s === 'yes' ? yesBalance : noBalance;
-
+            
             return (
               <motion.button
                 key={s}
                 whileTap={{ scale: 0.98 }}
-                whileHover={{ scale: !isBusy && isTradeable ? 1.02 : 1 }}
                 onClick={() => { if (!isBusy && isTradeable) setSide(s); }}
                 className={`
                   relative p-5 rounded-[24px] text-left transition-all duration-200 border-[3px] overflow-hidden group
-                  ${s === 'yes'
-                    ? (isSelected
-                        ? 'bg-green-50 dark:bg-green-900/20 border-green-500 shadow-[0_0_0_4px_rgba(34,197,94,0.1)]'
-                        : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-700')
-                    : (isSelected
-                        ? 'bg-red-50 dark:bg-red-900/20 border-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.1)]'
+                  ${s === 'yes' 
+                    ? (isSelected 
+                        ? 'bg-green-50 dark:bg-green-900/20 border-green-500 shadow-[0_0_0_4px_rgba(34,197,94,0.1)]' 
+                        : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-700') 
+                    : (isSelected 
+                        ? 'bg-red-50 dark:bg-red-900/20 border-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.1)]' 
                         : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-700')
                   }
                   disabled:opacity-50 disabled:cursor-not-allowed
                 `}
                 disabled={!isTradeable}
-                role="radio"
-                aria-checked={isSelected}
-                aria-label={`${s.toUpperCase()} outcome at ${formatPrice(price)}, balance: ${balance}`}
               >
                 <div className="flex justify-between items-center mb-4 relative z-10">
                   <span className={`text-sm font-black uppercase tracking-widest ${
@@ -914,34 +894,28 @@ export default function TradingCard({
                   }`}>
                     {s}
                   </span>
-                  <AnimatePresence mode="wait">
-                    {isSelected && (
-                      <motion.div
-                        initial={{ scale: 0, rotate: -180 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        exit={{ scale: 0, rotate: 180 }}
-                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                        className={`w-6 h-6 rounded-full flex items-center justify-center ${s === 'yes' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'} shadow-md`}
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  {isSelected && (
+                     <div className={`w-6 h-6 rounded-full flex items-center justify-center ${s === 'yes' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'} shadow-md`}>
+                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                     </div>
+                  )}
                 </div>
-
+                
                 <div className="space-y-1 relative z-10">
                   <div className="text-4xl font-black tracking-tighter text-gray-900 dark:text-white">
                     {formatPrice(price)}
                   </div>
                   <div className="flex items-center gap-1.5 text-xs font-bold text-gray-400 dark:text-gray-500">
-                    <Wallet className="w-3 h-3" aria-hidden="true" />
-                    <span className="truncate">Bal: {balance}</span>
+                    <Wallet className="w-3 h-3" />
+                    <span className="truncate">Bal: {s === 'yes' ? yesBalance : noBalance}</span>
                   </div>
                 </div>
 
                 {/* Decorative BG Gradient */}
                 {isSelected && (
-                   <div className={`absolute -right-4 -bottom-4 w-24 h-24 rounded-full blur-2xl opacity-50 ${s === 'yes' ? 'bg-green-400' : 'bg-red-400'}`} aria-hidden="true" />
+                   <div className={`absolute -right-4 -bottom-4 w-24 h-24 rounded-full blur-2xl opacity-50 ${s === 'yes' ? 'bg-green-400' : 'bg-red-400'}`} />
                 )}
               </motion.button>
             );
@@ -950,23 +924,14 @@ export default function TradingCard({
 
         {/* Amount Input - Massive & Clean */}
         <div className="space-y-4">
-          <div className={`
-            bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-[24px] border-2 transition-all hover:bg-white dark:hover:bg-gray-800 relative
-            ${amount && parseFloat(amount) > 0
-              ? (tradeMode === 'buy' && canBuy) || (tradeMode === 'sell' && canSell)
-                ? 'border-green-500 dark:border-green-600 shadow-[0_0_0_3px_rgba(34,197,94,0.1)]'
-                : 'border-red-500 dark:border-red-600 shadow-[0_0_0_3px_rgba(239,68,68,0.1)]'
-              : 'border-gray-200 dark:border-gray-700'
-            }
-            p-5 focus-within:ring-4 focus-within:ring-[#14B8A6]/10 focus-within:border-[#14B8A6]
-          `}>
+          <div className="bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-[24px] border border-gray-200 dark:border-gray-700 p-5 focus-within:ring-4 focus-within:ring-[#14B8A6]/10 focus-within:border-[#14B8A6] transition-all hover:bg-white dark:hover:bg-gray-800">
             <div className="flex justify-between items-center mb-3">
               <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Amount to {tradeMode}</span>
               <div className="flex items-center gap-2">
                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
                    Avail: {tradeMode === 'buy' ? usdcBalance : (side === 'yes' ? yesBalance : noBalance)}
                  </span>
-                 <button
+                 <button 
                    onClick={() => {
                      const maxValue = tradeMode === 'buy'
                        ? parseFloat(formatUnits(usdcBalanceRaw, 6))
@@ -975,9 +940,8 @@ export default function TradingCard({
                          : parseFloat(formatUnits(noBalanceRaw, 18));
                      setAmount(maxValue.toString());
                    }}
-                   className="text-[10px] font-bold text-[#14B8A6] bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 px-2.5 py-1 rounded-lg uppercase tracking-wide transition-colors active:scale-95"
+                   className="text-[10px] font-bold text-[#14B8A6] bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 px-2.5 py-1 rounded-lg uppercase tracking-wide transition-colors"
                    disabled={!isTradeable}
-                   aria-label="Set maximum amount"
                  >
                   Max
                 </button>
@@ -986,93 +950,29 @@ export default function TradingCard({
 
             <div className="relative flex items-baseline">
               {tradeMode === 'buy' && <span className="text-4xl font-medium text-gray-400 dark:text-gray-500 mr-1">$</span>}
-              <input
-                type="text"
-                inputMode="decimal"
-                pattern={amountRegex.source}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-                className="w-full bg-transparent text-5xl font-black text-gray-900 dark:text-white placeholder-gray-200 dark:placeholder-gray-700 outline-none tabular-nums tracking-tight"
-                disabled={isBusy || showSplitConfirm || !isTradeable}
-                aria-label={`Amount to ${tradeMode} in ${tradeMode === 'buy' ? 'USDC' : 'shares'}`}
-                aria-invalid={Boolean(amount && parseFloat(amount) > 0 && !canBuy && !canSell) || undefined}
-                aria-describedby="amount-validation"
+              <input 
+                type="text" 
+                inputMode="decimal" 
+                pattern={amountRegex.source} 
+                value={amount} 
+                onChange={(e) => setAmount(e.target.value)} 
+                placeholder="0.00" 
+                className="w-full bg-transparent text-5xl font-black text-gray-900 dark:text-white placeholder-gray-200 dark:placeholder-gray-700 outline-none tabular-nums tracking-tight" 
+                disabled={isBusy || showSplitConfirm || !isTradeable} 
               />
               <span className="text-base font-bold text-gray-400 dark:text-gray-500 ml-2">{tradeMode === 'buy' ? 'USDC' : 'Shares'}</span>
             </div>
-
-            {/* Validation Indicator */}
-            <AnimatePresence>
-              {amount && parseFloat(amount) > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="absolute right-5 top-1/2 -translate-y-1/2"
-                  id="amount-validation"
-                >
-                  {(tradeMode === 'buy' && canBuy) || (tradeMode === 'sell' && canSell) ? (
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-green-600 dark:text-green-400">
-                      <CheckCircle2 className="w-5 h-5" aria-hidden="true" />
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400">
-                      <AlertCircle className="w-5 h-5" aria-hidden="true" />
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
-
-          {/* Error Message */}
-          <AnimatePresence>
-            {amount && parseFloat(amount) > 0 && !canBuy && !canSell && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800" role="alert">
-                  <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
-                  <div className="text-xs font-medium text-red-700 dark:text-red-300">
-                    {tradeMode === 'buy'
-                      ? `Insufficient USDC balance. You have ${usdcBalance} USDC available.`
-                      : `Insufficient ${side.toUpperCase()} shares. You have ${side === 'yes' ? yesBalance : noBalance} shares available.`
-                    }
-                  </div>
-                </div>
-              </motion.div>
-            )}
-            {overJumpCap && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800" role="alert">
-                  <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
-                  <div className="text-xs font-medium text-blue-700 dark:text-blue-300">
-                    This order exceeds the single trade limit and will be split into multiple transactions.
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
+          
            {/* Quick Amount Pills */}
-           <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar scroll-smooth snap-x" role="group" aria-label="Quick amount selection">
+           <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar scroll-smooth snap-x">
             {tradeMode === 'buy' ? (
               ['10', '50', '100', '500', '1000'].map(q => (
-                <button
-                  key={q}
-                  onClick={() => setAmount(q)}
+                <button 
+                  key={q} 
+                  onClick={() => setAmount(q)} 
                   className="flex-shrink-0 snap-start px-5 py-2.5 rounded-2xl text-xs font-bold text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-[#14B8A6] hover:text-[#14B8A6] hover:shadow-md transition-all active:scale-95 disabled:opacity-50"
                   disabled={isBusy || !isTradeable}
-                  aria-label={`Set amount to ${q} USDC`}
                 >
                   ${q}
                 </button>
@@ -1082,12 +982,11 @@ export default function TradingCard({
                 const amountValue = (maxSellAmount * percent) / 100;
                 const amountStr = formatAmount(amountValue);
                 return (
-                  <button
-                    key={percent}
-                    onClick={() => setAmount(amountStr)}
+                  <button 
+                    key={percent} 
+                    onClick={() => setAmount(amountStr)} 
                     className="flex-shrink-0 snap-start px-5 py-2.5 rounded-2xl text-xs font-bold text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-[#14B8A6] hover:text-[#14B8A6] hover:shadow-md transition-all active:scale-95 disabled:opacity-50"
                     disabled={isBusy || !isTradeable || maxSellAmount === 0}
-                    aria-label={`Set amount to ${percent}% of balance (${amountStr} shares)`}
                   >
                     {percent}%
                   </button>
@@ -1110,63 +1009,44 @@ export default function TradingCard({
           )}
         </AnimatePresence>
 
-        <motion.button
-          onClick={handleTrade}
-          disabled={isBusy || !amount || (!canBuy && !canSell)}
-          whileHover={{ scale: isTradeable && !isBusy ? 1.02 : 1 }}
-          whileTap={{ scale: isTradeable && !isBusy ? 0.98 : 1 }}
+        <button 
+          onClick={handleTrade} 
+          disabled={isBusy || !amount} 
           className={`
-            w-full py-5 rounded-[20px] font-black text-xl shadow-xl transition-all relative overflow-hidden group
-            ${!isTradeable
+            w-full py-5 rounded-[20px] font-black text-xl shadow-xl transition-all transform active:scale-[0.98] relative overflow-hidden group
+            ${!isTradeable 
               ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed shadow-none'
               : tradeMode === 'buy'
-                ? side === 'yes'
-                  ? 'bg-gradient-to-br from-green-500 via-green-600 to-emerald-600 hover:from-green-400 hover:via-green-500 hover:to-emerald-500 text-white shadow-green-500/30'
-                  : 'bg-gradient-to-br from-red-500 via-red-600 to-rose-600 hover:from-red-400 hover:via-red-500 hover:to-rose-500 text-white shadow-red-500/30'
-                : 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 dark:from-white dark:via-gray-50 dark:to-white hover:from-black hover:via-gray-900 hover:to-black dark:hover:from-gray-50 dark:hover:via-gray-100 dark:hover:to-gray-50 text-white dark:text-gray-900 shadow-lg'
+                ? side === 'yes' 
+                  ? 'bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white shadow-green-500/30'
+                  : 'bg-gradient-to-br from-red-500 to-rose-600 hover:from-red-400 hover:to-rose-500 text-white shadow-red-500/30'
+                : 'bg-gray-900 dark:bg-white hover:bg-black dark:hover:bg-gray-100 text-white dark:text-gray-900 shadow-lg'
             }
-            disabled:opacity-50 disabled:cursor-not-allowed
+            disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none
           `}
-          aria-label={busyLabel || `${tradeMode === 'buy' ? 'Buy' : 'Sell'} ${side} shares`}
-          aria-busy={isBusy}
         >
            <span className="relative z-10 flex items-center justify-center gap-3">
-            <AnimatePresence mode="wait">
-              {busyLabel ? (
+            {busyLabel ? (
+              <>
                 <motion.div
-                  key="loading"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex items-center gap-3"
-                >
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className={`w-6 h-6 border-3 ${tradeMode === 'buy' ? 'border-white/30 border-t-white' : 'border-gray-500/30 dark:border-white/30 border-t-gray-500 dark:border-t-white'} rounded-full`}
-                    role="status"
-                    aria-label="Processing transaction"
-                  />
-                  <span>{busyLabel}</span>
-                </motion.div>
-              ) : (
-                <motion.span
-                  key="button-text"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                >
-                  {tradeMode === 'buy' ? `BUY ${side.toUpperCase()}` : `SELL ${side.toUpperCase()}`}
-                </motion.span>
-              )}
-            </AnimatePresence>
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className={`w-6 h-6 border-3 ${tradeMode === 'buy' ? 'border-white/30 border-t-white' : 'border-gray-500/30 border-t-gray-500'} rounded-full`}
+                />
+                <span>{busyLabel}</span>
+              </>
+            ) : (
+              <span>
+                {tradeMode === 'buy' ? `BUY ${side.toUpperCase()}` : `SELL ${side.toUpperCase()}`}
+              </span>
+            )}
            </span>
-
+           
            {/* Shimmer Effect */}
            {!busyLabel && isTradeable && (
-             <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-0" aria-hidden="true" />
+             <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-0" />
            )}
-        </motion.button>
+        </button>
         
         {/* Footer Actions */}
          <div className="pt-2 space-y-4">
@@ -1175,20 +1055,11 @@ export default function TradingCard({
              {/* Collapsible Liquidity Section */}
              <div className="mt-4">
                <details className="group bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300">
-                 <summary
-                   className="flex items-center justify-between p-4 cursor-pointer list-none hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors select-none focus:outline-none focus:ring-2 focus:ring-[#14B8A6]/50 focus:ring-offset-2"
-                   role="button"
-                   aria-expanded="false"
-                   aria-label="Toggle liquidity provider section"
-                   tabIndex={0}
-                 >
+                 <summary className="flex items-center justify-between p-4 cursor-pointer list-none hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors select-none">
                    <div className="flex items-center gap-3">
-                     <motion.div
-                       className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-500 dark:text-blue-400"
-                       whileHover={{ scale: 1.1, rotate: 5 }}
-                     >
-                       <Droplets className="w-5 h-5" aria-hidden="true" />
-                     </motion.div>
+                     <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-500 dark:text-blue-400">
+                       <Droplets className="w-5 h-5" />
+                     </div>
                      <div>
                        <div className="font-bold text-gray-900 dark:text-white text-sm">Liquidity Provider</div>
                        <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">Earn trading fees</div>
@@ -1196,23 +1067,17 @@ export default function TradingCard({
                    </div>
                    <div className="flex items-center gap-3">
                       {(pendingFeesValue > 0n || pendingResidualValue > 0n) && (
-                        <div className="relative flex h-2.5 w-2.5" aria-label="Pending rewards available">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500 shadow-[0_0_0_2px_rgba(34,197,94,0.2)]"></span>
-                        </div>
+                        <span className="flex h-2.5 w-2.5 rounded-full bg-green-500 shadow-[0_0_0_2px_rgba(34,197,94,0.2)]">
+                          <span className="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full bg-green-400 opacity-75"></span>
+                        </span>
                       )}
                       <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center group-open:bg-gray-200 dark:group-open:bg-gray-600 transition-colors">
-                        <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform duration-300 group-open:rotate-180" aria-hidden="true" />
+                        <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform duration-300 group-open:rotate-180" />
                       </div>
                    </div>
                  </summary>
-
-                 <motion.div
-                   initial={false}
-                   animate={{ opacity: 1 }}
-                   exit={{ opacity: 0 }}
-                   className="px-4 pb-4"
-                 >
+                 
+                 <div className="px-4 pb-4">
                     <LiquiditySection
                       vaultBase={parseFloat(formatUnits(vaultE6, 6))}
                       lpShareFloat={parseFloat(formatUnits(lpSharesValue, 6))}
@@ -1227,7 +1092,7 @@ export default function TradingCard({
                       pendingLpAction={pendingLpAction} pendingLpFeesValue={pendingLpFeesValue} pendingLpResidualValue={pendingLpResidualValue}
                       handleAddLiquidity={handleAddLiquidity} handleClaimAllLp={handleClaimAllLp}
                     />
-                 </motion.div>
+                 </div>
                </details>
              </div>
          </div>

@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatUnits, decodeEventLog } from 'viem';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Clock, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 // Components
 import Header from '@/components/Header';
@@ -110,22 +110,11 @@ function MarketDetailSkeleton() {
   return (
     <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden">
       <Header />
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8" role="status" aria-label="Loading market details">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0 }}
-        >
-          <Skeleton className="h-6 w-32 mb-6 rounded-full bg-gray-200 dark:bg-gray-800" />
-        </motion.div>
-
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <Skeleton className="h-6 w-32 mb-6 rounded-full bg-gray-200 dark:bg-gray-800" />
+        
         {/* Header Skeleton */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-sm border border-gray-100 dark:border-gray-700 mb-8"
-        >
+        <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-sm border border-gray-100 dark:border-gray-700 mb-8">
           <div className="flex flex-col md:flex-row gap-8 items-start">
             <Skeleton className="w-20 h-20 rounded-2xl shrink-0 bg-gray-200 dark:bg-gray-700" />
             <div className="flex-1 w-full space-y-4">
@@ -136,40 +125,16 @@ function MarketDetailSkeleton() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Skeleton className="h-[500px] w-full rounded-3xl bg-gray-200 dark:bg-gray-700" />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-            >
-              <Skeleton className="h-[300px] w-full rounded-3xl bg-gray-200 dark:bg-gray-700" />
-            </motion.div>
+            <Skeleton className="h-[500px] w-full rounded-3xl bg-gray-200 dark:bg-gray-700" />
+            <Skeleton className="h-[300px] w-full rounded-3xl bg-gray-200 dark:bg-gray-700" />
           </div>
           <div className="lg:col-span-1 space-y-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <Skeleton className="h-[400px] w-full rounded-3xl bg-gray-200 dark:bg-gray-700" />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25 }}
-            >
-              <Skeleton className="h-[300px] w-full rounded-3xl bg-gray-200 dark:bg-gray-700" />
-            </motion.div>
+            <Skeleton className="h-[400px] w-full rounded-3xl bg-gray-200 dark:bg-gray-700" />
+            <Skeleton className="h-[300px] w-full rounded-3xl bg-gray-200 dark:bg-gray-700" />
           </div>
         </div>
       </div>
@@ -431,33 +396,17 @@ export default function MarketDetailPage() {
       <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden flex flex-col">
         <Header />
         <div className="flex-1 flex flex-col items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
-            className="text-center max-w-md bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl rounded-3xl p-8 border border-gray-200 dark:border-gray-700 shadow-xl"
-            role="alert"
-            aria-live="polite"
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-              className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4"
-            >
-              <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" aria-hidden="true" />
-            </motion.div>
+          <div className="text-center max-w-md bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl rounded-3xl p-8 border border-gray-200 dark:border-gray-700 shadow-xl">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+            </div>
             <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Market Not Found</h1>
             <p className="text-gray-600 dark:text-gray-400 mb-6 font-medium">{error}</p>
-            <Link
-              href="/markets"
-              className="inline-flex items-center px-6 py-3 bg-[#14B8A6] text-white font-bold rounded-xl hover:bg-[#0D9488] transition-all shadow-lg hover:shadow-[#14B8A6]/20 hover:scale-105 active:scale-95"
-              aria-label="Return to browse all markets"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" aria-hidden="true" />
+            <Link href="/markets" className="inline-flex items-center px-6 py-3 bg-[#14B8A6] text-white font-bold rounded-xl hover:bg-[#0D9488] transition-all shadow-lg hover:shadow-[#14B8A6]/20">
+              <ArrowLeft className="w-4 h-4 mr-2" />
               Browse Markets
             </Link>
-          </motion.div>
+          </div>
         </div>
       </div>
     );
@@ -496,13 +445,9 @@ export default function MarketDetailPage() {
         
         {/* Back Link */}
         <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="mb-6">
-          <Link
-            href="/markets"
-            className="inline-flex items-center text-gray-500 hover:text-[#14B8A6] dark:text-gray-400 dark:hover:text-[#14B8A6] font-bold text-sm transition-colors group"
-            aria-label="Navigate back to markets list"
-          >
+          <Link href="/markets" className="inline-flex items-center text-gray-500 hover:text-[#14B8A6] dark:text-gray-400 dark:hover:text-[#14B8A6] font-bold text-sm transition-colors group">
             <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center mr-3 group-hover:border-[#14B8A6] transition-colors shadow-sm">
-                <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                <ArrowLeft className="w-4 h-4" />
             </div>
             Back to Markets
           </Link>
@@ -528,15 +473,13 @@ export default function MarketDetailPage() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className={`mt-2 mb-8 px-6 py-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm ${
-                marketIsResolved
+                marketIsResolved 
                 ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800/50 text-purple-900 dark:text-purple-100'
                 : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50 text-amber-900 dark:text-amber-100'
             }`}
-            role="status"
-            aria-label={marketIsResolved ? `Market finalized. Winning outcome: ${marketResolution?.yesWins ? 'YES' : 'NO'}` : 'Market expired'}
           >
             <div className="flex items-center gap-3">
-               {marketIsResolved ? <CheckCircle2 className="w-5 h-5" aria-hidden="true" /> : <Clock className="w-5 h-5" aria-hidden="true" />}
+               {marketIsResolved ? <CheckCircle2 className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
                <span className="font-bold text-sm sm:text-base">
                  {marketIsResolved ? 'Market Finalized' : 'Market Expired'}
                </span>
@@ -590,30 +533,24 @@ export default function MarketDetailPage() {
                 </div>
                 
                 {/* Outcome Toggle */}
-                <div className="bg-gray-100 dark:bg-gray-700/50 p-1.5 rounded-2xl flex w-full sm:w-auto" role="group" aria-label="Chart side selection">
+                <div className="bg-gray-100 dark:bg-gray-700/50 p-1.5 rounded-2xl flex w-full sm:w-auto">
                   <button
                     onClick={() => setChartSide('yes')}
-                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-105 active:scale-95 ${
+                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
                       chartSide === 'yes'
                         ? 'bg-white dark:bg-gray-600 text-[#14B8A6] shadow-sm ring-1 ring-black/5'
                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
-                    role="radio"
-                    aria-checked={chartSide === 'yes'}
-                    aria-label="Show YES outcome chart"
                   >
                     Yes
                   </button>
                   <button
                     onClick={() => setChartSide('no')}
-                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-105 active:scale-95 ${
+                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
                       chartSide === 'no'
                         ? 'bg-white dark:bg-gray-600 text-red-500 shadow-sm ring-1 ring-black/5'
                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
-                    role="radio"
-                    aria-checked={chartSide === 'no'}
-                    aria-label="Show NO outcome chart"
                   >
                     No
                   </button>
@@ -624,9 +561,13 @@ export default function MarketDetailPage() {
               <div className="h-[350px] w-full mb-8 relative">
                  {/* */}
                 {snapshotLoading && sortedChartData.length === 0 ? (
-                  <div className="absolute inset-0 flex items-center justify-center" role="status" aria-label="Loading chart data">
+                  <div className="absolute inset-0 flex items-center justify-center">
                     <div className="flex flex-col items-center gap-3">
-                      <Loader2 className="w-8 h-8 text-[#14B8A6] animate-spin" aria-hidden="true" />
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                        className="w-8 h-8 border-4 border-[#14B8A6] border-t-transparent rounded-full"
+                      />
                       <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Loading Data</span>
                     </div>
                   </div>
@@ -639,7 +580,7 @@ export default function MarketDetailPage() {
                       useCentralizedData={true}
                     />
                     {isChartRefreshing && (
-                      <div className="absolute top-2 right-2 px-3 py-1 bg-[#14B8A6]/10 backdrop-blur-md rounded-full border border-[#14B8A6]/20 flex items-center gap-2" role="status" aria-label="Chart updating with live data">
+                      <div className="absolute top-2 right-2 px-3 py-1 bg-[#14B8A6]/10 backdrop-blur-md rounded-full border border-[#14B8A6]/20 flex items-center gap-2">
                         <span className="relative flex h-2 w-2">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#14B8A6] opacity-75"></span>
                           <span className="relative inline-flex rounded-full h-2 w-2 bg-[#14B8A6]"></span>
@@ -652,19 +593,16 @@ export default function MarketDetailPage() {
               </div>
 
               {/* Time Range Selector */}
-              <div className="flex items-center justify-start border-t border-gray-100 dark:border-gray-700/50 pt-6 gap-2 overflow-x-auto" role="group" aria-label="Time range selection">
+              <div className="flex items-center justify-start border-t border-gray-100 dark:border-gray-700/50 pt-6 gap-2 overflow-x-auto">
                 {(['1D', '1W', '1M', 'ALL'] as const).map((range) => (
                   <button
                     key={range}
                     onClick={() => setTimeRange(range)}
-                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap hover:scale-105 active:scale-95 ${
+                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                       timeRange === range
                         ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
                         : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
-                    role="radio"
-                    aria-checked={timeRange === range}
-                    aria-label={`Show ${range === 'ALL' ? 'all time' : range} chart data`}
                   >
                     {range}
                   </button>
@@ -679,20 +617,16 @@ export default function MarketDetailPage() {
               transition={{ delay: 0.3 }}
               className="bg-white dark:bg-gray-800 rounded-[32px] shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-gray-100 dark:border-gray-700 overflow-hidden"
             >
-              <div className="flex border-b border-gray-100 dark:border-gray-700 overflow-x-auto scrollbar-hide" role="tablist" aria-label="Market details navigation">
+              <div className="flex border-b border-gray-100 dark:border-gray-700 overflow-x-auto scrollbar-hide">
                 {(['Position', 'Comments', 'Transactions', 'Resolution'] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`flex-1 px-6 py-5 text-sm font-bold whitespace-nowrap transition-colors relative hover:scale-105 active:scale-95 ${
+                    className={`flex-1 px-6 py-5 text-sm font-bold whitespace-nowrap transition-colors relative ${
                       activeTab === tab
                         ? 'text-[#14B8A6]'
                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50'
                     }`}
-                    role="tab"
-                    aria-selected={activeTab === tab}
-                    aria-controls={`${tab.toLowerCase()}-panel`}
-                    aria-label={`View ${tab.toLowerCase()} information`}
                   >
                     {tab}
                     {activeTab === tab && (
@@ -704,16 +638,7 @@ export default function MarketDetailPage() {
 
               <div className="p-6 sm:p-8 bg-gray-50/50 dark:bg-gray-900/50 min-h-[400px]">
                 <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeTab}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                    role="tabpanel"
-                    id={`${activeTab.toLowerCase()}-panel`}
-                    aria-label={`${activeTab} content`}
-                  >
+                  <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
                     {activeTab === 'Position' && (
                       <PositionTab isConnected={isConnected} yesBalance={yesBalance} noBalance={noBalance} priceYes={marketData.currentPrices.yes} priceNo={marketData.currentPrices.no} />
                     )}
@@ -743,16 +668,10 @@ export default function MarketDetailPage() {
                   </div>
 
                   {!marketIsActive && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="rounded-2xl border border-amber-200 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 p-4 text-sm text-amber-800 dark:text-amber-400 font-medium flex items-center gap-3"
-                      role="alert"
-                      aria-live="polite"
-                    >
-                      <AlertTriangle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                    <div className="rounded-2xl border border-amber-200 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 p-4 text-sm text-amber-800 dark:text-amber-400 font-medium flex items-center gap-3">
+                      <AlertTriangle className="w-5 h-5 flex-shrink-0" />
                       <span>Trading is currently closed for this market.</span>
-                    </motion.div>
+                    </div>
                   )}
 
                   <div className="bg-white dark:bg-gray-800 rounded-[24px] shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
@@ -778,15 +697,7 @@ export default function MarketDetailPage() {
         {/* Instant Update Toast */}
         <AnimatePresence>
             {showInstantUpdateBadge && (
-            <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.9 }}
-              className="fixed bottom-8 right-8 px-5 py-3 rounded-full bg-gray-900/90 dark:bg-white/90 backdrop-blur text-white dark:text-gray-900 text-sm font-bold shadow-2xl flex items-center gap-3 z-50"
-              role="status"
-              aria-live="polite"
-              aria-label="Market prices have been updated"
-            >
+            <motion.div initial={{ opacity: 0, y: 20, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.9 }} className="fixed bottom-8 right-8 px-5 py-3 rounded-full bg-gray-900/90 dark:bg-white/90 backdrop-blur text-white dark:text-gray-900 text-sm font-bold shadow-2xl flex items-center gap-3 z-50">
                 <div className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#14B8A6] opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-[#14B8A6]"></span>
