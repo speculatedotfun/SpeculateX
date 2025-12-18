@@ -187,7 +187,7 @@ export default function Header() {
                 src="/Whitelogo.png"
                 alt="SpeculateX Logo"
                 fill
-                sizes="(max-width: 640px) 180px, 220px"
+                sizes="(max-width: 640px) 140px, 200px"
                 priority
                 className="object-contain object-left dark:hidden"
               />
@@ -196,7 +196,7 @@ export default function Header() {
                 src="/darklogo.png"
                 alt="SpeculateX Logo"
                 fill
-                sizes="(max-width: 640px) 180px, 220px"
+                sizes="(max-width: 640px) 140px, 200px"
                 priority
                 className="object-contain object-left hidden dark:block"
               />

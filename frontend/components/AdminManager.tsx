@@ -9,7 +9,7 @@ import { keccak256, stringToBytes } from 'viem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
-import { Shield, UserPlus, X, Link, Database, Loader2, CheckCircle2 } from 'lucide-react';
+import { Shield, UserPlus, X, Link, Database, Loader2, CheckCircle2, Zap, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 const chainlinkResolverAbi = getChainlinkResolverAbi(getNetwork());
 
@@ -27,6 +27,11 @@ export default function AdminManager() {
   const [validAddress, setValidAddress] = useState(false);
   const [validResolverAddress, setValidResolverAddress] = useState(false);
   const [validFeedAddress, setValidFeedAddress] = useState(false);
+  const [currentResolver, setCurrentResolver] = useState<string | null>(null);
+  const [isCheckingResolver, setIsCheckingResolver] = useState(false);
+  const [markets, setMarkets] = useState<Array<{ id: number; question: string; expiryTimestamp: bigint; isResolved: boolean; expired: boolean }>>([]);
+  const [loadingMarkets, setLoadingMarkets] = useState(false);
+  const [resolvingMarketId, setResolvingMarketId] = useState<number | null>(null);
 
   // Contracts hooks... (same logic as before)
   const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000';
@@ -34,8 +39,19 @@ export default function AdminManager() {
 
   const { writeContractAsync: addAdminAsync } = useWriteContract();
   const { writeContract: removeAdmin } = useWriteContract();
-  const { writeContract: setChainlinkResolver } = useWriteContract();
+  const { writeContractAsync: setChainlinkResolverAsync } = useWriteContract();
   const { writeContractAsync: setGlobalFeedAsync } = useWriteContract();
+  const { writeContractAsync: resolveMarketAsync } = useWriteContract();
+
+  // Check current resolver address
+  const addresses = getAddresses();
+  const { data: resolverAddress, refetch: refetchResolver } = useReadContract({
+    address: addresses.core,
+    abi: getCoreAbi(getCurrentNetwork()),
+    functionName: 'chainlinkResolver',
+    args: [],
+    query: { enabled: !!addresses.core },
+  });
 
   // BSC Chapel Testnet Chainlink feed addresses
   const KNOWN_FEEDS = [
@@ -70,6 +86,111 @@ export default function AdminManager() {
     const isValid = /^0x[a-fA-F0-9]{40}$/.test(feedAddress);
     setValidFeedAddress(isValid);
   }, [feedAddress]);
+
+  // Update current resolver when data changes
+  useEffect(() => {
+    if (resolverAddress) {
+      const resolver = resolverAddress as `0x${string}`;
+      setCurrentResolver(resolver);
+      if (resolver !== '0x0000000000000000000000000000000000000000') {
+        setChainlinkResolverAddress(resolver);
+      }
+    } else if (resolverAddress === '0x0000000000000000000000000000000000000000') {
+      setCurrentResolver(null);
+    }
+  }, [resolverAddress]);
+
+  // Load markets that can be resolved
+  const loadResolvableMarkets = async () => {
+    if (!publicClient || !addresses.core || !currentResolver || currentResolver === '0x0000000000000000000000000000000000000000') {
+      setMarkets([]);
+      return;
+    }
+
+    try {
+      setLoadingMarkets(true);
+      const { getMarketCount, getMarket } = await import('@/lib/hooks');
+      const count = await getMarketCount();
+      const now = Math.floor(Date.now() / 1000);
+      
+      const marketList: Array<{ id: number; question: string; expiryTimestamp: bigint; isResolved: boolean; expired: boolean }> = [];
+      
+      // Check up to 50 markets (to avoid too many calls)
+      const maxMarkets = Number(count) > 50 ? 50 : Number(count);
+      for (let i = 1; i <= maxMarkets; i++) {
+        try {
+          const market = await getMarket(BigInt(i));
+          if (market && market.resolution) {
+            const expiry = Number(market.resolution.expiryTimestamp);
+            const isResolved = market.resolution.isResolved;
+            const expired = expiry > 0 && expiry < now;
+            
+            // Only show markets that are expired but not resolved, and have Chainlink oracle
+            if (expired && !isResolved && market.resolution.oracleType === 1) {
+              marketList.push({
+                id: i,
+                question: market.question || `Market #${i}`,
+                expiryTimestamp: market.resolution.expiryTimestamp,
+                isResolved: false,
+                expired: true,
+              });
+            }
+          }
+        } catch (e) {
+          // Market doesn't exist or error reading, skip
+          continue;
+        }
+      }
+      
+      setMarkets(marketList);
+    } catch (e) {
+      console.error('Error loading markets:', e);
+      pushToast({ title: 'Error', description: 'Failed to load markets', type: 'error' });
+    } finally {
+      setLoadingMarkets(false);
+    }
+  };
+
+  // Load markets when resolver is available
+  useEffect(() => {
+    if (currentResolver && currentResolver !== '0x0000000000000000000000000000000000000000' && isAdmin && publicClient) {
+      loadResolvableMarkets();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentResolver, isAdmin, publicClient]);
+
+  // Handle manual market resolution
+  const handleResolveMarket = async (marketId: number) => {
+    if (!currentResolver || currentResolver === '0x0000000000000000000000000000000000000000') {
+      pushToast({ title: 'Error', description: 'Chainlink resolver not registered', type: 'error' });
+      return;
+    }
+
+    try {
+      setResolvingMarketId(marketId);
+      pushToast({ title: 'Resolving Market', description: `Resolving market #${marketId}...`, type: 'info' });
+      
+      const hash = await resolveMarketAsync({
+        address: currentResolver as `0x${string}`,
+        abi: getChainlinkResolverAbi(getNetwork()),
+        functionName: 'resolve',
+        args: [BigInt(marketId)],
+      });
+
+      if (hash && publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash });
+        pushToast({ title: 'Success', description: `Market #${marketId} resolved successfully`, type: 'success' });
+        // Reload markets
+        await loadResolvableMarkets();
+      }
+    } catch (e: any) {
+      console.error('Error resolving market:', e);
+      const errorMsg = e.message || 'Failed to resolve market';
+      pushToast({ title: 'Error', description: errorMsg, type: 'error' });
+    } finally {
+      setResolvingMarketId(null);
+    }
+  };
 
   const handleAdd = async () => {
     if (!newAdminAddress || !publicClient) return;
@@ -109,27 +230,88 @@ export default function AdminManager() {
   };
 
   const handleSetChainlinkResolver = async () => {
-    if (!chainlinkResolverAddress) return;
-    // Diamond Testnet uses timelocked executeSetResolver; no direct setter.
-    if (getNetwork() === 'testnet') {
-      pushToast({
-        title: 'Not supported on Testnet',
-        description: 'Testnet Diamond uses a 24h timelock. Use contracts/script/ExecuteAfterDelay.s.sol to activate resolver + facets.',
-        type: 'error',
-      });
-      return;
-    }
+    if (!chainlinkResolverAddress || !publicClient) return;
+    
     try {
+      setIsCheckingResolver(true);
       const addresses = getAddresses();
-      await setChainlinkResolver({
-        address: addresses.core,
-        abi: getCoreAbi(getCurrentNetwork()),
-        functionName: 'setChainlinkResolver',
-        args: [chainlinkResolverAddress as `0x${string}`],
-      });
-      pushToast({ title: 'Success', description: 'Chainlink resolver registration submitted', type: 'success' });
+      const network = getNetwork();
+      
+      if (network === 'testnet') {
+        // Testnet: Check if timelock is 0, if so we can schedule and execute immediately
+        const minTimelockDelay = await publicClient.readContract({
+          address: addresses.core,
+          abi: getCoreAbi(getCurrentNetwork()),
+          functionName: 'minTimelockDelay',
+          args: [],
+        }) as bigint;
+
+        if (minTimelockDelay === 0n) {
+          // Timelock is 0, so we can schedule and execute in one flow
+          const OP_SET_RESOLVER = keccak256(stringToBytes('OP_SET_RESOLVER'));
+          const resolverAddr = chainlinkResolverAddress as `0x${string}`;
+          
+          pushToast({ title: 'Scheduling Resolver', description: 'Scheduling resolver registration...', type: 'info' });
+          
+          // Schedule the operation (encode the address)
+          const { encodeAbiParameters } = await import('viem');
+          const encodedData = encodeAbiParameters(
+            [{ type: 'address' }],
+            [chainlinkResolverAddress as `0x${string}`]
+          );
+          
+          const opId = await setChainlinkResolverAsync({
+            address: addresses.core,
+            abi: getCoreAbi(getCurrentNetwork()),
+            functionName: 'scheduleOp',
+            args: [OP_SET_RESOLVER, encodedData],
+          });
+
+          // Wait for transaction
+          if (opId) {
+            await publicClient.waitForTransactionReceipt({ hash: opId });
+            
+            // Execute immediately (timelock is 0)
+            pushToast({ title: 'Executing Resolver', description: 'Executing resolver registration...', type: 'info' });
+            
+            const executeHash = await setChainlinkResolverAsync({
+              address: addresses.core,
+              abi: getCoreAbi(getCurrentNetwork()),
+              functionName: 'executeSetResolver',
+              args: [opId, resolverAddr],
+            });
+
+            if (executeHash) {
+              await publicClient.waitForTransactionReceipt({ hash: executeHash });
+              pushToast({ title: 'Success', description: 'Chainlink resolver registered successfully', type: 'success' });
+              refetchResolver();
+            }
+          }
+        } else {
+          pushToast({
+            title: 'Timelock Required',
+            description: `Testnet has a ${Number(minTimelockDelay)}s timelock. Please use contracts/script/ExecuteAfterDelay.s.sol after the delay.`,
+            type: 'error',
+          });
+        }
+      } else {
+        // Mainnet: Direct setter (if it exists)
+        const hash = await setChainlinkResolverAsync({
+          address: addresses.core,
+          abi: getCoreAbi(getCurrentNetwork()),
+          functionName: 'setChainlinkResolver',
+          args: [chainlinkResolverAddress as `0x${string}`],
+        });
+        if (hash) {
+          pushToast({ title: 'Success', description: 'Chainlink resolver registration submitted', type: 'success' });
+          refetchResolver();
+        }
+      }
     } catch (e: any) {
-      pushToast({ title: 'Error', description: e.message, type: 'error' });
+      console.error('Error setting resolver:', e);
+      pushToast({ title: 'Error', description: e.message || 'Failed to set Chainlink resolver', type: 'error' });
+    } finally {
+      setIsCheckingResolver(false);
     }
   };
 
@@ -269,7 +451,14 @@ export default function AdminManager() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <label htmlFor="resolver-address" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 mb-2 block">Register Chainlink Resolver</label>
+          <label htmlFor="resolver-address" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 mb-2 block">
+            Register Chainlink Resolver
+            {currentResolver && currentResolver !== '0x0000000000000000000000000000000000000000' && (
+              <span className="ml-2 text-green-600 dark:text-green-400 text-[10px] normal-case font-normal">
+                (Currently: {currentResolver.slice(0, 6)}...{currentResolver.slice(-4)})
+              </span>
+            )}
+          </label>
           <div className="flex gap-3">
             <div className="relative flex-1">
               <Input
@@ -295,8 +484,21 @@ export default function AdminManager() {
                 )}
               </AnimatePresence>
             </div>
-            <Button onClick={handleSetChainlinkResolver} disabled={!validResolverAddress} className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px] disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Register Chainlink resolver contract">
-              <Link className="w-4 h-4 mr-2" aria-hidden="true" /> Register
+            <Button 
+              onClick={handleSetChainlinkResolver} 
+              disabled={!validResolverAddress || isCheckingResolver} 
+              className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px] disabled:opacity-50 disabled:cursor-not-allowed" 
+              aria-label="Register Chainlink resolver contract"
+            >
+              {isCheckingResolver ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> Setting...
+                </>
+              ) : (
+                <>
+                  <Link className="w-4 h-4 mr-2" aria-hidden="true" /> Register
+                </>
+              )}
             </Button>
           </div>
           {chainlinkResolverAddress.length > 0 && !validResolverAddress && (
@@ -317,85 +519,93 @@ export default function AdminManager() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 mb-2 block">Register Price Feeds</label>
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 block">
+              Manual Market Resolution
+            </label>
+            <Button
+              onClick={loadResolvableMarkets}
+              disabled={loadingMarkets || !currentResolver || currentResolver === '0x0000000000000000000000000000000000000000'}
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              aria-label="Refresh markets list"
+            >
+              {loadingMarkets ? (
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" aria-hidden="true" />
+              ) : (
+                <Clock className="w-3 h-3 mr-1" aria-hidden="true" />
+              )}
+              Refresh
+            </Button>
+          </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 leading-relaxed">
-            Markets need their price feeds registered in ChainlinkResolver to be auto-resolved. Register feeds here.
+            Manually resolve expired Chainlink markets. Markets must be expired and not yet resolved.
           </p>
 
-          {/* Quick register buttons for known feeds */}
-          <div className="flex flex-wrap gap-2 mb-3" role="group" aria-label="Quick feed registration">
-            {KNOWN_FEEDS.map((feed, index) => (
-              <motion.div
-                key={feed.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.5 + index * 0.05 }}
-              >
-                <Button
-                  onClick={() => handleRegisterFeed(feed.id, feed.address)}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs hover:border-green-500 hover:text-green-600 dark:hover:text-green-400 transition-colors"
-                  aria-label={`Register ${feed.id} price feed`}
-                >
-                  <Database className="w-3 h-3 mr-1" aria-hidden="true" />
-                  {feed.id}
-                </Button>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Manual feed registration */}
-          <div className="space-y-2">
-            <Input
-              id="feed-id"
-              value={selectedFeed}
-              onChange={(e) => setSelectedFeed(e.target.value)}
-              placeholder="Feed ID (e.g., BTC/USD, ETH/USD)"
-              className="font-mono text-sm"
-              aria-label="Custom price feed ID"
-            />
-            <div className="flex gap-3">
-              <div className="relative flex-1">
-                <Input
-                  id="feed-address"
-                  value={feedAddress}
-                  onChange={(e) => setFeedAddress(e.target.value)}
-                  placeholder="Chainlink feed address (0x...)"
-                  className="font-mono pr-10"
-                  aria-label="Custom price feed contract address"
-                  aria-invalid={feedAddress.length > 0 && !validFeedAddress}
-                  aria-describedby={feedAddress.length > 0 && !validFeedAddress ? "feed-address-error" : undefined}
-                />
-                <AnimatePresence>
-                  {validFeedAddress && (
-                    <motion.div
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0, opacity: 0 }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2"
-                    >
-                      <CheckCircle2 className="w-5 h-5 text-green-500" aria-hidden="true" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-              <Button onClick={() => handleRegisterFeed()} disabled={!selectedFeed || !validFeedAddress} className="bg-green-600 hover:bg-green-700 text-white min-w-[120px] disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Register custom price feed">
-                <Database className="w-4 h-4 mr-2" aria-hidden="true" /> Register
-              </Button>
+          {!currentResolver || currentResolver === '0x0000000000000000000000000000000000000000' ? (
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 text-xs text-yellow-800 dark:text-yellow-200">
+              Chainlink resolver not registered. Please register it above first.
             </div>
-            {feedAddress.length > 0 && !validFeedAddress && (
-              <motion.p
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                id="feed-address-error"
-                className="text-xs text-red-600 dark:text-red-400 mt-1.5 ml-1"
-                role="alert"
-              >
-                Invalid Ethereum address format
-              </motion.p>
-            )}
-          </div>
+          ) : loadingMarkets ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-gray-400" aria-hidden="true" />
+              <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">Loading markets...</span>
+            </div>
+          ) : markets.length === 0 ? (
+            <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+              No expired markets ready for resolution.
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {markets.map((market, index) => {
+                const expiryDate = new Date(Number(market.expiryTimestamp) * 1000);
+                const isResolving = resolvingMarketId === market.id;
+                
+                return (
+                  <motion.div
+                    key={market.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 + index * 0.05 }}
+                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 flex items-start justify-between gap-3"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-bold text-gray-400 dark:text-gray-500">#{market.id}</span>
+                        <span className="text-xs text-red-600 dark:text-red-400 font-medium">Expired</span>
+                      </div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate" title={market.question}>
+                        {market.question}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Expired: {expiryDate.toLocaleString()}
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => handleResolveMarket(market.id)}
+                      disabled={isResolving}
+                      size="sm"
+                      className="bg-[#14B8A6] hover:bg-[#0D9488] text-white shrink-0 disabled:opacity-50"
+                      aria-label={`Resolve market #${market.id}`}
+                    >
+                      {isResolving ? (
+                        <>
+                          <Loader2 className="w-3 h-3 mr-1 animate-spin" aria-hidden="true" />
+                          Resolving...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="w-3 h-3 mr-1" aria-hidden="true" />
+                          Resolve
+                        </>
+                      )}
+                    </Button>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
         </motion.div>
 
         <motion.div

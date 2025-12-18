@@ -30,6 +30,17 @@ export default function Home() {
   });
   const [featuredMarket, setFeaturedMarket] = useState<FeaturedMarket | null>(null);
   const [loadingFeaturedMarket, setLoadingFeaturedMarket] = useState(true);
+  const [scrollY, setScrollY] = useState(0);
+
+  // Parallax scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // --- Keep original data loading logic ---
   useEffect(() => {
@@ -155,10 +166,13 @@ export default function Home() {
   return (
     <div className="min-h-screen lg:h-screen w-full bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-x-hidden lg:overflow-hidden flex flex-col selection:bg-[#14B8A6]/30 selection:text-[#0f0a2e] dark:selection:text-white font-sans">
       
-      {/* Background Gradient */}
+      {/* Background Gradient with Parallax */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-br from-[#FAF9FF] via-[#F0F4F8] to-[#E8F0F5] dark:from-[#0f172a] dark:via-[#1a1f3a] dark:to-[#1e293b]"></div>
-        <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-[#14B8A6] opacity-20 blur-[100px]"></div>
+        <div
+          className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-[#14B8A6] opacity-20 blur-[100px] transition-transform duration-300"
+          style={{ transform: `translateY(${scrollY * 0.15}px) scale(${1 + scrollY * 0.0002})` }}
+        ></div>
       </div>
 
       {/* Header */}
@@ -201,8 +215,11 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center h-full">
           
           {/* --- Left Column: Hero Text (Span 7 cols) --- */}
-          <div className="lg:col-span-7 text-center lg:text-left space-y-6 lg:space-y-8">
-            <motion.div 
+          <div
+            className="lg:col-span-7 text-center lg:text-left space-y-6 lg:space-y-8"
+            style={{ transform: `translateY(${scrollY * -0.1}px)` }}
+          >
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
@@ -261,8 +278,11 @@ export default function Home() {
           </div>
 
           {/* --- Right Column: Stats & Visuals (Span 5 cols) --- */}
-          <div className="lg:col-span-5 relative">
-            <motion.div 
+          <div
+            className="lg:col-span-5 relative"
+            style={{ transform: `translateY(${scrollY * 0.05}px)` }}
+          >
+            <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4, duration: 0.6 }}
@@ -388,9 +408,18 @@ export default function Home() {
 
               </div>
               
-              {/* Decorative blobs behind the card */}
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-purple-400/30 rounded-full blur-3xl -z-10 animate-pulse"></div>
-              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-teal-400/30 rounded-full blur-3xl -z-10 animate-pulse" style={{animationDelay: '1s'}}></div>
+              {/* Decorative blobs behind the card with parallax */}
+              <div
+                className="absolute -top-10 -right-10 w-40 h-40 bg-purple-400/30 rounded-full blur-3xl -z-10 animate-pulse transition-transform duration-300"
+                style={{ transform: `translate(${scrollY * 0.08}px, ${scrollY * 0.12}px) scale(${1 + scrollY * 0.0003})` }}
+              ></div>
+              <div
+                className="absolute -bottom-10 -left-10 w-40 h-40 bg-teal-400/30 rounded-full blur-3xl -z-10 animate-pulse transition-transform duration-300"
+                style={{
+                  animationDelay: '1s',
+                  transform: `translate(${scrollY * -0.08}px, ${scrollY * -0.1}px) scale(${1 + scrollY * 0.0003})`
+                }}
+              ></div>
             </motion.div>
           </div>
 
@@ -400,12 +429,29 @@ export default function Home() {
   );
 }
 
-// --- Stat Card Component ---
+// --- Stat Card Component with Enhanced Depth ---
 function StatCard({ title, value, color }: { title: string, value: string, color: string }) {
   return (
-    <div className="bg-gray-50/50 dark:bg-gray-800/40 rounded-2xl p-4 border border-gray-100 dark:border-gray-700/50 hover:bg-white dark:hover:bg-gray-800 transition-colors">
-      <div className="font-black text-lg sm:text-xl text-gray-900 dark:text-white tracking-tight">{value}</div>
-      <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">{title}</div>
-    </div>
+    <motion.div
+      whileHover={{ scale: 1.05, y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      className="relative group overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-50/80 dark:from-gray-800/60 dark:via-gray-800/40 dark:to-gray-800/50 rounded-2xl p-4 border border-gray-200/60 dark:border-gray-700/50 hover:border-[#14B8A6]/30 transition-all shadow-sm hover:shadow-[0_8px_30px_-5px_rgba(20,184,166,0.15)] backdrop-blur-sm ring-1 ring-gray-900/5 dark:ring-white/5"
+      role="article"
+      aria-label={`${title}: ${value}`}
+    >
+      {/* Subtle gradient glow on hover */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#14B8A6]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" aria-hidden="true" />
+
+      {/* Content */}
+      <div className="relative z-10">
+        <div className="font-black text-lg sm:text-xl text-gray-900 dark:text-white tracking-tight mb-0.5 group-hover:text-[#14B8A6] transition-colors duration-300">
+          {value}
+        </div>
+        <div className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+          {title}
+        </div>
+      </div>
+    </motion.div>
   );
 }
