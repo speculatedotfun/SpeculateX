@@ -32,8 +32,13 @@ export function MarketHeader({
   const yesPercent = Math.round(yesPrice * 100);
   
   const dateStr = useMemo(() => {
-    if (!expiryTimestamp) return 'N/A';
+    // Check explicitly for 0n (BigInt zero) since 0n is falsy but we want to distinguish between 0 and undefined
+    if (!expiryTimestamp || expiryTimestamp === 0n) return 'N/A';
     const date = new Date(Number(expiryTimestamp) * 1000);
+    // Validate the date is reasonable (not before 2020, not too far in future)
+    if (isNaN(date.getTime()) || date.getTime() < new Date('2020-01-01').getTime() || date.getTime() > Date.now() + 100 * 365 * 24 * 60 * 60 * 1000) {
+      return 'N/A';
+    }
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }, [expiryTimestamp]);
 

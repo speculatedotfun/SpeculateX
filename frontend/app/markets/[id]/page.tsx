@@ -414,7 +414,13 @@ export default function MarketDetailPage() {
 
   const marketStatus = typeof market?.status === 'number' ? market.status : Number(market?.status ?? 0);
   const marketResolution = market?.resolution;
-  const marketExpiry = marketResolution?.expiryTimestamp ? Number(marketResolution.expiryTimestamp) : 0;
+  // Debug: log the resolution data to help diagnose expiryTimestamp issues
+  if (marketResolution && (!marketResolution.expiryTimestamp || marketResolution.expiryTimestamp === 0n)) {
+    console.warn(`[MarketDetail] Market ${marketId} has invalid expiryTimestamp:`, marketResolution);
+  }
+  const marketExpiry = marketResolution?.expiryTimestamp && marketResolution.expiryTimestamp !== 0n 
+    ? Number(marketResolution.expiryTimestamp) 
+    : 0;
   const marketIsResolved = Boolean(marketResolution?.isResolved);
   const marketIsExpired = marketExpiry > 0 && marketExpiry < Date.now() / 1000;
   const isChartRefreshing = snapshotLoading && sortedChartData.length > 0;

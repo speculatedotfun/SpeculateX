@@ -145,25 +145,54 @@ export async function getMarket(id: bigint) {
       console.warn(`[getMarket] getMarketQuestion not available for market ${id}, will try event fallback`);
     }
 
-    // Diamond `Market` struct layout ends with `resolution` (index 18 now, since we added question field).
-    // Legacy monolith had a different layout, so we also tolerate older indices.
-    const resolutionRaw = isObject
-      ? result.resolution
-      : (Array.isArray(result) ? (result?.[18] ?? result?.[17] ?? result?.[16] ?? result?.[12]) : undefined);
     const totalLpUsdc = BigInt(isObject ? (result.totalLpUsdc ?? 0n) : (result?.[13] ?? 0n));
     const lpFeesUSDC = BigInt(isObject ? (result.lpFeesUSDC ?? 0n) : (result?.[14] ?? 0n));
     const residualUSDC = BigInt(isObject ? (result.residualUSDC ?? 0n) : (result?.[15] ?? 0n));
 
-    const resolution = {
-      expiryTimestamp: BigInt(resolutionRaw?.expiryTimestamp ?? resolutionRaw?.[0] ?? 0n),
-      oracleType: Number(resolutionRaw?.oracleType ?? resolutionRaw?.[1] ?? 0),
-      oracleAddress: (resolutionRaw?.oracleAddress ?? resolutionRaw?.[2] ?? ZERO_ADDRESS) as `0x${string}`,
-      priceFeedId: (resolutionRaw?.priceFeedId ?? resolutionRaw?.[3] ?? '0x0000000000000000000000000000000000000000000000000000000000000000') as `0x${string}`,
-      targetValue: BigInt(resolutionRaw?.targetValue ?? resolutionRaw?.[4] ?? 0n),
-      comparison: Number(resolutionRaw?.comparison ?? resolutionRaw?.[5] ?? 0),
-      yesWins: Boolean(resolutionRaw?.yesWins ?? resolutionRaw?.[6] ?? false),
-      isResolved: Boolean(resolutionRaw?.isResolved ?? resolutionRaw?.[7] ?? false),
-    };
+    // Read resolution via dedicated getter function (more reliable than parsing nested struct from markets mapping)
+    // This avoids struct field misalignment issues when reading nested structs from the Diamond contract
+    let resolution: any;
+    try {
+      const resolutionResult = await publicClient.readContract({
+        address: addresses.core,
+        abi: getCoreAbi(getCurrentNetwork()),
+        functionName: 'getMarketResolution',
+        args: [id],
+      }) as any;
+      
+      // Handle both object and tuple formats
+      const isResolutionObject = !!resolutionResult && typeof resolutionResult === 'object' && !Array.isArray(resolutionResult) && 'expiryTimestamp' in resolutionResult;
+      
+      resolution = {
+        expiryTimestamp: BigInt(isResolutionObject ? (resolutionResult.expiryTimestamp ?? 0n) : (resolutionResult?.[0] ?? 0n)),
+        oracleType: Number(isResolutionObject ? (resolutionResult.oracleType ?? 0) : (resolutionResult?.[1] ?? 0)),
+        oracleAddress: (isResolutionObject ? (resolutionResult.oracleAddress ?? ZERO_ADDRESS) : (resolutionResult?.[2] ?? ZERO_ADDRESS)) as `0x${string}`,
+        priceFeedId: (isResolutionObject ? (resolutionResult.priceFeedId ?? ZERO_BYTES32) : (resolutionResult?.[3] ?? ZERO_BYTES32)) as `0x${string}`,
+        targetValue: BigInt(isResolutionObject ? (resolutionResult.targetValue ?? 0n) : (resolutionResult?.[4] ?? 0n)),
+        comparison: Number(isResolutionObject ? (resolutionResult.comparison ?? 0) : (resolutionResult?.[5] ?? 0)),
+        yesWins: Boolean(isResolutionObject ? (resolutionResult.yesWins ?? false) : (resolutionResult?.[6] ?? false)),
+        isResolved: Boolean(isResolutionObject ? (resolutionResult.isResolved ?? false) : (resolutionResult?.[7] ?? false)),
+        oracleDecimals: Number(isResolutionObject ? (resolutionResult.oracleDecimals ?? 0) : (resolutionResult?.[8] ?? 0)),
+      };
+    } catch (e) {
+      // Fallback: try to read from markets struct (for old contracts that don't have getMarketResolution)
+      console.warn(`[getMarket] getMarketResolution failed for market ${id}, falling back to struct parsing:`, e);
+      const resolutionRaw = isObject
+        ? result.resolution
+        : (Array.isArray(result) ? (result?.[18] ?? result?.[17] ?? result?.[16] ?? result?.[12]) : undefined);
+      
+      resolution = {
+        expiryTimestamp: BigInt(resolutionRaw?.expiryTimestamp ?? resolutionRaw?.[0] ?? 0n),
+        oracleType: Number(resolutionRaw?.oracleType ?? resolutionRaw?.[1] ?? 0),
+        oracleAddress: (resolutionRaw?.oracleAddress ?? resolutionRaw?.[2] ?? ZERO_ADDRESS) as `0x${string}`,
+        priceFeedId: (resolutionRaw?.priceFeedId ?? resolutionRaw?.[3] ?? ZERO_BYTES32) as `0x${string}`,
+        targetValue: BigInt(resolutionRaw?.targetValue ?? resolutionRaw?.[4] ?? 0n),
+        comparison: Number(resolutionRaw?.comparison ?? resolutionRaw?.[5] ?? 0),
+        yesWins: Boolean(resolutionRaw?.yesWins ?? resolutionRaw?.[6] ?? false),
+        isResolved: Boolean(resolutionRaw?.isResolved ?? resolutionRaw?.[7] ?? false),
+        oracleDecimals: Number(resolutionRaw?.oracleDecimals ?? resolutionRaw?.[8] ?? 0),
+      };
+    }
 
     const exists = !!yes && yes !== ZERO_ADDRESS;
 
