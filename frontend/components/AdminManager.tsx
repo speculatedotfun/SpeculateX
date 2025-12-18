@@ -27,6 +27,8 @@ export default function AdminManager() {
   const [validAddress, setValidAddress] = useState(false);
   const [validResolverAddress, setValidResolverAddress] = useState(false);
   const [validFeedAddress, setValidFeedAddress] = useState(false);
+  const [currentResolver, setCurrentResolver] = useState<string | null>(null);
+  const [isCheckingResolver, setIsCheckingResolver] = useState(false);
 
   // Contracts hooks... (same logic as before)
   const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000';
@@ -34,8 +36,17 @@ export default function AdminManager() {
 
   const { writeContractAsync: addAdminAsync } = useWriteContract();
   const { writeContract: removeAdmin } = useWriteContract();
-  const { writeContract: setChainlinkResolver } = useWriteContract();
+  const { writeContractAsync: setChainlinkResolverAsync } = useWriteContract();
   const { writeContractAsync: setGlobalFeedAsync } = useWriteContract();
+
+  // Check current resolver address
+  const addresses = getAddresses();
+  const { data: resolverAddress, refetch: refetchResolver } = useReadContract({
+    address: addresses.core,
+    abi: getCoreAbi(getCurrentNetwork()),
+    functionName: 'chainlinkResolver',
+    query: { enabled: !!addresses.core },
+  });
 
   // BSC Chapel Testnet Chainlink feed addresses
   const KNOWN_FEEDS = [
@@ -54,6 +65,19 @@ export default function AdminManager() {
       });
     }
   }, [address]);
+
+  // Update current resolver when data changes
+  useEffect(() => {
+    if (resolverAddress) {
+      const resolver = resolverAddress as `0x${string}`;
+      setCurrentResolver(resolver);
+      if (resolver !== '0x0000000000000000000000000000000000000000') {
+        setChainlinkResolverAddress(resolver);
+      }
+    } else if (resolverAddress === '0x0000000000000000000000000000000000000000') {
+      setCurrentResolver(null);
+    }
+  }, [resolverAddress]);
 
   // Real-time address validation
   useEffect(() => {
@@ -109,27 +133,88 @@ export default function AdminManager() {
   };
 
   const handleSetChainlinkResolver = async () => {
-    if (!chainlinkResolverAddress) return;
-    // Diamond Testnet uses timelocked executeSetResolver; no direct setter.
-    if (getNetwork() === 'testnet') {
-      pushToast({
-        title: 'Not supported on Testnet',
-        description: 'Testnet Diamond uses a 24h timelock. Use contracts/script/ExecuteAfterDelay.s.sol to activate resolver + facets.',
-        type: 'error',
-      });
-      return;
-    }
+    if (!chainlinkResolverAddress || !publicClient) return;
+    
     try {
+      setIsCheckingResolver(true);
       const addresses = getAddresses();
-      await setChainlinkResolver({
-        address: addresses.core,
-        abi: getCoreAbi(getCurrentNetwork()),
-        functionName: 'setChainlinkResolver',
-        args: [chainlinkResolverAddress as `0x${string}`],
-      });
-      pushToast({ title: 'Success', description: 'Chainlink resolver registration submitted', type: 'success' });
+      const network = getNetwork();
+      
+      if (network === 'testnet') {
+        // Testnet: Check if timelock is 0, if so we can schedule and execute immediately
+        const minTimelockDelay = await publicClient.readContract({
+          address: addresses.core,
+          abi: getCoreAbi(getCurrentNetwork()),
+          functionName: 'minTimelockDelay',
+          args: [],
+        }) as bigint;
+
+        if (minTimelockDelay === 0n) {
+          // Timelock is 0, so we can schedule and execute in one flow
+          const OP_SET_RESOLVER = keccak256(stringToBytes('OP_SET_RESOLVER'));
+          const resolverAddr = chainlinkResolverAddress as `0x${string}`;
+          
+          pushToast({ title: 'Scheduling Resolver', description: 'Scheduling resolver registration...', type: 'info' });
+          
+          // Schedule the operation (encode the address)
+          const { encodeAbiParameters } = await import('viem');
+          const encodedData = encodeAbiParameters(
+            [{ type: 'address' }],
+            [chainlinkResolverAddress as `0x${string}`]
+          );
+          
+          const opId = await setChainlinkResolverAsync({
+            address: addresses.core,
+            abi: getCoreAbi(getCurrentNetwork()),
+            functionName: 'scheduleOp',
+            args: [OP_SET_RESOLVER, encodedData],
+          });
+
+          // Wait for transaction
+          if (opId) {
+            await publicClient.waitForTransactionReceipt({ hash: opId });
+            
+            // Execute immediately (timelock is 0)
+            pushToast({ title: 'Executing Resolver', description: 'Executing resolver registration...', type: 'info' });
+            
+            const executeHash = await setChainlinkResolverAsync({
+              address: addresses.core,
+              abi: getCoreAbi(getCurrentNetwork()),
+              functionName: 'executeSetResolver',
+              args: [opId, resolverAddr],
+            });
+
+            if (executeHash) {
+              await publicClient.waitForTransactionReceipt({ hash: executeHash });
+              pushToast({ title: 'Success', description: 'Chainlink resolver registered successfully', type: 'success' });
+              refetchResolver();
+            }
+          }
+        } else {
+          pushToast({
+            title: 'Timelock Required',
+            description: `Testnet has a ${Number(minTimelockDelay)}s timelock. Please use contracts/script/ExecuteAfterDelay.s.sol after the delay.`,
+            type: 'error',
+          });
+        }
+      } else {
+        // Mainnet: Direct setter (if it exists)
+        const hash = await setChainlinkResolverAsync({
+          address: addresses.core,
+          abi: getCoreAbi(getCurrentNetwork()),
+          functionName: 'setChainlinkResolver',
+          args: [chainlinkResolverAddress as `0x${string}`],
+        });
+        if (hash) {
+          pushToast({ title: 'Success', description: 'Chainlink resolver registration submitted', type: 'success' });
+          refetchResolver();
+        }
+      }
     } catch (e: any) {
-      pushToast({ title: 'Error', description: e.message, type: 'error' });
+      console.error('Error setting resolver:', e);
+      pushToast({ title: 'Error', description: e.message || 'Failed to set Chainlink resolver', type: 'error' });
+    } finally {
+      setIsCheckingResolver(false);
     }
   };
 
@@ -269,14 +354,21 @@ export default function AdminManager() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <label htmlFor="resolver-address" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 mb-2 block">Register Chainlink Resolver</label>
+          <label htmlFor="resolver-address" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 mb-2 block">
+            Register Chainlink Resolver
+            {currentResolver && currentResolver !== '0x0000000000000000000000000000000000000000' && (
+              <span className="ml-2 text-green-600 dark:text-green-400 text-[10px] normal-case font-normal">
+                (Currently: {currentResolver.slice(0, 6)}...{currentResolver.slice(-4)})
+              </span>
+            )}
+          </label>
           <div className="flex gap-3">
             <div className="relative flex-1">
               <Input
                 id="resolver-address"
                 value={chainlinkResolverAddress}
                 onChange={(e) => setChainlinkResolverAddress(e.target.value)}
-                placeholder="0x..."
+                placeholder={currentResolver && currentResolver !== '0x0000000000000000000000000000000000000000' ? currentResolver : "0x..."}
                 className="font-mono pr-10"
                 aria-label="Chainlink resolver contract address"
                 aria-invalid={chainlinkResolverAddress.length > 0 && !validResolverAddress}
@@ -295,8 +387,21 @@ export default function AdminManager() {
                 )}
               </AnimatePresence>
             </div>
-            <Button onClick={handleSetChainlinkResolver} disabled={!validResolverAddress} className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px] disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Register Chainlink resolver contract">
-              <Link className="w-4 h-4 mr-2" aria-hidden="true" /> Register
+            <Button 
+              onClick={handleSetChainlinkResolver} 
+              disabled={!validResolverAddress || isCheckingResolver} 
+              className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px] disabled:opacity-50 disabled:cursor-not-allowed" 
+              aria-label="Register Chainlink resolver contract"
+            >
+              {isCheckingResolver ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> Setting...
+                </>
+              ) : (
+                <>
+                  <Link className="w-4 h-4 mr-2" aria-hidden="true" /> Register
+                </>
+              )}
             </Button>
           </div>
           {chainlinkResolverAddress.length > 0 && !validResolverAddress && (

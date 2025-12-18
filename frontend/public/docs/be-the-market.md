@@ -1,104 +1,160 @@
-# SpeculateX // Be The Market
+---
+# SpeculateX — Be the Market
 
-## Protocol Snapshot
+## TL;DR
 
-**SpeculateX** is a decentralized prediction market protocol designed for active ownership.
-* **Creators** launch markets and define the terms.
-* **Traders** buy YES/NO positions with instant AMM execution.
-* **LPs** don’t just watch—they own the flow, earning yields from trading volume.
+SpeculateX is a prediction market protocol where:
+- **Creators** launch markets by seeding liquidity.
+- **Traders** buy YES/NO positions with instant execution (AMM/LMSR).
+- **Liquidity providers (LPs)** deepen markets and **earn trading fees**.
 
-Every market is an independent on-chain economy: self-contained pricing, liquidity, fees, and settlement.
+Each market is its own mini-economy: pricing, liquidity, fees, and settlement are handled on-chain.
 
-> **Status:** This document reflects the **V1 Live Implementation** (Diamond Router on Testnet). Future features are marked as "Roadmap."
+> **Scope of this doc:** This describes the **current V1 implementation** (Diamond Router + Facets on Testnet). Any “V2” concepts below are explicitly marked as roadmap.
 
 ---
 
-## The Philosophy: Don't Just Bet. Be the House.
+## What “Be the Market” means
 
-Traditional prediction markets suffer from two flaws: thin liquidity (high slippage) and passive users (you win or lose, nothing else).
+Most prediction markets have two big problems:
+- **Liquidity is thin** → prices jump, slippage is high, and traders don’t trust the odds.
+- **Users are passive** → traders trade, but don’t benefit from market growth.
 
-**SpeculateX flips the model:**
-By providing liquidity, you transition from a player to infrastructure. You aren't betting against a platform; you are facilitating the market. In exchange, you capture a share of every trade that moves through your pool.
+SpeculateX flips this:
+- If you add liquidity to a market, you become part of the infrastructure that powers it.
+- You earn a share of the market’s trading fees.
 
----
-
-## V1 Mechanics: The Engine
-
-Each market creates two ERC20 outcome tokens: **YES** and **NO**.
-
-* **Pricing:** Powered by an **LMSR AMM**. Prices float between 0 and 1 based on demand.
-* **Lifecycle:**
-    1.  **Create:** Creator seeds liquidity (USDC) and sets the question/oracle.
-    2.  **Trade:** Users swap USDC for YES/NO positions.
-    3.  **Resolve:** Oracle (Chainlink) confirms the outcome after expiry.
-    4.  **Redeem:** Winners claim payouts; LPs claim residuals.
-
-### Instant Market Creation
-Creators define the market logic upfront:
-* **The Question:** Stored on-chain (human-readable).
-* **The Odds:** Defined by the initial seed liquidity (`initUsdc`).
-* **The Truth:** Oracle configuration (Feed ID + Target Value).
+You’re not just trading against a platform — you’re helping run the market.
 
 ---
 
-## Liquidity & Fees (The Alpha)
+## How a SpeculateX market works (V1)
 
-In V1, Liquidity Provision (LP) is designed for **commitment**, not speculation.
+Each market has exactly two outcome tokens:
+- **YES** token (ERC20)
+- **NO** token (ERC20)
 
-### 1. The "Locked Liquidity" Model
-To ensure market solvency and prevent rug-pulls, **V1 Liquidity is not withdrawable.**
-* Once you `addLiquidity`, that capital backs the market until resolution.
-* **Why?** It guarantees traders can always exit positions and aligns LPs with the market's long-term volume rather than short-term farming.
+Trading is handled by an AMM (LMSR). The **YES price** (0 to 1) represents the market-implied probability of YES; NO is roughly \(1 - p_{yes}\).
 
-### 2. The Payoff
-LPs earn in two ways:
-* **Streaming Fees:** Every trade incurs a fee. LPs can call `claimLpFees` to withdraw their share *at any time* during the market's life.
-* **Residuals:** After resolution, any remaining funds in the vault (losing bets + surplus) are distributed to LPs via `claimLpResidual`.
+### Lifecycle
 
----
-
-## Resolution: The Truth Layer
-
-### Snapshot Resolution
-We use a **Resolve-Time Snapshot**. The market outcome is determined by the data returned by the first successful Oracle call *after* the `expiryTimestamp`.
-
-* **The Race:** Anyone can trigger resolution.
-* **The Safety:** The protocol enforces staleness checks and decimal guardrails to prevent bad data from settling markets.
+1. **Create**: a creator sets the question + expiry + resolution config and seeds USDC.
+2. **Trade**: users buy/sell YES/NO using USDC.
+3. **Resolve**: after expiry, the market is resolved (e.g., via Chainlink feed).
+4. **Redeem**: winners redeem for payout; LPs claim any residual vault funds.
 
 ---
 
-## Developer Notes
+## V1: Instant market creation (what’s live today)
 
-### Subgraph-Free Titles
-Reliability is paramount. Market questions are stored directly on-chain.
-* **Frontend:** Call `getMarketQuestion(uint256)` directly.
-* **Benefit:** Your UI will never show a "Loading..." error just because an indexer is lagging.
+### Market creation
 
-### Architecture (Diamond Standard)
-To bypass contract size limits and ensure modularity, V1 uses a Diamond architecture:
-* **Core:** `SpeculateCoreRouter` (The single entry point).
-* **Facets:** Modular logic for `Market`, `Trading`, `Liquidity`, and `Settlement`.
+To create a market, the creator provides:
+- A **question** (human-readable title)
+- Outcome token names/symbols
+- Initial seed liquidity (**initUsdc**)
+- Expiry time (**expiryTimestamp**)
+- Optional Chainlink oracle config (feed + target + comparison)
+
+**Important implementation detail:** In the current V1 contracts, liquidity is **not withdrawable**. There is no `removeLiquidity()`.
+
+Why:
+- It simplifies solvency and accounting.
+- It aligns LP incentives with market quality and trading volume.
+
+### Trading & pricing (LMSR AMM)
+
+Traders can:
+- **Buy** YES or NO with USDC
+- **Sell** YES or NO back to the pool
+
+Prices move continuously based on LMSR math. There is no order book.
+
+### Fees (V1)
+
+Each trade takes a fee (basis points) split between:
+- **Protocol treasury**
+- **Liquidity providers (LPs)** (claimable via `claimLpFees`)
+- **Market vault** (reinvested into the vault to deepen liquidity/solvency)
+
+> Fees are configurable on-chain. Do not assume a fixed 1% split unless the deployed config sets it.
+
+### LP economics (V1)
+
+LP actions:
+- **Add liquidity** at any time (`addLiquidity`)
+- **Claim fees** at any time (`claimLpFees`)
+- **After resolution**, claim any **residual vault funds** (`claimLpResidual`)
+
+LPs cannot withdraw principal in V1. The “reward” is fees + residuals.
 
 ---
 
-## Roadmap: V2 Concepts
-* **Bonding Curve Launch:** Markets will start in a funding phase.
-* **LLT (Launch Liquidity Threshold):** Trading only goes live once the community crowdsources enough liquidity, reducing reliance on a single creator's capital.
+## Resolution: what users must understand
+
+### Resolve-time snapshot
+
+For Chainlink markets, resolution is **snapshotted at resolve-time**:
+- The first successful call to the resolver after `expiryTimestamp` determines the price used for resolution.
+
+This is a design choice:
+- **Pro:** no single party can block resolution forever.
+- **Con:** there is a “race” to resolve first; automation is recommended to reduce timing discretion.
+
+### Oracle safety
+
+The system enforces:
+- **staleness bounds** (reject old oracle updates)
+- **decimal guardrails** (avoid accidental scaling mismatches)
+
+---
+
+## Market titles without subgraphs
+
+Market questions are stored on-chain and read via:
+- `getMarketQuestion(uint256)`
+
+This means the frontend does **not** need to depend on a subgraph for market titles (important for reliability when subgraphs lag or RPC nodes prune logs).
+
+---
+
+## Architecture note (V1 on Testnet today)
+
+The Testnet deployment uses a Diamond-style architecture:
+- **Router**: single entry point (`SpeculateCoreRouter`)
+- **Facets**: `MarketFacet`, `TradingFacet`, `LiquidityFacet`, `SettlementFacet`
+
+This makes it easier to modularize logic and avoid contract size limits.
+
+---
+
+## V2 (Roadmap): Bonding curve launch + LLT
+
+This section is conceptual and **not deployed** in the current contracts.
+
+In a potential V2, markets could start in a funding phase:
+- A bonding curve provides transparent early price discovery.
+- A **Launch Liquidity Threshold (LLT)** defines when the market becomes fully active.
+
+Goal:
+- Reduce reliance on a single creator’s seed capital.
+- Let communities bootstrap markets into deep liquidity before live trading.
 
 ---
 
 ## FAQ
 
-**Q: Can I withdraw my LP capital before the market ends?**
-**A:** No. In V1, liquidity is committed until resolution. You earn via trading fees (claimable anytime) and final residuals.
+### Can I withdraw liquidity?
+Not in V1. You can claim fees during the market and claim residuals after resolution.
 
-**Q: Who decides the winner?**
-**A:** The code does, based on the Chainlink data feed. The actual transaction to trigger this can be sent by anyone (user or bot).
+### Who can resolve?
+Anyone can call the resolver after expiry (or automation/bots can do it).
 
-**Q: Do I need a Graph Node to run the UI?**
-**A:** No. Critical metadata (Titles, Symbols) is readable directly from the blockchain.
+### Does the UI require the subgraph for market titles?
+No. Titles are on-chain via `getMarketQuestion(uint256)`.
 
 ---
 
-### Disclaimer
-*This document is for informational purposes. Prediction markets involve financial risk. Smart contracts are experimental technology—always verify parameters before deploying capital.*
+## Disclaimer
+
+This document is informational. Prediction markets involve risk. Always verify deployed contract behavior and parameters before using real funds.
