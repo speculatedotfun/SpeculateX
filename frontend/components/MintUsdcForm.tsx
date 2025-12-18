@@ -1,18 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
+import { useAccount, useSwitchChain, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
-import { getAddresses, getNetwork, getCurrentNetwork } from '@/lib/contracts';
+import { getAddresses, getChainId, getNetwork } from '@/lib/contracts';
 import { usdcAbi, getCoreAbi } from '@/lib/abis';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Coins, CheckCircle2, TrendingUp, Sparkles } from 'lucide-react';
+import { Coins, Sparkles, TrendingUp } from 'lucide-react';
 
 export default function MintUsdcForm() {
-  const { address } = useAccount();
+  const { address, chain } = useAccount();
+  const { switchChain, isPending: isSwitchingChain } = useSwitchChain();
   const { pushToast } = useToast();
   const [mintAmount, setMintAmount] = useState('1000');
   const [userBalance, setUserBalance] = useState('0');
@@ -20,6 +21,8 @@ export default function MintUsdcForm() {
   const [showBalanceIncrease, setShowBalanceIncrease] = useState(false);
   const network = getNetwork();
   const addresses = getAddresses();
+  const expectedChainId = getChainId();
+  const isChainMismatch = !!chain && chain.id !== expectedChainId;
   
   // All hooks must be called before any early returns
   const { data: hash, writeContract, isPending, error } = useWriteContract();
@@ -68,6 +71,14 @@ export default function MintUsdcForm() {
 
   const handleMint = async () => {
     if (!address || !mintAmount) return;
+    if (isChainMismatch) {
+      pushToast({
+        title: 'Wrong network',
+        description: `Please switch your wallet to chain ${expectedChainId} to mint test USDC.`,
+        type: 'warning',
+      });
+      return;
+    }
     try {
       const amount = parseUnits(mintAmount, 6);
       // Call faucet directly on MockUSDC (testnet only)
@@ -84,6 +95,22 @@ export default function MintUsdcForm() {
 
   return (
     <div className="space-y-6" role="region" aria-label="Mint testnet USDC">
+      {isChainMismatch && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-100 dark:border-amber-800" role="alert">
+          <div className="text-sm font-medium text-amber-800 dark:text-amber-200">
+            Wrong network in wallet. This faucet works on <b>Testnet</b> only.
+          </div>
+          <div className="mt-3 flex gap-2">
+            <Button
+              onClick={() => switchChain?.({ chainId: expectedChainId })}
+              disabled={!switchChain || isSwitchingChain}
+              className="h-10"
+            >
+              {isSwitchingChain ? 'Switching…' : 'Switch Wallet Network'}
+            </Button>
+          </div>
+        </div>
+      )}
       {address ? (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -173,7 +200,7 @@ export default function MintUsdcForm() {
 
       <Button
         onClick={handleMint}
-        disabled={isPending || isConfirming || !address}
+        disabled={isPending || isConfirming || !address || isChainMismatch}
         className="w-full h-12 text-base shadow-lg shadow-blue-500/20 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
         aria-label={isPending || isConfirming ? 'Minting USDC in progress' : 'Mint testnet USDC'}
       >

@@ -2,9 +2,9 @@
 import { useState, useEffect, ChangeEvent, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { useAccount, useWriteContract, useReadContract, usePublicClient, useBlockNumber } from 'wagmi';
+import { useAccount, useSwitchChain, useWriteContract, useReadContract, usePublicClient, useBlockNumber } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
-import { getAddresses, getCurrentNetwork } from '@/lib/contracts';
+import { getAddresses, getChainId, getCurrentNetwork } from '@/lib/contracts';
 import { getCoreAbi, usdcAbi, positionTokenAbi } from '@/lib/abis';
 import { useToast } from '@/components/ui/toast';
 import { clamp, formatBalanceDisplay, toBigIntSafe } from '@/lib/tradingUtils';
@@ -94,9 +94,12 @@ export default function TradingCard({
   marketId,
   marketData,
 }: TradingCardProps) {
-  const { address } = useAccount();
+  const { address, chain } = useAccount();
+  const { switchChain, isPending: isSwitchingChain } = useSwitchChain();
   const marketIdBI = useMemo(() => BigInt(marketId), [marketId]);
   const coreAbiForNetwork = useMemo(() => getCoreAbi(getCurrentNetwork()), []);
+  const expectedChainId = useMemo(() => getChainId(), []);
+  const isChainMismatch = !!chain && chain.id !== expectedChainId;
   
   // --- UI State ---
   const [tradeMode, setTradeMode] = useState<'buy' | 'sell'>('buy');
@@ -223,10 +226,12 @@ export default function TradingCard({
   }, [resolutionData]);
 
   const isResolved = Boolean(resolution?.isResolved);
-  const isTradeable = status === 0 && !isResolved && !isExpired;
+  const isTradeable = status === 0 && !isResolved && !isExpired && !isChainMismatch;
   
   const tradeDisabledReason = !isTradeable
-    ? isResolved
+    ? isChainMismatch
+      ? `Wrong network. Switch wallet to chain ${expectedChainId}.`
+      : isResolved
       ? 'Market is resolved'
       : isExpired
         ? 'Market has expired'
@@ -648,6 +653,10 @@ export default function TradingCard({
 
   const handleTrade = useCallback(async () => {
     if (!amount || parseFloat(amount) <= 0) return;
+    if (isChainMismatch) {
+      showToast('Wrong network', `Switch wallet to chain ${expectedChainId} and try again.`, 'warning');
+      return;
+    }
     if (!isTradeable) {
       showToast('Trading disabled', tradeDisabledReason, 'warning');
       return;
@@ -744,10 +753,14 @@ export default function TradingCard({
       setPendingTrade(false);
       setBusyLabel('');
     }
-  }, [amount, amountBigInt, isTradeable, tradeMode, address, publicClient, writeContractAsync, usdcAllowanceValue, tokenAllowanceValue, overJumpCap, refetchAll, showToast, showErrorToast, bE18, feeLpBps, feeTreasuryBps, feeVaultBps, marketIdBI, qNo, qYes, side, tokenAddr, tradeDisabledReason, addresses.core, addresses.usdc, coreAbiForNetwork]);
+  }, [amount, amountBigInt, isChainMismatch, expectedChainId, isTradeable, tradeMode, address, publicClient, writeContractAsync, usdcAllowanceValue, tokenAllowanceValue, overJumpCap, refetchAll, showToast, showErrorToast, bE18, feeLpBps, feeTreasuryBps, feeVaultBps, marketIdBI, qNo, qYes, side, tokenAddr, tradeDisabledReason, addresses.core, addresses.usdc, coreAbiForNetwork]);
 
   const handleAddLiquidity = useCallback(async () => {
     if (!addLiquidityAmount) return;
+    if (isChainMismatch) {
+      showToast('Wrong network', `Switch wallet to chain ${expectedChainId} and try again.`, 'warning');
+      return;
+    }
     const amountParsed = parseUnits(addLiquidityAmount, 6);
     if (amountParsed <= 0n) return;
     
@@ -779,6 +792,10 @@ export default function TradingCard({
 
   const handleClaimAllLp = useCallback(async () => {
     try {
+      if (isChainMismatch) {
+        showToast('Wrong network', `Switch wallet to chain ${expectedChainId} and try again.`, 'warning');
+        return;
+      }
       setPendingLpAction('claim');
       if (pendingFeesValue > 0n) {
         const tx = await writeContractAsync({
@@ -799,10 +816,14 @@ export default function TradingCard({
     } finally {
         setPendingLpAction(null);
     }
-  }, [marketIdBI, pendingFeesValue, pendingResidualValue, writeContractAsync, publicClient, refetchAll, showToast, showErrorToast, addresses.core, coreAbiForNetwork]);
+  }, [isChainMismatch, expectedChainId, marketIdBI, pendingFeesValue, pendingResidualValue, writeContractAsync, publicClient, refetchAll, showToast, showErrorToast, addresses.core, coreAbiForNetwork]);
 
   const handleRedeem = useCallback(async (isYes: boolean) => {
     try {
+        if (isChainMismatch) {
+          showToast('Wrong network', `Switch wallet to chain ${expectedChainId} and try again.`, 'warning');
+          return;
+        }
         setBusyLabel('Redeeming...');
         const tx = await writeContractAsync({
             address: addresses.core, abi: coreAbiForNetwork, functionName: 'redeem', args: [marketIdBI, isYes]
@@ -815,7 +836,7 @@ export default function TradingCard({
     } finally {
         setBusyLabel('');
     }
-  }, [marketIdBI, writeContractAsync, publicClient, refetchAll, showToast, showErrorToast, addresses.core, coreAbiForNetwork]);
+  }, [isChainMismatch, expectedChainId, marketIdBI, writeContractAsync, publicClient, refetchAll, showToast, showErrorToast, addresses.core, coreAbiForNetwork]);
 
   // --- Render ---
   return (
@@ -832,6 +853,28 @@ export default function TradingCard({
       />
 
       <div className="p-1 space-y-6" data-testid="trading-card" role="main" aria-label="Trading interface">
+        {isChainMismatch && (
+          <div className="rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 p-4 flex flex-col gap-3" role="alert">
+            <div className="flex items-start gap-3">
+              <div className="p-1.5 bg-amber-100 dark:bg-amber-900/30 rounded-full text-amber-600 dark:text-amber-400 mt-0.5">
+                <AlertTriangle className="w-4 h-4" aria-hidden="true" />
+              </div>
+              <div className="text-sm text-amber-800 dark:text-amber-200 font-medium leading-relaxed">
+                Wrong network in wallet. Switch to chain <b>{expectedChainId}</b> to trade on the selected network.
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => switchChain?.({ chainId: expectedChainId })}
+                disabled={!switchChain || isSwitchingChain}
+                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                type="button"
+              >
+                {isSwitchingChain ? 'Switching…' : 'Switch Wallet Network'}
+              </button>
+            </div>
+          </div>
+        )}
         {!isTradeable && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
