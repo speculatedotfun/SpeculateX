@@ -148,6 +148,7 @@ export default function Header() {
   }, [isConnected, address]);
 
   const isActive = (path: string) => {
+    if (!pathname) return false;
     if (path === '/') return pathname === '/';
     return pathname.startsWith(path);
   };
@@ -180,13 +181,13 @@ export default function Header() {
           
           {/* Logo */}
           <Link href="/" className="flex items-center group flex-shrink-0 relative z-20" onClick={() => setIsMobileMenuOpen(false)}>
-            <div className="relative w-[140px] sm:w-[160px] h-10 sm:h-12 transition-transform duration-300 group-hover:scale-105">
+            <div className="relative w-[140px] sm:w-[200px] h-10 sm:h-10 transition-transform duration-300 group-hover:scale-105">
               {/* Light mode logo */}
               <Image
                 src="/Whitelogo.png"
                 alt="SpeculateX Logo"
                 fill
-                sizes="(max-width: 640px) 140px, 160px"
+                sizes="(max-width: 640px) 180px, 220px"
                 priority
                 className="object-contain object-left dark:hidden"
               />
@@ -195,7 +196,7 @@ export default function Header() {
                 src="/darklogo.png"
                 alt="SpeculateX Logo"
                 fill
-                sizes="(max-width: 640px) 140px, 160px"
+                sizes="(max-width: 640px) 180px, 220px"
                 priority
                 className="object-contain object-left hidden dark:block"
               />

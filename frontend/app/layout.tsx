@@ -10,7 +10,12 @@ export const metadata: Metadata = {
   title: 'SpeculateX | Decentralized Prediction Markets',
   description: 'Trade on real-world events with infinite liquidity using AMM bonding curves.',
   icons: {
-    icon: '/logo.jpg',
+    icon: [
+      { url: '/logo.svg', type: 'image/svg+xml' },
+      { url: '/logo.jpg', type: 'image/jpeg', sizes: '32x32' },
+    ],
+    apple: '/logo.svg',
+    shortcut: '/logo.svg',
   },
 };
 

@@ -32,13 +32,8 @@ export function MarketHeader({
   const yesPercent = Math.round(yesPrice * 100);
   
   const dateStr = useMemo(() => {
-    // Check explicitly for 0n (BigInt zero) since 0n is falsy but we want to distinguish between 0 and undefined
-    if (!expiryTimestamp || expiryTimestamp === 0n) return 'N/A';
+    if (!expiryTimestamp) return 'N/A';
     const date = new Date(Number(expiryTimestamp) * 1000);
-    // Validate the date is reasonable (not before 2020, not too far in future)
-    if (isNaN(date.getTime()) || date.getTime() < new Date('2020-01-01').getTime() || date.getTime() > Date.now() + 100 * 365 * 24 * 60 * 60 * 1000) {
-      return 'N/A';
-    }
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }, [expiryTimestamp]);
 
@@ -47,7 +42,7 @@ export function MarketHeader({
       initial={{ y: 30, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6 }}
-      className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-2xl rounded-[32px] shadow-2xl border border-white/20 dark:border-gray-700/50 mb-8 overflow-hidden relative isolate"
+      className="bg-gradient-to-br from-white via-white to-gray-50/30 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900/50 backdrop-blur-2xl rounded-[32px] shadow-[0_20px_70px_-15px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_70px_-15px_rgba(0,0,0,0.5)] border-2 border-white dark:border-gray-700/50 mb-8 overflow-hidden relative isolate ring-1 ring-gray-900/5 dark:ring-white/5"
       data-testid="market-header"
       role="region"
       aria-label="Market information"
@@ -56,16 +51,16 @@ export function MarketHeader({
         
         {/* --- Top Section: Status & Main Info --- */}
         <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
-          {/* Logo Container with Glow */}
+          {/* Logo Container with Enhanced Glow */}
           <div className="relative group shrink-0">
-            <div className="absolute inset-0 bg-blue-500/20 dark:bg-blue-400/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500" />
-            <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-white dark:bg-gray-900 p-2 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 via-purple-500/20 to-teal-500/30 dark:from-blue-400/30 dark:via-purple-400/20 dark:to-teal-400/30 rounded-3xl blur-2xl group-hover:blur-3xl opacity-50 group-hover:opacity-70 transition-all duration-700" />
+            <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 p-2 shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)] border-2 border-gray-100 dark:border-gray-700 flex items-center justify-center overflow-hidden ring-1 ring-gray-900/5 dark:ring-white/10 group-hover:shadow-[0_12px_40px_rgba(0,0,0,0.18)] dark:group-hover:shadow-[0_12px_40px_rgba(0,0,0,0.6)] transition-all duration-500">
               <Image
                 src={logoSrc}
                 alt={market.question as string}
                 width={80}
                 height={80}
-                className="object-contain w-full h-full rounded-2xl transition-transform duration-500 group-hover:scale-110"
+                className="object-contain w-full h-full rounded-2xl transition-transform duration-500 group-hover:scale-110 filter group-hover:brightness-110"
                 unoptimized
                 onError={onLogoError}
               />
@@ -107,14 +102,14 @@ export function MarketHeader({
                </time>
             </div>
 
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 dark:text-white leading-tight tracking-tight mb-2 text-balance">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-black bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 dark:from-white dark:via-gray-100 dark:to-gray-200 bg-clip-text text-transparent leading-tight tracking-tight mb-2 text-balance drop-shadow-sm">
               {market.question}
             </h1>
           </div>
         </div>
 
         {/* --- 3D Stats Dashboard (Integrated) --- */}
-        <div className="relative w-full rounded-3xl overflow-hidden bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 border border-gray-200 dark:border-gray-700 shadow-inner group" role="region" aria-label="Market statistics">
+        <div className="relative w-full rounded-3xl overflow-hidden bg-gradient-to-br from-gray-50/80 via-white to-gray-100/50 dark:from-gray-900/80 dark:via-gray-800 dark:to-gray-900/50 border-2 border-gray-200/60 dark:border-gray-700/60 shadow-[inset_0_2px_20px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_2px_20px_rgba(0,0,0,0.2)] group backdrop-blur-xl ring-1 ring-gray-900/5 dark:ring-white/5" role="region" aria-label="Market statistics">
 
             {/* Left 3D Decoration - Hidden on mobile */}
             <div className="hidden md:block absolute left-0 bottom-0 top-0 w-32 md:w-64 opacity-100 pointer-events-none z-0" aria-hidden="true">
@@ -150,14 +145,15 @@ export function MarketHeader({
                     </span>
                 </div>
 
-                {/* Sentiment Stat */}
-                <div className="flex flex-col items-center justify-center p-4 text-center bg-white/50 dark:bg-white/5 backdrop-blur-sm" role="listitem">
-                    <div className="flex items-center gap-2 mb-1 opacity-70">
-                        <TrendingUp className="w-4 h-4 text-blue-500" aria-hidden="true" />
+                {/* Sentiment Stat - Enhanced with gradient background */}
+                <div className="flex flex-col items-center justify-center p-4 text-center relative overflow-hidden" role="listitem">
+                    <div className={`absolute inset-0 bg-gradient-to-br ${yesPercent >= 50 ? 'from-teal-500/10 via-emerald-500/5 to-transparent' : 'from-rose-500/10 via-red-500/5 to-transparent'} backdrop-blur-sm`} aria-hidden="true" />
+                    <div className="flex items-center gap-2 mb-1 opacity-70 relative z-10">
+                        <TrendingUp className={`w-4 h-4 ${yesPercent >= 50 ? 'text-teal-600 dark:text-teal-400' : 'text-rose-600 dark:text-rose-400'}`} aria-hidden="true" />
                         <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Sentiment</span>
                     </div>
-                    <div className="flex items-baseline gap-1.5">
-                        <span className={`text-3xl sm:text-4xl font-black tracking-tighter ${yesPercent >= 50 ? 'text-[#14B8A6]' : 'text-rose-500'}`} aria-label={`Market sentiment: ${yesPercent} percent predict yes`}>
+                    <div className="flex items-baseline gap-1.5 relative z-10">
+                        <span className={`text-3xl sm:text-4xl font-black tracking-tighter bg-gradient-to-br ${yesPercent >= 50 ? 'from-teal-600 to-emerald-600 dark:from-teal-400 dark:to-emerald-400' : 'from-rose-600 to-red-600 dark:from-rose-400 dark:to-red-400'} bg-clip-text text-transparent drop-shadow-sm`} aria-label={`Market sentiment: ${yesPercent} percent predict yes`}>
                             {yesPercent}%
                         </span>
                         <span className="text-sm font-bold text-gray-400 uppercase" aria-hidden="true">Yes</span>

@@ -2,9 +2,9 @@
 import { useState, useEffect, ChangeEvent, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { useAccount, useSwitchChain, useWriteContract, useReadContract, usePublicClient, useBlockNumber } from 'wagmi';
+import { useAccount, useWriteContract, useReadContract, usePublicClient, useBlockNumber } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
-import { getAddresses, getChainId, getCurrentNetwork } from '@/lib/contracts';
+import { getAddresses, getCurrentNetwork } from '@/lib/contracts';
 import { getCoreAbi, usdcAbi, positionTokenAbi } from '@/lib/abis';
 import { useToast } from '@/components/ui/toast';
 import { clamp, formatBalanceDisplay, toBigIntSafe } from '@/lib/tradingUtils';
@@ -94,12 +94,9 @@ export default function TradingCard({
   marketId,
   marketData,
 }: TradingCardProps) {
-  const { address, chain } = useAccount();
-  const { switchChain, isPending: isSwitchingChain } = useSwitchChain();
+  const { address } = useAccount();
   const marketIdBI = useMemo(() => BigInt(marketId), [marketId]);
   const coreAbiForNetwork = useMemo(() => getCoreAbi(getCurrentNetwork()), []);
-  const expectedChainId = useMemo(() => getChainId(), []);
-  const isChainMismatch = !!chain && chain.id !== expectedChainId;
   
   // --- UI State ---
   const [tradeMode, setTradeMode] = useState<'buy' | 'sell'>('buy');
@@ -226,12 +223,10 @@ export default function TradingCard({
   }, [resolutionData]);
 
   const isResolved = Boolean(resolution?.isResolved);
-  const isTradeable = status === 0 && !isResolved && !isExpired && !isChainMismatch;
+  const isTradeable = status === 0 && !isResolved && !isExpired;
   
   const tradeDisabledReason = !isTradeable
-    ? isChainMismatch
-      ? `Wrong network. Switch wallet to chain ${expectedChainId}.`
-      : isResolved
+    ? isResolved
       ? 'Market is resolved'
       : isExpired
         ? 'Market has expired'
@@ -286,7 +281,7 @@ export default function TradingCard({
   const pendingLpFeesValue = pendingFeesValue;
   const pendingLpResidualValue = pendingResidualValue;
 
-  // --- Max Jump (Global) ---
+  // --- Max Jump ---
   const maxJumpQuery = useReadContract({
     address: addresses.core,
     abi: coreAbiForNetwork,
@@ -296,16 +291,6 @@ export default function TradingCard({
   });
   const maxJumpE6 = (maxJumpQuery.data as bigint | undefined) ?? 0n;
   const refetchMaxJump = maxJumpQuery.refetch;
-
-  // --- Max Jump (Market Specific) ---
-  const marketMaxJumpQuery = useReadContract({
-    address: addresses.core,
-    abi: coreAbiForNetwork,
-    functionName: 'getMaxJumpE18',
-    args: [marketIdBI],
-    query: { enabled: marketId >= 0 },
-  });
-  const marketMaxJumpE18 = (marketMaxJumpQuery.data as bigint | undefined) ?? 0n;
 
   // --- Token Balances ---
   const usdcBalQuery = useReadContract({
@@ -339,7 +324,6 @@ export default function TradingCard({
     await Promise.allSettled([
       refetchMarketState?.(),
       refetchMaxJump?.(),
-      marketMaxJumpQuery.refetch?.(),
       lpSharesResult.refetch?.(),
       accFeeResult.refetch?.(),
       lpFeeDebtResult.refetch?.(),
@@ -351,7 +335,6 @@ export default function TradingCard({
   }, [
     refetchMarketState,
     refetchMaxJump,
-    marketMaxJumpQuery,
     lpSharesResult,
     accFeeResult,
     lpFeeDebtResult,
@@ -412,37 +395,7 @@ export default function TradingCard({
 
   const canBuy = tradeMode === 'buy' && amountBigInt > 0n && amountBigInt <= usdcBalanceRaw;
   const canSell = tradeMode === 'sell' && amountBigInt > 0n && amountBigInt <= (side === 'yes' ? yesBalanceRaw : noBalanceRaw);
-  
-  // Check if trade exceeds limits (global max OR market-specific price jump)
-  const overJumpCap = useMemo(() => {
-    if (tradeMode !== 'buy' || amountBigInt === 0n || bE18 === 0n) return false;
-    
-    // 1. Hard cap check (Global max USDC per trade)
-    if (maxJumpE6 > 0n && amountBigInt > maxJumpE6) return true;
-
-    // 2. Price jump check (Market specific)
-    if (marketMaxJumpE18 && marketMaxJumpE18 > 0n) {
-      try {
-        const pYesOld = spotPriceYesE18(qYes, qNo, bE18);
-        const simulation = simulateBuyChunk(amountBigInt, qYes, qNo, bE18, feeTreasuryBps, feeVaultBps, feeLpBps, side === 'yes');
-        
-        if (!simulation) return false; // Can't simulate, let it try
-        
-        const pYesNew = spotPriceYesE18(simulation.newQYes, simulation.newQNo, bE18);
-        const jump = pYesNew > pYesOld ? pYesNew - pYesOld : pYesOld - pYesNew;
-        
-        // If jump exceeds 98% of allowed limit, trigger split
-        const threshold = (marketMaxJumpE18 * SAFETY_MARGIN_BPS) / 10_000n;
-        if (jump > threshold) return true;
-      } catch (e) {
-        console.warn('Price jump check failed', e);
-        // If we can't check, default to safe: trigger split if over global max
-        return maxJumpE6 > 0n && amountBigInt > maxJumpE6;
-      }
-    }
-
-    return false;
-  }, [tradeMode, amountBigInt, maxJumpE6, marketMaxJumpE18, qYes, qNo, bE18, feeTreasuryBps, feeVaultBps, feeLpBps, side]);
+  const overJumpCap = tradeMode === 'buy' && maxJumpE6 > 0n && amountBigInt > maxJumpE6;
 
   // --- Formatting ---
   const formatPrice = (p: number) => p >= 1 ? `$${p.toFixed(2)}` : `${(p * 100).toFixed(1)}¢`;
@@ -653,10 +606,6 @@ export default function TradingCard({
 
   const handleTrade = useCallback(async () => {
     if (!amount || parseFloat(amount) <= 0) return;
-    if (isChainMismatch) {
-      showToast('Wrong network', `Switch wallet to chain ${expectedChainId} and try again.`, 'warning');
-      return;
-    }
     if (!isTradeable) {
       showToast('Trading disabled', tradeDisabledReason, 'warning');
       return;
@@ -681,7 +630,6 @@ export default function TradingCard({
         if (overJumpCap) {
           setPendingSplitAmount(amountParsed);
           setShowSplitConfirm(true);
-          setPendingTrade(false);
           setBusyLabel('');
           return;
         }
@@ -689,28 +637,6 @@ export default function TradingCard({
         const simulation = simulateBuyChunk(amountParsed, qYes, qNo, bE18, feeTreasuryBps, feeVaultBps, feeLpBps, side === 'yes');
         if (!simulation) throw new Error('Simulation failed');
         const minOut = simulation.minOut > 0n ? simulation.minOut : 1n;
-
-        // Pre-transaction simulation to catch failures before MetaMask opens
-        if (publicClient && address) {
-          try {
-            await publicClient.simulateContract({
-              address: addresses.core,
-              abi: coreAbiForNetwork,
-              functionName: 'buy',
-              args: [marketIdBI, side === 'yes', amountParsed, minOut],
-              account: address as `0x${string}`,
-            });
-          } catch (simError: any) {
-            console.warn('Pre-transaction simulation failed, triggering split order flow', simError);
-            // If simulation fails, it's likely due to price jump or other safety checks
-            // Trigger split order modal instead of showing MetaMask error
-            setPendingSplitAmount(amountParsed);
-            setShowSplitConfirm(true);
-            setPendingTrade(false);
-            setBusyLabel('');
-            return;
-          }
-        }
 
         setBusyLabel('Submitting buy…');
         const txHash = await writeContractAsync({
@@ -753,14 +679,10 @@ export default function TradingCard({
       setPendingTrade(false);
       setBusyLabel('');
     }
-  }, [amount, amountBigInt, isChainMismatch, expectedChainId, isTradeable, tradeMode, address, publicClient, writeContractAsync, usdcAllowanceValue, tokenAllowanceValue, overJumpCap, refetchAll, showToast, showErrorToast, bE18, feeLpBps, feeTreasuryBps, feeVaultBps, marketIdBI, qNo, qYes, side, tokenAddr, tradeDisabledReason, addresses.core, addresses.usdc, coreAbiForNetwork]);
+  }, [amount, amountBigInt, isTradeable, tradeMode, address, publicClient, writeContractAsync, usdcAllowanceValue, tokenAllowanceValue, overJumpCap, refetchAll, showToast, showErrorToast, bE18, feeLpBps, feeTreasuryBps, feeVaultBps, marketIdBI, qNo, qYes, side, tokenAddr, tradeDisabledReason, addresses.core, addresses.usdc, coreAbiForNetwork]);
 
   const handleAddLiquidity = useCallback(async () => {
     if (!addLiquidityAmount) return;
-    if (isChainMismatch) {
-      showToast('Wrong network', `Switch wallet to chain ${expectedChainId} and try again.`, 'warning');
-      return;
-    }
     const amountParsed = parseUnits(addLiquidityAmount, 6);
     if (amountParsed <= 0n) return;
     
@@ -792,10 +714,6 @@ export default function TradingCard({
 
   const handleClaimAllLp = useCallback(async () => {
     try {
-      if (isChainMismatch) {
-        showToast('Wrong network', `Switch wallet to chain ${expectedChainId} and try again.`, 'warning');
-        return;
-      }
       setPendingLpAction('claim');
       if (pendingFeesValue > 0n) {
         const tx = await writeContractAsync({
@@ -816,14 +734,10 @@ export default function TradingCard({
     } finally {
         setPendingLpAction(null);
     }
-  }, [isChainMismatch, expectedChainId, marketIdBI, pendingFeesValue, pendingResidualValue, writeContractAsync, publicClient, refetchAll, showToast, showErrorToast, addresses.core, coreAbiForNetwork]);
+  }, [marketIdBI, pendingFeesValue, pendingResidualValue, writeContractAsync, publicClient, refetchAll, showToast, showErrorToast, addresses.core, coreAbiForNetwork]);
 
   const handleRedeem = useCallback(async (isYes: boolean) => {
     try {
-        if (isChainMismatch) {
-          showToast('Wrong network', `Switch wallet to chain ${expectedChainId} and try again.`, 'warning');
-          return;
-        }
         setBusyLabel('Redeeming...');
         const tx = await writeContractAsync({
             address: addresses.core, abi: coreAbiForNetwork, functionName: 'redeem', args: [marketIdBI, isYes]
@@ -836,7 +750,7 @@ export default function TradingCard({
     } finally {
         setBusyLabel('');
     }
-  }, [isChainMismatch, expectedChainId, marketIdBI, writeContractAsync, publicClient, refetchAll, showToast, showErrorToast, addresses.core, coreAbiForNetwork]);
+  }, [marketIdBI, writeContractAsync, publicClient, refetchAll, showToast, showErrorToast, addresses.core, coreAbiForNetwork]);
 
   // --- Render ---
   return (
@@ -852,29 +766,7 @@ export default function TradingCard({
         onConfirm={handleConfirmSplit}
       />
 
-      <div className="p-1 space-y-6" data-testid="trading-card" role="main" aria-label="Trading interface">
-        {isChainMismatch && (
-          <div className="rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 p-4 flex flex-col gap-3" role="alert">
-            <div className="flex items-start gap-3">
-              <div className="p-1.5 bg-amber-100 dark:bg-amber-900/30 rounded-full text-amber-600 dark:text-amber-400 mt-0.5">
-                <AlertTriangle className="w-4 h-4" aria-hidden="true" />
-              </div>
-              <div className="text-sm text-amber-800 dark:text-amber-200 font-medium leading-relaxed">
-                Wrong network in wallet. Switch to chain <b>{expectedChainId}</b> to trade on the selected network.
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => switchChain?.({ chainId: expectedChainId })}
-                disabled={!switchChain || isSwitchingChain}
-                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                type="button"
-              >
-                {isSwitchingChain ? 'Switching…' : 'Switch Wallet Network'}
-              </button>
-            </div>
-          </div>
-        )}
+      <div className="p-1 space-y-6 bg-gradient-to-br from-white/50 via-white/30 to-transparent dark:from-gray-800/50 dark:via-gray-800/30 dark:to-transparent rounded-[28px] backdrop-blur-sm" data-testid="trading-card" role="main" aria-label="Trading interface">
         {!isTradeable && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -935,16 +827,16 @@ export default function TradingCard({
                 whileHover={{ scale: !isBusy && isTradeable ? 1.02 : 1 }}
                 onClick={() => { if (!isBusy && isTradeable) setSide(s); }}
                 className={`
-                  relative p-5 rounded-[24px] text-left transition-all duration-200 border-[3px] overflow-hidden group
+                  relative p-5 rounded-[24px] text-left transition-all duration-300 border-[3px] overflow-hidden group
                   ${s === 'yes'
                     ? (isSelected
-                        ? 'bg-green-50 dark:bg-green-900/20 border-green-500 shadow-[0_0_0_4px_rgba(34,197,94,0.1)]'
-                        : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-700')
+                        ? 'bg-gradient-to-br from-green-50 to-emerald-50/50 dark:from-green-900/20 dark:to-emerald-900/10 border-green-500 dark:border-green-500 shadow-[0_0_0_4px_rgba(34,197,94,0.15),0_8px_30px_rgba(34,197,94,0.12)] dark:shadow-[0_0_0_4px_rgba(34,197,94,0.2),0_8px_30px_rgba(34,197,94,0.2)]'
+                        : 'bg-gradient-to-br from-white to-gray-50/30 dark:from-gray-800 dark:to-gray-800/50 border-gray-200/60 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600 hover:shadow-lg shadow-sm')
                     : (isSelected
-                        ? 'bg-red-50 dark:bg-red-900/20 border-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.1)]'
-                        : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-700')
+                        ? 'bg-gradient-to-br from-red-50 to-rose-50/50 dark:from-red-900/20 dark:to-rose-900/10 border-red-500 dark:border-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.15),0_8px_30px_rgba(239,68,68,0.12)] dark:shadow-[0_0_0_4px_rgba(239,68,68,0.2),0_8px_30px_rgba(239,68,68,0.2)]'
+                        : 'bg-gradient-to-br from-white to-gray-50/30 dark:from-gray-800 dark:to-gray-800/50 border-gray-200/60 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-600 hover:shadow-lg shadow-sm')
                   }
-                  disabled:opacity-50 disabled:cursor-not-allowed
+                  disabled:opacity-50 disabled:cursor-not-allowed ring-1 ring-gray-900/5 dark:ring-white/5
                 `}
                 disabled={!isTradeable}
                 role="radio"
@@ -982,9 +874,9 @@ export default function TradingCard({
                   </div>
                 </div>
 
-                {/* Decorative BG Gradient */}
+                {/* Enhanced Decorative BG Gradient */}
                 {isSelected && (
-                   <div className={`absolute -right-4 -bottom-4 w-24 h-24 rounded-full blur-2xl opacity-50 ${s === 'yes' ? 'bg-green-400' : 'bg-red-400'}`} aria-hidden="true" />
+                   <div className={`absolute -right-6 -bottom-6 w-32 h-32 rounded-full blur-3xl opacity-40 ${s === 'yes' ? 'bg-gradient-to-br from-green-400 to-emerald-500' : 'bg-gradient-to-br from-red-400 to-rose-500'} animate-pulse`} style={{ animationDuration: '3s' }} aria-hidden="true" />
                 )}
               </motion.button>
             );
@@ -994,14 +886,14 @@ export default function TradingCard({
         {/* Amount Input - Massive & Clean */}
         <div className="space-y-4">
           <div className={`
-            bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-[24px] border-2 transition-all hover:bg-white dark:hover:bg-gray-800 relative
+            bg-gradient-to-br from-gray-50/90 via-white/50 to-gray-50/80 dark:from-gray-800/90 dark:via-gray-800/50 dark:to-gray-800/80 backdrop-blur-md rounded-[24px] border-2 transition-all duration-300 hover:bg-white dark:hover:bg-gray-800 relative ring-1 ring-gray-900/5 dark:ring-white/5
             ${amount && parseFloat(amount) > 0
               ? (tradeMode === 'buy' && canBuy) || (tradeMode === 'sell' && canSell)
-                ? 'border-green-500 dark:border-green-600 shadow-[0_0_0_3px_rgba(34,197,94,0.1)]'
-                : 'border-red-500 dark:border-red-600 shadow-[0_0_0_3px_rgba(239,68,68,0.1)]'
-              : 'border-gray-200 dark:border-gray-700'
+                ? 'border-green-500 dark:border-green-600 shadow-[0_0_0_3px_rgba(34,197,94,0.15),0_8px_30px_rgba(34,197,94,0.08)] dark:shadow-[0_0_0_3px_rgba(34,197,94,0.2),0_8px_30px_rgba(34,197,94,0.15)]'
+                : 'border-red-500 dark:border-red-600 shadow-[0_0_0_3px_rgba(239,68,68,0.15),0_8px_30px_rgba(239,68,68,0.08)] dark:shadow-[0_0_0_3px_rgba(239,68,68,0.2),0_8px_30px_rgba(239,68,68,0.15)]'
+              : 'border-gray-200/60 dark:border-gray-700 shadow-sm'
             }
-            p-5 focus-within:ring-4 focus-within:ring-[#14B8A6]/10 focus-within:border-[#14B8A6]
+            p-5 focus-within:ring-4 focus-within:ring-[#14B8A6]/20 focus-within:border-[#14B8A6] focus-within:shadow-[0_8px_30px_rgba(20,184,166,0.15)]
           `}>
             <div className="flex justify-between items-center mb-3">
               <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Amount to {tradeMode}</span>
@@ -1039,7 +931,7 @@ export default function TradingCard({
                 className="w-full bg-transparent text-5xl font-black text-gray-900 dark:text-white placeholder-gray-200 dark:placeholder-gray-700 outline-none tabular-nums tracking-tight"
                 disabled={isBusy || showSplitConfirm || !isTradeable}
                 aria-label={`Amount to ${tradeMode} in ${tradeMode === 'buy' ? 'USDC' : 'shares'}`}
-                aria-invalid={Boolean(amount && parseFloat(amount) > 0 && !canBuy && !canSell) || undefined}
+                aria-invalid={amount && parseFloat(amount) > 0 && !canBuy && !canSell}
                 aria-describedby="amount-validation"
               />
               <span className="text-base font-bold text-gray-400 dark:text-gray-500 ml-2">{tradeMode === 'buy' ? 'USDC' : 'Shares'}</span>
@@ -1159,14 +1051,14 @@ export default function TradingCard({
           whileHover={{ scale: isTradeable && !isBusy ? 1.02 : 1 }}
           whileTap={{ scale: isTradeable && !isBusy ? 0.98 : 1 }}
           className={`
-            w-full py-5 rounded-[20px] font-black text-xl shadow-xl transition-all relative overflow-hidden group
+            w-full py-5 rounded-[20px] font-black text-xl shadow-[0_10px_40px_-10px] transition-all duration-300 relative overflow-hidden group ring-2 ring-offset-2 ring-transparent
             ${!isTradeable
-              ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed shadow-none'
+              ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed shadow-none ring-offset-0'
               : tradeMode === 'buy'
                 ? side === 'yes'
-                  ? 'bg-gradient-to-br from-green-500 via-green-600 to-emerald-600 hover:from-green-400 hover:via-green-500 hover:to-emerald-500 text-white shadow-green-500/30'
-                  : 'bg-gradient-to-br from-red-500 via-red-600 to-rose-600 hover:from-red-400 hover:via-red-500 hover:to-rose-500 text-white shadow-red-500/30'
-                : 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 dark:from-white dark:via-gray-50 dark:to-white hover:from-black hover:via-gray-900 hover:to-black dark:hover:from-gray-50 dark:hover:via-gray-100 dark:hover:to-gray-50 text-white dark:text-gray-900 shadow-lg'
+                  ? 'bg-gradient-to-br from-green-500 via-green-600 to-emerald-600 hover:from-green-400 hover:via-green-500 hover:to-emerald-500 text-white shadow-green-500/40 hover:shadow-green-500/50 ring-green-500/20 hover:ring-green-500/30'
+                  : 'bg-gradient-to-br from-red-500 via-red-600 to-rose-600 hover:from-red-400 hover:via-red-500 hover:to-rose-500 text-white shadow-red-500/40 hover:shadow-red-500/50 ring-red-500/20 hover:ring-red-500/30'
+                : 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 dark:from-white dark:via-gray-50 dark:to-white hover:from-black hover:via-gray-900 hover:to-black dark:hover:from-gray-50 dark:hover:via-gray-100 dark:hover:to-gray-50 text-white dark:text-gray-900 shadow-gray-900/40 dark:shadow-gray-100/40 ring-gray-900/20 dark:ring-gray-100/20'
             }
             disabled:opacity-50 disabled:cursor-not-allowed
           `}

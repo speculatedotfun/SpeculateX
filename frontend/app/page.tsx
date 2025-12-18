@@ -166,13 +166,13 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 sm:h-20 items-center justify-between">
             <Link href="/" className="flex items-center group flex-shrink-0">
-              <div className="relative w-[140px] sm:w-[160px] h-10 sm:h-12 transition-transform duration-300 group-hover:scale-105">
+              <div className="relative w-[140px] sm:w-[200px] h-10 sm:h-10 transition-transform duration-300 group-hover:scale-105">
                 {/* Light mode logo */}
                 <Image
                   src="/Whitelogo.png"
                   alt="SpeculateX Logo"
                   fill
-                  sizes="(max-width: 640px) 140px, 160px"
+                  sizes="(max-width: 640px) 140px, 200px"
                   priority
                   className="object-contain object-left dark:hidden"
                 />
@@ -181,7 +181,7 @@ export default function Home() {
                   src="/darklogo.png"
                   alt="SpeculateX Logo"
                   fill
-                  sizes="(max-width: 640px) 140px, 160px"
+                  sizes="(max-width: 640px) 140px, 200px"
                   priority
                   className="object-contain object-left hidden dark:block"
                 />
