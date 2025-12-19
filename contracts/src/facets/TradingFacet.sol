@@ -20,6 +20,9 @@ contract TradingFacet is CoreStorage {
     error SlippageExceeded();
     error SolvencyIssue();
     error BackingInsufficient();
+    error ExtremeImbalance();
+
+    uint256 public constant MAX_SHARES = 1e60; // 1 trillion * 1 trillion * 1 trillion tokens
 
     function spotPriceYesE18(uint256 id) public view returns (uint256) {
         Market storage m = markets[id];
@@ -76,6 +79,8 @@ contract TradingFacet is CoreStorage {
 
         if (sharesOut < dustSharesE18) revert DustAmount();
         if (sharesOut < minSharesOut) revert SlippageExceeded();
+
+        if (m.qYes + sharesOut > MAX_SHARES || m.qNo + sharesOut > MAX_SHARES) revert ExtremeImbalance();
 
         _enforceSafety(m, isYes, sharesOut, true);
 
@@ -138,6 +143,8 @@ contract TradingFacet is CoreStorage {
         } else {
             if (isYes) nextQYes -= delta; else nextQNo -= delta;
         }
+
+        if (nextQYes > MAX_SHARES || nextQNo > MAX_SHARES) revert ExtremeImbalance();
 
         // vault must cover worst-case payout for *circulating* supply.
         // We may hold "locked" shares on the router (address(this)) to preserve spot price when liquidity changes.

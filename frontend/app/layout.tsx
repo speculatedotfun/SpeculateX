@@ -4,6 +4,8 @@ import { Inter } from 'next/font/google';
 import { Providers } from './providers';
 import { LiveActivityTicker } from '@/components/LiveActivityTicker';
 import { CommandPalette } from '@/components/CommandPalette';
+import DisclaimerModal from '@/components/DisclaimerModal';
+import Footer from '@/components/Footer';
 
 // Initialize font
 const inter = Inter({ subsets: ['latin'] });
@@ -14,7 +16,7 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: '/logo.svg', type: 'image/svg+xml' },
-      { url: '/logo.jpg', type: 'image/jpeg', sizes: '32x32' },
+      { url: '/Group.png', type: 'image/jpeg', sizes: '32x32' },
     ],
     apple: '/logo.svg',
     shortcut: '/logo.svg',
@@ -32,9 +34,11 @@ export default function RootLayout({
         className={`${inter.className} min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] text-slate-900 dark:text-slate-50 antialiased mesh-gradient`}
       >
         <Providers>
+          <DisclaimerModal />
           <LiveActivityTicker />
           <CommandPalette />
           {children}
+          <Footer />
         </Providers>
       </body>
     </html>

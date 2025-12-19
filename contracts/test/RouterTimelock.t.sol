@@ -20,7 +20,7 @@ contract RouterTimelockTest is Test {
 
     function test_executeSetFacet_revertsBeforeDelay() public {
         bytes4 selector = bytes4(keccak256("foo()"));
-        address facet = address(0x1234);
+        address facet = address(usdc);
 
         bytes32 opId = core.scheduleOp(core.OP_SET_FACET(), abi.encode(selector, facet));
 
@@ -31,7 +31,7 @@ contract RouterTimelockTest is Test {
 
     function test_cancelOp_blocksExecution() public {
         bytes4 selector = bytes4(keccak256("foo()"));
-        address facet = address(0x1234);
+        address facet = address(usdc);
 
         bytes32 opId = core.scheduleOp(core.OP_SET_FACET(), abi.encode(selector, facet));
         core.cancelOp(opId);
@@ -44,18 +44,18 @@ contract RouterTimelockTest is Test {
 
     function test_executeSetFacet_revertsOnDataMismatch() public {
         bytes4 selector = bytes4(keccak256("foo()"));
-        address facet = address(0x1234);
+        address facet = address(usdc);
 
         bytes32 opId = core.scheduleOp(core.OP_SET_FACET(), abi.encode(selector, facet));
         vm.warp(block.timestamp + core.minTimelockDelay());
 
         vm.expectRevert();
-        core.executeSetFacet(opId, selector, address(0xBEEF));
+        core.executeSetFacet(opId, selector, address(treasury));
     }
 
     function test_executeSetFacet_revertsOnTagMismatch() public {
         bytes4 selector = bytes4(keccak256("foo()"));
-        address facet = address(0x1234);
+        address facet = address(usdc);
 
         // Schedule as SET_RESOLVER, but try to execute as SET_FACET.
         bytes32 opId = core.scheduleOp(core.OP_SET_RESOLVER(), abi.encode(facet));
@@ -67,7 +67,7 @@ contract RouterTimelockTest is Test {
 
     function test_executeSetFacet_cannotExecuteTwice() public {
         bytes4 selector = bytes4(keccak256("foo()"));
-        address facet = address(0x1234);
+        address facet = address(usdc); // Use a real contract address to pass code.length check
 
         bytes32 opId = core.scheduleOp(core.OP_SET_FACET(), abi.encode(selector, facet));
         vm.warp(block.timestamp + core.minTimelockDelay());

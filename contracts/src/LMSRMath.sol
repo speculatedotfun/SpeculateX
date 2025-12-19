@@ -41,6 +41,11 @@ library LMSRMath {
     function calculateSpotPrice(uint256 qYes, uint256 qNo, uint256 bE18) internal pure returns (uint256) {
         if (bE18 == 0) revert ZeroB();
 
+        // Safe cast guards
+        if (qNo > uint256(type(int256).max) || qYes > uint256(type(int256).max) || bE18 > uint256(type(int256).max)) {
+            revert MathOverflow();
+        }
+
         // z = (qNo - qYes)/b
         SD59x18 z = sd(int256(qNo) - int256(qYes)).div(sd(int256(bE18)));
         int256 zInt = z.unwrap();
@@ -71,6 +76,11 @@ library LMSRMath {
         if (bE18 == 0) revert ZeroB();
         if (netE18 == 0) return 0;
 
+        // Safe cast guards
+        if (qSide > uint256(type(int256).max) || qOther > uint256(type(int256).max) || bE18 > uint256(type(int256).max)) {
+            revert MathOverflow();
+        }
+
         uint256 c0 = calculateCost(qSide, qOther, bE18);
         uint256 c1 = c0 + netE18;
 
@@ -81,6 +91,9 @@ library LMSRMath {
 
         SD59x18 diff = c1OverB.exp().sub(qOOverB.exp());
         if (diff.unwrap() <= 0) revert CalculationError();
+
+        // Safe cast guard for bE18
+        if (bE18 > uint256(type(int256).max)) revert MathOverflow();
 
         SD59x18 qNew = sd(int256(bE18)).mul(diff.ln());
         int256 qNewInt = qNew.unwrap();
@@ -98,7 +111,11 @@ library LMSRMath {
 
     // (aE18 / bE18) in 1e18 fixed-point using UD60x18
     function _ratioE18(uint256 aE18, uint256 bE18) private pure returns (SD59x18) {
-        UD60x18 r = ud(aE18).div(ud(bE18));
-        return sd(int256(r.unwrap()));
+        // Safe cast check: ensures unwrap() doesn't exceed int256.max
+        // type(int256).max is approx 5.7e76, while 1e18 is much smaller.
+        // But for absolute safety against weird inputs:
+        uint256 rRaw = ud(aE18).div(ud(bE18)).unwrap();
+        if (rRaw > uint256(type(int256).max)) revert MathOverflow();
+        return sd(int256(rRaw));
     }
 }

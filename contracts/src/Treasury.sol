@@ -4,14 +4,17 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract Treasury is AccessControl {
+contract Treasury is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     bytes32 public constant WITHDRAWER_ROLE = keccak256("WITHDRAWER_ROLE");
     bytes32 public constant ADMIN_ROLE      = keccak256("ADMIN_ROLE");
 
     uint256 public constant MIN_DELAY = 24 hours;
+    uint256 public constant OP_EXPIRY_WINDOW = 7 days;
+    uint256 public constant MAX_SINGLE_LARGE_WITHDRAW = 1_000_000e6; // 1M USDC safety cap
 
     uint256 public dailyWithdrawLimit; // in token units (e.g. USDC 6 decimals)
     uint256 public currentDay;
@@ -35,13 +38,14 @@ contract Treasury is AccessControl {
     event LargeWithdrawScheduled(bytes32 indexed opId, address token, address to, uint256 amount, uint256 readyAt);
     event LargeWithdrawCancelled(bytes32 indexed opId);
     event LargeWithdrawExecuted(bytes32 indexed opId);
-    event DailyLimitUpdated(uint256 newLimit);
+    event DailyLimitUpdated(uint256 oldLimit, uint256 newLimit);
 
     error ZeroAddress();
     error BadAmount();
     error LimitExceeded();
     error OpInvalid();
     error NotReady(uint256 readyAt);
+    error OpExpired();
 
     constructor(address admin, uint256 initialDailyLimit) {
         if (admin == address(0)) revert ZeroAddress();
@@ -50,10 +54,10 @@ contract Treasury is AccessControl {
         _grantRole(WITHDRAWER_ROLE, admin);
 
         dailyWithdrawLimit = initialDailyLimit;
-        emit DailyLimitUpdated(initialDailyLimit);
+        emit DailyLimitUpdated(0, initialDailyLimit);
     }
 
-    function withdraw(address token, address to, uint256 amount) external onlyRole(WITHDRAWER_ROLE) {
+    function withdraw(address token, address to, uint256 amount) external onlyRole(WITHDRAWER_ROLE) nonReentrant {
         if (token == address(0) || to == address(0)) revert ZeroAddress();
         if (amount == 0) revert BadAmount();
 
@@ -76,7 +80,7 @@ contract Treasury is AccessControl {
         returns (bytes32 opId)
     {
         if (token == address(0) || to == address(0)) revert ZeroAddress();
-        if (amount == 0) revert BadAmount();
+        if (amount == 0 || amount > MAX_SINGLE_LARGE_WITHDRAW) revert BadAmount();
 
         uint256 nonce_ = ++opNonce;
         opId = keccak256(abi.encode(
@@ -109,10 +113,15 @@ contract Treasury is AccessControl {
         emit LargeWithdrawCancelled(opId);
     }
 
-    function executeLargeWithdraw(bytes32 opId) external onlyRole(ADMIN_ROLE) {
+    /**
+     * @notice Executes a scheduled large withdrawal. 
+     * @dev Large withdrawals bypass the dailycap because they are explicitly scheduled and timelocked.
+     */
+    function executeLargeWithdraw(bytes32 opId) external onlyRole(ADMIN_ROLE) nonReentrant {
         WithdrawalOp storage op = ops[opId];
         if (op.status != OpStatus.Scheduled) revert OpInvalid();
         if (block.timestamp < op.readyAt) revert NotReady(op.readyAt);
+        if (block.timestamp > op.readyAt + OP_EXPIRY_WINDOW) revert OpExpired();
 
         op.status = OpStatus.Executed;
 
@@ -122,7 +131,9 @@ contract Treasury is AccessControl {
     }
 
     function setDailyLimit(uint256 newLimit) external onlyRole(ADMIN_ROLE) {
+        // Sanity check: allow 0 only if explicitly intended to freeze regular withdrawals
+        uint256 oldLimit = dailyWithdrawLimit;
         dailyWithdrawLimit = newLimit;
-        emit DailyLimitUpdated(newLimit);
+        emit DailyLimitUpdated(oldLimit, newLimit);
     }
 }

@@ -3,6 +3,18 @@ pragma solidity ^0.8.24;
 
 import "./PositionToken.sol";
 
+/**
+ * @notice Shared storage layout for the SpeculateX Diamond.
+ * @dev IMPORTANT: Storage layout must be preserved across all facets.
+ * 1. NEVER REORDER existing variables.
+ * 2. ONLY APPEND new variables to the end of the contract.
+ * 3. Both Router and Facets MUST inherit this exactly as defined.
+ * 
+ * UNITS:
+ * - USDC: 6 decimals (stored in usdcVault, totalLpUsdc, lpFeesUSDC, residualUSDC).
+ * - E18: 18 decimals (stored in qYes, qNo, bE18, dustSharesE18, liquidityMultiplierE18, maxJumpE18).
+ * - targetValue: In oracle feed decimals (8 for BTC/USD, ETH/USD etc.).
+ */
 abstract contract CoreStorage {
     // ===== Roles (use AccessControl in router + facets) =====
     bytes32 public constant MARKET_CREATOR_ROLE = keccak256("MARKET_CREATOR_ROLE");
@@ -132,4 +144,8 @@ abstract contract CoreStorage {
     bytes32 public constant OP_SET_RESOLVER= keccak256("OP_SET_RESOLVER");
     bytes32 public constant OP_PAUSE       = keccak256("OP_PAUSE");
     bytes32 public constant OP_UNPAUSE     = keccak256("OP_UNPAUSE");
+
+    // ===== Future Upgrade Gap =====
+    uint256 public constant STORAGE_VERSION = 1;
+    uint256[50] private __gap;
 }

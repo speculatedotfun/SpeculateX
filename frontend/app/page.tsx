@@ -295,7 +295,7 @@ export default function Home() {
                     <StatCardSkeleton className="h-full min-h-[200px]" />
                   ) : (
                     <StatCard
-                      title="Liquidity"
+                      title="LIQUIDITY ACROSS MARKETS"
                       value={liquidityDisplay}
                       className="h-full min-h-[200px]"
                     />
@@ -320,7 +320,7 @@ export default function Home() {
                     <StatCardSkeleton />
                   ) : (
                     <StatCard
-                      title="Active"
+                      title="ACTIVE MARKETS"
                       value={formatNumber(stats.live)}
                     />
                   )}

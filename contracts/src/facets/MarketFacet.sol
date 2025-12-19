@@ -64,8 +64,11 @@ contract MarketFacet is CoreStorage {
 
         // Basic guardrails for Chainlink markets:
         // - record `feed.decimals()` on-chain
+        // - normalize targetValue to 1e18 for consistency
         // - sanity-check targetValue magnitude against the current price to catch common 1e6 vs 1e8 mistakes
         uint8 oracleDecimals = 0;
+        uint256 normalizedTarget = targetValue;
+
         if (oType == OracleType.ChainlinkFeed) {
             AggregatorV3Interface feed = AggregatorV3Interface(oracleFeed);
             oracleDecimals = feed.decimals();
@@ -82,6 +85,15 @@ contract MarketFacet is CoreStorage {
             uint256 maxTarget = priceNow * 50;
             if (targetValue < minTarget || targetValue > maxTarget) {
                 revert TargetOutOfRange(targetValue, priceNow, oracleDecimals);
+            }
+
+            // Normalize targetValue to 1e18
+            if (oracleDecimals == 18) {
+                normalizedTarget = targetValue;
+            } else if (oracleDecimals < 18) {
+                normalizedTarget = targetValue * (10**(18 - oracleDecimals));
+            } else {
+                normalizedTarget = targetValue / (10**(oracleDecimals - 18));
             }
         }
 
@@ -109,7 +121,7 @@ contract MarketFacet is CoreStorage {
                 oracleType: oType,
                 oracleAddress: oracleFeed,
                 priceFeedId: priceFeedId,
-                targetValue: targetValue,
+                targetValue: normalizedTarget,
                 comparison: comparison,
                 yesWins: false,
                 isResolved: false,

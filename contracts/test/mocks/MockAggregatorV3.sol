@@ -8,11 +8,15 @@ contract MockAggregatorV3 is AggregatorV3Interface {
     string internal _description;
     uint256 internal _version;
 
-    uint80 internal _roundId;
-    int256 internal _answer;
-    uint256 internal _startedAt;
-    uint256 internal _updatedAt;
-    uint80 internal _answeredInRound;
+    struct Round {
+        uint80 roundId;
+        int256 answer;
+        uint256 startedAt;
+        uint256 updatedAt;
+        uint80 answeredInRound;
+    }
+    mapping(uint80 => Round) internal rounds;
+    uint80 internal _latestRoundId;
 
     constructor(uint8 decimals_) {
         _decimals = decimals_;
@@ -27,11 +31,14 @@ contract MockAggregatorV3 is AggregatorV3Interface {
         uint256 updatedAt,
         uint80 answeredInRound
     ) external {
-        _roundId = roundId;
-        _answer = answer;
-        _startedAt = startedAt;
-        _updatedAt = updatedAt;
-        _answeredInRound = answeredInRound;
+        rounds[roundId] = Round({
+            roundId: roundId,
+            answer: answer,
+            startedAt: startedAt,
+            updatedAt: updatedAt,
+            answeredInRound: answeredInRound
+        });
+        if (roundId > _latestRoundId) _latestRoundId = roundId;
     }
 
     function decimals() external view override returns (uint8) {
@@ -46,13 +53,14 @@ contract MockAggregatorV3 is AggregatorV3Interface {
         return _version;
     }
 
-    function getRoundData(uint80)
+    function getRoundData(uint80 roundId)
         external
         view
         override
-        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+        returns (uint80, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
-        return (_roundId, _answer, _startedAt, _updatedAt, _answeredInRound);
+        Round storage r = rounds[roundId];
+        return (r.roundId, r.answer, r.startedAt, r.updatedAt, r.answeredInRound);
     }
 
     function latestRoundData()
@@ -61,7 +69,8 @@ contract MockAggregatorV3 is AggregatorV3Interface {
         override
         returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
-        return (_roundId, _answer, _startedAt, _updatedAt, _answeredInRound);
+        Round storage r = rounds[_latestRoundId];
+        return (r.roundId, r.answer, r.startedAt, r.updatedAt, r.answeredInRound);
     }
 }
 

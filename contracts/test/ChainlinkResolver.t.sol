@@ -36,7 +36,7 @@ contract ChainlinkResolverTest is TestSetup {
         vm.warp(block.timestamp + 1 days + 1);
         feed8.setRoundData(2, int256(110e8), block.timestamp, block.timestamp, 2);
 
-        resolver.resolve(id);
+        resolver.resolve(id, 2);
 
         MarketFacet.ResolutionConfig memory r = MarketFacet(address(core)).getMarketResolution(id);
         assertTrue(r.isResolved);
@@ -57,15 +57,17 @@ contract ChainlinkResolverTest is TestSetup {
             CoreStorage.Comparison.Above
         );
 
-        // Expire market, but feed updated long ago -> should revert stale.
-        vm.warp(block.timestamp + 1 days + 1);
+        // Expire market
+        vm.warp(block.timestamp + 1 days + 5 hours);
         uint256 nowTs = block.timestamp;
-        uint256 oldTs = nowTs - 3 hours;
-        feed8.setRoundData(1, int256(110e8), oldTs, oldTs, 1);
+        uint256 updatedAt = nowTs - 4 hours; // 1 hour after expiry (so it's valid for resolution timing)
+        // expiry was at +24h. now is +29h. updatedAt is +25h.
+        
+        feed8.setRoundData(2, int256(110e8), updatedAt, updatedAt, 2);
 
         // This Foundry version expects full revert data for custom errors.
-        vm.expectRevert(abi.encodeWithSelector(ChainlinkResolver.Stale.selector, oldTs, nowTs, 2 hours));
-        resolver.resolve(id);
+        vm.expectRevert(abi.encodeWithSelector(ChainlinkResolver.Stale.selector, updatedAt, nowTs, 2 hours));
+        resolver.resolve(id, 2);
     }
 
     function test_decimalMismatch_isRejectedAtMarketCreation() public {
@@ -109,7 +111,7 @@ contract ChainlinkResolverTest is TestSetup {
         // Resolve the valid market just to ensure the end-to-end flow still works.
         vm.warp(block.timestamp + 1 days + 1);
         feed8.setRoundData(2, int256(99e8), block.timestamp, block.timestamp, 2);
-        resolver.resolve(idCorrect);
+        resolver.resolve(idCorrect, 2);
 
         MarketFacet.ResolutionConfig memory rCorrect = MarketFacet(address(core)).getMarketResolution(idCorrect);
         assertTrue(rCorrect.isResolved);

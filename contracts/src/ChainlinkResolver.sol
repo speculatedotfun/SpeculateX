@@ -50,6 +50,7 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable {
 
     event OpScheduled(bytes32 indexed opId, bytes32 indexed tag, uint256 readyAt);
     event OpExecuted(bytes32 indexed opId);
+    event OpCancelled(bytes32 indexed opId);
 
     event CoreUpdated(address indexed newCore);
     event MaxStalenessUpdated(uint256 newMaxStaleness);
@@ -63,6 +64,7 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable {
     error OpNotReady(uint256 readyAt);
     error TagMismatch();
     error DataMismatch();
+    error OpExpired();
 
     error NotChainlinkMarket();
     error FeedMissing();
@@ -72,6 +74,11 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable {
     error MarketNotExpired();
     error RoundTooEarly(uint256 updatedAt, uint256 expiry);
     error NotFirstRoundAfterExpiry(uint256 prevUpdatedAt, uint256 expiry);
+    error IncompleteRound();
+    error UnsupportedDecimals();
+    error InvalidRoundId();
+
+    uint256 public constant OP_EXPIRY_WINDOW = 7 days;
 
     constructor(address admin, address core_) {
         if (admin == address(0) || core_ == address(0)) revert ZeroAddress();
@@ -99,6 +106,7 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable {
         Op storage op = ops[opId];
         if (op.status != OpStatus.Scheduled) revert OpInvalid();
         if (block.timestamp < op.readyAt) revert OpNotReady(op.readyAt);
+        if (block.timestamp > op.readyAt + OP_EXPIRY_WINDOW) revert OpExpired();
         if (op.tag != tag) revert TagMismatch();
         if (op.dataHash != keccak256(data)) revert DataMismatch();
         op.status = OpStatus.Executed;
@@ -129,7 +137,25 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable {
         emit TimelockDelayUpdated(newDelay);
     }
 
+    function executePause(bytes32 opId) external onlyRole(ADMIN_ROLE) {
+        _consume(opId, OP_PAUSE, "");
+        _pause();
+    }
+
+    function executeUnpause(bytes32 opId) external onlyRole(ADMIN_ROLE) {
+        _consume(opId, OP_UNPAUSE, "");
+        _unpause();
+    }
+
+    function cancelOp(bytes32 opId) external onlyRole(ADMIN_ROLE) {
+        Op storage op = ops[opId];
+        if (op.status != OpStatus.Scheduled) revert OpInvalid();
+        op.status = OpStatus.Cancelled;
+        emit OpCancelled(opId);
+    }
+
     function resolve(uint256 marketId, uint80 roundId) external nonReentrant whenNotPaused {
+        if (roundId == 0) revert InvalidRoundId();
         ICoreResolutionView.ResolutionConfig memory r = ICoreResolutionView(core).getMarketResolution(marketId);
 
         if (r.oracleType != ICoreResolutionView.OracleType.ChainlinkFeed) revert NotChainlinkMarket();
@@ -140,37 +166,53 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable {
         
         // 1. Verify decimals if set
         uint8 decNow = feed.decimals();
+        if (decNow > 18) revert UnsupportedDecimals();
         if (r.oracleDecimals != 0 && decNow != r.oracleDecimals) {
             revert OracleDecimalsMismatch(r.oracleDecimals, decNow);
         }
 
         // 2. Fetch target round data
-        (, int256 answer, , uint256 updatedAt, ) = feed.getRoundData(roundId);
+        (uint80 id, int256 answer, , uint256 updatedAt, uint80 answeredInRound) = feed.getRoundData(roundId);
         if (answer <= 0 || updatedAt == 0) revert InvalidAnswer();
+        if (answeredInRound < id) revert IncompleteRound();
         
         // 3. Verify target round is AFTER expiry
         if (updatedAt < r.expiryTimestamp) revert RoundTooEarly(updatedAt, r.expiryTimestamp);
 
         // 4. Verify previous round was BEFORE expiry (proving this is the first update after expiry)
-        // Note: For very old markets, this might fail if history is pruned, but Chainlink history is extensive.
         if (roundId > 0) {
             try feed.getRoundData(roundId - 1) returns (uint80, int256, uint256, uint256 prevUpdatedAt, uint80) {
-                if (prevUpdatedAt != 0 && prevUpdatedAt >= r.expiryTimestamp) {
+                if (prevUpdatedAt >= r.expiryTimestamp) {
                     revert NotFirstRoundAfterExpiry(prevUpdatedAt, r.expiryTimestamp);
                 }
             } catch {
-                // If roundId-1 fails (e.g. at start of feed history), we proceed but with caution.
-                // In production, we'd prefer having the proof.
+                // If previous round data is missing from the aggregator, we can't prove first-ness.
+                // In this case, we allow the resolution to proceed as long as the current round is after expiry.
+                // This prevents the resolver from being stuck on very old/sparse feeds.
             }
+        } else {
+            // roundId 0 is only possible at feed inception. 
+            // In practice, we skip the proof but the current round's updatedAt check still holds.
         }
 
-        // 5. Staleness check (relative to the update time, not current time)
-        // This ensures the oracle update itself wasn't stuck for days.
-        // (Optional: can be adjusted based on feed heartbeat)
+        // 5. Staleness check
+        if (block.timestamp - updatedAt > maxStaleness) {
+            revert Stale(updatedAt, block.timestamp, maxStaleness);
+        }
 
-        uint256 price = uint256(answer);
-        ICoreResolutionView(core).resolveMarketWithPrice(marketId, price);
+        // 6. Normalize price to 1e18
+        uint256 rawPrice = uint256(answer);
+        uint256 normalizedPrice;
+        if (decNow == 18) {
+            normalizedPrice = rawPrice;
+        } else if (decNow < 18) {
+            normalizedPrice = rawPrice * (10**(18 - decNow));
+        } else {
+            normalizedPrice = rawPrice / (10**(decNow - 18));
+        }
 
-        emit MarketResolved(marketId, address(feed), price, updatedAt);
+        ICoreResolutionView(core).resolveMarketWithPrice(marketId, normalizedPrice);
+
+        emit MarketResolved(marketId, address(feed), normalizedPrice, updatedAt);
     }
 }

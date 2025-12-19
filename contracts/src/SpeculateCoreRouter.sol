@@ -13,6 +13,7 @@ contract SpeculateCoreRouter is CoreStorage, AccessControl {
     event OperationCancelled(bytes32 indexed opId);
 
     event FacetSet(bytes4 indexed selector, address indexed facet);
+    event FacetRemoved(bytes4 indexed selector);
     event TreasuryUpdated(address indexed treasury);
     event ResolverUpdated(address indexed resolver);
 
@@ -21,6 +22,12 @@ contract SpeculateCoreRouter is CoreStorage, AccessControl {
     error OpNotReady(uint256 readyAt);
     error TagMismatch();
     error DataMismatch();
+    error NotAContract(address addr);
+    error Paused();
+    error OpExpired();
+    error NoFacet();
+
+    uint256 public constant OP_EXPIRY_WINDOW = 7 days;
 
     constructor(address admin, address usdc_, address treasury_, uint256 minTimelockDelay_) {
         if (admin == address(0) || usdc_ == address(0) || treasury_ == address(0)) revert ZeroAddress();
@@ -73,10 +80,11 @@ contract SpeculateCoreRouter is CoreStorage, AccessControl {
 
     function _consume(bytes32 opId, bytes32 tag, bytes memory data) internal {
         Op storage op = ops[opId];
-        require(op.status == OpStatus.Scheduled, "OpInvalid");
-        require(block.timestamp >= op.readyAt, "OpNotReady");
-        require(op.tag == tag, "TagMismatch");
-        require(op.dataHash == keccak256(data), "DataMismatch");
+        if (op.status != OpStatus.Scheduled) revert OpInvalid();
+        if (block.timestamp < op.readyAt) revert OpNotReady(op.readyAt);
+        if (block.timestamp > op.readyAt + OP_EXPIRY_WINDOW) revert OpExpired();
+        if (op.tag != tag) revert TagMismatch();
+        if (op.dataHash != keccak256(data)) revert DataMismatch();
 
         op.status = OpStatus.Executed;
         emit OperationExecuted(opId);
@@ -87,10 +95,20 @@ contract SpeculateCoreRouter is CoreStorage, AccessControl {
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         if (facet == address(0)) revert ZeroAddress();
+        if (facet.code.length == 0) revert NotAContract(facet);
         bytes memory data = abi.encode(selector, facet);
         _consume(opId, OP_SET_FACET, data);
         facetOf[selector] = facet;
         emit FacetSet(selector, facet);
+    }
+
+    /**
+     * @notice Emergency function to disable a specific selector.
+     * @dev Does not require timelock as it is a safety/emergency measure.
+     */
+    function removeFacet(bytes4 selector) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        facetOf[selector] = address(0);
+        emit FacetRemoved(selector);
     }
 
     function executeSetTreasury(bytes32 opId, address newTreasury)
@@ -98,6 +116,7 @@ contract SpeculateCoreRouter is CoreStorage, AccessControl {
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         if (newTreasury == address(0)) revert ZeroAddress();
+        if (newTreasury.code.length == 0) revert NotAContract(newTreasury);
         bytes memory data = abi.encode(newTreasury);
         _consume(opId, OP_SET_TREASURY, data);
         treasury = newTreasury;
@@ -108,7 +127,7 @@ contract SpeculateCoreRouter is CoreStorage, AccessControl {
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        if (newResolver == address(0)) revert ZeroAddress();
+        if (newResolver != address(0) && newResolver.code.length == 0) revert NotAContract(newResolver);
         bytes memory data = abi.encode(newResolver);
         _consume(opId, OP_SET_RESOLVER, data);
         chainlinkResolver = newResolver;
@@ -116,20 +135,19 @@ contract SpeculateCoreRouter is CoreStorage, AccessControl {
     }
 
     function executePause(bytes32 opId) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        bytes memory data = abi.encode(true);
-        _consume(opId, OP_PAUSE, data);
+        _consume(opId, OP_PAUSE, "");
         _paused = true;
     }
 
     function executeUnpause(bytes32 opId) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        bytes memory data = abi.encode(true);
-        _consume(opId, OP_UNPAUSE, data);
+        _consume(opId, OP_UNPAUSE, "");
         _paused = false;
     }
 
     fallback() external payable {
+        if (_paused) revert Paused();
         address facet = facetOf[msg.sig];
-        require(facet != address(0), "NO_FACET");
+        if (facet == address(0)) revert NoFacet();
 
         assembly ("memory-safe") {
             calldatacopy(0, 0, calldatasize())

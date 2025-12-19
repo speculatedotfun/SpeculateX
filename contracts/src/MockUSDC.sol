@@ -4,6 +4,11 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
+/**
+ * @title MockUSDC
+ * @notice TEST ONLY. Unrestricted faucet for testnet development.
+ * @dev DO NOT DEPLOY TO MAINNET.
+ */
 contract MockUSDC is ERC20, AccessControl {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
