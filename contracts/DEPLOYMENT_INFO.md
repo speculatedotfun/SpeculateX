@@ -8,7 +8,7 @@
 - **Core Router**: `0x601c5DA28dacc049481eD853E5b59b9F20Dd44a8`
 - **Treasury**: `0x155FB12aD27259212f000443531fAe8a629F2A19`
 - **MockUSDC (with faucet)**: `0x845740D345ECba415534df44C580ebb3A2432719`
-- **ChainlinkResolver**: `0x18cA980383C16ee6C601a7a110D048e12e95e9F5`
+- **ChainlinkResolver**: `0xe51729af202D801B7F7f87A6d04B447CcBaDe576` (Deterministic Resolution - resolves based on first Chainlink round after expiry)
 - **Admin**: `0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F` (update with actual deployer)
 
 ### Facets
@@ -51,9 +51,10 @@
 - **Timelock**: 24h delay for all upgrades
 
 ### Oracle semantics (important)
-- **Snapshot at resolve-time**: Chainlink markets resolve based on the **price returned by the feed at the time `ChainlinkResolver.resolve(marketId)` is called**, as long as `block.timestamp >= expiryTimestamp`.
-- This is **not** “touched at any time during the market window”.
-- To reduce timing discretion, use **Automation / a keeper bot** to call `resolve()` close to expiry.
+- **Deterministic Resolution**: Chainlink markets resolve based on the **first price update after expiry** using Chainlink's historical round data.
+- The `resolve(uint256 marketId, uint80 roundId)` function requires a specific `roundId` that must be the first round after the market's `expiryTimestamp`.
+- This ensures **deterministic resolution** - the same result regardless of when `resolve()` is called (as long as it's after expiry).
+- The frontend automatically searches for the correct `roundId` when resolving markets.
 
 ### Decimals guardrails (safety)
 - At market creation, the core records the feed `decimals()` as `oracleDecimals`.

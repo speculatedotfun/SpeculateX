@@ -161,6 +161,11 @@ export default function AdminManager() {
 
   // Handle manual market resolution
   const handleResolveMarket = async (marketId: number) => {
+    const pc = publicClient;
+    if (!pc) {
+      pushToast({ title: 'Error', description: 'Public client not initialized', type: 'error' });
+      return;
+    }
     if (!currentResolver || currentResolver === '0x0000000000000000000000000000000000000000') {
       pushToast({ title: 'Error', description: 'Chainlink resolver not registered', type: 'error' });
       return;
@@ -168,19 +173,71 @@ export default function AdminManager() {
 
     try {
       setResolvingMarketId(marketId);
-      pushToast({ title: 'Resolving Market', description: `Resolving market #${marketId}...`, type: 'info' });
+      pushToast({ title: 'Searching Oracle', description: `Finding correct round for market #${marketId}...`, type: 'info' });
+      
+      // 1. Get market resolution config to find expiry and oracle address
+      const { getMarket } = await import('@/lib/hooks');
+      const market = await getMarket(BigInt(marketId));
+      if (!market || !market.resolution) throw new Error("Market data not found");
+      
+      const expiry = BigInt(market.resolution.expiryTimestamp);
+      const oracleAddr = market.resolution.oracleAddress;
+
+      // 2. Find the first round after expiry
+      // We'll use a simple search: start from latest and go back
+      const aggregatorAbi = [
+        { type: 'function', name: 'latestRoundData', inputs: [], outputs: [{name:'roundId',type:'uint80'},{name:'answer',type:'int256'},{name:'startedAt',type:'uint256'},{name:'updatedAt',type:'uint256'},{name:'answeredInRound',type:'uint80'}], stateMutability: 'view' },
+        { type: 'function', name: 'getRoundData', inputs: [{name:'_roundId',type:'uint80'}], outputs: [{name:'roundId',type:'uint80'},{name:'answer',type:'int256'},{name:'startedAt',type:'uint256'},{name:'updatedAt',type:'uint256'},{name:'answeredInRound',type:'uint80'}], stateMutability: 'view' }
+      ] as const;
+
+      const latest: any = await pc.readContract({
+        address: oracleAddr as `0x${string}`,
+        abi: aggregatorAbi,
+        functionName: 'latestRoundData',
+      });
+
+      let targetRoundId = latest[0];
+      let currentUpdatedAt = latest[3];
+
+      if (currentUpdatedAt < expiry) {
+        throw new Error("Oracle hasn't updated since market expiry yet");
+      }
+
+      // Linear search backwards (usually only a few steps needed for recent markets)
+      pushToast({ title: 'Searching', description: 'Verifying historical price rounds...', type: 'info' });
+      
+      let found = false;
+      for (let i = 0; i < 50; i++) { // Max 50 steps back
+        const prev: any = await pc.readContract({
+          address: oracleAddr as `0x${string}`,
+          abi: aggregatorAbi,
+          functionName: 'getRoundData',
+          args: [targetRoundId - 1n],
+        });
+        
+        const prevUpdatedAt = prev[3];
+        if (prevUpdatedAt < expiry) {
+          found = true;
+          break; // targetRoundId is the first one after expiry
+        }
+        targetRoundId -= 1n;
+      }
+
+      if (!found) throw new Error("Could not find the exact transition round within 50 updates. Market might be too old.");
+
+      // 3. Resolve with the found roundId
+      pushToast({ title: 'Resolving Market', description: `Executing resolve with round ${targetRoundId.toString()}...`, type: 'info' });
       
       const hash = await resolveMarketAsync({
         address: currentResolver as `0x${string}`,
         abi: getChainlinkResolverAbi(getNetwork()),
         functionName: 'resolve',
-        args: [BigInt(marketId)],
+        args: [BigInt(marketId), targetRoundId],
       });
 
-      if (hash && publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash });
-        pushToast({ title: 'Success', description: `Market #${marketId} resolved successfully`, type: 'success' });
-        // Reload markets
+      if (hash && pc) {
+        await pc.waitForTransactionReceipt({ hash });
+        pushToast({ title: 'Success', description: `Market #${marketId} resolved deterministically!`, type: 'success' });
         await loadResolvableMarkets();
       }
     } catch (e: any) {

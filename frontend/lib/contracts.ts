@@ -18,7 +18,7 @@ const TESTNET_ADDRESSES = {
   // Deployed: December 2024 (with question string on-chain storage + getMarketQuestion getter)
   core: '0x601c5DA28dacc049481eD853E5b59b9F20Dd44a8' as `0x${string}`,
   usdc: '0x845740D345ECba415534df44C580ebb3A2432719' as `0x${string}`,
-  chainlinkResolver: '0x18cA980383C16ee6C601a7a110D048e12e95e9F5' as `0x${string}`,
+  chainlinkResolver: '0xe51729af202D801B7F7f87A6d04B447CcBaDe576' as `0x${string}`,
   treasury: '0x155FB12aD27259212f000443531fAe8a629F2A19' as `0x${string}`,
   admin: '0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F' as `0x${string}`, // Update with actual deployer address
   // Diamond facets

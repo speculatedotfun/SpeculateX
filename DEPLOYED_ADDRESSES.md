@@ -38,7 +38,7 @@
 | Contract | Address | BscScan | Status |
 |----------|---------|---------|--------|
 | **SpeculateCoreRouter** | `0x601c5DA28dacc049481eD853E5b59b9F20Dd44a8` | [View](https://testnet.bscscan.com/address/0x601c5DA28dacc049481eD853E5b59b9F20Dd44a8) | ✅ Active |
-| **ChainlinkResolver** | `0x18cA980383C16ee6C601a7a110D048e12e95e9F5` | [View](https://testnet.bscscan.com/address/0x18cA980383C16ee6C601a7a110D048e12e95e9F5) | ✅ Active |
+| **ChainlinkResolver** | `0xe51729af202D801B7F7f87A6d04B447CcBaDe576` | [View](https://testnet.bscscan.com/address/0xe51729af202D801B7F7f87A6d04B447CcBaDe576) | ✅ Active (Deterministic Resolution) |
 | **Treasury** | `0x155FB12aD27259212f000443531fAe8a629F2A19` | [View](https://testnet.bscscan.com/address/0x155FB12aD27259212f000443531fAe8a629F2A19) | ✅ Deployed |
 | **Admin** | *(deployer wallet)* | *(see `vm.addr(PRIVATE_KEY)`)* | ✅ Admin |
 
@@ -103,5 +103,5 @@ TREASURY_ADDRESS=0x5ca1b0EFE9Eb303606ddec5EA6e931Fe57A08778
 
 ---
 
-**עדכון אחרון**: 11/12/2025 (לאחר פריסת Mainnet)
+**עדכון אחרון**: 12/12/2024 (עדכון ChainlinkResolver עם Deterministic Resolution)
 

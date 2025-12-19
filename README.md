@@ -136,7 +136,7 @@ Fees are calculated in Basis Points (BPS) and split three ways:
 | Contract | Address | Explorer |
 |----------|---------|----------|
 | **SpeculateCoreRouter** | `0x601c5DA28dacc049481eD853E5b59b9F20Dd44a8` | [View on BscScan](https://testnet.bscscan.com/address/0x601c5DA28dacc049481eD853E5b59b9F20Dd44a8) |
-| **ChainlinkResolver** | `0x18cA980383C16ee6C601a7a110D048e12e95e9F5` | [View on BscScan](https://testnet.bscscan.com/address/0x18cA980383C16ee6C601a7a110D048e12e95e9F5) |
+| **ChainlinkResolver** | `0xe51729af202D801B7F7f87A6d04B447CcBaDe576` | [View on BscScan](https://testnet.bscscan.com/address/0xe51729af202D801B7F7f87A6d04B447CcBaDe576) |
 | **Treasury** | `0x155FB12aD27259212f000443531fAe8a629F2A19` | [View on BscScan](https://testnet.bscscan.com/address/0x155FB12aD27259212f000443531fAe8a629F2A19) |
 | **MockUSDC (faucet)** | `0x845740D345ECba415534df44C580ebb3A2432719` | [View on BscScan](https://testnet.bscscan.com/address/0x845740D345ECba415534df44C580ebb3A2432719) |
 | **Admin** | *(deployer wallet)* | `vm.addr(PRIVATE_KEY)` |
@@ -328,7 +328,7 @@ core.buy(marketId, true, 50 * 1e6, minTokensOut);
 
 Resolution is triggered by calling the resolver after expiry:
 
-1. Anyone (or an off-chain bot/automation) calls `ChainlinkResolver.resolve(marketId)` after `expiryTimestamp`.
+1. Anyone (or an off-chain bot/automation) calls `ChainlinkResolver.resolve(marketId, roundId)` after `expiryTimestamp`, where `roundId` is the first Chainlink price update after expiry.
 2. The resolver reads the Chainlink feed, enforces staleness + decimals guardrails, then calls `resolveMarketWithPrice(marketId, price)` on the core.
 3. The market is marked resolved and trading stops.
 
