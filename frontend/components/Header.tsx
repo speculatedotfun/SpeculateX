@@ -11,9 +11,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import NetworkSelector from '@/components/NetworkSelector';
 import { Menu, X } from 'lucide-react';
+import { hapticFeedback } from '@/lib/haptics';
 
 // --- Sub-component to fix nesting/parsing issues ---
-function CustomConnectButton() {
+function CustomConnectButton({ prefersReducedMotion = false }: { prefersReducedMotion?: boolean }) {
   return (
     <ConnectButton.Custom>
       {({
@@ -47,7 +48,10 @@ function CustomConnectButton() {
               if (!connected) {
                 return (
                   <button
-                    onClick={openConnectModal}
+                    onClick={() => {
+                      hapticFeedback('medium');
+                      openConnectModal();
+                    }}
                     type="button"
                     className="group relative inline-flex items-center justify-center rounded-full bg-[#14B8A6] dark:bg-[#14B8A6] px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-[#14B8A6]/25 dark:shadow-[#14B8A6]/30 hover:bg-[#0D9488] dark:hover:bg-[#0D9488] hover:shadow-xl hover:shadow-[#14B8A6]/30 dark:hover:shadow-[#14B8A6]/40 transition-all duration-300 active:scale-95"
                   >
@@ -79,7 +83,7 @@ function CustomConnectButton() {
                        {/* Status Dot */}
                        <div className="flex items-center gap-1.5 mb-0.5">
                           <span className="relative flex h-1.5 w-1.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className={`absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 ${prefersReducedMotion ? '' : 'animate-ping'}`}></span>
                             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                           </span>
                           <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 group-hover:text-[#14B8A6] transition-colors uppercase tracking-wider">
@@ -90,7 +94,7 @@ function CustomConnectButton() {
                         {account.displayName}
                        </span>
                     </div>
-                    
+
                     {/* Avatar */}
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#14B8A6] to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-teal-500/20">
                       <svg
@@ -125,6 +129,16 @@ export default function Header() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  // Handle reduced motion preference
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
 
   // Handle scroll effect
   useEffect(() => {
@@ -220,9 +234,9 @@ export default function Header() {
                   {link.label}
                   {active && (
                     <motion.div
-                      layoutId="navbar-indicator"
+                      layoutId={prefersReducedMotion ? undefined : "navbar-indicator"}
                       className="absolute inset-0 bg-[#14B8A6]/10 dark:bg-[#14B8A6]/20 rounded-full -z-10"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      transition={prefersReducedMotion ? { duration: 0 } : { type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                   )}
                 </Link>
@@ -240,7 +254,7 @@ export default function Header() {
             
             {/* Mobile Menu Button */}
             <motion.button
-              whileTap={{ scale: 0.9 }}
+              whileTap={prefersReducedMotion ? {} : { scale: 0.9 }}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="md:hidden p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#14B8A6] dark:hover:text-[#14B8A6] transition-colors border border-transparent focus:border-[#14B8A6]/20 focus:bg-[#14B8A6]/5 dark:focus:bg-[#14B8A6]/10 focus:text-[#14B8A6] outline-none focus:ring-2 focus:ring-[#14B8A6] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
               aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
@@ -251,18 +265,18 @@ export default function Header() {
                 {isMobileMenuOpen ? (
                   <motion.div
                     key="close"
-                    initial={{ rotate: -90, opacity: 0 }}
+                    initial={prefersReducedMotion ? false : { rotate: -90, opacity: 0 }}
                     animate={{ rotate: 0, opacity: 1 }}
-                    exit={{ rotate: 90, opacity: 0 }}
+                    exit={prefersReducedMotion ? { opacity: 0 } : { rotate: 90, opacity: 0 }}
                   >
                     <X className="w-6 h-6" />
                   </motion.div>
                 ) : (
                   <motion.div
                     key="menu"
-                    initial={{ rotate: 90, opacity: 0 }}
+                    initial={prefersReducedMotion ? false : { rotate: 90, opacity: 0 }}
                     animate={{ rotate: 0, opacity: 1 }}
-                    exit={{ rotate: -90, opacity: 0 }}
+                    exit={prefersReducedMotion ? { opacity: 0 } : { rotate: -90, opacity: 0 }}
                   >
                     <Menu className="w-6 h-6" />
                   </motion.div>
@@ -288,7 +302,7 @@ export default function Header() {
                   </svg>
                 </Link>
               ) : (
-                <CustomConnectButton />
+                <CustomConnectButton prefersReducedMotion={prefersReducedMotion} />
               )}
             </div>
           </div>
@@ -299,9 +313,10 @@ export default function Header() {
           {isMobileMenuOpen && (
             <motion.nav
               id="mobile-navigation"
-              initial={{ opacity: 0, height: 0 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
+              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+              transition={prefersReducedMotion ? { duration: 0 } : undefined}
               className="md:hidden absolute top-full left-0 right-0 border-t border-gray-100 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-xl overflow-hidden"
               aria-label="Mobile navigation"
             >
@@ -325,9 +340,10 @@ export default function Header() {
                         {link.label}
                         {active && (
                           <motion.div
-                            layoutId="mobile-menu-indicator"
+                            layoutId={prefersReducedMotion ? undefined : "mobile-menu-indicator"}
                             className="w-1.5 h-1.5 rounded-full bg-[#14B8A6]"
                             aria-hidden="true"
+                            transition={prefersReducedMotion ? { duration: 0 } : undefined}
                           />
                         )}
                       </div>

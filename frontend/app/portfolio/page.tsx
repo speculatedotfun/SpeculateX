@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount } from 'wagmi';
@@ -25,6 +25,8 @@ import Header from '@/components/Header';
 import { Button } from '@/components/ui'; // Assuming you have a basic Button component, or use standard button
 import MintUsdcForm from '@/components/MintUsdcForm';
 import { useUserPortfolio, type PortfolioPosition } from '@/lib/hooks/useUserPortfolio';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { useConfetti } from '@/lib/ConfettiContext';
 import { coreAbi, positionTokenAbi } from '@/lib/abis';
 import { addresses } from '@/lib/contracts';
 import { useWriteContract, usePublicClient, useReadContract } from 'wagmi';
@@ -50,6 +52,15 @@ export default function PortfolioPage() {
   const { data, isLoading, refetch, isRefetching } = useUserPortfolio();
   const [activeTab, setActiveTab] = useState<'positions' | 'history' | 'claims' | 'faucet'>('positions');
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
 
   const positions = data?.positions || [];
   const trades = data?.trades || [];
@@ -67,20 +78,7 @@ export default function PortfolioPage() {
     const hasWon = p.won === true;
     const hasBalance = p.balance > 0.000001;
     const notRedeemed = !redeemedMarketIds.has(p.marketId);
-    
-    // Debug logging
-    if (isResolved && hasBalance && notRedeemed && !hasWon) {
-      console.log('Position that should be claimable but won is false:', {
-        marketId: p.marketId,
-        side: p.side,
-        status: p.status,
-        won: p.won,
-        balance: p.balance,
-        yesWins: p.yesWins,
-        marketResolved: p.marketResolved
-      });
-    }
-    
+
     return isResolved && hasWon && hasBalance && notRedeemed;
   });
 
@@ -105,13 +103,13 @@ export default function PortfolioPage() {
     return (
       <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden flex flex-col">
         {/* Background Gradient */}
-        <div className="absolute inset-0 pointer-events-none">
+        <div className="fixed inset-0 pointer-events-none -z-10">
             <div className="absolute inset-0 bg-gradient-to-br from-[#FAF9FF] via-[#F0F4F8] to-[#E8F0F5] dark:from-[#0f172a] dark:via-[#1a1f3a] dark:to-[#1e293b]"></div>
-            <div className="absolute left-1/2 top-0 -translate-x-1/2 -z-10 m-auto h-[500px] w-[500px] rounded-full bg-[#14B8A6] opacity-10 blur-[100px]"></div>
+            <div className="absolute left-1/2 top-0 -translate-x-1/2 m-auto h-[500px] w-[500px] rounded-full bg-[#14B8A6] opacity-10 blur-[100px]"></div>
         </div>
         <Header />
         <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
-          <div className="w-24 h-24 bg-white dark:bg-gray-800 rounded-[32px] shadow-xl shadow-[#14B8A6]/10 flex items-center justify-center mb-8 animate-in fade-in zoom-in duration-500">
+          <div className={`w-24 h-24 bg-white dark:bg-gray-800 rounded-[32px] shadow-xl shadow-[#14B8A6]/10 flex items-center justify-center mb-8 ${prefersReducedMotion ? '' : 'animate-in fade-in zoom-in duration-500'}`}>
             <Wallet className="w-12 h-12 text-[#14B8A6]" />
           </div>
           <h1 className="text-4xl font-black text-[#0f0a2e] dark:text-white mb-4 tracking-tight">Connect Your Wallet</h1>
@@ -128,11 +126,11 @@ export default function PortfolioPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-x-hidden font-sans">
-      
+
       {/* Background Gradient */}
-      <div className="absolute inset-0 pointer-events-none">
+      <div className="fixed inset-0 pointer-events-none -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-[#FAF9FF] via-[#F0F4F8] to-[#E8F0F5] dark:from-[#0f172a] dark:via-[#1a1f3a] dark:to-[#1e293b]"></div>
-        <div className="absolute left-1/2 top-0 -translate-x-1/2 -z-10 m-auto h-[500px] w-[500px] rounded-full bg-[#14B8A6] opacity-10 blur-[100px]"></div>
+        <div className="absolute left-1/2 top-0 -translate-x-1/2 m-auto h-[500px] w-[500px] rounded-full bg-[#14B8A6] opacity-10 blur-[100px]"></div>
       </div>
 
       <Header />
@@ -141,10 +139,10 @@ export default function PortfolioPage() {
         
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+          <motion.div
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.5 }}
           >
             <h1 className="text-4xl sm:text-5xl font-black text-[#0f0a2e] dark:text-white tracking-tighter mb-2">
               Your Portfolio
@@ -154,9 +152,10 @@ export default function PortfolioPage() {
 
           <div className="flex items-center gap-3">
              {claimablePositions.length > 0 && (
-                <motion.div 
-                  initial={{ scale: 0.9, opacity: 0 }}
+                <motion.div
+                  initial={prefersReducedMotion ? false : { scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
                   className="bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-2 rounded-xl flex items-center gap-3 shadow-sm mr-2"
                 >
                   <Trophy className="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -250,13 +249,14 @@ export default function PortfolioPage() {
               {activeTab === 'positions' && (
                 <motion.div
                   key="positions"
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -10 }}
+                  transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
                   className="space-y-8"
                 >
                   {isLoading ? (
-                    <LoadingState />
+                    <LoadingState prefersReducedMotion={prefersReducedMotion} />
                   ) : positions.length === 0 ? (
                     <EmptyState 
                       title="No active positions" 
@@ -272,11 +272,12 @@ export default function PortfolioPage() {
                           <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-1">Active Positions</h3>
                           <div className="grid gap-4">
                             {positions.filter(p => p.status === 'Active').map((position) => (
-                              <PositionCard 
-                                key={`${position.marketId}-${position.side}`} 
-                                position={position} 
+                              <PositionCard
+                                key={`${position.marketId}-${position.side}`}
+                                position={position}
                                 onClaimSuccess={() => refetch()}
                                 isRedeemed={redeemedMarketIds.has(position.marketId)}
+                                prefersReducedMotion={prefersReducedMotion}
                               />
                             ))}
                           </div>
@@ -289,11 +290,12 @@ export default function PortfolioPage() {
                           <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-1">Resolved Positions</h3>
                           <div className="grid gap-4 opacity-80 hover:opacity-100 transition-opacity">
                             {positions.filter(p => p.status === 'Resolved').map((position) => (
-                              <PositionCard 
-                                key={`${position.marketId}-${position.side}`} 
-                                position={position} 
+                              <PositionCard
+                                key={`${position.marketId}-${position.side}`}
+                                position={position}
                                 onClaimSuccess={() => refetch()}
                                 isRedeemed={redeemedMarketIds.has(position.marketId)}
+                                prefersReducedMotion={prefersReducedMotion}
                               />
                             ))}
                           </div>
@@ -307,13 +309,14 @@ export default function PortfolioPage() {
               {activeTab === 'claims' && (
                 <motion.div
                   key="claims"
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -10 }}
+                  transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
                   className="space-y-8"
                 >
                   {isLoading ? (
-                    <LoadingState />
+                    <LoadingState prefersReducedMotion={prefersReducedMotion} />
                   ) : (
                     <>
                       {/* Claimable */}
@@ -332,11 +335,12 @@ export default function PortfolioPage() {
                         ) : (
                           <div className="grid gap-4">
                             {claimablePositions.map((position) => (
-                              <PositionCard 
-                                key={`claim-${position.marketId}-${position.side}`} 
-                                position={position} 
+                              <PositionCard
+                                key={`claim-${position.marketId}-${position.side}`}
+                                position={position}
                                 onClaimSuccess={() => refetch()}
                                 isRedeemed={false}
+                                prefersReducedMotion={prefersReducedMotion}
                               />
                             ))}
                           </div>
@@ -351,11 +355,12 @@ export default function PortfolioPage() {
                         ) : (
                           <div className="grid gap-4">
                             {claimedPositions.map((position) => (
-                              <PositionCard 
-                                key={`claimed-${position.marketId}-${position.side}`} 
-                                position={position} 
+                              <PositionCard
+                                key={`claimed-${position.marketId}-${position.side}`}
+                                position={position}
                                 onClaimSuccess={() => {}}
                                 isRedeemed={true}
+                                prefersReducedMotion={prefersReducedMotion}
                               />
                             ))}
                           </div>
@@ -369,12 +374,13 @@ export default function PortfolioPage() {
               {activeTab === 'history' && (
                 <motion.div
                   key="history"
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -10 }}
+                  transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
                 >
                   {isLoading ? (
-                    <LoadingState />
+                    <LoadingState prefersReducedMotion={prefersReducedMotion} />
                   ) : trades.length === 0 ? (
                     <EmptyState 
                       title="No trade history" 
@@ -440,9 +446,10 @@ export default function PortfolioPage() {
               {activeTab === 'faucet' && (
                 <motion.div
                   key="faucet"
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -10 }}
+                  transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
                   className="flex justify-center py-8"
                 >
                   <div className="w-full max-w-md">
@@ -479,37 +486,21 @@ function StatCard({ title, value, subtext, icon: Icon, color }: any) {
   );
 }
 
-function LoadingState() {
+function LoadingState({ prefersReducedMotion = false }: { prefersReducedMotion?: boolean }) {
   return (
     <div className="space-y-4">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 bg-gray-100 dark:bg-gray-800 rounded-3xl animate-pulse" />
+        <div key={i} className={`h-24 bg-gray-100 dark:bg-gray-800 rounded-3xl ${prefersReducedMotion ? '' : 'animate-pulse'}`} />
       ))}
     </div>
   );
 }
 
-function EmptyState({ title, description, actionLink, actionText }: any) {
-  return (
-    <div className="text-center py-16 px-4">
-      <div className="w-16 h-16 bg-gray-50 dark:bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-        <Search className="w-8 h-8 text-gray-300 dark:text-gray-500" />
-      </div>
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{title}</h3>
-      <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">{description}</p>
-      <Link href={actionLink}>
-        <Button className="bg-[#14B8A6] hover:bg-[#0D9488] text-white font-bold rounded-xl px-6 py-2.5 shadow-lg shadow-[#14B8A6]/20">
-          {actionText}
-        </Button>
-      </Link>
-    </div>
-  );
-}
-
-function PositionCard({ position, onClaimSuccess, isRedeemed = false }: { position: PortfolioPosition, onClaimSuccess: () => void, isRedeemed?: boolean }) {
+function PositionCard({ position, onClaimSuccess, isRedeemed = false, prefersReducedMotion = false }: { position: PortfolioPosition, onClaimSuccess: () => void, isRedeemed?: boolean, prefersReducedMotion?: boolean }) {
   const { address } = useAccount();
   const { writeContractAsync, isPending } = useWriteContract();
   const publicClient = usePublicClient();
+  const { trigger: triggerConfetti } = useConfetti();
   const [isClaiming, setIsClaiming] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -546,6 +537,7 @@ function PositionCard({ position, onClaimSuccess, isRedeemed = false }: { positi
       });
       if (publicClient) {
         await publicClient.waitForTransactionReceipt({ hash });
+        triggerConfetti();
         onClaimSuccess();
       }
     } catch (err: any) {
@@ -581,7 +573,7 @@ function PositionCard({ position, onClaimSuccess, isRedeemed = false }: { positi
               {position.side}
             </span>
             {canRedeem && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-green-500 text-white shadow-sm animate-pulse">
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-green-500 text-white shadow-sm ${prefersReducedMotion ? '' : 'animate-pulse'}`}>
                 Winner
               </span>
             )}

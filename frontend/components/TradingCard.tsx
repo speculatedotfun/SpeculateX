@@ -7,10 +7,12 @@ import { formatUnits, parseUnits } from 'viem';
 import { getAddresses, getCurrentNetwork } from '@/lib/contracts';
 import { getCoreAbi, usdcAbi, positionTokenAbi } from '@/lib/abis';
 import { useToast } from '@/components/ui/toast';
+import { useConfetti } from '@/lib/ConfettiContext';
 import { clamp, formatBalanceDisplay, toBigIntSafe } from '@/lib/tradingUtils';
 import { costFunction, spotPriceYesE18, findSharesOut, simulateBuyChunk } from '@/lib/lmsrMath';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, AlertTriangle, Droplets, Wallet, ArrowRightLeft, TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import { hapticFeedback } from '@/lib/haptics';
 
 // --- Imports for Sub-Components ---
 import { SplitOrderModal } from './trading/SplitOrderModal';
@@ -144,6 +146,7 @@ export default function TradingCard({
   const publicClient = usePublicClient();
   const { data: blockNumber } = useBlockNumber({ watch: true });
   const { pushToast } = useToast();
+  const { trigger: triggerConfetti } = useConfetti();
 
   const [pendingTrade, setPendingTrade] = useState(false);
   const [addLiquidityAmount, setAddLiquidityAmount] = useState('');
@@ -591,6 +594,7 @@ export default function TradingCard({
       setPendingTrade(true);
       setBusyLabel('Executing split order…');
       await executeSplitBuy(pendingSplitAmount);
+      triggerConfetti();
       showToast('Success', 'Split order executed successfully', 'success');
       setAmount('');
       setPendingSplitAmount(0n);
@@ -670,6 +674,7 @@ export default function TradingCard({
       
       setBusyLabel('Finalizing…');
       await refetchAll();
+      triggerConfetti();
       showToast('Success', 'Trade executed successfully', 'success');
       setAmount('');
     } catch (error) {
@@ -744,6 +749,7 @@ export default function TradingCard({
         });
         await waitForReceipt(publicClient, tx);
         await refetchAll();
+        triggerConfetti();
         showToast('Success', 'Redeemed successfully', 'success');
     } catch (e) {
         showErrorToast(e, 'Redeem failed');
@@ -798,7 +804,12 @@ export default function TradingCard({
           {(['buy', 'sell'] as const).map(m => (
             <button
               key={m}
-              onClick={() => { if (!isBusy && isTradeable) setTradeMode(m); }}
+              onClick={() => { 
+                if (!isBusy && isTradeable) {
+                  hapticFeedback('light');
+                  setTradeMode(m); 
+                }
+              }}
               className={`relative flex-1 py-3 font-black text-sm uppercase tracking-widest transition-colors z-10 flex items-center justify-center gap-2 ${
                 tradeMode === m ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
@@ -825,7 +836,12 @@ export default function TradingCard({
                 key={s}
                 whileTap={{ scale: 0.98 }}
                 whileHover={{ scale: !isBusy && isTradeable ? 1.02 : 1 }}
-                onClick={() => { if (!isBusy && isTradeable) setSide(s); }}
+                onClick={() => { 
+                  if (!isBusy && isTradeable) {
+                    hapticFeedback('light');
+                    setSide(s); 
+                  }
+                }}
                 className={`
                   relative p-5 rounded-[24px] text-left transition-all duration-300 border-[3px] overflow-hidden group
                   ${s === 'yes'
@@ -931,7 +947,7 @@ export default function TradingCard({
                 className="w-full bg-transparent text-5xl font-black text-gray-900 dark:text-white placeholder-gray-200 dark:placeholder-gray-700 outline-none tabular-nums tracking-tight"
                 disabled={isBusy || showSplitConfirm || !isTradeable}
                 aria-label={`Amount to ${tradeMode} in ${tradeMode === 'buy' ? 'USDC' : 'shares'}`}
-                aria-invalid={amount && parseFloat(amount) > 0 && !canBuy && !canSell}
+                aria-invalid={!!(amount && parseFloat(amount) > 0 && !canBuy && !canSell)}
                 aria-describedby="amount-validation"
               />
               <span className="text-base font-bold text-gray-400 dark:text-gray-500 ml-2">{tradeMode === 'buy' ? 'USDC' : 'Shares'}</span>
@@ -1046,7 +1062,10 @@ export default function TradingCard({
         </AnimatePresence>
 
         <motion.button
-          onClick={handleTrade}
+          onClick={() => {
+            hapticFeedback('heavy');
+            handleTrade();
+          }}
           disabled={isBusy || !amount || (!canBuy && !canSell)}
           whileHover={{ scale: isTradeable && !isBusy ? 1.02 : 1 }}
           whileTap={{ scale: isTradeable && !isBusy ? 0.98 : 1 }}

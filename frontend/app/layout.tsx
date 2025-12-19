@@ -2,6 +2,8 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Providers } from './providers';
+import { LiveActivityTicker } from '@/components/LiveActivityTicker';
+import { CommandPalette } from '@/components/CommandPalette';
 
 // Initialize font
 const inter = Inter({ subsets: ['latin'] });
@@ -27,9 +29,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body 
-        className={`${inter.className} min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] text-slate-900 dark:text-slate-50 antialiased`}
+        className={`${inter.className} min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] text-slate-900 dark:text-slate-50 antialiased mesh-gradient`}
       >
         <Providers>
+          <LiveActivityTicker />
+          <CommandPalette />
           {children}
         </Providers>
       </body>

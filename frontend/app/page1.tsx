@@ -30,31 +30,17 @@ export default function Home() {
   });
   const [featuredMarket, setFeaturedMarket] = useState<FeaturedMarket | null>(null);
   const [loadingFeaturedMarket, setLoadingFeaturedMarket] = useState(true);
-  const [loadingStats, setLoadingStats] = useState(true);
   const [scrollY, setScrollY] = useState(0);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
-  // Check for reduced motion preference
+  // Parallax scroll effect
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setPrefersReducedMotion(mediaQuery.matches);
-
-    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
-    mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
-  }, []);
-
-  // Parallax scroll effect (disabled if user prefers reduced motion)
-  useEffect(() => {
-    if (prefersReducedMotion) return;
-
     const handleScroll = () => {
       setScrollY(window.scrollY);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [prefersReducedMotion]);
+  }, []);
 
   // --- Keep original data loading logic ---
   useEffect(() => {
@@ -126,11 +112,9 @@ export default function Home() {
       }
 
       setStats({ liquidity, live, resolved, expired });
-      setLoadingStats(false);
       setLoadingFeaturedMarket(false);
     } catch (error) {
       console.error('Error loading data:', error);
-      setLoadingStats(false);
       setLoadingFeaturedMarket(false);
     }
   };
@@ -173,9 +157,9 @@ export default function Home() {
 
   const liquidityDisplay = useMemo(() => formatCurrency(stats.liquidity), [stats.liquidity, formatCurrency]);
 
-  const truncatedQuestion = featuredMarket
-    ? featuredMarket.question.length > 80
-      ? featuredMarket.question.substring(0, 80) + '...'
+  const truncatedQuestion = featuredMarket 
+    ? featuredMarket.question.length > 50 
+      ? featuredMarket.question.substring(0, 50) + '...'
       : featuredMarket.question
     : '';
 
@@ -236,9 +220,9 @@ export default function Home() {
             style={{ transform: `translateY(${scrollY * -0.1}px)` }}
           >
             <motion.div
-              initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: prefersReducedMotion ? 0 : 0.1 }}
+              transition={{ delay: 0.1 }}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 shadow-sm"
             >
               <span className="relative flex h-2.5 w-2.5">
@@ -249,9 +233,9 @@ export default function Home() {
             </motion.div>
 
             <motion.div
-              initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: prefersReducedMotion ? 0 : 0.2 }}
+              transition={{ delay: 0.2 }}
             >
               <h1 className="text-5xl sm:text-6xl lg:text-8xl font-black text-[#0f0a2e] dark:text-white leading-[1.0] tracking-tighter mb-6">
                 Predict the <br/>
@@ -265,10 +249,10 @@ export default function Home() {
               </p>
             </motion.div>
 
-            <motion.div
-              initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: prefersReducedMotion ? 0 : 0.3 }}
+              transition={{ delay: 0.3 }}
               className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start pt-2"
             >
               <Link
@@ -299,93 +283,130 @@ export default function Home() {
             style={{ transform: `translateY(${scrollY * 0.05}px)` }}
           >
             <motion.div
-              initial={prefersReducedMotion ? false : { opacity: 0, x: 20 }}
+              initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: prefersReducedMotion ? 0 : 0.4, duration: prefersReducedMotion ? 0 : 0.6 }}
+              transition={{ delay: 0.4, duration: 0.6 }}
               className="relative z-10"
             >
-              {/* --- BENTO GRID START --- */}
-              <div className="grid grid-cols-2 grid-rows-4 gap-4 h-[550px]">
+              {/* --- UI Upgrade 2: Dashboard Style Container --- */}
+              <div className="bg-white/70 dark:bg-[#1e293b]/70 backdrop-blur-2xl border border-white/20 dark:border-gray-700/50 rounded-[32px] p-6 shadow-2xl shadow-purple-500/5 dark:shadow-black/20 ring-1 ring-black/5">
                 
-                {/* Liquidity - Large Vertical Card */}
-                <div className="col-span-1 row-span-2 group">
-                  <StatCard
-                    title="Liquidity"
-                    value={liquidityDisplay}
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <StatCard 
+                    title="Liquidity" 
+                    value={liquidityDisplay} 
                     color="bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
-                    className="h-full"
                   />
-                </div>
-
-                {/* Traders - Small Card */}
-                <div className="col-span-1 row-span-1 group">
-                   <StatCard
-                    title="Traders"
-                    value={formatNumber(typeof traders === 'number' ? traders : Number(traders) || 0)}
+                  <StatCard 
+                    title="Traders" 
+                    value={formatNumber(typeof traders === 'number' ? traders : Number(traders) || 0)} 
                     color="bg-purple-100 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400"
-                    className="h-full"
                   />
-                </div>
-
-                {/* Active Markets - Small Card */}
-                <div className="col-span-1 row-span-1 group">
-                  <StatCard
-                    title="Active"
-                    value={formatNumber(stats.live)}
+                  <StatCard 
+                    title="Active Markets" 
+                    value={formatNumber(stats.live)} 
                     color="bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
-                    className="h-full"
+                  />
+                  <StatCard 
+                    title="Fees APY" 
+                    value="2.0%" 
+                    color="bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400"
                   />
                 </div>
-
-                {/* Featured Market - Large Horizontal Card */}
-                <div className="col-span-2 row-span-2 relative group">
-                   <div className="absolute -inset-1 bg-gradient-to-r from-teal-400 to-purple-500 rounded-[32px] opacity-10 blur group-hover:opacity-20 transition-opacity"></div>
-                   <div className="relative h-full bg-white/70 dark:bg-[#1e293b]/70 backdrop-blur-2xl border border-white/20 dark:border-gray-700/50 rounded-[32px] p-6 shadow-2xl overflow-hidden">
+                
+                {/* Featured Market - Trading Ticket Style */}
+                <div className="relative">
+                   <div className="absolute -inset-1 bg-gradient-to-r from-teal-400 to-purple-500 rounded-2xl opacity-20 blur"></div>
+                   <div className="relative bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
                       <div className="flex items-center justify-between mb-4">
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Featured Opportunity</span>
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Featured Market</span>
                         <div className="flex items-center gap-1.5">
                           <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                           </span>
+                          <span className="text-[10px] font-bold text-gray-500">Ending Soon</span>
                         </div>
                       </div>
 
                       {loadingFeaturedMarket ? (
-                        <div className="space-y-4 animate-pulse">
-                          <div className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg w-3/4"></div>
-                          <div className="h-20 bg-gray-100 dark:bg-gray-800 rounded-xl w-full"></div>
+                        <div className="space-y-3 animate-pulse">
+                          <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg w-full"></div>
+                          <div className="flex gap-2">
+                             <div className="h-12 bg-gray-100 dark:bg-gray-800 rounded-lg w-1/2"></div>
+                             <div className="h-12 bg-gray-100 dark:bg-gray-800 rounded-lg w-1/2"></div>
+                          </div>
                         </div>
                       ) : featuredMarket ? (
-                        <Link href={`/markets/${featuredMarket.id}`} className="block h-full">
-                          <h3 className="font-bold text-gray-900 dark:text-white leading-tight mb-4 text-xl group-hover:text-[#14B8A6] transition-colors line-clamp-2">
-                            {featuredMarket.question}
-                          </h3>
-                          
-                          <div className="grid grid-cols-2 gap-3 mt-auto">
-                             <div className="bg-emerald-50/50 dark:bg-emerald-500/10 border border-emerald-100/50 dark:border-emerald-500/20 rounded-2xl p-3">
-                                <span className="text-[9px] font-bold text-emerald-600/60 dark:text-emerald-400/60 uppercase block mb-1">Yes</span>
+                        <Link href={`/markets/${featuredMarket.id}`} className="block group">
+                          <div className="flex items-start gap-3 mb-5">
+                            <div className="relative w-10 h-10 rounded-full bg-gray-50 border border-gray-200 dark:border-gray-700 flex items-center justify-center shrink-0 overflow-hidden shadow-sm group-hover:scale-110 transition-transform">
+                              {featuredMarket.logo !== '/logos/default.png' ? (
+                                <Image
+                                  src={featuredMarket.logo}
+                                  alt=""
+                                  width={40}
+                                  height={40}
+                                  className="object-cover"
+                                  unoptimized
+                                />
+                              ) : (
+                                <span className="text-lg">📈</span>
+                              )}
+                            </div>
+                            <h3 className="font-bold text-gray-900 dark:text-white leading-tight group-hover:text-[#14B8A6] transition-colors">
+                              {truncatedQuestion}
+                            </h3>
+                          </div>
+
+                          {/* NEW: Probability Visualization */}
+                          <div className="space-y-4">
+                            
+                            {/* Visual Probability Bar */}
+                            <div className="h-4 w-full bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden flex relative">
+                              <div 
+                                className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 transition-all duration-1000 ease-out"
+                                style={{ width: `${featuredMarket.priceYes * 100}%` }}
+                              />
+                              {/* Percentage Indicator on Bar */}
+                              <div className="absolute inset-0 flex justify-between px-2 items-center text-[9px] font-black uppercase tracking-wider text-black/40 dark:text-white/40 mix-blend-overlay">
+                                <span>Yes</span>
+                                <span>No</span>
+                              </div>
+                            </div>
+
+                            {/* Price Cards */}
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 rounded-xl p-3 flex flex-col items-center justify-center transition-all group-hover:border-emerald-300 dark:group-hover:border-emerald-500/50">
+                                <span className="text-[10px] font-bold text-emerald-600/60 dark:text-emerald-400/60 uppercase">Yes Probability</span>
                                 <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
                                   {(featuredMarket.priceYes * 100).toFixed(0)}%
                                 </span>
-                             </div>
-                             <div className="bg-rose-50/50 dark:bg-rose-500/10 border border-rose-100/50 dark:border-rose-500/20 rounded-2xl p-3">
-                                <span className="text-[9px] font-bold text-rose-600/60 dark:text-rose-400/60 uppercase block mb-1">No</span>
+                                <span className="text-[10px] text-emerald-600/40 dark:text-emerald-400/40 font-mono mt-0.5">
+                                  {formatPriceInCents(featuredMarket.priceYes)}
+                                </span>
+                              </div>
+
+                              <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 rounded-xl p-3 flex flex-col items-center justify-center transition-all group-hover:border-rose-300 dark:group-hover:border-rose-500/50">
+                                <span className="text-[10px] font-bold text-rose-600/60 dark:text-rose-400/60 uppercase">No Probability</span>
                                 <span className="text-2xl font-black text-rose-600 dark:text-rose-400">
                                   {(featuredMarket.priceNo * 100).toFixed(0)}%
                                 </span>
-                             </div>
+                                <span className="text-[10px] text-rose-600/40 dark:text-rose-400/40 font-mono mt-0.5">
+                                  {formatPriceInCents(featuredMarket.priceNo)}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         </Link>
                       ) : (
-                         <div className="h-full flex items-center justify-center text-gray-400 text-sm italic">No active markets</div>
+                         <div className="text-center py-6 text-gray-400 text-sm">No markets active</div>
                       )}
                    </div>
                 </div>
+
               </div>
-              {/* --- BENTO GRID END --- */}
-              
-              {/* Decorative blobs behind the grid */}
               
               {/* Decorative blobs behind the card with parallax */}
               <div
@@ -408,24 +429,14 @@ export default function Home() {
   );
 }
 
-// --- Stat Card Skeleton for Loading State ---
-function StatCardSkeleton() {
-  return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-50/80 dark:from-gray-800/60 dark:via-gray-800/40 dark:to-gray-800/50 rounded-2xl p-4 border border-gray-200/60 dark:border-gray-700/50 backdrop-blur-sm ring-1 ring-gray-900/5 dark:ring-white/5 animate-pulse">
-      <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-16 mb-1"></div>
-      <div className="h-3 bg-gray-100 dark:bg-gray-700/50 rounded w-20"></div>
-    </div>
-  );
-}
-
 // --- Stat Card Component with Enhanced Depth ---
-function StatCard({ title, value, color, className = "" }: { title: string, value: string, color: string, className?: string }) {
+function StatCard({ title, value, color }: { title: string, value: string, color: string }) {
   return (
     <motion.div
-      whileHover={{ scale: 1.02, y: -2 }}
+      whileHover={{ scale: 1.05, y: -2 }}
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-      className={`relative group overflow-hidden bg-white/70 dark:bg-[#1e293b]/70 backdrop-blur-2xl border border-white/20 dark:border-gray-700/50 rounded-[32px] p-6 transition-all shadow-xl ring-1 ring-black/5 flex flex-col justify-center ${className}`}
+      className="relative group overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-50/80 dark:from-gray-800/60 dark:via-gray-800/40 dark:to-gray-800/50 rounded-2xl p-4 border border-gray-200/60 dark:border-gray-700/50 hover:border-[#14B8A6]/30 transition-all shadow-sm hover:shadow-[0_8px_30px_-5px_rgba(20,184,166,0.15)] backdrop-blur-sm ring-1 ring-gray-900/5 dark:ring-white/5"
       role="article"
       aria-label={`${title}: ${value}`}
     >
@@ -434,11 +445,11 @@ function StatCard({ title, value, color, className = "" }: { title: string, valu
 
       {/* Content */}
       <div className="relative z-10">
-        <div className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">
-          {title}
-        </div>
-        <div className="font-black text-3xl sm:text-4xl text-gray-900 dark:text-white tracking-tighter group-hover:text-[#14B8A6] transition-colors duration-300">
+        <div className="font-black text-lg sm:text-xl text-gray-900 dark:text-white tracking-tight mb-0.5 group-hover:text-[#14B8A6] transition-colors duration-300">
           {value}
+        </div>
+        <div className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+          {title}
         </div>
       </div>
     </motion.div>

@@ -11,6 +11,7 @@ import { Calendar, DollarSign, ArrowUpCircle, ArrowDownCircle, Target, Wallet, S
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
+import { useConfetti } from '@/lib/ConfettiContext';
 
 interface CreateMarketFormProps {
   standalone?: boolean;
@@ -58,6 +59,7 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const { pushToast } = useToast();
+  const { trigger: triggerConfetti } = useConfetti();
   const network = getNetwork();
 
   // --- Form State ---
@@ -202,6 +204,7 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
 
   useEffect(() => {
     if (isSuccess) {
+      triggerConfetti();
       pushToast({ title: 'Success', description: 'Market created successfully!', type: 'success' });
       // Reset form
       setTargetPrice('');

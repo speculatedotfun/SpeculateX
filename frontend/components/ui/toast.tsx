@@ -133,7 +133,7 @@ function ToastCard({ item, onClose }: ToastCardProps) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
       layout
-      className={`pointer-events-auto w-full rounded-2xl shadow-2xl border p-4 ${style.bg} ${style.border} flex flex-col gap-2`}
+      className={`pointer-events-auto w-full rounded-[24px] shadow-2xl border p-4 ${style.bg}/80 backdrop-blur-xl ${style.border} flex flex-col gap-2 ring-1 ring-black/5`}
     >
       <div className="flex items-start gap-3">
         <div className="mt-0.5 shrink-0">{style.icon}</div>

@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatUnits, decodeEventLog } from 'viem';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Clock, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Clock, AlertTriangle, CheckCircle2, Loader2, Share2, Check } from 'lucide-react';
 
 // Components
 import Header from '@/components/Header';
@@ -16,6 +16,7 @@ import TradingCard from '@/components/TradingCard';
 import { PriceChart } from '@/components/PriceChart';
 import { MarketHeader } from '@/components/market/MarketHeader';
 import { Skeleton } from '@/components/ui';
+import { PriceDisplay } from '@/components/market/PriceDisplay';
 
 // Lib
 import { getMarket, getSpotPriceYesE6, getMarketResolution, getMarketState } from '@/lib/hooks';
@@ -203,6 +204,27 @@ export default function MarketDetailPage() {
   const [noBalance, setNoBalance] = useState<string>('0');
   const [logoSrc, setLogoSrc] = useState<string>(() => getAssetLogo());
   const [showInstantUpdateBadge, setShowInstantUpdateBadge] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Copy market link to clipboard
+  const handleShareMarket = useCallback(() => {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, []);
+
+  // Check for reduced motion preference
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
 
   // Snapshot query
   const snapshotQuery = useMarketSnapshot(
@@ -491,17 +513,17 @@ export default function MarketDetailPage() {
     <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-x-hidden font-sans">
       
       {/* Background Gradient */}
-      <div className="absolute inset-0 pointer-events-none">
+      <div className="fixed inset-0 pointer-events-none -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-[#FAF9FF] via-[#F0F4F8] to-[#E8F0F5] dark:from-[#0f172a] dark:via-[#1a1f3a] dark:to-[#1e293b]"></div>
-        <div className="absolute left-1/2 top-0 -translate-x-1/2 -z-10 m-auto h-[500px] w-[500px] rounded-full bg-[#14B8A6] opacity-10 blur-[100px]"></div>
+        <div className="absolute left-1/2 top-0 -translate-x-1/2 m-auto h-[500px] w-[500px] rounded-full bg-[#14B8A6] opacity-10 blur-[100px]"></div>
       </div>
 
       <Header />
    
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* Back Link */}
-        <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="mb-6">
+        {/* Back Link & Share Button */}
+        <motion.div initial={prefersReducedMotion ? false : { x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="mb-6 flex items-center justify-between">
           <Link
             href="/markets"
             className="inline-flex items-center text-gray-500 hover:text-[#14B8A6] dark:text-gray-400 dark:hover:text-[#14B8A6] font-bold text-sm transition-colors group"
@@ -512,6 +534,24 @@ export default function MarketDetailPage() {
             </div>
             Back to Markets
           </Link>
+
+          <button
+            onClick={handleShareMarket}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-[#14B8A6] dark:hover:text-[#14B8A6] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full hover:border-[#14B8A6] transition-all shadow-sm"
+            aria-label={copied ? 'Link copied!' : 'Copy market link to clipboard'}
+          >
+            {copied ? (
+              <>
+                <Check className="w-4 h-4 text-[#14B8A6]" aria-hidden="true" />
+                <span className="text-[#14B8A6]">Copied!</span>
+              </>
+            ) : (
+              <>
+                <Share2 className="w-4 h-4" aria-hidden="true" />
+                <span className="hidden sm:inline">Share</span>
+              </>
+            )}
+          </button>
         </motion.div>
 
         {/* Market Header - Now contains the 3D Stats Banner inside */}
@@ -531,7 +571,7 @@ export default function MarketDetailPage() {
         {/* Status Banner (Resolved/Expired) */}
         {(marketIsResolved || marketIsExpired) && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className={`mt-2 mb-8 px-6 py-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm ${
                 marketIsResolved
@@ -565,9 +605,9 @@ export default function MarketDetailPage() {
             
             {/* Chart Card */}
             <motion.div
-              initial={{ y: 20, opacity: 0 }}
+              initial={prefersReducedMotion ? false : { y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: prefersReducedMotion ? 0 : 0.2 }}
               className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-[32px] p-6 sm:p-8 shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-white/20 dark:border-gray-700/50"
             >
               {/* Chart Controls Header */}
@@ -580,14 +620,11 @@ export default function MarketDetailPage() {
                     </span>
                   </div>
                   <div className="flex items-baseline gap-4 flex-wrap">
-                    <motion.div
-                      key={chartSide === 'yes' ? marketData.currentPrices.yes : marketData.currentPrices.no}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-5xl sm:text-6xl font-black tracking-tighter text-gray-900 dark:text-white"
-                    >
-                      {formatPriceInCents(chartSide === 'yes' ? marketData.currentPrices.yes : marketData.currentPrices.no)}
-                    </motion.div>
+                    <PriceDisplay 
+                      price={chartSide === 'yes' ? marketData.currentPrices.yes : marketData.currentPrices.no}
+                      priceClassName="text-5xl sm:text-6xl font-black tracking-tighter text-gray-900 dark:text-white"
+                      showInCents={true}
+                    />
                     <div className={`flex items-center font-bold text-lg ${chanceChangePercent >= 0 ? 'text-[#14B8A6]' : 'text-red-500'}`}>
                       {chanceChangePercent >= 0 ? '↑' : '↓'} {Math.abs(chanceChangePercent).toFixed(2)}%
                       <span className="text-gray-400 dark:text-gray-500 text-xs font-medium ml-2 uppercase tracking-wide">past {timeRange}</span>
@@ -680,29 +717,33 @@ export default function MarketDetailPage() {
 
             {/* Tabs Section */}
             <motion.div
-              initial={{ y: 20, opacity: 0 }}
+              initial={prefersReducedMotion ? false : { y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: prefersReducedMotion ? 0 : 0.3 }}
               className="bg-white dark:bg-gray-800 rounded-[32px] shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-gray-100 dark:border-gray-700 overflow-hidden"
             >
-              <div className="flex border-b border-gray-100 dark:border-gray-700 overflow-x-auto scrollbar-hide" role="tablist" aria-label="Market details navigation">
+              <div className="flex border-b border-gray-100 dark:border-gray-700 overflow-x-auto scrollbar-hide p-2 bg-gray-50/50 dark:bg-gray-900/20" role="tablist" aria-label="Market details navigation">
                 {(['Position', 'Comments', 'Transactions', 'Resolution'] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`flex-1 px-6 py-5 text-sm font-bold whitespace-nowrap transition-colors relative hover:scale-105 active:scale-95 ${
+                    className={`flex-1 px-6 py-3 text-sm font-bold whitespace-nowrap transition-all relative rounded-2xl ${
                       activeTab === tab
                         ? 'text-[#14B8A6]'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
                     role="tab"
                     aria-selected={activeTab === tab}
                     aria-controls={`${tab.toLowerCase()}-panel`}
                     aria-label={`View ${tab.toLowerCase()} information`}
                   >
-                    {tab}
+                    <span className="relative z-10">{tab}</span>
                     {activeTab === tab && (
-                      <motion.div layoutId="activeTabIndicator" className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#14B8A6]" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
+                      <motion.div 
+                        layoutId="activeTabPill" 
+                        className="absolute inset-0 bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 rounded-2xl z-0" 
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} 
+                      />
                     )}
                   </button>
                 ))}
@@ -737,9 +778,9 @@ export default function MarketDetailPage() {
             
             {/* Trading Card (Desktop Sticky) */}
             <motion.div
-              initial={{ y: 20, opacity: 0 }}
+              initial={prefersReducedMotion ? false : { y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4 }}
+              transition={{ delay: prefersReducedMotion ? 0 : 0.4 }}
               className="sticky top-24 space-y-6"
             >
               {isMarketIdValid && market && (

@@ -11,6 +11,8 @@ import { formatUnits } from 'viem';
 import { useQuery } from '@tanstack/react-query';
 import { fetchSubgraph } from '@/lib/subgraphClient';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PriceDisplay } from '@/components/market/PriceDisplay';
+import { Sparkline } from '@/components/market/Sparkline';
 
 // --- Helper Functions ---
 
@@ -96,25 +98,35 @@ function MarketCountdown({ expiryTimestamp, isResolved }: { expiryTimestamp: big
 }
 
 // --- NEW STATS BANNER COMPONENT ---
-function StatsBanner({ liquidity, traders, liveMarkets }: { liquidity: string, traders: string, liveMarkets: number }) {
+interface StatsBannerProps {
+  liquidity: string;
+  traders: string;
+  liveMarkets: number;
+  resolvedMarkets: number;
+  expiredMarkets: number;
+  loading?: boolean;
+  prefersReducedMotion?: boolean;
+}
+
+function StatsBanner({ liquidity, traders, liveMarkets, resolvedMarkets, expiredMarkets, loading = false, prefersReducedMotion = false }: StatsBannerProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay: 0.2 }}
+      transition={{ duration: prefersReducedMotion ? 0 : 0.6, delay: prefersReducedMotion ? 0 : 0.2 }}
       className="relative w-full z-20 mt-12 mb-16 -mx-4 sm:-mx-6 lg:-mx-8"
       role="region"
       aria-label="Platform statistics"
     >
       {/* Container Card */}
       <div className="bg-white dark:bg-slate-800 rounded-[30px] shadow-2xl shadow-[#14B8A6]/10 border border-gray-100 dark:border-gray-700 overflow-hidden relative min-h-[160px] flex items-center">
-        
+
         {/* Left Decoration Image */}
         <div className="absolute left-0 bottom-0 top-0 w-32 sm:w-48 md:w-64 lg:w-80">
-           <Image 
-             src="/leftside.png" 
-             alt="decoration" 
-             fill 
+           <Image
+             src="/leftside.png"
+             alt=""
+             fill
              className="object-contain object-left-bottom"
              priority
            />
@@ -122,10 +134,10 @@ function StatsBanner({ liquidity, traders, liveMarkets }: { liquidity: string, t
 
         {/* Right Decoration Image */}
         <div className="absolute right-0 top-0 bottom-0 w-32 sm:w-48 md:w-64 lg:w-80">
-           <Image 
-             src="/rightside.png" 
-             alt="decoration" 
-             fill 
+           <Image
+             src="/rightside.png"
+             alt=""
+             fill
              className="object-contain object-right-top"
              priority
            />
@@ -136,21 +148,24 @@ function StatsBanner({ liquidity, traders, liveMarkets }: { liquidity: string, t
 
             {/* Stat 1: Volume */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
+              transition={{ delay: prefersReducedMotion ? 0 : 0.3, duration: prefersReducedMotion ? 0 : 0.5 }}
               className="flex flex-col items-center text-center"
             >
-                <span className="text-xs md:text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Total Volume</span>
-                <motion.span
-                  initial={{ scale: 0.5 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
-                  className="text-3xl md:text-5xl font-black text-[#0f0a2e] dark:text-white tracking-tighter"
-                >
-                   {liquidity}
-                </motion.span>
-                <span className="text-xs font-bold text-[#14B8A6] mt-1" role="status" aria-label="12% increase">+12%</span>
+                <span className="text-xs md:text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Total Liquidity</span>
+                {loading ? (
+                  <div className="h-12 w-24 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+                ) : (
+                  <motion.span
+                    initial={prefersReducedMotion ? false : { scale: 0.5 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: prefersReducedMotion ? 0 : 0.4, type: "spring", stiffness: 200 }}
+                    className="text-3xl md:text-5xl font-black text-[#0f0a2e] dark:text-white tracking-tighter"
+                  >
+                     {liquidity}
+                  </motion.span>
+                )}
             </motion.div>
 
             {/* Divider (Hidden on Mobile) */}
@@ -158,21 +173,24 @@ function StatsBanner({ liquidity, traders, liveMarkets }: { liquidity: string, t
 
             {/* Stat 2: Active Traders */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
+              transition={{ delay: prefersReducedMotion ? 0 : 0.4, duration: prefersReducedMotion ? 0 : 0.5 }}
               className="flex flex-col items-center text-center"
             >
                 <span className="text-xs md:text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Active Traders</span>
-                <motion.span
-                  initial={{ scale: 0.5 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
-                  className="text-3xl md:text-5xl font-black text-[#0f0a2e] dark:text-white tracking-tighter"
-                >
-                   {traders}
-                </motion.span>
-                <span className="text-xs font-bold text-[#14B8A6] mt-1" role="status" aria-label="18 new traders today">+18 today</span>
+                {loading ? (
+                  <div className="h-12 w-16 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+                ) : (
+                  <motion.span
+                    initial={prefersReducedMotion ? false : { scale: 0.5 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: prefersReducedMotion ? 0 : 0.5, type: "spring", stiffness: 200 }}
+                    className="text-3xl md:text-5xl font-black text-[#0f0a2e] dark:text-white tracking-tighter"
+                  >
+                     {traders}
+                  </motion.span>
+                )}
             </motion.div>
 
             {/* Divider (Hidden on Mobile) */}
@@ -180,21 +198,29 @@ function StatsBanner({ liquidity, traders, liveMarkets }: { liquidity: string, t
 
             {/* Stat 3: Live Markets */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
+              transition={{ delay: prefersReducedMotion ? 0 : 0.5, duration: prefersReducedMotion ? 0 : 0.5 }}
               className="flex flex-col items-center text-center"
             >
                 <span className="text-xs md:text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Live Markets</span>
-                <motion.span
-                  initial={{ scale: 0.5 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.6, type: "spring", stiffness: 200 }}
-                  className="text-3xl md:text-5xl font-black text-[#0f0a2e] dark:text-white tracking-tighter"
-                >
-                   {liveMarkets}
-                </motion.span>
-                <span className="text-xs font-bold text-[#14B8A6] mt-1" role="status" aria-label="3 markets closing soon">3 closing soon</span>
+                {loading ? (
+                  <div className="h-12 w-12 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+                ) : (
+                  <motion.span
+                    initial={prefersReducedMotion ? false : { scale: 0.5 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: prefersReducedMotion ? 0 : 0.6, type: "spring", stiffness: 200 }}
+                    className="text-3xl md:text-5xl font-black text-[#0f0a2e] dark:text-white tracking-tighter"
+                  >
+                     {liveMarkets}
+                  </motion.span>
+                )}
+                {!loading && resolvedMarkets > 0 && (
+                  <span className="text-xs font-bold text-gray-400 dark:text-gray-500 mt-1">
+                    {resolvedMarkets} resolved
+                  </span>
+                )}
             </motion.div>
 
         </div>
@@ -217,6 +243,7 @@ interface MarketCard {
   oracleType: number;
   isResolved: boolean;
   yesWins?: boolean;
+  priceHistory?: number[];
 }
 
 export default function MarketsPage() {
@@ -226,7 +253,18 @@ export default function MarketsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeStatusTab, setActiveStatusTab] = useState<StatusFilter>('Active');
-  
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  // Check for reduced motion preference
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+
   useEffect(() => {
     loadMarkets();
     const interval = setInterval(loadMarkets, 30000);
@@ -239,6 +277,27 @@ export default function MarketsPage() {
       const count = await getMarketCount();
       const countNum = Number(count);
       setMarketCount(countNum);
+
+      // Fetch recent trades from subgraph for sparklines
+      let historyMap: Record<string, number[]> = {};
+      try {
+        const historyData = await fetchSubgraph<{ markets: { id: string, trades: { priceE6: string }[] }[] }>(
+          `query MarketHistory {
+            markets(first: 100) {
+              id
+              trades(orderBy: timestamp, orderDirection: desc, first: 10) {
+                priceE6
+              }
+            }
+          }`
+        );
+        historyData.markets.forEach(m => {
+          historyMap[m.id] = m.trades.map(t => Number(t.priceE6) / 1e6).reverse();
+        });
+      } catch (e) {
+        console.error('Failed to fetch sparkline data', e);
+      }
+
       const marketIds = Array.from({ length: countNum }, (_, i) => i + 1);
       
       const marketPromises = marketIds.map(async (i) => {
@@ -289,6 +348,7 @@ export default function MarketsPage() {
             oracleType: resolution.oracleType || 0,
             isResolved: resolution.isResolved || false,
             yesWins: resolution.yesWins,
+            priceHistory: historyMap[i.toString()] || [yesPriceClean, yesPriceClean], // Fallback to current price
           } as MarketCard;
         } catch (error) {
           console.error(`Error loading market ${i}:`, error);
@@ -371,9 +431,9 @@ export default function MarketsPage() {
     <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-x-hidden font-sans selection:bg-[#14B8A6]/30 selection:text-[#0f0a2e] dark:selection:text-white">
       
       {/* Background Gradient */}
-      <div className="absolute inset-0 pointer-events-none fixed">
+      <div className="fixed inset-0 pointer-events-none -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-[#FAF9FF] via-[#F0F4F8] to-[#E8F0F5] dark:from-[#0f172a] dark:via-[#1a1f3a] dark:to-[#1e293b]"></div>
-        <div className="absolute left-1/2 top-0 -translate-x-1/2 -z-10 m-auto h-[500px] w-[500px] rounded-full bg-[#14B8A6] opacity-10 blur-[100px] animate-pulse"></div>
+        <div className="absolute left-1/2 top-0 -translate-x-1/2 m-auto h-[500px] w-[500px] rounded-full bg-[#14B8A6] opacity-10 blur-[100px]"></div>
       </div>
 
       <Header />
@@ -399,11 +459,15 @@ export default function MarketsPage() {
           </p>
         </div>
 
-        {/* --- NEW STATS BANNER --- */}
-        <StatsBanner 
-            liquidity={`$${liquidityDisplay}`} 
-            traders={formatNumber(Number(activeTraders))} 
+        {/* --- STATS BANNER --- */}
+        <StatsBanner
+            liquidity={`$${liquidityDisplay}`}
+            traders={formatNumber(Number(activeTraders))}
             liveMarkets={stats.live}
+            resolvedMarkets={stats.resolved}
+            expiredMarkets={stats.expired}
+            loading={loading}
+            prefersReducedMotion={prefersReducedMotion}
         />
 
         {/* Controls Section */}
@@ -454,8 +518,8 @@ export default function MarketsPage() {
                 <motion.button
                   key={category}
                   onClick={() => setActiveCategory(category)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={prefersReducedMotion ? {} : { scale: 1.05 }}
+                  whileTap={prefersReducedMotion ? {} : { scale: 0.95 }}
                   className={`px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 whitespace-nowrap border ${
                     activeCategory === category
                       ? "bg-[#14B8A6] border-[#14B8A6] text-white shadow-md shadow-[#14B8A6]/20"
@@ -485,17 +549,17 @@ export default function MarketsPage() {
                 {[1,2,3,4,5,6].map(i => (
                   <motion.div
                     key={i}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
+                    transition={{ delay: prefersReducedMotion ? 0 : i * 0.1 }}
                   >
                     <Skeleton className="h-[340px] rounded-[28px]" />
                   </motion.div>
                 ))}
              </div>
           ) : filteredMarkets.length === 0 ? (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }} 
+            <motion.div
+              initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95 }} 
               animate={{ opacity: 1, scale: 1 }}
               className="flex flex-col items-center justify-center py-20 px-4 text-center bg-white/40 dark:bg-gray-800/40 rounded-[32px] border border-dashed border-gray-300 dark:border-gray-700"
             >
@@ -514,11 +578,11 @@ export default function MarketsPage() {
               {filteredMarkets.map((market, index) => (
                 <motion.div
                   key={market.id}
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
+                  layout={!prefersReducedMotion}
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95 }}
+                  transition={{ duration: prefersReducedMotion ? 0 : 0.3, delay: prefersReducedMotion ? 0 : index * 0.05 }}
                 >
                   <Link
                     href={`/markets/${market.id}`}
@@ -527,7 +591,7 @@ export default function MarketsPage() {
                   >
                     <motion.div
                       className="h-full bg-white dark:bg-gray-800/60 backdrop-blur-xl rounded-[28px] p-1 border border-gray-100 dark:border-gray-700/50 hover:border-[#14B8A6] dark:hover:border-[#14B8A6] hover:shadow-2xl hover:shadow-[#14B8A6]/10 transition-all duration-300 flex flex-col relative overflow-hidden ring-1 ring-gray-900/5 dark:ring-white/5"
-                      whileHover={{ y: -5 }}
+                      whileHover={prefersReducedMotion ? {} : { y: -5 }}
                       transition={{ type: "spring", stiffness: 300 }}
                     >
                       
@@ -565,9 +629,21 @@ export default function MarketsPage() {
                         </div>
 
                         {/* Question */}
-                        <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 leading-snug line-clamp-2 mb-6 group-hover:text-[#14B8A6] transition-colors">
+                        <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 leading-snug line-clamp-2 mb-2 group-hover:text-[#14B8A6] transition-colors">
                           {market.question}
                         </h3>
+
+                        {/* Sparkline */}
+                        <div className="mb-4 h-[30px] flex items-end">
+                          {market.priceHistory && market.priceHistory.length >= 2 ? (
+                            <Sparkline 
+                              data={market.priceHistory} 
+                              color={market.yesPrice > (market.priceHistory[0] || 0) ? '#10b981' : '#ef4444'} 
+                            />
+                          ) : (
+                            <div className="w-full h-[2px] bg-gray-100 dark:bg-gray-700/50 rounded-full" />
+                          )}
+                        </div>
 
                         <div className="mt-auto space-y-5">
                           
@@ -591,15 +667,17 @@ export default function MarketsPage() {
                           <div className="grid grid-cols-2 gap-3">
                             <div className="bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-500/20 rounded-xl p-3 flex flex-col items-center justify-center group-hover:border-emerald-300 dark:group-hover:border-emerald-500/40 transition-colors">
                               <span className="text-[10px] font-bold text-emerald-600/60 dark:text-emerald-400/60 uppercase">Yes</span>
-                              <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tight">
-                                {formatPriceLocal(market.yesPrice)}
-                              </span>
+                              <PriceDisplay 
+                                price={market.yesPrice} 
+                                priceClassName="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tight"
+                              />
                             </div>
                             <div className="bg-rose-50/50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-500/20 rounded-xl p-3 flex flex-col items-center justify-center group-hover:border-rose-300 dark:group-hover:border-rose-500/40 transition-colors">
                               <span className="text-[10px] font-bold text-rose-600/60 dark:text-rose-400/60 uppercase">No</span>
-                              <span className="text-lg font-black text-rose-600 dark:text-rose-400 font-mono tracking-tight">
-                                {formatPriceLocal(market.noPrice)}
-                              </span>
+                              <PriceDisplay 
+                                price={market.noPrice} 
+                                priceClassName="text-lg font-black text-rose-600 dark:text-rose-400 font-mono tracking-tight"
+                              />
                             </div>
                           </div>
                           
@@ -624,7 +702,7 @@ export default function MarketsPage() {
 
       </main>
 
-      {/* Simplified Footer */}
+      {/* Footer */}
       <footer className="w-full bg-white/50 dark:bg-gray-900/50 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 mt-12">
         <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-2">
@@ -634,9 +712,7 @@ export default function MarketsPage() {
              </p>
           </div>
           <div className="flex gap-8 text-sm font-bold text-gray-500 dark:text-gray-400">
-             <a href="#" className="hover:text-[#14B8A6] transition-colors">Terms</a>
-             <a href="#" className="hover:text-[#14B8A6] transition-colors">Privacy</a>
-             <a href="#" className="hover:text-[#14B8A6] transition-colors">Docs</a>
+             <Link href="/docs" className="hover:text-[#14B8A6] transition-colors">Docs</Link>
           </div>
         </div>
       </footer>

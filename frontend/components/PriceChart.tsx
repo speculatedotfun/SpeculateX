@@ -22,6 +22,7 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const throttledResizeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const moduleRef = useRef<typeof import('lightweight-charts') | null>(null);
+  const [isChartReady, setIsChartReady] = useState(false);
   
   const hasData = Array.isArray(data) && data.length > 0;
   const showLoadingOverlay = !hasData;
@@ -96,7 +97,7 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
         if (!containerRef.current) return;
 
         const chart = createChart(containerRef.current, {
-          width: containerRef.current.clientWidth,
+          width: containerRef.current.clientWidth || 600, // Fallback to a reasonable width if 0
           height,
           layout: {
             background: { type: ColorType.Solid, color: 'transparent' },
@@ -184,6 +185,19 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
         chartRef.current = chart;
         yesSeriesRef.current = yesSeries as any;
         noSeriesRef.current = noSeries as any;
+        setIsChartReady(true);
+
+        // If we already have data, update the chart immediately
+        if (data.length > 0) {
+          const { yesData, noData } = processDataWithBreaks(data);
+          yesSeries.setData(yesData as any);
+          noSeries.setData(noData as any);
+          setTimeout(() => {
+            if (!disposed && chartRef.current) {
+              chartRef.current.timeScale().fitContent();
+            }
+          }, 100);
+        }
 
         const observer = new ResizeObserver(entries => {
           if (throttledResizeRef.current) return;
@@ -246,8 +260,8 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
   }, [selectedSide]);
 
   useEffect(() => {
-    if (data.length > 0) updateChartData();
-  }, [data, updateChartData]);
+    if (data.length > 0 && isChartReady) updateChartData();
+  }, [data, updateChartData, isChartReady]);
 
   useEffect(() => {
     updateSeriesStyling();
