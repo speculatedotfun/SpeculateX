@@ -924,7 +924,9 @@ export default function TradingCard({
                        : side === 'yes'
                          ? parseFloat(formatUnits(yesBalanceRaw, 18))
                          : parseFloat(formatUnits(noBalanceRaw, 18));
-                     setAmount(maxValue.toString());
+                     // Round to 3 decimal places to avoid "Insufficient shares" errors
+                     const roundedValue = Math.floor(maxValue * 1000) / 1000;
+                     setAmount(roundedValue.toString());
                    }}
                    className="text-[10px] font-bold text-[#14B8A6] bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 px-2.5 py-1 rounded-lg uppercase tracking-wide transition-colors active:scale-95"
                    disabled={!isTradeable}
@@ -1031,7 +1033,9 @@ export default function TradingCard({
             ) : (
               [25, 50, 75, 100].map(percent => {
                 const amountValue = (maxSellAmount * percent) / 100;
-                const amountStr = formatAmount(amountValue);
+                // Round to 3 decimal places to avoid "Insufficient shares" errors
+                const roundedValue = Math.floor(amountValue * 1000) / 1000;
+                const amountStr = formatAmount(roundedValue);
                 return (
                   <button
                     key={percent}
