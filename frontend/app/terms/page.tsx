@@ -39,7 +39,7 @@ export default function TermsOfServicePage() {
               
               <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">1.1 Binding Agreement</h3>
               <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                Welcome to SpeculateX ("SpeculateX," "we," "us," "our," or "the Site"). These Terms of Service ("Terms") form a legally binding agreement between you ("User," "you," or "your") and SpeculateX regarding your access to and use of our website, applications, analytics, and related services located at https://speculatex.io/.
+                Welcome to SpeculateX (&quot;SpeculateX,&quot; &quot;we,&quot; &quot;us,&quot; &quot;our,&quot; or &quot;the Site&quot;). These Terms of Service (&quot;Terms&quot;) form a legally binding agreement between you (&quot;User,&quot; &quot;you,&quot; or &quot;your&quot;) and SpeculateX regarding your access to and use of our website, applications, analytics, and related services located at https://speculatex.io/.
               </p>
               <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
                 By accessing, browsing, or using SpeculateX in any capacity, you acknowledge that you have read, understood, and agree to comply with these Terms, along with our Privacy Policy and any additional guidelines posted on the Site. If you do not agree to these Terms, you must immediately stop using the Site.
@@ -112,7 +112,7 @@ export default function TermsOfServicePage() {
                 If applicable, SpeculateX may participate in referral or affiliate programs. Clicking certain links may generate commissions at no additional cost to you. Compensation does not influence the objectivity or accuracy of our content.
               </p>
               <p className="text-gray-700 dark:text-gray-300 leading-relaxed mt-4">
-                Any sponsored or paid material will be clearly marked as "Sponsored" or "Advertisement."
+                Any sponsored or paid material will be clearly marked as &quot;Sponsored&quot; or &quot;Advertisement.&quot;
               </p>
             </section>
 
@@ -231,7 +231,7 @@ export default function TermsOfServicePage() {
                 <li>Losses from reliance on Site information</li>
               </ul>
               <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                The Site is provided "AS IS" and "AS AVAILABLE" without warranties of any kind. To the fullest extent allowed by law, SpeculateX is not liable for indirect, incidental, consequential, punitive, or special damages.
+                The Site is provided &quot;AS IS&quot; and &quot;AS AVAILABLE&quot; without warranties of any kind. To the fullest extent allowed by law, SpeculateX is not liable for indirect, incidental, consequential, punitive, or special damages.
               </p>
               <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
                 Where liability cannot be excluded, our total liability is limited to 50 USD or the amount paid to SpeculateX in the last 12 months, whichever is lower.
