@@ -72,8 +72,12 @@ abstract contract TestSetup is Test {
 
         _setFacet(TradingFacet.spotPriceYesE18.selector, address(tradingFacet));
         _setFacet(TradingFacet.spotPriceYesE6.selector, address(tradingFacet));
-        _setFacet(TradingFacet.buy.selector, address(tradingFacet));
-        _setFacet(TradingFacet.sell.selector, address(tradingFacet));
+        // TradingFacet.buy/sell are overloaded (deadline version). Use explicit legacy selectors.
+        _setFacet(bytes4(keccak256("buy(uint256,bool,uint256,uint256)")), address(tradingFacet));
+        _setFacet(bytes4(keccak256("sell(uint256,bool,uint256,uint256)")), address(tradingFacet));
+        // Also register the deadline-enabled selectors for completeness.
+        _setFacet(bytes4(keccak256("buy(uint256,bool,uint256,uint256,uint256)")), address(tradingFacet));
+        _setFacet(bytes4(keccak256("sell(uint256,bool,uint256,uint256,uint256)")), address(tradingFacet));
 
         _setFacet(LiquidityFacet.addLiquidity.selector, address(liquidityFacet));
         _setFacet(LiquidityFacet.claimLpFees.selector, address(liquidityFacet));

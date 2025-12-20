@@ -82,20 +82,22 @@ contract DeploySpeculateX is Script {
         bytes32 op8 = _schedule(core, OP_SET_FACET, "getMaxJumpE18(uint256)", address(tradingFacet));
         bytes32 op9 = _schedule(core, OP_SET_FACET, "buy(uint256,bool,uint256,uint256)", address(tradingFacet));
         bytes32 op10 = _schedule(core, OP_SET_FACET, "sell(uint256,bool,uint256,uint256)", address(tradingFacet));
+        bytes32 op11 = _schedule(core, OP_SET_FACET, "buy(uint256,bool,uint256,uint256,uint256)", address(tradingFacet));
+        bytes32 op12 = _schedule(core, OP_SET_FACET, "sell(uint256,bool,uint256,uint256,uint256)", address(tradingFacet));
 
         // LiquidityFacet
-        bytes32 op11 = _schedule(core, OP_SET_FACET, "addLiquidity(uint256,uint256)", address(liquidityFacet));
-        bytes32 op12 = _schedule(core, OP_SET_FACET, "removeLiquidity(uint256,uint256)", address(liquidityFacet));
-        bytes32 op13 = _schedule(core, OP_SET_FACET, "claimLpFees(uint256)", address(liquidityFacet));
+        bytes32 op13 = _schedule(core, OP_SET_FACET, "addLiquidity(uint256,uint256)", address(liquidityFacet));
+        bytes32 op14 = _schedule(core, OP_SET_FACET, "removeLiquidity(uint256,uint256)", address(liquidityFacet));
+        bytes32 op15 = _schedule(core, OP_SET_FACET, "claimLpFees(uint256)", address(liquidityFacet));
 
         // SettlementFacet
-        bytes32 op14 = _schedule(core, OP_SET_FACET, "resolveMarketWithPrice(uint256,uint256)", address(settlementFacet));
-        bytes32 op15 = _schedule(core, OP_SET_FACET, "emergencyCancelMarket(bytes32,uint256)", address(settlementFacet));
-        bytes32 op16 = _schedule(core, OP_SET_FACET, "redeem(uint256,bool)", address(settlementFacet));
-        bytes32 op17 = _schedule(core, OP_SET_FACET, "pendingLpResidual(uint256,address)", address(settlementFacet));
-        bytes32 op18 = _schedule(core, OP_SET_FACET, "claimLpResidual(uint256)", address(settlementFacet));
+        bytes32 op16 = _schedule(core, OP_SET_FACET, "resolveMarketWithPrice(uint256,uint256)", address(settlementFacet));
+        bytes32 op17 = _schedule(core, OP_SET_FACET, "emergencyCancelMarket(bytes32,uint256)", address(settlementFacet));
+        bytes32 op18 = _schedule(core, OP_SET_FACET, "redeem(uint256,bool)", address(settlementFacet));
+        bytes32 op19 = _schedule(core, OP_SET_FACET, "pendingLpResidual(uint256,address)", address(settlementFacet));
+        bytes32 op20 = _schedule(core, OP_SET_FACET, "claimLpResidual(uint256)", address(settlementFacet));
 
-        console.log("Scheduled 19 operations");
+        console.log("Scheduled 21 operations");
 
         // Execute immediately if testnet
         if (timelockDelay == 0) {
@@ -114,16 +116,18 @@ contract DeploySpeculateX is Script {
             _exec(core, op8, "getMaxJumpE18(uint256)", address(tradingFacet));
             _exec(core, op9, "buy(uint256,bool,uint256,uint256)", address(tradingFacet));
             _exec(core, op10, "sell(uint256,bool,uint256,uint256)", address(tradingFacet));
+            _exec(core, op11, "buy(uint256,bool,uint256,uint256,uint256)", address(tradingFacet));
+            _exec(core, op12, "sell(uint256,bool,uint256,uint256,uint256)", address(tradingFacet));
 
-            _exec(core, op11, "addLiquidity(uint256,uint256)", address(liquidityFacet));
-            _exec(core, op12, "removeLiquidity(uint256,uint256)", address(liquidityFacet));
-            _exec(core, op13, "claimLpFees(uint256)", address(liquidityFacet));
+            _exec(core, op13, "addLiquidity(uint256,uint256)", address(liquidityFacet));
+            _exec(core, op14, "removeLiquidity(uint256,uint256)", address(liquidityFacet));
+            _exec(core, op15, "claimLpFees(uint256)", address(liquidityFacet));
 
-            _exec(core, op14, "resolveMarketWithPrice(uint256,uint256)", address(settlementFacet));
-            _exec(core, op15, "emergencyCancelMarket(bytes32,uint256)", address(settlementFacet));
-            _exec(core, op16, "redeem(uint256,bool)", address(settlementFacet));
-            _exec(core, op17, "pendingLpResidual(uint256,address)", address(settlementFacet));
-            _exec(core, op18, "claimLpResidual(uint256)", address(settlementFacet));
+            _exec(core, op16, "resolveMarketWithPrice(uint256,uint256)", address(settlementFacet));
+            _exec(core, op17, "emergencyCancelMarket(bytes32,uint256)", address(settlementFacet));
+            _exec(core, op18, "redeem(uint256,bool)", address(settlementFacet));
+            _exec(core, op19, "pendingLpResidual(uint256,address)", address(settlementFacet));
+            _exec(core, op20, "claimLpResidual(uint256)", address(settlementFacet));
 
             console.log("All operations executed!");
         }

@@ -22,6 +22,7 @@ contract TradingFacet is CoreStorage {
     error BackingInsufficient();
     error ExtremeImbalance();
     error BuyQuoteFailed();
+    error Expired();
 
     function spotPriceYesE18(uint256 id) public view returns (uint256) {
         Market storage m = markets[id];
@@ -39,11 +40,17 @@ contract TradingFacet is CoreStorage {
         return m.maxJumpE18 > 0 ? m.maxJumpE18 : maxInstantJumpE18;
     }
 
-    function buy(uint256 id, bool isYes, uint256 usdcIn, uint256 minSharesOut)
-        external
+    function buy(uint256 id, bool isYes, uint256 usdcIn, uint256 minSharesOut) external {
+        // Backwards-compatible entrypoint (no deadline).
+        buy(id, isYes, usdcIn, minSharesOut, 0);
+    }
+
+    function buy(uint256 id, bool isYes, uint256 usdcIn, uint256 minSharesOut, uint256 deadline)
+        public
         nonReentrant
         whenNotPaused
     {
+        if (deadline != 0 && block.timestamp > deadline) revert Expired();
         Market storage m = markets[id];
         if (m.status != MarketStatus.Active) revert MarketNotActive();
         if (block.timestamp >= m.resolution.expiryTimestamp) revert MarketNotActive();
@@ -160,11 +167,17 @@ contract TradingFacet is CoreStorage {
         return hi;
     }
 
-    function sell(uint256 id, bool isYes, uint256 sharesIn, uint256 minUsdcOut)
-        external
+    function sell(uint256 id, bool isYes, uint256 sharesIn, uint256 minUsdcOut) external {
+        // Backwards-compatible entrypoint (no deadline).
+        sell(id, isYes, sharesIn, minUsdcOut, 0);
+    }
+
+    function sell(uint256 id, bool isYes, uint256 sharesIn, uint256 minUsdcOut, uint256 deadline)
+        public
         nonReentrant
         whenNotPaused
     {
+        if (deadline != 0 && block.timestamp > deadline) revert Expired();
         Market storage m = markets[id];
         if (m.status != MarketStatus.Active) revert MarketNotActive();
         if (block.timestamp >= m.resolution.expiryTimestamp) revert MarketNotActive();

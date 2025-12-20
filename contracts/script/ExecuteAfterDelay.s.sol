@@ -46,7 +46,7 @@ contract ExecuteAfterDelay is Script {
         _tryExecuteResolver(core, OP_SET_RESOLVER, nonce, RESOLVER);
         nonce++;
 
-        // 2) Facet wiring (nonces 2..14) – must match deploy.sol order exactly
+        // 2) Facet wiring – must match deploy.sol order exactly
         nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "createMarket(string,string,string,string,string,uint256,uint256,address,bytes32,uint256,uint8)", MARKET_FACET);
         nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "getMarketState(uint256)", MARKET_FACET);
         nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "getMarketResolution(uint256)", MARKET_FACET);
@@ -55,6 +55,8 @@ contract ExecuteAfterDelay is Script {
         nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "spotPriceYesE6(uint256)", TRADING_FACET);
         nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "buy(uint256,bool,uint256,uint256)", TRADING_FACET);
         nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "sell(uint256,bool,uint256,uint256)", TRADING_FACET);
+        nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "buy(uint256,bool,uint256,uint256,uint256)", TRADING_FACET);
+        nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "sell(uint256,bool,uint256,uint256,uint256)", TRADING_FACET);
 
         nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "addLiquidity(uint256,uint256)", LIQUIDITY_FACET);
         nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "claimLpFees(uint256)", LIQUIDITY_FACET);

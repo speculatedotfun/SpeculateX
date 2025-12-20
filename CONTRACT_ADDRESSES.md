@@ -37,25 +37,25 @@
 
 | Contract | Address | BscScan |
 |----------|---------|---------|
-| **SpeculateCoreRouter** | `0xb0C40C5ee860DB88487553c4f35F38983C54Fd26` | [View](https://testnet.bscscan.com/address/0xb0C40C5ee860DB88487553c4f35F38983C54Fd26) |
-| **ChainlinkResolver** | `0x663ab7E4A0EeEe2e30C325c7A88001C6704079DE` | [View](https://testnet.bscscan.com/address/0x663ab7E4A0EeEe2e30C325c7A88001C6704079DE) |
-| **Treasury** | `0xE21150eebf27427743cDBdf3ecb8C788fcde8e61` | [View](https://testnet.bscscan.com/address/0xE21150eebf27427743cDBdf3ecb8C788fcde8e61) |
+| **SpeculateCoreRouter** | `0x2CF5F6E3234FAe485fae98Ea78B07cFB97Eb1ddd` | [View](https://testnet.bscscan.com/address/0x2CF5F6E3234FAe485fae98Ea78B07cFB97Eb1ddd) |
+| **ChainlinkResolver** | `0x6217730cab1Fc4548747bc37777Bf622B1741e36` | [View](https://testnet.bscscan.com/address/0x6217730cab1Fc4548747bc37777Bf622B1741e36) |
+| **Treasury** | `0x5583238e692A5c57314a8D392749A3B102329846` | [View](https://testnet.bscscan.com/address/0x5583238e692A5c57314a8D392749A3B102329846) |
 | **Admin** | `0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F` | [View](https://testnet.bscscan.com/address/0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F) |
 
 ### External Contracts
 
 | Contract | Address | BscScan |
 |----------|---------|---------|
-| **MockUSDC** | `0xC04ab62e81bA3107e88eac90c96c53055E82dc1e` | [View](https://testnet.bscscan.com/address/0xC04ab62e81bA3107e88eac90c96c53055E82dc1e) |
+| **MockUSDC** | `0xADEa1B9F54A9Be395DDCAf51e072667E1edA09cf` | [View](https://testnet.bscscan.com/address/0xADEa1B9F54A9Be395DDCAf51e072667E1edA09cf) |
 
 ### Facets (Testnet / Diamond)
 
 | Facet | Address | BscScan |
 |------|---------|---------|
-| **MarketFacet** | `0x1f733593BF5a6c48a0a606a403C84Ce00D468449` | [View](https://testnet.bscscan.com/address/0x1f733593BF5a6c48a0a606a403C84Ce00D468449) |
-| **TradingFacet** | `0x914DC8FD45bFe012Ca34389366943ea68807A9ad` | [View](https://testnet.bscscan.com/address/0x914DC8FD45bFe012Ca34389366943ea68807A9ad) |
-| **LiquidityFacet** | `0x0730F86e4a0C7D3851Dc1003496854cFeC2F7d47` | [View](https://testnet.bscscan.com/address/0x0730F86e4a0C7D3851Dc1003496854cFeC2F7d47) |
-| **SettlementFacet** | `0x79D65A1fC447B59209F46a511ffB4271010c8395` | [View](https://testnet.bscscan.com/address/0x79D65A1fC447B59209F46a511ffB4271010c8395) |
+| **MarketFacet** | `0x97A832fa4fbF84D3Fec97fe4e3eF65FEc73aB35D` | [View](https://testnet.bscscan.com/address/0x97A832fa4fbF84D3Fec97fe4e3eF65FEc73aB35D) |
+| **TradingFacet** | `0xbfEe7bf201171CA527C83334C6D9b08d2F85790A` | [View](https://testnet.bscscan.com/address/0xbfEe7bf201171CA527C83334C6D9b08d2F85790A) |
+| **LiquidityFacet** | `0x1D0d6Fd85A7Ae08Ac8A9B58Cb736d7c2CbB43a39` | [View](https://testnet.bscscan.com/address/0x1D0d6Fd85A7Ae08Ac8A9B58Cb736d7c2CbB43a39) |
+| **SettlementFacet** | `0x5f9D480e972fBd90EcA50E01Fd277AbF6a8f7386` | [View](https://testnet.bscscan.com/address/0x5f9D480e972fBd90EcA50E01Fd277AbF6a8f7386) |
 
 ### Chainlink Price Feeds (Testnet)
 
@@ -75,11 +75,11 @@
 - ✅ **USDC**: `0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d` (USDC אמיתי)
 
 ### Testnet
-- ✅ **SpeculateCoreRouter**: `0xb0C40C5ee860DB88487553c4f35F38983C54Fd26` (Diamond - Final Security Hardening + All New Functions)
-- ✅ **ChainlinkResolver**: `0x663ab7E4A0EeEe2e30C325c7A88001C6704079DE` (Deterministic Resolution + All Audit Fixes)
-- ✅ **Treasury**: `0xE21150eebf27427743cDBdf3ecb8C788fcde8e61` (With MAX_SINGLE_LARGE_WITHDRAW cap)
-- ✅ **MockUSDC**: `0xC04ab62e81bA3107e88eac90c96c53055E82dc1e` (MockUSDC עם Faucet)
-- ✅ **Facets**: see table above (All with security hardening + new functions: removeLiquidity, emergencyCancelMarket, getMarketInvariants)
+- ✅ **SpeculateCoreRouter**: `0x2CF5F6E3234FAe485fae98Ea78B07cFB97Eb1ddd` (Diamond - Final Security Hardening + deadline-enabled buy/sell)
+- ✅ **ChainlinkResolver**: `0x6217730cab1Fc4548747bc37777Bf622B1741e36` (Deterministic Resolution + All Audit Fixes)
+- ✅ **Treasury**: `0x5583238e692A5c57314a8D392749A3B102329846` (With MAX_SINGLE_LARGE_WITHDRAW cap)
+- ✅ **MockUSDC**: `0xADEa1B9F54A9Be395DDCAf51e072667E1edA09cf` (MockUSDC עם Faucet)
+- ✅ **Facets**: see table above (All with security hardening + deadline-enabled buy/sell selectors wired)
 
 ---
 

@@ -26,6 +26,7 @@ const SLIPPAGE_BPS = 50n; // 0.50% slippage buffer
 const SAFETY_MARGIN_BPS = 9800n; // 98% of cap to stay under jump limit
 const MIN_USDC_OUT_E6 = 1_000n; // $0.001
 const MAX_UINT256 = (1n << 256n) - 1n;
+const TRADE_DEADLINE_SECONDS = 5n * 60n; // 5 minutes
 
 type PublicClientType = ReturnType<typeof usePublicClient>;
 type WriteContractAsyncFn = ReturnType<typeof useWriteContract>['writeContractAsync'];
@@ -98,7 +99,9 @@ export default function TradingCard({
 }: TradingCardProps) {
   const { address } = useAccount();
   const marketIdBI = useMemo(() => BigInt(marketId), [marketId]);
-  const coreAbiForNetwork = useMemo(() => getCoreAbi(getCurrentNetwork()), []);
+  const network = getCurrentNetwork();
+  const isTestnetNetwork = network === 'testnet';
+  const coreAbiForNetwork = useMemo(() => getCoreAbi(network), [network]);
   
   // --- UI State ---
   const [tradeMode, setTradeMode] = useState<'buy' | 'sell'>('buy');
@@ -572,11 +575,14 @@ export default function TradingCard({
         if (!simulation || simulation.tokensOut === 0n) throw new Error('Cannot simulate chunk');
         
         const minOut = simulation.minOut > 0n ? simulation.minOut : 1n;
+        const deadline = BigInt(Math.floor(Date.now() / 1000)) + TRADE_DEADLINE_SECONDS;
         const txHash = await writeContractAsync({
           address: addresses.core,
           abi: coreAbiForNetwork,
           functionName: 'buy',
-          args: [marketIdBI, side === 'yes', chunk, minOut],
+          args: isTestnetNetwork
+            ? [marketIdBI, side === 'yes', chunk, minOut, deadline]
+            : [marketIdBI, side === 'yes', chunk, minOut],
         });
         
         await waitForReceipt(publicClient, txHash);
@@ -644,13 +650,16 @@ export default function TradingCard({
         const simulation = simulateBuyChunk(amountParsed, qYes, qNo, bE18, feeTreasuryBps, feeVaultBps, feeLpBps, side === 'yes');
         if (!simulation) throw new Error('Simulation failed');
         const minOut = simulation.minOut > 0n ? simulation.minOut : 1n;
+        const deadline = BigInt(Math.floor(Date.now() / 1000)) + TRADE_DEADLINE_SECONDS;
 
         setBusyLabel('Submitting buy…');
         const txHash = await writeContractAsync({
           address: addresses.core,
           abi: coreAbiForNetwork,
           functionName: 'buy',
-          args: [marketIdBI, side === 'yes', amountParsed, minOut],
+          args: isTestnetNetwork
+            ? [marketIdBI, side === 'yes', amountParsed, minOut, deadline]
+            : [marketIdBI, side === 'yes', amountParsed, minOut],
         });
         await waitForReceipt(publicClient, txHash);
       } else {
@@ -664,13 +673,16 @@ export default function TradingCard({
         const expectedUsdcOut = refundE18 > 0n ? refundE18 / USDC_TO_E18 : 0n;
         const slippageGuard = (expectedUsdcOut * SLIPPAGE_BPS) / 10_000n;
         const minUsdcOut = expectedUsdcOut > slippageGuard ? expectedUsdcOut - slippageGuard : expectedUsdcOut;
+        const deadline = BigInt(Math.floor(Date.now() / 1000)) + TRADE_DEADLINE_SECONDS;
 
         setBusyLabel('Submitting sell…');
         const txHash = await writeContractAsync({
           address: addresses.core,
           abi: coreAbiForNetwork,
           functionName: 'sell',
-          args: [marketIdBI, side === 'yes', tokensIn, minUsdcOut],
+          args: isTestnetNetwork
+            ? [marketIdBI, side === 'yes', tokensIn, minUsdcOut, deadline]
+            : [marketIdBI, side === 'yes', tokensIn, minUsdcOut],
         });
         await waitForReceipt(publicClient, txHash);
       }
@@ -687,7 +699,7 @@ export default function TradingCard({
       setPendingTrade(false);
       setBusyLabel('');
     }
-  }, [amount, amountBigInt, isTradeable, tradeMode, address, publicClient, writeContractAsync, usdcAllowanceValue, tokenAllowanceValue, overJumpCap, refetchAll, showToast, showErrorToast, bE18, feeLpBps, feeTreasuryBps, feeVaultBps, marketIdBI, qNo, qYes, side, tokenAddr, tradeDisabledReason, addresses.core, addresses.usdc, coreAbiForNetwork]);
+  }, [amount, amountBigInt, isTradeable, tradeMode, address, publicClient, writeContractAsync, usdcAllowanceValue, tokenAllowanceValue, overJumpCap, refetchAll, showToast, showErrorToast, bE18, feeLpBps, feeTreasuryBps, feeVaultBps, marketIdBI, qNo, qYes, side, tokenAddr, tradeDisabledReason, addresses.core, addresses.usdc, coreAbiForNetwork, isTestnetNetwork]);
 
   const handleAddLiquidity = useCallback(async () => {
     if (!addLiquidityAmount) return;
