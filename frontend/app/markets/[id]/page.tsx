@@ -41,6 +41,7 @@ import { PositionTab } from './tabs/PositionTab';
 import { CommentsTab } from './tabs/CommentsTab';
 import { TransactionsTab } from './tabs/TransactionsTab';
 import { ResolutionTab } from './tabs/ResolutionTab';
+import { AdminMarketActions } from '@/components/market/AdminMarketActions';
 import { TopHoldersCard } from './components/TopHoldersCard';
 
 const SNAPSHOT_TRADE_LIMIT = 200;
@@ -563,31 +564,53 @@ export default function MarketDetailPage() {
           createdAtDate={createdAtDate}
           logoSrc={logoSrc}
           marketIsActive={marketIsActive}
+          marketIsCancelled={marketStatus === 2}
           yesPrice={marketData.currentPrices.yes}
           expiryTimestamp={BigInt(marketExpiry)}
           onLogoError={() => setLogoSrc('/logos/default.png')}
         />
 
-        {/* Status Banner (Resolved/Expired) */}
-        {(marketIsResolved || marketIsExpired) && (
+        {/* Status Banner (Resolved/Expired/Cancelled) */}
+        {(marketIsResolved || marketIsExpired || marketStatus === 2) && (
           <motion.div
             initial={prefersReducedMotion ? false : { opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className={`mt-2 mb-8 px-6 py-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm ${
-                marketIsResolved
-                ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800/50 text-purple-900 dark:text-purple-100'
-                : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50 text-amber-900 dark:text-amber-100'
+                marketStatus === 2
+                ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 text-red-900 dark:text-red-100'
+                : marketIsResolved
+                  ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800/50 text-purple-900 dark:text-purple-100'
+                  : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50 text-amber-900 dark:text-amber-100'
             }`}
             role="status"
-            aria-label={marketIsResolved ? `Market finalized. Winning outcome: ${marketResolution?.yesWins ? 'YES' : 'NO'}` : 'Market expired'}
+            aria-label={
+              marketStatus === 2
+                ? 'Market has been cancelled. All positions can be redeemed at 50% value.'
+                : marketIsResolved
+                  ? `Market finalized. Winning outcome: ${marketResolution?.yesWins ? 'YES' : 'NO'}`
+                  : 'Market expired'
+            }
           >
             <div className="flex items-center gap-3">
-               {marketIsResolved ? <CheckCircle2 className="w-5 h-5" aria-hidden="true" /> : <Clock className="w-5 h-5" aria-hidden="true" />}
+               {marketStatus === 2 ? (
+                 <AlertTriangle className="w-5 h-5" aria-hidden="true" />
+               ) : marketIsResolved ? (
+                 <CheckCircle2 className="w-5 h-5" aria-hidden="true" />
+               ) : (
+                 <Clock className="w-5 h-5" aria-hidden="true" />
+               )}
                <span className="font-bold text-sm sm:text-base">
-                 {marketIsResolved ? 'Market Finalized' : 'Market Expired'}
+                 {marketStatus === 2 ? 'Market Cancelled' : marketIsResolved ? 'Market Finalized' : 'Market Expired'}
                </span>
             </div>
-            {marketIsResolved && (
+            {marketStatus === 2 ? (
+              <div className="flex items-center gap-2 bg-white/60 dark:bg-black/20 px-3 py-1.5 rounded-full">
+                <span className="text-xs font-bold uppercase opacity-70">Redemption:</span>
+                <span className="text-xs font-black uppercase text-amber-600 dark:text-amber-400">
+                  50% Value
+                </span>
+              </div>
+            ) : marketIsResolved && (
               <div className="flex items-center gap-2 bg-white/60 dark:bg-black/20 px-3 py-1.5 rounded-full">
                 <span className="text-xs font-bold uppercase opacity-70">Winning Outcome:</span>
                 <span className={`text-xs font-black uppercase ${marketResolution?.yesWins ? 'text-[#14B8A6]' : 'text-red-500'}`}>
@@ -766,7 +789,13 @@ export default function MarketDetailPage() {
                     )}
                     {activeTab === 'Comments' && <CommentsTab marketId={marketId} isConnected={isConnected} address={address} />}
                     {activeTab === 'Transactions' && <TransactionsTab transactions={transactions} loading={snapshotLoading && transactions.length === 0} />}
-                    {activeTab === 'Resolution' && <ResolutionTab resolution={resolution} />}
+                    {activeTab === 'Resolution' && (
+                      <ResolutionTab 
+                        resolution={resolution} 
+                        marketId={marketIdNum}
+                        marketStatus={marketStatus === 0 ? 'active' : marketStatus === 1 ? 'resolved' : 'cancelled'}
+                      />
+                    )}
                   </motion.div>
                 </AnimatePresence>
               </div>
@@ -793,13 +822,33 @@ export default function MarketDetailPage() {
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="rounded-2xl border border-amber-200 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 p-4 text-sm text-amber-800 dark:text-amber-400 font-medium flex items-center gap-3"
+                      className={`rounded-2xl border p-4 text-sm font-medium flex items-center gap-3 ${
+                        marketStatus === 2
+                          ? 'border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10 text-red-800 dark:text-red-400'
+                          : 'border-amber-200 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 text-amber-800 dark:text-amber-400'
+                      }`}
                       role="alert"
                       aria-live="polite"
                     >
                       <AlertTriangle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
-                      <span>Trading is currently closed for this market.</span>
+                      <span>
+                        {marketStatus === 2
+                          ? 'This market has been cancelled. All positions can be redeemed at 50% value.'
+                          : 'Trading is currently closed for this market.'}
+                      </span>
                     </motion.div>
+                  )}
+
+                  {/* Admin Actions (Right Sidebar) */}
+                  {isMarketIdValid && market && (
+                    <AdminMarketActions
+                      marketId={marketIdNum}
+                      marketStatus={marketStatus === 0 ? 'active' : marketStatus === 1 ? 'resolved' : 'cancelled'}
+                      isResolved={marketIsResolved}
+                      expiryTimestamp={marketExpiry ? BigInt(marketExpiry) : 0n}
+                      oracleType={resolution?.oracleType || 0}
+                      oracleAddress={resolution?.oracleAddress}
+                    />
                   )}
 
                   <div className="bg-white dark:bg-gray-800 rounded-[24px] shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">

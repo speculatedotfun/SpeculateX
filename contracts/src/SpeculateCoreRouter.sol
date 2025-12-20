@@ -8,29 +8,31 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 /// @dev IMPORTANT: `CoreStorage` MUST be the first base contract so its storage layout
 ///      starts at slot 0 for both the router and all facets (which inherit `CoreStorage`).
 contract SpeculateCoreRouter is CoreStorage, AccessControl {
-    event OperationScheduled(bytes32 indexed opId, bytes32 indexed tag, uint256 readyAt);
-    event OperationExecuted(bytes32 indexed opId);
-    event OperationCancelled(bytes32 indexed opId);
-
     event FacetSet(bytes4 indexed selector, address indexed facet);
     event FacetRemoved(bytes4 indexed selector);
     event TreasuryUpdated(address indexed treasury);
     event ResolverUpdated(address indexed resolver);
 
     error ZeroAddress();
-    error OpInvalid();
-    error OpNotReady(uint256 readyAt);
-    error TagMismatch();
-    error DataMismatch();
+    error BadValue();
+    error TagMismatch_(); // Renamed to avoid collision with CoreStorage if any
+    error DataMismatch_();
     error NotAContract(address addr);
     error Paused();
-    error OpExpired();
     error NoFacet();
 
-    uint256 public constant OP_EXPIRY_WINDOW = 7 days;
+    uint256 public constant ABSOLUTE_MIN_DELAY = 0; // TESTNET ONLY!
+    
+    // Settlement function selectors (whitelisted during pause)
+    bytes4 private constant RESOLVE_MARKET_SELECTOR = bytes4(keccak256("resolveMarketWithPrice(uint256,uint256)"));
+    bytes4 private constant CANCEL_MARKET_SELECTOR = bytes4(keccak256("emergencyCancelMarket(bytes32,uint256)"));
+    bytes4 private constant REDEEM_SELECTOR        = bytes4(keccak256("redeem(uint256,bool)"));
+    bytes4 private constant CLAIM_LP_FEES_SELECTOR = bytes4(keccak256("claimLpFees(uint256)"));
+    bytes4 private constant CLAIM_LP_RESID_SELECTOR= bytes4(keccak256("claimLpResidual(uint256)"));
 
     constructor(address admin, address usdc_, address treasury_, uint256 minTimelockDelay_) {
         if (admin == address(0) || usdc_ == address(0) || treasury_ == address(0)) revert ZeroAddress();
+        if (minTimelockDelay_ < ABSOLUTE_MIN_DELAY) revert BadValue();
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(MARKET_CREATOR_ROLE, admin);
 
@@ -78,18 +80,6 @@ contract SpeculateCoreRouter is CoreStorage, AccessControl {
         emit OperationCancelled(opId);
     }
 
-    function _consume(bytes32 opId, bytes32 tag, bytes memory data) internal {
-        Op storage op = ops[opId];
-        if (op.status != OpStatus.Scheduled) revert OpInvalid();
-        if (block.timestamp < op.readyAt) revert OpNotReady(op.readyAt);
-        if (block.timestamp > op.readyAt + OP_EXPIRY_WINDOW) revert OpExpired();
-        if (op.tag != tag) revert TagMismatch();
-        if (op.dataHash != keccak256(data)) revert DataMismatch();
-
-        op.status = OpStatus.Executed;
-        emit OperationExecuted(opId);
-    }
-
     function executeSetFacet(bytes32 opId, bytes4 selector, address facet)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
@@ -102,11 +92,9 @@ contract SpeculateCoreRouter is CoreStorage, AccessControl {
         emit FacetSet(selector, facet);
     }
 
-    /**
-     * @notice Emergency function to disable a specific selector.
-     * @dev Does not require timelock as it is a safety/emergency measure.
-     */
-    function removeFacet(bytes4 selector) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function executeRemoveFacet(bytes32 opId, bytes4 selector) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        bytes memory data = abi.encode(selector);
+        _consume(opId, OP_REMOVE_FACET, data);
         facetOf[selector] = address(0);
         emit FacetRemoved(selector);
     }
@@ -144,9 +132,29 @@ contract SpeculateCoreRouter is CoreStorage, AccessControl {
         _paused = false;
     }
 
+    function executeRecoverETH(bytes32 opId, address payable to) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        bytes memory data = abi.encode(to);
+        _consume(opId, OP_RECOVER_ETH, data);
+        (bool success, ) = to.call{value: address(this).balance}("");
+        require(success, "TRANSFER_FAILED");
+    }
+
     fallback() external payable {
-        if (_paused) revert Paused();
-        address facet = facetOf[msg.sig];
+        bytes4 selector = msg.sig;
+        // Whitelist settlement functions to allow resolution even when paused
+        // This ensures markets can be resolved during emergencies
+        if (_paused) {
+            if (
+                selector != RESOLVE_MARKET_SELECTOR &&
+                selector != CANCEL_MARKET_SELECTOR &&
+                selector != REDEEM_SELECTOR &&
+                selector != CLAIM_LP_FEES_SELECTOR &&
+                selector != CLAIM_LP_RESID_SELECTOR
+            ) {
+                revert Paused();
+            }
+        }
+        address facet = facetOf[selector];
         if (facet == address(0)) revert NoFacet();
 
         assembly ("memory-safe") {
@@ -159,5 +167,7 @@ contract SpeculateCoreRouter is CoreStorage, AccessControl {
         }
     }
 
-    receive() external payable {}
+    receive() external payable {
+        revert("NO_ETH");
+    }
 }

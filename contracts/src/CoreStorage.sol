@@ -14,6 +14,8 @@ import "./PositionToken.sol";
  * - USDC: 6 decimals (stored in usdcVault, totalLpUsdc, lpFeesUSDC, residualUSDC).
  * - E18: 18 decimals (stored in qYes, qNo, bE18, dustSharesE18, liquidityMultiplierE18, maxJumpE18).
  * - targetValue: In oracle feed decimals (8 for BTC/USD, ETH/USD etc.).
+ * 
+ * NOTE: Fee-on-transfer tokens are NOT supported. The protocol expects standard ERC20 behavior (specifically USDC).
  */
 abstract contract CoreStorage {
     // ===== Roles (use AccessControl in router + facets) =====
@@ -27,6 +29,8 @@ abstract contract CoreStorage {
     // ===== Constants =====
     uint256 public constant USDC_TO_E18 = 1e12;
     uint256 public constant BPS = 10_000;
+    uint256 public constant MAX_SHARES = 1e60; // 1 trillion * 1 trillion * 1 trillion tokens
+    uint256 public constant MIN_LP_USDC = 1e6; // 1 USDC minimum liquidity floor (6 decimals)
 
     // ===== Global params =====
     uint256 public maxUsdcPerTrade;
@@ -138,12 +142,53 @@ abstract contract CoreStorage {
     }
     mapping(bytes32 => Op) public ops;
 
+    event OperationScheduled(bytes32 indexed opId, bytes32 indexed tag, uint256 readyAt);
+    event OperationExecuted(bytes32 indexed opId);
+    event OperationCancelled(bytes32 indexed opId);
+
     // tags
     bytes32 public constant OP_SET_FACET   = keccak256("OP_SET_FACET");
     bytes32 public constant OP_SET_TREASURY= keccak256("OP_SET_TREASURY");
     bytes32 public constant OP_SET_RESOLVER= keccak256("OP_SET_RESOLVER");
     bytes32 public constant OP_PAUSE       = keccak256("OP_PAUSE");
     bytes32 public constant OP_UNPAUSE     = keccak256("OP_UNPAUSE");
+    bytes32 public constant OP_CANCEL_MARKET= keccak256("OP_CANCEL_MARKET");
+    bytes32 public constant OP_RECOVER_ETH = keccak256("OP_RECOVER_ETH");
+    bytes32 public constant OP_REMOVE_FACET = keccak256("OP_REMOVE_FACET");
+
+    uint256 public constant OP_EXPIRY_WINDOW = 7 days;
+
+    error OpInvalid();
+    error OpNotReady(uint256 readyAt);
+    error OpExpired();
+    error TagMismatch();
+    error DataMismatch();
+    error NotAuthorized();
+
+    function _consume(bytes32 opId, bytes32 tag, bytes memory data) internal {
+        Op storage op = ops[opId];
+        if (op.status != OpStatus.Scheduled) revert OpInvalid();
+        if (block.timestamp < op.readyAt) revert OpNotReady(op.readyAt);
+        if (block.timestamp > op.readyAt + OP_EXPIRY_WINDOW) revert OpExpired();
+        if (op.tag != tag) revert TagMismatch();
+        if (op.dataHash != keccak256(data)) revert DataMismatch();
+
+        op.status = OpStatus.Executed;
+        emit OperationExecuted(opId);
+    }
+
+    function _checkRoleInternal(bytes32 role, address account) internal view {
+        // We assume the contract itself (the Diamond) implements IAccessControl
+        // This works because facets are called via delegatecall.
+        (bool success, bytes memory data) = address(this).staticcall(
+            abi.encodeWithSignature("hasRole(bytes32,address)", role, account)
+        );
+        if (!success || !abi.decode(data, (bool))) revert NotAuthorized();
+    }
+
+    // LP dust tracking (M-02)
+    mapping(uint256 => uint256) public lpFeeDustUSDC;
+    mapping(uint256 => uint256) public lpResidualDustUSDC;
 
     // ===== Future Upgrade Gap =====
     uint256 public constant STORAGE_VERSION = 1;

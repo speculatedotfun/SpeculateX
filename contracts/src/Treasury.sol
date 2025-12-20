@@ -15,10 +15,12 @@ contract Treasury is AccessControl, ReentrancyGuard {
     uint256 public constant MIN_DELAY = 24 hours;
     uint256 public constant OP_EXPIRY_WINDOW = 7 days;
     uint256 public constant MAX_SINGLE_LARGE_WITHDRAW = 1_000_000e6; // 1M USDC safety cap
+    uint256 public constant MAX_DAILY_LIMIT = 5_000_000e6; // 5M USDC safety cap
 
     uint256 public dailyWithdrawLimit; // in token units (e.g. USDC 6 decimals)
-    uint256 public currentDay;
-    uint256 public withdrawnToday;
+    // Track daily withdrawals per token to avoid mixed-decimal footguns.
+    mapping(address => uint256) public lastWithdrawDayByToken;
+    mapping(address => uint256) public withdrawnTodayByToken;
 
     uint256 public opNonce;
 
@@ -62,14 +64,16 @@ contract Treasury is AccessControl, ReentrancyGuard {
         if (amount == 0) revert BadAmount();
 
         uint256 dayNow = block.timestamp / 1 days;
-        if (dayNow > currentDay) {
-            currentDay = dayNow;
-            withdrawnToday = 0;
+        uint256 lastDay = lastWithdrawDayByToken[token];
+        if (dayNow > lastDay) {
+            lastWithdrawDayByToken[token] = dayNow;
+            withdrawnTodayByToken[token] = 0;
         }
 
-        if (withdrawnToday + amount > dailyWithdrawLimit) revert LimitExceeded();
+        uint256 used = withdrawnTodayByToken[token];
+        if (used + amount > dailyWithdrawLimit) revert LimitExceeded();
 
-        withdrawnToday += amount;
+        withdrawnTodayByToken[token] = used + amount;
         IERC20(token).safeTransfer(to, amount);
         emit Withdraw(token, to, amount);
     }
@@ -131,6 +135,7 @@ contract Treasury is AccessControl, ReentrancyGuard {
     }
 
     function setDailyLimit(uint256 newLimit) external onlyRole(ADMIN_ROLE) {
+        if (newLimit > MAX_DAILY_LIMIT) revert BadAmount();
         // Sanity check: allow 0 only if explicitly intended to freeze regular withdrawals
         uint256 oldLimit = dailyWithdrawLimit;
         dailyWithdrawLimit = newLimit;

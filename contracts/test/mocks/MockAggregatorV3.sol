@@ -16,7 +16,7 @@ contract MockAggregatorV3 is AggregatorV3Interface {
         uint80 answeredInRound;
     }
     mapping(uint80 => Round) internal rounds;
-    uint80 internal _latestRoundId;
+    uint80 internal _latestRoundId = 0;
 
     constructor(uint8 decimals_) {
         _decimals = decimals_;

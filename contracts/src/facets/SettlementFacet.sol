@@ -19,7 +19,6 @@ contract SettlementFacet is CoreStorage {
     error MarketNotActive();
     error MarketNotResolved();
     error InvalidExpiry();
-    error NotAuthorized();
     error SolvencyIssue();
     error DustAmount();
 
@@ -49,6 +48,59 @@ contract SettlementFacet is CoreStorage {
         revert("DISABLED_IN_100_100");
     }
 
+    function emergencyCancelMarket(bytes32 opId, uint256 id) external {
+        _checkRoleInternal(bytes32(0), msg.sender); // DEFAULT_ADMIN_ROLE = 0x00
+        _consume(opId, OP_CANCEL_MARKET, abi.encode(id));
+
+        Market storage m = markets[id];
+        if (address(m.yes) == address(0)) revert InvalidMarket();
+        if (m.status != MarketStatus.Active) revert MarketNotActive();
+
+        m.status = MarketStatus.Cancelled;
+        m.resolution.isResolved = true;
+
+        emit MarketCancelled(id);
+
+        _finalizeCancellation(id);
+    }
+
+    /**
+     * @dev Finalize a cancelled market in a way that is always solvent under the protocol's
+     * existing backing invariant (vault covers worst-case side). We treat cancellation as p=0.5.
+     * Any excess vault over the cancellation liability is allocated to LP residuals.
+     */
+    function _finalizeCancellation(uint256 id) internal {
+        Market storage m = markets[id];
+
+        // circulating supplies exclude router-held locked shares
+        uint256 cirYes = m.yes.totalSupply() - m.yes.balanceOf(address(this));
+        uint256 cirNo  = m.no.totalSupply()  - m.no.balanceOf(address(this));
+
+        // requiredUSDC = (cirYes + cirNo) * 0.5 / 1e12  == (cirYes + cirNo) / 2e12
+        uint256 requiredUSDC = (cirYes + cirNo) / 2e12;
+
+        if (m.usdcVault > requiredUSDC) {
+            uint256 residue = m.usdcVault - requiredUSDC;
+            m.usdcVault = requiredUSDC;
+
+            if (m.totalLpUsdc > 0 && residue > 0) {
+                uint256 residueToDistribute = residue + lpResidualDustUSDC[id];
+                uint256 toAdd = (residueToDistribute * 1e18) / m.totalLpUsdc;
+
+                if (toAdd > 0) {
+                    accResidualPerUSDCE18[id] += toAdd;
+                    uint256 distributed = (toAdd * m.totalLpUsdc) / 1e18;
+                    lpResidualDustUSDC[id] = residueToDistribute - distributed;
+                } else {
+                    lpResidualDustUSDC[id] = residueToDistribute;
+                }
+
+                m.residualUSDC += residue;
+                emit ResidualFinalized(id, residue, m.totalLpUsdc);
+            }
+        }
+    }
+
     function _finalizeMarket(uint256 id, bool yesWins) internal {
         Market storage m = markets[id];
 
@@ -70,7 +122,17 @@ contract SettlementFacet is CoreStorage {
             m.usdcVault = requiredUSDC;
 
             if (m.totalLpUsdc > 0 && residue > 0) {
-                accResidualPerUSDCE18[id] += (residue * 1e18) / m.totalLpUsdc;
+                uint256 residueToDistribute = residue + lpResidualDustUSDC[id];
+                uint256 toAdd = (residueToDistribute * 1e18) / m.totalLpUsdc;
+
+                if (toAdd > 0) {
+                    accResidualPerUSDCE18[id] += toAdd;
+                    uint256 distributed = (toAdd * m.totalLpUsdc) / 1e18;
+                    lpResidualDustUSDC[id] = residueToDistribute - distributed;
+                } else {
+                    lpResidualDustUSDC[id] = residueToDistribute;
+                }
+                
                 m.residualUSDC += residue;
                 emit ResidualFinalized(id, residue, m.totalLpUsdc);
             }
@@ -90,7 +152,9 @@ contract SettlementFacet is CoreStorage {
         if (m.status == MarketStatus.Resolved) {
             if (isYes == m.resolution.yesWins) payoutUSDC = bal / 1e12;
         } else if (m.status == MarketStatus.Cancelled) {
-            payoutUSDC = bal / 1e12;
+            // Cancellation pays p=0.5 to both sides so total payout stays solvent under
+            // vault >= max(cirYes, cirNo) / 1e12.
+            payoutUSDC = (bal / 1e12) / 2;
         }
 
         if (payoutUSDC == 0) revert DustAmount();
@@ -107,7 +171,8 @@ contract SettlementFacet is CoreStorage {
 
     function pendingLpResidual(uint256 id, address lp) public view returns (uint256) {
         uint256 entitled = (lpShares[id][lp] * accResidualPerUSDCE18[id]) / 1e18;
-        return entitled - lpResidualDebt[id][lp];
+        uint256 debt = lpResidualDebt[id][lp];
+        return entitled > debt ? (entitled - debt) : 0;
     }
 
     function claimLpResidual(uint256 id) external nonReentrant {

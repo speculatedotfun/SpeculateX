@@ -21,9 +21,9 @@ contract MarketCreationTest is TestSetup {
             "NO",
             1_000e6,
             block.timestamp + 1 days,
-            address(0),
+            address(mockOracle), // Use valid oracle (will revert on role check, not oracle check)
             bytes32(0),
-            0,
+            100e8, // Valid target value
             CoreStorage.Comparison.Above
         );
         vm.stopPrank();
@@ -45,9 +45,9 @@ contract MarketCreationTest is TestSetup {
             "NO",
             499e6,
             block.timestamp + 1 days,
-            address(0),
+            address(mockOracle), // Use valid oracle
             bytes32(0),
-            0,
+            100e8, // Valid target value
             CoreStorage.Comparison.Above
         );
         vm.stopPrank();
@@ -66,9 +66,9 @@ contract MarketCreationTest is TestSetup {
             "NO",
             500e6,
             block.timestamp,
-            address(0),
+            address(mockOracle), // Use valid oracle
             bytes32(0),
-            0,
+            100e8, // Valid target value
             CoreStorage.Comparison.Above
         );
         vm.stopPrank();
@@ -90,9 +90,9 @@ contract MarketCreationTest is TestSetup {
             "NO",
             500e6,
             block.timestamp + 1 days,
-            address(0),
+            address(mockOracle), // Use valid oracle
             bytes32(0),
-            0,
+            100e8, // Valid target value (within range of mockOracle's 100e8)
             CoreStorage.Comparison.Above
         );
         assertEq(id, 1);

@@ -1,13 +1,16 @@
 'use client';
 import { formatUnits, keccak256, stringToBytes } from 'viem';
-import { CheckCircle2, Scale, Calendar, Rss, Clock } from 'lucide-react';
+import { CheckCircle2, Scale, Calendar, Rss, Clock, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { AdminMarketActions } from '@/components/market/AdminMarketActions';
 
 interface ResolutionTabProps {
   resolution: any;
+  marketId?: number;
+  marketStatus?: 'active' | 'resolved' | 'cancelled' | 'expired';
 }
 
-export function ResolutionTab({ resolution }: ResolutionTabProps) {
+export function ResolutionTab({ resolution, marketId, marketStatus }: ResolutionTabProps) {
   if (!resolution || !resolution.expiryTimestamp) {
     return (
       <motion.div
@@ -33,35 +36,80 @@ export function ResolutionTab({ resolution }: ResolutionTabProps) {
     return knownFeeds[id] || `${id.slice(0, 6)}...${id.slice(-4)}`;
   };
 
+  const statusMap: Record<number, 'active' | 'resolved' | 'cancelled' | 'expired'> = {
+    0: 'active',
+    1: 'resolved',
+    2: 'cancelled',
+  };
+
+  const currentStatus = marketStatus || (resolution?.isResolved 
+    ? (resolution?.yesWins !== undefined ? 'resolved' : 'cancelled')
+    : 'active');
+
   return (
     <div className="space-y-6">
+      {/* Admin Actions */}
+      {marketId && (
+        <AdminMarketActions
+          marketId={marketId}
+          marketStatus={currentStatus}
+          isResolved={Boolean(resolution?.isResolved)}
+          expiryTimestamp={resolution?.expiryTimestamp || 0n}
+          oracleType={resolution?.oracleType || 0}
+          oracleAddress={resolution?.oracleAddress}
+        />
+      )}
+
       {/* Main Status Card */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className={`p-6 rounded-2xl border ${
-          resolution.isResolved
-            ? 'bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800/30'
-            : 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800/30'
+          currentStatus === 'cancelled'
+            ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800/30'
+            : resolution.isResolved
+              ? 'bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800/30'
+              : 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800/30'
         }`}
         role="region"
-        aria-label={resolution.isResolved ? 'Market resolution results' : 'Market resolution criteria'}
+        aria-label={currentStatus === 'cancelled' ? 'Market cancellation notice' : resolution.isResolved ? 'Market resolution results' : 'Market resolution criteria'}
       >
         <div className="flex items-start gap-4">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-            className={`p-3 rounded-xl ${resolution.isResolved ? 'bg-purple-100 dark:bg-purple-800/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-800/30 text-blue-600 dark:text-blue-400'}`}
+            className={`p-3 rounded-xl ${
+              currentStatus === 'cancelled'
+                ? 'bg-red-100 dark:bg-red-800/30 text-red-600 dark:text-red-400'
+                : resolution.isResolved
+                  ? 'bg-purple-100 dark:bg-purple-800/30 text-purple-600 dark:text-purple-400'
+                  : 'bg-blue-100 dark:bg-blue-800/30 text-blue-600 dark:text-blue-400'
+            }`}
           >
-            {resolution.isResolved ? <CheckCircle2 className="w-6 h-6" aria-hidden="true" /> : <Scale className="w-6 h-6" aria-hidden="true" />}
+            {currentStatus === 'cancelled' ? (
+              <AlertTriangle className="w-6 h-6" aria-hidden="true" />
+            ) : resolution.isResolved ? (
+              <CheckCircle2 className="w-6 h-6" aria-hidden="true" />
+            ) : (
+              <Scale className="w-6 h-6" aria-hidden="true" />
+            )}
           </motion.div>
           <div>
             <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
-              {resolution.isResolved ? 'Market Resolved' : 'Resolution Criteria'}
+              {currentStatus === 'cancelled'
+                ? 'Market Cancelled'
+                : resolution.isResolved
+                  ? 'Market Resolved'
+                  : 'Resolution Criteria'}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-              {resolution.isResolved ? (
+              {currentStatus === 'cancelled' ? (
+                <>
+                  This market has been <span className="font-black text-red-600 dark:text-red-400">cancelled</span> by the administrator. 
+                  All positions (YES and NO) can be redeemed at <span className="font-bold text-gray-900 dark:text-white">50% of face value</span> (0.5 USDC per share).
+                </>
+              ) : resolution.isResolved ? (
                 <>
                   This market has ended. The winning outcome is <span className={`font-black ${resolution.yesWins ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{resolution.yesWins ? 'YES' : 'NO'}</span>.
                 </>

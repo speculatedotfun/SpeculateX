@@ -4,15 +4,17 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SearchIcon, Activity, Clock, SlidersHorizontal, TrendingUp, Loader2 } from 'lucide-react';
+import { SearchIcon, Activity, Clock, SlidersHorizontal, TrendingUp, Loader2, X } from 'lucide-react';
 import Header from '@/components/Header';
-import { getMarketCount, getMarket, getPriceYes, getMarketResolution, getMarketState } from '@/lib/hooks';
+import { getMarketCount, getMarket, getPriceYes, getMarketResolution, getMarketState, isAdmin as checkIsAdmin } from '@/lib/hooks';
 import { formatUnits } from 'viem';
 import { useQuery } from '@tanstack/react-query';
 import { fetchSubgraph } from '@/lib/subgraphClient';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PriceDisplay } from '@/components/market/PriceDisplay';
 import { Sparkline } from '@/components/market/Sparkline';
+import { useAccount } from 'wagmi';
+import { Shield, AlertTriangle } from 'lucide-react';
 
 // --- Helper Functions ---
 
@@ -39,7 +41,7 @@ const formatTimeRemaining = (expiryTimestamp: bigint): string => {
   return `${minutes}m`;
 };
 
-const STATUS_FILTERS = ['Active', 'Expired', 'Resolved'] as const;
+const STATUS_FILTERS = ['Active', 'Expired', 'Resolved', 'Cancelled'] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 // --- Sub-Components ---
@@ -237,16 +239,25 @@ interface MarketCard {
   volume: number;
   yesPercent: number;
   noPercent: number;
-  status: 'LIVE TRADING' | 'EXPIRED' | 'RESOLVED';
+  status: 'LIVE TRADING' | 'EXPIRED' | 'RESOLVED' | 'CANCELLED';
   totalPairsUSDC: bigint;
   expiryTimestamp: bigint;
   oracleType: number;
   isResolved: boolean;
   yesWins?: boolean;
   priceHistory?: number[];
+  isCancelled?: boolean;
 }
 
 export default function MarketsPage() {
+  const { address } = useAccount();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (address) {
+      checkIsAdmin(address).then(setIsAdmin);
+    }
+  }, [address]);
   const [marketCount, setMarketCount] = useState<number | null>(null);
   const [markets, setMarkets] = useState<MarketCard[]>([]);
   const [loading, setLoading] = useState(true);
@@ -315,9 +326,32 @@ export default function MarketsPage() {
           const expiryTimestamp = resolution.expiryTimestamp || 0n;
           const isExpired = expiryTimestamp > 0n && Number(expiryTimestamp) < now;
 
-          let status: 'LIVE TRADING' | 'EXPIRED' | 'RESOLVED' = 'LIVE TRADING';
-          if (resolution.isResolved) status = 'RESOLVED';
-          else if (isExpired) status = 'EXPIRED';
+          // Use status from getMarketState (more reliable) - it's at index 4 for diamond/testnet
+          // Fallback to market.status if state.status is not available
+          const marketStatusNum = state?.status !== undefined ? Number(state.status) : (typeof market.status === 'number' ? market.status : Number(market?.status ?? 0));
+          
+          let status: 'LIVE TRADING' | 'EXPIRED' | 'RESOLVED' | 'CANCELLED' = 'LIVE TRADING';
+          // MarketStatus: 0 = Active, 1 = Resolved, 2 = Cancelled
+          // IMPORTANT: Check cancelled FIRST because cancelled markets also have isResolved = true
+          if (marketStatusNum === 2) {
+            status = 'CANCELLED';
+          } else if (resolution.isResolved) {
+            status = 'RESOLVED';
+          } else if (isExpired) {
+            status = 'EXPIRED';
+          }
+          
+          // Debug logging for cancelled markets
+          if (marketStatusNum === 2) {
+            console.log(`[MarketsPage] Market ${i} is CANCELLED:`, {
+              marketStatusNum,
+              statusFromState: state?.status,
+              statusFromMarket: market.status,
+              finalStatus: status,
+              isResolved: resolution.isResolved,
+              question: market.question
+            });
+          }
 
           const totalPairs = Number(formatUnits(state.vault, 6));
           let yesPriceNum = parseFloat(priceYes);
@@ -348,6 +382,7 @@ export default function MarketsPage() {
             oracleType: resolution.oracleType || 0,
             isResolved: resolution.isResolved || false,
             yesWins: resolution.yesWins,
+            isCancelled: marketStatusNum === 2,
             priceHistory: historyMap[i.toString()] || [yesPriceClean, yesPriceClean], // Fallback to current price
           } as MarketCard;
         } catch (error) {
@@ -371,6 +406,7 @@ export default function MarketsPage() {
       if (activeStatusTab === 'Active' && market.status !== 'LIVE TRADING') return false;
       if (activeStatusTab === 'Expired' && market.status !== 'EXPIRED') return false;
       if (activeStatusTab === 'Resolved' && market.status !== 'RESOLVED') return false;
+      if (activeStatusTab === 'Cancelled' && market.status !== 'CANCELLED') return false;
     }
     if (activeCategory !== 'All') {
       const categoryLower = activeCategory.toLowerCase();
@@ -384,15 +420,16 @@ export default function MarketsPage() {
   });
 
   const stats = useMemo(() => {
-    if (markets.length === 0) return { liquidity: 0, live: 0, resolved: 0, expired: 0, total: 0 };
-    let liquidity = 0, live = 0, resolved = 0, expired = 0;
+    if (markets.length === 0) return { liquidity: 0, live: 0, resolved: 0, expired: 0, cancelled: 0, total: 0 };
+    let liquidity = 0, live = 0, resolved = 0, expired = 0, cancelled = 0;
     for (const market of markets) {
       liquidity += Number(formatUnits(market.totalPairsUSDC, 6));
       if (market.status === 'LIVE TRADING') live += 1;
       else if (market.status === 'RESOLVED') resolved += 1;
       else if (market.status === 'EXPIRED') expired += 1;
+      else if (market.status === 'CANCELLED') cancelled += 1;
     }
-    return { liquidity, live, resolved, expired, total: markets.length };
+    return { liquidity, live, resolved, expired, cancelled, total: markets.length };
   }, [markets]);
 
   const formatNumber = useCallback((value: number, decimals = 0) => {
@@ -613,19 +650,36 @@ export default function MarketsPage() {
                              ) : <div className="text-xl">📈</div>}
                            </div>
 
-                           {market.status === 'LIVE TRADING' ? (
-                             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
-                                <span className="relative flex h-1.5 w-1.5">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-                                </span>
-                                Live
-                             </div>
-                           ) : (
-                             <div className="px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-[10px] font-bold text-gray-500 uppercase tracking-wide">
-                               {market.status === 'RESOLVED' ? 'Ended' : 'Expired'}
-                             </div>
-                           )}
+                           <div className="flex items-center gap-2">
+                             {market.status === 'LIVE TRADING' ? (
+                               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
+                                 <span className="relative flex h-1.5 w-1.5">
+                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                                 </span>
+                                 Live
+                               </div>
+                             ) : market.status === 'CANCELLED' ? (
+                               <div className="px-2.5 py-1 rounded-full bg-red-100 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wide flex items-center gap-1">
+                                 <X className="w-3 h-3" />
+                                 Cancelled
+                               </div>
+                             ) : (
+                               <div className="px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-[10px] font-bold text-gray-500 uppercase tracking-wide">
+                                 {market.status === 'RESOLVED' ? 'Ended' : 'Expired'}
+                               </div>
+                             )}
+                             {/* Admin Indicator for expired markets needing resolution */}
+                             {isAdmin && market.status === 'EXPIRED' && !market.isResolved && market.oracleType === 1 && (
+                               <div 
+                                 className="px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1"
+                                 title="Admin: This market needs resolution"
+                               >
+                                 <Shield className="w-3 h-3" />
+                                 Action
+                               </div>
+                             )}
+                           </div>
                         </div>
 
                         {/* Question */}

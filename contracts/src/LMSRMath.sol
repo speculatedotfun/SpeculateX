@@ -102,10 +102,51 @@ library LMSRMath {
         return uint256(qNewInt) - qSide;
     }
 
+    /**
+     * @dev Non-reverting variant of findSharesOut for hybrid quoting.
+     * Returns (ok=false, sharesOut=0) if analytic path is out-of-domain.
+     */
+    function tryFindSharesOut(uint256 qSide, uint256 qOther, uint256 netE18, uint256 bE18)
+        internal
+        pure
+        returns (bool ok, uint256 sharesOut)
+    {
+        if (bE18 == 0) return (false, 0);
+        if (netE18 == 0) return (true, 0);
+
+        // Safe cast guards
+        if (qSide > uint256(type(int256).max) || qOther > uint256(type(int256).max) || bE18 > uint256(type(int256).max)) {
+            return (false, 0);
+        }
+
+        uint256 c0 = calculateCost(qSide, qOther, bE18);
+        uint256 c1 = c0 + netE18;
+
+        SD59x18 c1OverB = _ratioE18(c1, bE18);
+        SD59x18 qOOverB = _ratioE18(qOther, bE18);
+
+        // Out of exp domain => fallback to bisection
+        if (c1OverB.unwrap() > MAX_EXP_INPUT || qOOverB.unwrap() > MAX_EXP_INPUT) return (false, 0);
+
+        SD59x18 diff = c1OverB.exp().sub(qOOverB.exp());
+        if (diff.unwrap() <= 0) return (false, 0);
+
+        // Safe cast guard for bE18
+        if (bE18 > uint256(type(int256).max)) return (false, 0);
+
+        SD59x18 qNew = sd(int256(bE18)).mul(diff.ln());
+        int256 qNewInt = qNew.unwrap();
+        if (qNewInt <= int256(qSide)) return (true, 0);
+
+        return (true, uint256(qNewInt) - qSide);
+    }
+
     // log(exp(x)+exp(y)) = m + ln(1 + exp(-|x-y|))
     function _logSumExp(SD59x18 x, SD59x18 y) private pure returns (SD59x18) {
         SD59x18 m = x.gt(y) ? x : y;
         SD59x18 d = x.sub(y).abs().mul(sd(-1e18)); // -|x-y|
+        // If d is extremely negative, exp(d) ~= 0. Avoid PRB exp-domain reverts.
+        if (d.unwrap() < -MAX_EXP_INPUT) return m;
         return m.add(sd(1e18).add(d.exp()).ln());
     }
 

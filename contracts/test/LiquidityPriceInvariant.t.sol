@@ -16,8 +16,8 @@ contract LiquidityPriceInvariantTest is TestSetup {
             admin,
             1_000e6,
             block.timestamp + 30 days,
-            address(0),
-            0,
+            address(mockOracle),
+            100e8,
             CoreStorage.Comparison.Above
         );
 

@@ -12,6 +12,7 @@ import {MockUSDC} from "../src/MockUSDC.sol";
 import {Treasury} from "../src/Treasury.sol";
 import {ChainlinkResolver} from "../src/ChainlinkResolver.sol";
 import {CoreStorage} from "../src/CoreStorage.sol";
+import {MockAggregatorV3} from "./mocks/MockAggregatorV3.sol";
 
 abstract contract TestSetup is Test {
     address internal admin = address(this);
@@ -22,6 +23,7 @@ abstract contract TestSetup is Test {
     Treasury internal treasury;
     SpeculateCoreRouter internal core;
     ChainlinkResolver internal resolver;
+    MockAggregatorV3 internal mockOracle;
 
     MarketFacet internal marketFacet;
     TradingFacet internal tradingFacet;
@@ -39,9 +41,16 @@ abstract contract TestSetup is Test {
         settlementFacet = new SettlementFacet();
 
         resolver = new ChainlinkResolver(admin, address(core));
+        
+        // Create a mock oracle feed (8 decimals, standard for price feeds)
+        mockOracle = new MockAggregatorV3(8);
 
         _wireResolver(address(resolver));
         _wireFacets();
+
+        // Seed oracle after timelock-driven warps so latestRoundData stays fresh at test runtime.
+        uint256 ts = block.timestamp == 0 ? 1 : block.timestamp;
+        mockOracle.setRoundData(1, int256(100e8), ts, ts, 1);
 
         // Seed users with USDC for tests
         vm.prank(alice);
@@ -89,6 +98,16 @@ abstract contract TestSetup is Test {
         uint256 targetValue,
         CoreStorage.Comparison comparison
     ) internal returns (uint256 id) {
+        // Default to mockOracle if address(0) is passed (for backward compatibility)
+        if (oracleFeed == address(0)) {
+            oracleFeed = address(mockOracle);
+        }
+        // Keep the oracle "fresh" at the time of market creation (tests warp time due to timelocks).
+        if (oracleFeed == address(mockOracle)) {
+            uint256 ts = block.timestamp == 0 ? 1 : block.timestamp;
+            mockOracle.setRoundData(1, int256(100e8), ts, ts, 1);
+            if (targetValue == 0) targetValue = 100e8;
+        }
         vm.startPrank(creator);
         usdc.approve(address(core), initUsdc);
         id = MarketFacet(address(core)).createMarket(

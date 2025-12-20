@@ -226,14 +226,17 @@ export default function TradingCard({
   }, [resolutionData]);
 
   const isResolved = Boolean(resolution?.isResolved);
-  const isTradeable = status === 0 && !isResolved && !isExpired;
+  const isCancelled = status === 2;
+  const isTradeable = status === 0 && !isResolved && !isExpired && !isCancelled;
   
   const tradeDisabledReason = !isTradeable
-    ? isResolved
-      ? 'Market is resolved'
-      : isExpired
-        ? 'Market has expired'
-        : 'Trading disabled'
+    ? isCancelled
+      ? 'Market has been cancelled'
+      : isResolved
+        ? 'Market is resolved'
+        : isExpired
+          ? 'Market has expired'
+          : 'Trading disabled'
     : '';
 
   // --- LP Data ---
@@ -1128,7 +1131,7 @@ export default function TradingCard({
         
         {/* Footer Actions */}
          <div className="pt-2 space-y-4">
-            {isResolved && <RedeemSection isResolved={isResolved} yesBalance={yesBalance} noBalance={noBalance} yesBalanceRaw={yesBalanceRaw} noBalanceRaw={noBalanceRaw} resolution={resolution} isBusy={isBusy} handleRedeem={handleRedeem} />}
+            {(isResolved || isCancelled) && <RedeemSection isResolved={isResolved} isCancelled={isCancelled} yesBalance={yesBalance} noBalance={noBalance} yesBalanceRaw={yesBalanceRaw} noBalanceRaw={noBalanceRaw} resolution={resolution} isBusy={isBusy} handleRedeem={handleRedeem} />}
              
              {/* Collapsible Liquidity Section */}
              <div className="mt-4">

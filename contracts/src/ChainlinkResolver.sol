@@ -78,6 +78,7 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable {
     error UnsupportedDecimals();
     error InvalidRoundId();
 
+    uint256 public constant MIN_TIMELOCK = 24 hours;
     uint256 public constant OP_EXPIRY_WINDOW = 7 days;
 
     constructor(address admin, address core_) {
@@ -130,7 +131,7 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable {
     }
 
     function executeSetDelay(bytes32 opId, uint256 newDelay) external onlyRole(ADMIN_ROLE) {
-        if (newDelay < 1 hours) revert BadValue();
+        if (newDelay < MIN_TIMELOCK) revert BadValue();
         bytes memory data = abi.encode(newDelay);
         _consume(opId, OP_SET_DELAY, data);
         timelockDelay = newDelay;
@@ -172,27 +173,31 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable {
         }
 
         // 2. Fetch target round data
-        (uint80 id, int256 answer, , uint256 updatedAt, uint80 answeredInRound) = feed.getRoundData(roundId);
+        (uint80 rid, int256 answer, , uint256 updatedAt, uint80 answeredInRound) = feed.getRoundData(roundId);
         if (answer <= 0 || updatedAt == 0) revert InvalidAnswer();
-        if (answeredInRound < id) revert IncompleteRound();
+        if (answeredInRound < rid) revert IncompleteRound();
         
         // 3. Verify target round is AFTER expiry
         if (updatedAt < r.expiryTimestamp) revert RoundTooEarly(updatedAt, r.expiryTimestamp);
 
         // 4. Verify previous round was BEFORE expiry (proving this is the first update after expiry)
-        if (roundId > 0) {
-            try feed.getRoundData(roundId - 1) returns (uint80, int256, uint256, uint256 prevUpdatedAt, uint80) {
-                if (prevUpdatedAt >= r.expiryTimestamp) {
-                    revert NotFirstRoundAfterExpiry(prevUpdatedAt, r.expiryTimestamp);
-                }
-            } catch {
-                // If previous round data is missing from the aggregator, we can't prove first-ness.
-                // In this case, we allow the resolution to proceed as long as the current round is after expiry.
-                // This prevents the resolver from being stuck on very old/sparse feeds.
+        // This is critical to prevent round selection gaming - we must verify first-ness or revert
+        if (roundId == 0) {
+            // roundId 0 is only possible at feed inception.
+            // We cannot verify first-ness without previous round data, so we require roundId > 0
+            revert InvalidRoundId();
+        }
+        
+        // Must be able to fetch previous round to verify first-ness
+        try feed.getRoundData(roundId - 1) returns (uint80, int256, uint256, uint256 prevUpdatedAt, uint80) {
+            if (prevUpdatedAt >= r.expiryTimestamp) {
+                revert NotFirstRoundAfterExpiry(prevUpdatedAt, r.expiryTimestamp);
             }
-        } else {
-            // roundId 0 is only possible at feed inception. 
-            // In practice, we skip the proof but the current round's updatedAt check still holds.
+            // If we reach here, prevUpdatedAt < expiryTimestamp, so this round is the first after expiry
+        } catch {
+            // If previous round data is missing, we cannot verify first-ness.
+            // For security, we must revert rather than allow potentially exploitable resolution.
+            revert IncompleteRound();
         }
 
         // 5. Staleness check

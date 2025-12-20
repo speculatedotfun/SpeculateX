@@ -21,8 +21,7 @@ contract TradingFacet is CoreStorage {
     error SolvencyIssue();
     error BackingInsufficient();
     error ExtremeImbalance();
-
-    uint256 public constant MAX_SHARES = 1e60; // 1 trillion * 1 trillion * 1 trillion tokens
+    error BuyQuoteFailed();
 
     function spotPriceYesE18(uint256 id) public view returns (uint256) {
         Market storage m = markets[id];
@@ -61,7 +60,16 @@ contract TradingFacet is CoreStorage {
         if (feeT > 0) IERC20(usdc).safeTransfer(treasury, feeT);
 
         if (feeL > 0 && m.totalLpUsdc > 0) {
-            accFeePerUSDCE18[id] += (feeL * 1e18) / m.totalLpUsdc;
+            uint256 feeToDistribute = feeL + lpFeeDustUSDC[id];
+            uint256 toAdd = (feeToDistribute * 1e18) / m.totalLpUsdc;
+            
+            if (toAdd > 0) {
+                accFeePerUSDCE18[id] += toAdd;
+                uint256 distributed = (toAdd * m.totalLpUsdc) / 1e18;
+                lpFeeDustUSDC[id] = feeToDistribute - distributed;
+            } else {
+                lpFeeDustUSDC[id] = feeToDistribute;
+            }
             m.lpFeesUSDC += feeL;
         }
 
@@ -70,19 +78,25 @@ contract TradingFacet is CoreStorage {
 
         uint256 netE18 = net * USDC_TO_E18;
 
-        uint256 sharesOut = LMSRMath.findSharesOut(
-            isYes ? m.qYes : m.qNo,
-            isYes ? m.qNo  : m.qYes,
-            netE18,
-            m.bE18
-        );
+        uint256 qSide = isYes ? m.qYes : m.qNo;
+        uint256 qOther = isYes ? m.qNo : m.qYes;
+
+        (bool ok, uint256 sharesOut) = LMSRMath.tryFindSharesOut(qSide, qOther, netE18, m.bE18);
+        if (!ok) {
+            sharesOut = _sharesOutBisection(qSide, qOther, netE18, m.bE18);
+        }
 
         if (sharesOut < dustSharesE18) revert DustAmount();
         if (sharesOut < minSharesOut) revert SlippageExceeded();
 
-        if (m.qYes + sharesOut > MAX_SHARES || m.qNo + sharesOut > MAX_SHARES) revert ExtremeImbalance();
+        // Only the bought side increases.
+        if (isYes) {
+            if (m.qYes + sharesOut > MAX_SHARES) revert ExtremeImbalance();
+        } else {
+            if (m.qNo + sharesOut > MAX_SHARES) revert ExtremeImbalance();
+        }
 
-        _enforceSafety(m, isYes, sharesOut, true);
+        _enforceSafety(m, isYes, sharesOut, true, m.usdcVault);
 
         if (isYes) {
             m.qYes += sharesOut;
@@ -95,6 +109,57 @@ contract TradingFacet is CoreStorage {
         emit Buy(id, msg.sender, isYes, usdcIn, sharesOut, spotPriceYesE6(id));
     }
 
+    /**
+     * @dev Buy liveness: bounded bisection that never depends on the analytic exp-domain solver.
+     * Finds smallest d such that cost(qSide+d,qOther)-cost(qSide,qOther) >= netE18.
+     */
+    function _sharesOutBisection(uint256 qSide, uint256 qOther, uint256 netE18, uint256 bE18) internal pure returns (uint256) {
+        if (netE18 == 0) return 0;
+
+        uint256 baseCost = LMSRMath.calculateCost(qSide, qOther, bE18);
+
+        uint256 maxD = MAX_SHARES > qSide ? (MAX_SHARES - qSide) : 0;
+        if (maxD == 0) revert ExtremeImbalance();
+
+        // Exponential search for an upper bound (capped) so bisection range stays tight.
+        uint256 lo = 0;
+        uint256 hi = 1;
+        for (uint256 i = 0; i < 64; i++) {
+            if (hi > maxD) hi = maxD;
+
+            uint256 hiCost = LMSRMath.calculateCost(qSide + hi, qOther, bE18);
+            uint256 hiDelta = hiCost > baseCost ? (hiCost - baseCost) : 0;
+            if (hiDelta >= netE18) break;
+
+            if (hi == maxD) revert BuyQuoteFailed();
+
+            lo = hi + 1;
+            // double, but avoid overflow / exceeding maxD
+            if (hi > maxD / 2) {
+                hi = maxD;
+            } else {
+                hi = hi * 2;
+            }
+        }
+        // If still not bounded after 64 iterations, fail predictably.
+        {
+            uint256 checkCost = LMSRMath.calculateCost(qSide + hi, qOther, bE18);
+            uint256 checkDelta = checkCost > baseCost ? (checkCost - baseCost) : 0;
+            if (checkDelta < netE18) revert BuyQuoteFailed();
+        }
+
+        // Bisection within [lo, hi]
+        for (uint256 i = 0; i < 64 && lo < hi; i++) {
+            uint256 mid = (lo + hi) / 2;
+            uint256 midCost = LMSRMath.calculateCost(qSide + mid, qOther, bE18);
+            uint256 midDelta = midCost > baseCost ? (midCost - baseCost) : 0;
+            if (midDelta >= netE18) hi = mid;
+            else lo = mid + 1;
+        }
+
+        return hi;
+    }
+
     function sell(uint256 id, bool isYes, uint256 sharesIn, uint256 minUsdcOut)
         external
         nonReentrant
@@ -102,6 +167,7 @@ contract TradingFacet is CoreStorage {
     {
         Market storage m = markets[id];
         if (m.status != MarketStatus.Active) revert MarketNotActive();
+        if (block.timestamp >= m.resolution.expiryTimestamp) revert MarketNotActive();
         if (sharesIn < dustSharesE18) revert DustAmount();
 
         uint256 qSide = isYes ? m.qYes : m.qNo;
@@ -118,9 +184,11 @@ contract TradingFacet is CoreStorage {
         if (usdcOut < minUsdcOut) revert SlippageExceeded();
         if (usdcOut > m.usdcVault) revert SolvencyIssue();
 
-        _enforceSafety(m, isYes, sharesIn, false);
+        // Calculate post-deduction vault for safety checks
+        uint256 vaultAfter = m.usdcVault - usdcOut;
+        _enforceSafety(m, isYes, sharesIn, false, vaultAfter);
 
-        m.usdcVault -= usdcOut;
+        m.usdcVault = vaultAfter;
 
         if (isYes) {
             m.qYes -= sharesIn;
@@ -134,7 +202,7 @@ contract TradingFacet is CoreStorage {
         emit Sell(id, msg.sender, isYes, sharesIn, usdcOut, spotPriceYesE6(id));
     }
 
-    function _enforceSafety(Market storage m, bool isYes, uint256 delta, bool isBuy) internal view {
+    function _enforceSafety(Market storage m, bool isYes, uint256 delta, bool isBuy, uint256 vaultValue) internal view {
         uint256 nextQYes = m.qYes;
         uint256 nextQNo  = m.qNo;
 
@@ -159,9 +227,9 @@ contract TradingFacet is CoreStorage {
         uint256 liabilityUSDC = maxCir / 1e12;
 
         uint256 bufferUSDC = 1000; // 0.001 USDC (6 decimals)
-        if (m.usdcVault + bufferUSDC < liabilityUSDC) revert BackingInsufficient();
+        if (vaultValue + bufferUSDC < liabilityUSDC) revert BackingInsufficient();
 
-        if (m.usdcVault < m.priceBandThresholdUSDC) {
+        if (vaultValue < m.priceBandThresholdUSDC) {
             uint256 pOld = LMSRMath.calculateSpotPrice(m.qYes, m.qNo, m.bE18);
             uint256 pNew = LMSRMath.calculateSpotPrice(nextQYes, nextQNo, m.bE18);
 

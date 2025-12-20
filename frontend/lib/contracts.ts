@@ -16,17 +16,18 @@ const MAINNET_ADDRESSES = {
 const TESTNET_ADDRESSES = {
   // Testnet uses Diamond architecture (Router + Facets)
   // Deployed: January 2025 (Final security audit fixes - all hardening complete)
-  core: '0xcdCcB359E566E4DBE129F6752Ab185E0AdBE452a' as `0x${string}`,
-  usdc: '0xb1b655406eb0bfA53Fc306C36A6B9D5d7Eb4ab07' as `0x${string}`,
-  chainlinkResolver: '0x68Fd129dfA440ce5FC18717AFD759F5A4499E60c' as `0x${string}`,
-  treasury: '0x0f4197D85e1439D56AEc7b00C4F195c1e6967C21' as `0x${string}`,
-  admin: '0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F' as `0x${string}`, // Update with actual deployer address from PRIVATE_KEY
+  // Latest deployment: All new functions registered (removeLiquidity, emergencyCancelMarket, getMarketInvariants)
+  core: '0xb0C40C5ee860DB88487553c4f35F38983C54Fd26' as `0x${string}`,
+  usdc: '0xC04ab62e81bA3107e88eac90c96c53055E82dc1e' as `0x${string}`,
+  chainlinkResolver: '0x663ab7E4A0EeEe2e30C325c7A88001C6704079DE' as `0x${string}`,
+  treasury: '0xE21150eebf27427743cDBdf3ecb8C788fcde8e61' as `0x${string}`,
+  admin: '0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F' as `0x${string}`,
   // Diamond facets
   facets: {
-    market: '0x6595128E5D19375D914c76e1Df88dB7a0Bd722eA' as `0x${string}`,
-    trading: '0x7b460E01040875Ee2b41CF90B8A2a67a92aa6e8C' as `0x${string}`,
-    liquidity: '0x638682376128Eb2CEB1DC9f9c7EB38cea683C2DF' as `0x${string}`,
-    settlement: '0x341db5dA04feA672b78493cB0a5168154c962254' as `0x${string}`,
+    market: '0x1f733593BF5a6c48a0a606a403C84Ce00D468449' as `0x${string}`,
+    trading: '0x914DC8FD45bFe012Ca34389366943ea68807A9ad' as `0x${string}`,
+    liquidity: '0x0730F86e4a0C7D3851Dc1003496854cFeC2F7d47' as `0x${string}`,
+    settlement: '0x79D65A1fC447B59209F46a511ffB4271010c8395' as `0x${string}`,
   },
 };
 

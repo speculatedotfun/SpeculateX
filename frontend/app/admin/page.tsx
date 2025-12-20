@@ -7,12 +7,13 @@ import AdminMarketManager from '@/components/AdminMarketManager';
 import MintUsdcForm from '@/components/MintUsdcForm';
 import AdminManager from '@/components/AdminManager';
 import USDCMinterManager from '@/components/USDCMinterManager';
+import AdminOperationsManager from '@/components/AdminOperationsManager';
 import Header from '@/components/Header';
 import { getMarketCount, getMarket, getMarketState, getLpResidualPot, isAdmin as checkIsAdmin } from '@/lib/hooks';
 import { formatUnits } from 'viem';
 import { positionTokenAbi } from '@/lib/abis';
 import { motion } from 'framer-motion';
-import { Activity, Plus, Shield, Users, Wallet, Zap, BarChart3, Database } from 'lucide-react';
+import { Activity, Plus, Shield, Users, Wallet, Zap, BarChart3, Database, Settings } from 'lucide-react';
 
 interface Market {
   id: number;
@@ -330,11 +331,29 @@ export default function AdminPage() {
             </div>
           </motion.div>
 
-          {/* Market Management List (Span 12) */}
+          {/* Admin Operations Manager (Span 12) */}
           <motion.div
             initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
+            className="lg:col-span-12"
+          >
+            <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-2xl border-2 border-white/60 dark:border-gray-700/60 rounded-[40px] p-8 lg:p-10 shadow-2xl ring-1 ring-gray-900/5 dark:ring-white/5">
+              <h2 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-4 tracking-tight mb-8">
+                <div className="bg-orange-500 p-3 rounded-2xl text-white shadow-lg shadow-orange-500/20">
+                  <Settings className="w-6 h-6" />
+                </div>
+                Protocol Operations
+              </h2>
+              <AdminOperationsManager />
+            </div>
+          </motion.div>
+
+          {/* Market Management List (Span 12) */}
+          <motion.div
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
             className="lg:col-span-12"
           >
             <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-2xl border-2 border-white/60 dark:border-gray-700/60 rounded-[40px] p-8 lg:p-10 shadow-2xl ring-1 ring-gray-900/5 dark:ring-white/5">

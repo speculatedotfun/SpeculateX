@@ -12,6 +12,7 @@ interface MarketHeaderProps {
   createdAtDate: Date | null;
   logoSrc: string;
   marketIsActive: boolean;
+  marketIsCancelled?: boolean;
   yesPrice: number;
   expiryTimestamp: bigint;
   onLogoError: () => void;
@@ -24,6 +25,7 @@ export function MarketHeader({
   createdAtDate,
   logoSrc,
   marketIsActive,
+  marketIsCancelled = false,
   yesPrice,
   expiryTimestamp,
   onLogoError,
@@ -72,14 +74,24 @@ export function MarketHeader({
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
                <div
                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border shadow-sm self-start ${
-                   marketIsActive
-                     ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
-                     : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400'
+                   marketIsCancelled
+                     ? 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400'
+                     : marketIsActive
+                       ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
+                       : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400'
                  }`}
                  role="status"
-                 aria-label={marketIsActive ? 'Market is live and accepting trades' : 'Market is closed'}
+                 aria-label={
+                   marketIsCancelled 
+                     ? 'Market has been cancelled' 
+                     : marketIsActive 
+                       ? 'Market is live and accepting trades' 
+                       : 'Market is closed'
+                 }
                >
-                 {marketIsActive ? (
+                 {marketIsCancelled ? (
+                   <div className="w-2 h-2 rounded-full bg-red-500" aria-hidden="true" />
+                 ) : marketIsActive ? (
                    <span className="relative flex h-2 w-2" aria-hidden="true">
                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -88,7 +100,7 @@ export function MarketHeader({
                    <div className="w-2 h-2 rounded-full bg-gray-400" aria-hidden="true" />
                  )}
                  <span className="text-[10px] font-black uppercase tracking-widest">
-                   {marketIsActive ? 'Live Market' : 'Closed'}
+                   {marketIsCancelled ? 'Cancelled' : marketIsActive ? 'Live Market' : 'Closed'}
                  </span>
                </div>
                <time className="text-xs font-medium text-gray-400 dark:text-gray-500" dateTime={createdAtDate?.toISOString()}>

@@ -25,8 +25,13 @@ contract MarketFacet is CoreStorage {
     error InvalidMarket();
     error InvalidExpiry();
     error InsufficientSeed();
+    error InvalidOracle();
     error InvalidOracleFeed();
+    error UnsupportedFeedDecimals();
     error TargetOutOfRange(uint256 targetValue, uint256 priceNow, uint8 oracleDecimals);
+
+    uint256 public constant MAX_MARKET_DURATION = 365 days;
+    uint256 public constant MAX_ORACLE_AGE = 4 hours;
 
     modifier onlyRole(bytes32 role) {
         require(IAccessControl(address(this)).hasRole(role, msg.sender), "NO_ROLE");
@@ -46,8 +51,16 @@ contract MarketFacet is CoreStorage {
         uint256 targetValue,
         Comparison comparison
     ) external whenNotPaused onlyRole(MARKET_CREATOR_ROLE) returns (uint256 id) {
+        if (bytes(question).length == 0 || bytes(question).length > 1000) revert InvalidMarket();
+        if (bytes(yesName).length == 0 || bytes(yesName).length > 100) revert InvalidMarket();
+        if (bytes(noName).length == 0 || bytes(noName).length > 100) revert InvalidMarket();
+        if (bytes(yesSymbol).length == 0 || bytes(yesSymbol).length > 20) revert InvalidMarket();
+        if (bytes(noSymbol).length == 0 || bytes(noSymbol).length > 20) revert InvalidMarket();
+
         if (initUsdc < minMarketSeed) revert InsufficientSeed();
         if (expiryTimestamp <= block.timestamp) revert InvalidExpiry();
+        if (expiryTimestamp > block.timestamp + MAX_MARKET_DURATION) revert InvalidExpiry();
+        if (oracleFeed == address(0)) revert InvalidOracle(); // Every market must be resolvable
 
         id = ++marketCount;
 
@@ -72,9 +85,15 @@ contract MarketFacet is CoreStorage {
         if (oType == OracleType.ChainlinkFeed) {
             AggregatorV3Interface feed = AggregatorV3Interface(oracleFeed);
             oracleDecimals = feed.decimals();
+            
+            // Reject feeds the resolver will refuse (decimals > 18)
+            if (oracleDecimals > 18) revert UnsupportedFeedDecimals();
 
             (, int256 answer, uint256 startedAt, uint256 updatedAt, ) = feed.latestRoundData();
             if (answer <= 0 || startedAt == 0 || updatedAt == 0) revert InvalidOracleFeed();
+            // Avoid timestamp underflow and reject feeds that report a future timestamp.
+            if (updatedAt > block.timestamp) revert InvalidOracleFeed();
+            if (block.timestamp - updatedAt > MAX_ORACLE_AGE) revert InvalidOracleFeed();
 
             uint256 priceNow = uint256(answer);
 
@@ -148,6 +167,35 @@ contract MarketFacet is CoreStorage {
         Market storage m = markets[id];
         if (address(m.yes) == address(0)) revert InvalidMarket();
         return m.resolution;
+    }
+
+    /**
+     * @notice Monitoring helper for ops/bots: exposes key invariants in one call.
+     * @dev Circulating supply excludes router-held locked shares used for liquidity scaling.
+     * @return cirYes circulating YES shares (1e18)
+     * @return cirNo circulating NO shares (1e18)
+     * @return liabilityUSDC max(cirYes,cirNo)/1e12 (6 decimals)
+     * @return vaultUSDC market vault balance (6 decimals)
+     * @return bE18_ LMSR liquidity parameter (1e18)
+     */
+    function getMarketInvariants(uint256 id)
+        external
+        view
+        returns (uint256 cirYes, uint256 cirNo, uint256 liabilityUSDC, uint256 vaultUSDC, uint256 bE18_)
+    {
+        Market storage m = markets[id];
+        if (address(m.yes) == address(0)) revert InvalidMarket();
+
+        uint256 lockedYes = m.yes.balanceOf(address(this));
+        uint256 lockedNo  = m.no.balanceOf(address(this));
+
+        cirYes = m.qYes > lockedYes ? (m.qYes - lockedYes) : 0;
+        cirNo  = m.qNo  > lockedNo  ? (m.qNo  - lockedNo)  : 0;
+
+        uint256 maxCir = cirYes > cirNo ? cirYes : cirNo;
+        liabilityUSDC = maxCir / 1e12;
+        vaultUSDC = m.usdcVault;
+        bE18_ = m.bE18;
     }
 
     function getMarketQuestion(uint256 id) external view returns (string memory) {

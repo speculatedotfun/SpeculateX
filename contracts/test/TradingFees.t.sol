@@ -20,8 +20,8 @@ contract TradingFeesTest is TestSetup {
             admin,
             20_000e6,
             block.timestamp + 7 days,
-            address(0),
-            0,
+            address(mockOracle), // Use valid oracle
+            100e8, // Valid target value
             CoreStorage.Comparison.Above
         );
 
