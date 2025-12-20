@@ -289,7 +289,7 @@ export function useMarketPriceHistory(
                         id: BigInt(marketIdNum)
                       },
                       fromBlock: fromBlock > 0n ? fromBlock : 0n,
-                      toBlock: 'latest'
+                      toBlock: currentBlock // Use current block instead of 'latest' to avoid RPC range limits
                     });
                     
                     const sellLogs = await publicClient.getLogs({
@@ -299,7 +299,7 @@ export function useMarketPriceHistory(
                           id: BigInt(marketIdNum)
                         },
                         fromBlock: fromBlock > 0n ? fromBlock : 0n,
-                        toBlock: 'latest'
+                        toBlock: currentBlock // Use current block instead of 'latest' to avoid RPC range limits
                     });
 
                     const allLogs = [...logs, ...sellLogs].sort((a, b) => {

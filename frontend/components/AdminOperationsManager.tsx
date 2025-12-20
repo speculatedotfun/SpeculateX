@@ -95,7 +95,18 @@ export default function AdminOperationsManager() {
     
     try {
       // Get OperationScheduled events from last 30 days
-      const fromBlock = await publicClient.getBlockNumber() - 200000n; // ~30 days on BSC
+      // RPC limit is typically 50,000 blocks, so we'll use a safe range
+      const currentBlock = await publicClient.getBlockNumber();
+      const maxRange = 45_000n; // Stay under 50k limit
+      const requestedRange = 200_000n; // ~30 days on BSC
+      const fromBlock = currentBlock > requestedRange 
+        ? (currentBlock - requestedRange) 
+        : 0n;
+      
+      // Ensure range doesn't exceed RPC limit
+      const safeFromBlock = (currentBlock - fromBlock) > maxRange
+        ? (currentBlock - maxRange)
+        : (fromBlock > 0n ? fromBlock : 0n);
       
       const scheduledLogs = await publicClient.getLogs({
         address: addresses.core,
@@ -108,8 +119,8 @@ export default function AdminOperationsManager() {
             { type: 'uint256', name: 'readyAt', indexed: false },
           ],
         },
-        fromBlock: fromBlock > 0n ? fromBlock : 0n,
-        toBlock: 'latest',
+        fromBlock: safeFromBlock,
+        toBlock: currentBlock, // Use current block instead of 'latest'
       });
 
       const executedLogs = await publicClient.getLogs({
@@ -121,8 +132,8 @@ export default function AdminOperationsManager() {
             { type: 'bytes32', name: 'opId', indexed: true },
           ],
         },
-        fromBlock: fromBlock > 0n ? fromBlock : 0n,
-        toBlock: 'latest',
+        fromBlock: safeFromBlock,
+        toBlock: currentBlock, // Use current block instead of 'latest'
       });
 
       const cancelledLogs = await publicClient.getLogs({
@@ -134,8 +145,8 @@ export default function AdminOperationsManager() {
             { type: 'bytes32', name: 'opId', indexed: true },
           ],
         },
-        fromBlock: fromBlock > 0n ? fromBlock : 0n,
-        toBlock: 'latest',
+        fromBlock: safeFromBlock,
+        toBlock: currentBlock, // Use current block instead of 'latest'
       });
 
       const executedIds = new Set(executedLogs.map(l => l.topics[1]));

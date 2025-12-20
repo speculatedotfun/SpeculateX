@@ -49,7 +49,7 @@ async function getQuestionFromMarketCreatedEvent(marketId: bigint): Promise<stri
         event,
         args: { id: marketId },
         fromBlock,
-        toBlock: 'latest',
+        toBlock: currentBlock, // Use current block instead of 'latest' to avoid RPC range limits
       });
       if (logs && logs.length > 0) {
         const q = ((logs[0] as any).args?.question ?? '') as string;
