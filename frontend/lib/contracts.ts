@@ -3,14 +3,29 @@ export type Network = 'mainnet' | 'testnet';
 
 // Contract addresses for each network
 const MAINNET_ADDRESSES = {
-  // Mainnet uses old monolithic SpeculateCore
-  core: '0xDCdAf5219c7Cb8aB83475A4562e2c6Eb7B2a3725' as `0x${string}`,
-  usdc: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d' as `0x${string}`,
-  chainlinkResolver: '0x93793866F3AB07a34cb89C6751167f0EBaCf0ce3' as `0x${string}`,
-  treasury: '0x5ca1b0EFE9Eb303606ddec5EA6e931Fe57A08778' as `0x${string}`,
-  admin: '0x4dc74a8532550ffca11fb958549ca0b72e3f1f1c' as `0x${string}`,
-  // Mainnet doesn't have facets (monolithic)
-  facets: undefined,
+  // BSC mainnet - Deployed January 2025
+  // These can be overridden at build-time via NEXT_PUBLIC_* env vars to avoid code edits on redeploy.
+  core: (process.env.NEXT_PUBLIC_MAINNET_CORE ??
+    '0x1208a67DbEB7E5C2EC85771872D8e621053027E8') as `0x${string}`,
+  usdc: (process.env.NEXT_PUBLIC_MAINNET_USDC ??
+    '0x55d398326f99059fF775485246999027B3197955') as `0x${string}`, // USDT on BSC
+  chainlinkResolver: (process.env.NEXT_PUBLIC_MAINNET_RESOLVER ??
+    '0xAe49abC2F1538f2F10b8Fb7c313CC899B8BB038A') as `0x${string}`,
+  treasury: (process.env.NEXT_PUBLIC_MAINNET_TREASURY ??
+    '0xE3FcF06886AD45E64dc864B91ED7c60614cc03A5') as `0x${string}`,
+  admin: (process.env.NEXT_PUBLIC_MAINNET_ADMIN ??
+    '0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c') as `0x${string}`,
+  // Mainnet uses Diamond architecture (Router + Facets)
+  facets: {
+    market: (process.env.NEXT_PUBLIC_MAINNET_FACET_MARKET ??
+      '0x80ED66616a03Ff01D80E1F4f272764cD7aB97D7a') as `0x${string}`,
+    trading: (process.env.NEXT_PUBLIC_MAINNET_FACET_TRADING ??
+      '0x68B8AB4E60176629b3F690931894A8F4DC3A8b0d') as `0x${string}`,
+    liquidity: (process.env.NEXT_PUBLIC_MAINNET_FACET_LIQUIDITY ??
+      '0x5B3934835879cEeab3c1988933c5e2C01D15762c') as `0x${string}`,
+    settlement: (process.env.NEXT_PUBLIC_MAINNET_FACET_SETTLEMENT ??
+      '0xa01FA70fBb5E1Fe5f3FAc0Fbb92fd1e8B7b7b569') as `0x${string}`,
+  },
 };
 
 const TESTNET_ADDRESSES = {
@@ -42,6 +57,13 @@ export function getCurrentNetwork(): Network {
 export function getAddresses() {
   const network = getCurrentNetwork();
   return network === 'mainnet' ? MAINNET_ADDRESSES : TESTNET_ADDRESSES;
+}
+
+// Whether the selected network uses the Diamond router + facet ABI.
+export function isDiamondNetwork(network: Network): boolean {
+  if (network === 'testnet') return true;
+  // Mainnet is considered "Diamond" when facet addresses are provided (via env overrides).
+  return !!MAINNET_ADDRESSES.facets;
 }
 
 // Export addresses as getter (for backward compatibility)

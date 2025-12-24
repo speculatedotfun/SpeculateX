@@ -21,7 +21,10 @@ contract SpeculateCoreRouter is CoreStorage, AccessControl {
     error Paused();
     error NoFacet();
 
-    uint256 public constant ABSOLUTE_MIN_DELAY = 0; // TESTNET ONLY!
+    /// @dev Mainnet safety rails:
+    /// - On BSC mainnet (chainId=56), enforce a minimum governance timelock delay.
+    /// - On testnets/local, allow shorter delays for iteration.
+    uint256 public constant ABSOLUTE_MIN_DELAY_BSC_MAINNET = 24 hours;
     
     // Settlement function selectors (whitelisted during pause)
     bytes4 private constant RESOLVE_MARKET_SELECTOR = bytes4(keccak256("resolveMarketWithPrice(uint256,uint256)"));
@@ -32,7 +35,7 @@ contract SpeculateCoreRouter is CoreStorage, AccessControl {
 
     constructor(address admin, address usdc_, address treasury_, uint256 minTimelockDelay_) {
         if (admin == address(0) || usdc_ == address(0) || treasury_ == address(0)) revert ZeroAddress();
-        if (minTimelockDelay_ < ABSOLUTE_MIN_DELAY) revert BadValue();
+        if (block.chainid == 56 && minTimelockDelay_ < ABSOLUTE_MIN_DELAY_BSC_MAINNET) revert BadValue();
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(MARKET_CREATOR_ROLE, admin);
 

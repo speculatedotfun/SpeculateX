@@ -10,6 +10,7 @@ import positionTokenAbiData from './abis/PositionToken.json';
 import chainlinkResolverLegacyAbiData from './abis/ChainlinkResolver.legacy.json';
 import chainlinkResolverV2AbiData from './abis/ChainlinkResolver.v2.json';
 import type { Network } from './contracts';
+import { isDiamondNetwork } from './contracts';
 
 // Helper to extract ABI from wrapped or unwrapped format
 const extractAbi = (data: any) => Array.isArray(data) ? data : ((data as any).abi || data);
@@ -39,7 +40,8 @@ export const coreAbiMainnet = speculateCoreAbi;
 
 // Network-aware selector (recommended)
 export function getCoreAbi(network: Network) {
-  return network === 'mainnet' ? coreAbiMainnet : coreAbiTestnet;
+  // If mainnet is deployed as Diamond, use the Router+Facets ABI.
+  return isDiamondNetwork(network) ? coreAbiTestnet : coreAbiMainnet;
 }
 
 // Backward-compat default:
@@ -56,6 +58,6 @@ export const chainlinkResolverAbiLegacy = extractAbi(chainlinkResolverLegacyAbiD
 export const chainlinkResolverAbiV2 = extractAbi(chainlinkResolverV2AbiData) as any;
 
 export function getChainlinkResolverAbi(network: Network) {
-  // Mainnet currently uses legacy resolver; Testnet Diamond uses the new resolver.
-  return network === 'mainnet' ? chainlinkResolverAbiLegacy : chainlinkResolverAbiV2;
+  // Diamond uses the new resolver; legacy monolith uses legacy resolver ABI.
+  return isDiamondNetwork(network) ? chainlinkResolverAbiV2 : chainlinkResolverAbiLegacy;
 }

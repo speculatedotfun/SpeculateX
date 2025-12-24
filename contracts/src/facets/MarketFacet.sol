@@ -203,4 +203,10 @@ contract MarketFacet is CoreStorage {
         if (address(m.yes) == address(0)) revert InvalidMarket();
         return m.question;
     }
+
+    function getMarketTokens(uint256 id) external view returns (address yes, address no) {
+        Market storage m = markets[id];
+        if (address(m.yes) == address(0)) revert InvalidMarket();
+        return (address(m.yes), address(m.no));
+    }
 }

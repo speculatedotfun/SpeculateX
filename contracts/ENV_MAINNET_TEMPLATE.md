@@ -1,0 +1,16 @@
+## Contracts env template (BSC mainnet)
+
+Put these in `contracts/.env`:
+
+```text
+PRIVATE_KEY_MAIN=
+BSC_MAINNET_RPC_URL=
+BSCSCAN_API_KEY=
+ADMIN_ADDRESS=
+USDC_ADDRESS=0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d
+
+# Optional
+# CORE_TIMELOCK_DELAY=172800
+# TREASURY_DAILY_LIMIT=50000000000
+```
+

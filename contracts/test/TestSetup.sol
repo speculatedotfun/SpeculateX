@@ -86,6 +86,13 @@ abstract contract TestSetup is Test {
         _setFacet(SettlementFacet.redeem.selector, address(settlementFacet));
         _setFacet(SettlementFacet.pendingLpResidual.selector, address(settlementFacet));
         _setFacet(SettlementFacet.claimLpResidual.selector, address(settlementFacet));
+        _setFacet(bytes4(keccak256("emergencyCancelMarket(bytes32,uint256)")), address(settlementFacet));
+        
+        _setFacet(MarketFacet.getMarketInvariants.selector, address(marketFacet));
+        _setFacet(MarketFacet.getMarketQuestion.selector, address(marketFacet));
+        _setFacet(MarketFacet.getMarketTokens.selector, address(marketFacet));
+        
+        _setFacet(LiquidityFacet.removeLiquidity.selector, address(liquidityFacet));
     }
 
     function _setFacet(bytes4 selector, address facet) internal {
@@ -128,6 +135,10 @@ abstract contract TestSetup is Test {
             comparison
         );
         vm.stopPrank();
+    }
+
+    function _getMarketTokens(uint256 id) internal view returns (address yes, address no) {
+        (yes, no) = MarketFacet(address(core)).getMarketTokens(id);
     }
 }
 

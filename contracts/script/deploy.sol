@@ -14,42 +14,80 @@ import {Treasury} from "../src/Treasury.sol";
 import {ChainlinkResolver} from "../src/ChainlinkResolver.sol";
 
 contract DeploySpeculateX is Script {
-    bool constant IS_TESTNET = true;
-    
-    uint256 constant TESTNET_DELAY = 0;        // Requires contract modification!
-    uint256 constant MAINNET_DELAY = 48 hours;
+    // Env-driven (safe for mainnet):
+    // - PRIVATE_KEY: deployer key (must have BNB for gas)
+    // - ADMIN_ADDRESS: multisig/owner (recommended; defaults to deployer if omitted)
+    // - USDC_ADDRESS: real USDC for mainnet (required unless DEPLOY_MOCK_USDC=true)
+    // - DEPLOY_MOCK_USDC: "true" to deploy MockUSDC (testnet/local only)
+    // - CORE_TIMELOCK_DELAY: seconds (default 48h on mainnet, 0 on testnets)
+    // - TREASURY_DAILY_LIMIT: uint (default 50_000e6)
+    //
+    // NOTE: On BSC mainnet (chainId=56) the router enforces minTimelockDelay >= 24h.
 
     function run() public {
-        string memory pkStr = vm.envString("PRIVATE_KEY");
+        // Support both PRIVATE_KEY_MAIN (preferred) and PRIVATE_KEY (legacy)
+        string memory pkStr;
+        try vm.envString("PRIVATE_KEY_MAIN") returns (string memory s) {
+            pkStr = s;
+        } catch {
+            pkStr = vm.envString("PRIVATE_KEY");
+        }
         uint256 pk;
         if (bytes(pkStr).length >= 2 && bytes(pkStr)[0] == "0" && bytes(pkStr)[1] == "x") {
             pk = vm.parseUint(pkStr);
         } else {
             pk = vm.parseUint(string.concat("0x", pkStr));
         }
-        address admin = vm.addr(pk);
-        uint256 timelockDelay = IS_TESTNET ? TESTNET_DELAY : MAINNET_DELAY;
+        address deployer = vm.addr(pk);
+        // Final admin (recommended: multisig). Required on BSC mainnet.
+        address finalAdmin = deployer;
+        if (block.chainid == 56) {
+            finalAdmin = vm.envAddress("ADMIN_ADDRESS");
+            require(finalAdmin != address(0), "ADMIN_ADDRESS required");
+        } else {
+            finalAdmin = vm.envOr("ADMIN_ADDRESS", deployer);
+        }
+        // Deployer is the temporary admin for deployment + scheduling.
+        address tempAdmin = deployer;
+        // If true, revoke deployer roles at the end (recommended for mainnet if finalAdmin is a multisig).
+        bool renounceDeployer = vm.envOr("RENOUNCE_DEPLOYER", block.chainid == 56);
+
+        bool deployMock = vm.envOr("DEPLOY_MOCK_USDC", false);
+        uint256 defaultDelay = block.chainid == 56 ? 48 hours : 0;
+        uint256 timelockDelay = vm.envOr("CORE_TIMELOCK_DELAY", defaultDelay);
+        uint256 treasuryDailyLimit = vm.envOr("TREASURY_DAILY_LIMIT", uint256(50_000e6));
 
         vm.startBroadcast(pk);
 
         console.log("=== SPECULATEX DEPLOYMENT ===");
-        console.log("Admin:", admin);
-        console.log("Network:", IS_TESTNET ? "TESTNET" : "MAINNET");
+        console.log("Deployer:", deployer);
+        console.log("TempAdmin (during deploy):", tempAdmin);
+        console.log("FinalAdmin:", finalAdmin);
+        console.log("chainId:", block.chainid);
+        console.log("TimelockDelay:", timelockDelay);
+        console.log("Deploy MockUSDC:", deployMock);
         console.log("");
 
         // ============ Deploy ============
-        Treasury treasury = new Treasury(admin, 50_000e6);
+        Treasury treasury = new Treasury(tempAdmin, treasuryDailyLimit);
         console.log("Treasury:", address(treasury));
 
-        MockUSDC usdc = new MockUSDC(admin);
-        console.log("MockUSDC:", address(usdc));
+        address usdcAddr;
+        if (deployMock) {
+            MockUSDC mock = new MockUSDC(tempAdmin);
+            usdcAddr = address(mock);
+            console.log("MockUSDC:", usdcAddr);
+        } else {
+            usdcAddr = vm.envAddress("USDC_ADDRESS");
+            console.log("USDC:", usdcAddr);
+        }
 
         SpeculateCoreRouter core = new SpeculateCoreRouter(
-            admin, address(usdc), address(treasury), timelockDelay
+            tempAdmin, usdcAddr, address(treasury), timelockDelay
         );
         console.log("Core Router:", address(core));
 
-        ChainlinkResolver resolver = new ChainlinkResolver(admin, address(core));
+        ChainlinkResolver resolver = new ChainlinkResolver(tempAdmin, address(core));
         console.log("Resolver:", address(resolver));
 
         MarketFacet marketFacet = new MarketFacet();
@@ -75,6 +113,7 @@ contract DeploySpeculateX is Script {
         bytes32 op3 = _schedule(core, OP_SET_FACET, "getMarketResolution(uint256)", address(marketFacet));
         bytes32 op4 = _schedule(core, OP_SET_FACET, "getMarketQuestion(uint256)", address(marketFacet));
         bytes32 op5 = _schedule(core, OP_SET_FACET, "getMarketInvariants(uint256)", address(marketFacet));
+        bytes32 op5b = _schedule(core, OP_SET_FACET, "getMarketTokens(uint256)", address(marketFacet));
 
         // TradingFacet
         bytes32 op6 = _schedule(core, OP_SET_FACET, "spotPriceYesE18(uint256)", address(tradingFacet));
@@ -97,7 +136,29 @@ contract DeploySpeculateX is Script {
         bytes32 op19 = _schedule(core, OP_SET_FACET, "pendingLpResidual(uint256,address)", address(settlementFacet));
         bytes32 op20 = _schedule(core, OP_SET_FACET, "claimLpResidual(uint256)", address(settlementFacet));
 
-        console.log("Scheduled 21 operations");
+        console.log("Scheduled operations (opIds):");
+        console.logBytes32(opResolver);
+        console.logBytes32(op1);
+        console.logBytes32(op2);
+        console.logBytes32(op3);
+        console.logBytes32(op4);
+        console.logBytes32(op5);
+        console.logBytes32(op5b);
+        console.logBytes32(op6);
+        console.logBytes32(op7);
+        console.logBytes32(op8);
+        console.logBytes32(op9);
+        console.logBytes32(op10);
+        console.logBytes32(op11);
+        console.logBytes32(op12);
+        console.logBytes32(op13);
+        console.logBytes32(op14);
+        console.logBytes32(op15);
+        console.logBytes32(op16);
+        console.logBytes32(op17);
+        console.logBytes32(op18);
+        console.logBytes32(op19);
+        console.logBytes32(op20);
 
         // Execute immediately if testnet
         if (timelockDelay == 0) {
@@ -110,6 +171,7 @@ contract DeploySpeculateX is Script {
             _exec(core, op3, "getMarketResolution(uint256)", address(marketFacet));
             _exec(core, op4, "getMarketQuestion(uint256)", address(marketFacet));
             _exec(core, op5, "getMarketInvariants(uint256)", address(marketFacet));
+            _exec(core, op5b, "getMarketTokens(uint256)", address(marketFacet));
 
             _exec(core, op6, "spotPriceYesE18(uint256)", address(tradingFacet));
             _exec(core, op7, "spotPriceYesE6(uint256)", address(tradingFacet));
@@ -132,12 +194,47 @@ contract DeploySpeculateX is Script {
             console.log("All operations executed!");
         }
 
+        // ==== Transfer admin roles to finalAdmin ====
+        if (finalAdmin != tempAdmin) {
+            // Router roles
+            core.grantRole(core.DEFAULT_ADMIN_ROLE(), finalAdmin);
+            core.grantRole(core.MARKET_CREATOR_ROLE(), finalAdmin);
+
+            // Treasury roles
+            treasury.grantRole(treasury.DEFAULT_ADMIN_ROLE(), finalAdmin);
+            treasury.grantRole(treasury.ADMIN_ROLE(), finalAdmin);
+            treasury.grantRole(treasury.WITHDRAWER_ROLE(), finalAdmin);
+
+            // Resolver roles
+            resolver.grantRole(resolver.DEFAULT_ADMIN_ROLE(), finalAdmin);
+            resolver.grantRole(resolver.ADMIN_ROLE(), finalAdmin);
+
+            console.log("Granted roles to FinalAdmin:", finalAdmin);
+        }
+
+        if (renounceDeployer && finalAdmin != tempAdmin) {
+            // Router renounce
+            core.renounceRole(core.DEFAULT_ADMIN_ROLE(), tempAdmin);
+            core.renounceRole(core.MARKET_CREATOR_ROLE(), tempAdmin);
+
+            // Treasury renounce
+            treasury.renounceRole(treasury.DEFAULT_ADMIN_ROLE(), tempAdmin);
+            treasury.renounceRole(treasury.ADMIN_ROLE(), tempAdmin);
+            treasury.renounceRole(treasury.WITHDRAWER_ROLE(), tempAdmin);
+
+            // Resolver renounce
+            resolver.renounceRole(resolver.DEFAULT_ADMIN_ROLE(), tempAdmin);
+            resolver.renounceRole(resolver.ADMIN_ROLE(), tempAdmin);
+
+            console.log("Renounced deployer roles; FinalAdmin is now sole admin.");
+        }
+
         vm.stopBroadcast();
 
         console.log("");
         console.log("=== DEPLOYMENT COMPLETE ===");
         console.log("Treasury:       ", address(treasury));
-        console.log("USDC:           ", address(usdc));
+        console.log("USDC:           ", usdcAddr);
         console.log("Core:           ", address(core));
         console.log("Resolver:       ", address(resolver));
     }
