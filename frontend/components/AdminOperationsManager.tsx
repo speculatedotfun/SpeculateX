@@ -22,6 +22,7 @@ interface ScheduledOp {
   tag: string;
   tagName: string;
   readyAt: bigint;
+  scheduledAt: bigint;
   status: 'scheduled' | 'ready' | 'executed' | 'expired' | 'cancelled';
   data: `0x${string}`;
   description: string;
@@ -65,6 +66,9 @@ export default function AdminOperationsManager() {
   // Pending Operations
   const [pendingOps, setPendingOps] = useState<ScheduledOp[]>([]);
   const [loadingOps, setLoadingOps] = useState(false);
+  const [currentTime, setCurrentTime] = useState(BigInt(Math.floor(Date.now() / 1000)));
+  const [deploymentBlock, setDeploymentBlock] = useState<string>(''); // Optional: specify deployment block
+  const [searchedFromBlock, setSearchedFromBlock] = useState<bigint>(0n);
   
   // Form States - separate for each operation type
   const [setFacetForm, setSetFacetForm] = useState({ selector: '', address: '' });
@@ -92,22 +96,28 @@ export default function AdminOperationsManager() {
   const loadPendingOperations = useCallback(async () => {
     if (!publicClient || !addresses.core) return;
     setLoadingOps(true);
-    
+
     try {
-      // Get OperationScheduled events from last 30 days
-      // RPC limit is typically 50,000 blocks, so we'll use a safe range
+      // Get OperationScheduled events
+      // Now using Ankr RPC - much more reliable than public BSC RPC!
       const currentBlock = await publicClient.getBlockNumber();
-      const maxRange = 45_000n; // Stay under 50k limit
-      const requestedRange = 200_000n; // ~30 days on BSC
-      const fromBlock = currentBlock > requestedRange 
-        ? (currentBlock - requestedRange) 
-        : 0n;
-      
-      // Ensure range doesn't exceed RPC limit
-      const safeFromBlock = (currentBlock - fromBlock) > maxRange
-        ? (currentBlock - maxRange)
-        : (fromBlock > 0n ? fromBlock : 0n);
-      
+
+      // Allow manual deployment block override for searching older operations
+      // Default deployment block for mainnet deployment: 73210707
+      const safeFromBlock = deploymentBlock && deploymentBlock.trim()
+        ? BigInt(deploymentBlock.trim())
+        : 73210700n; // Slightly before actual deployment block
+
+      // Ankr RPC limit: 1000 blocks max for eth_getLogs
+      const maxRange = 1_000n;
+      const safeToBlock = safeFromBlock + maxRange > currentBlock
+        ? currentBlock
+        : safeFromBlock + maxRange;
+
+      setSearchedFromBlock(safeFromBlock); // Store for display
+
+      console.log(`Querying operations from block ${safeFromBlock} to ${safeToBlock} (${safeToBlock - safeFromBlock} blocks) using Ankr RPC`);
+
       const scheduledLogs = await publicClient.getLogs({
         address: addresses.core,
         event: {
@@ -120,8 +130,10 @@ export default function AdminOperationsManager() {
           ],
         },
         fromBlock: safeFromBlock,
-        toBlock: currentBlock, // Use current block instead of 'latest'
+        toBlock: safeToBlock,
       });
+
+      console.log(`Found ${scheduledLogs.length} OperationScheduled events`);
 
       const executedLogs = await publicClient.getLogs({
         address: addresses.core,
@@ -133,7 +145,7 @@ export default function AdminOperationsManager() {
           ],
         },
         fromBlock: safeFromBlock,
-        toBlock: currentBlock, // Use current block instead of 'latest'
+        toBlock: safeToBlock,
       });
 
       const cancelledLogs = await publicClient.getLogs({
@@ -146,38 +158,48 @@ export default function AdminOperationsManager() {
           ],
         },
         fromBlock: safeFromBlock,
-        toBlock: currentBlock, // Use current block instead of 'latest'
+        toBlock: safeToBlock,
       });
 
       const executedIds = new Set(executedLogs.map(l => l.topics[1]));
       const cancelledIds = new Set(cancelledLogs.map(l => l.topics[1]));
       const now = BigInt(Math.floor(Date.now() / 1000));
 
-      const ops: ScheduledOp[] = scheduledLogs
-        .map(log => {
+      const ops: ScheduledOp[] = await Promise.all(
+        scheduledLogs.map(async (log) => {
           const opId = log.topics[1] as `0x${string}`;
           const tag = log.topics[2] as `0x${string}`;
           const readyAt = BigInt(log.data);
-          
+
+          // Get block timestamp for scheduledAt
+          let scheduledAt = readyAt - 172800n; // Default: 48 hours before readyAt
+          try {
+            const block = await publicClient.getBlock({ blockNumber: log.blockNumber });
+            scheduledAt = block.timestamp;
+          } catch (e) {
+            console.warn('Could not fetch block timestamp:', e);
+          }
+
           let status: ScheduledOp['status'] = 'scheduled';
           if (executedIds.has(opId)) status = 'executed';
           else if (cancelledIds.has(opId)) status = 'cancelled';
           else if (now > readyAt + OP_EXPIRY_WINDOW) status = 'expired';
           else if (now >= readyAt) status = 'ready';
-          
+
           return {
             opId,
             tag,
             tagName: TAG_NAMES[tag] || 'Unknown',
             readyAt,
+            scheduledAt,
             status,
-            data: '0x' as `0x${string}`, // Would need to store this separately
+            data: '0x' as `0x${string}`,
             description: TAG_NAMES[tag] || 'Unknown Operation',
           };
         })
-        .filter(op => op.status === 'scheduled' || op.status === 'ready');
+      );
 
-      setPendingOps(ops);
+      setPendingOps(ops.filter(op => op.status === 'scheduled' || op.status === 'ready'));
     } catch (e) {
       console.error('Error loading operations:', e);
       pushToast({ title: 'Error', description: 'Failed to load pending operations', type: 'error' });
@@ -191,6 +213,14 @@ export default function AdminOperationsManager() {
       loadPendingOperations();
     }
   }, [isAdmin, loadPendingOperations]);
+
+  // Live countdown timer - updates every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(BigInt(Math.floor(Date.now() / 1000)));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // ============ Helper: Schedule Operation ============
   const scheduleOperation = async (
@@ -315,6 +345,73 @@ export default function AdminOperationsManager() {
   };
 
   // ============ Execute Operations ============
+  const handleExecuteOp = async (opId: `0x${string}`, tag: string) => {
+    if (!publicClient) return;
+    setLoading(true);
+    try {
+      const hash = await writeContractAsync({
+        address: addresses.core,
+        abi: coreAbi,
+        functionName: 'executeOp',
+        args: [opId, tag as `0x${string}`],
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+      pushToast({ title: 'Success', description: 'Operation executed successfully!', type: 'success' });
+      loadPendingOperations();
+    } catch (e: any) {
+      pushToast({ title: 'Error', description: e.shortMessage || e.message, type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExecuteAllReady = async () => {
+    const readyOps = pendingOps.filter(op => currentTime >= op.readyAt);
+    if (readyOps.length === 0) {
+      pushToast({ title: 'Info', description: 'No operations ready to execute', type: 'info' });
+      return;
+    }
+
+    setLoading(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const op of readyOps) {
+      try {
+        const hash = await writeContractAsync({
+          address: addresses.core,
+          abi: coreAbi,
+          functionName: 'executeOp',
+          args: [op.opId, op.tag as `0x${string}`],
+        });
+        await publicClient?.waitForTransactionReceipt({ hash });
+        successCount++;
+        pushToast({
+          title: 'Executed',
+          description: `${op.tagName} executed (${successCount}/${readyOps.length})`,
+          type: 'success'
+        });
+      } catch (e: any) {
+        failCount++;
+        console.error(`Failed to execute ${op.tagName}:`, e);
+        pushToast({
+          title: 'Failed',
+          description: `${op.tagName}: ${e.shortMessage || e.message}`,
+          type: 'error'
+        });
+      }
+    }
+
+    setLoading(false);
+    loadPendingOperations();
+
+    pushToast({
+      title: 'Batch Complete',
+      description: `${successCount} succeeded, ${failCount} failed`,
+      type: successCount > 0 ? 'success' : 'error'
+    });
+  };
+
   const handleCancelOp = async (opId: `0x${string}`) => {
     if (!publicClient) return;
     setLoading(true);
@@ -339,16 +436,40 @@ export default function AdminOperationsManager() {
   const formatTimeRemaining = (readyAt: bigint): string => {
     const now = BigInt(Math.floor(Date.now() / 1000));
     if (now >= readyAt) return 'Ready to execute';
-    
+
     const remaining = Number(readyAt - now);
-    const hours = Math.floor(remaining / 3600);
+    const days = Math.floor(remaining / 86400);
+    const hours = Math.floor((remaining % 86400) / 3600);
     const minutes = Math.floor((remaining % 3600) / 60);
-    
-    if (hours > 24) {
-      const days = Math.floor(hours / 24);
-      return `${days}d ${hours % 24}h remaining`;
+    const seconds = remaining % 60;
+
+    if (days > 0) {
+      return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    } else if (hours > 0) {
+      return `${hours}h ${minutes}m ${seconds}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
     }
-    return `${hours}h ${minutes}m remaining`;
+  };
+
+  const getProgressPercentage = (readyAt: bigint, scheduledAt: bigint): number => {
+    const now = BigInt(Math.floor(Date.now() / 1000));
+    const total = Number(readyAt - scheduledAt);
+    const elapsed = Number(now - scheduledAt);
+    return Math.min(Math.max((elapsed / total) * 100, 0), 100);
+  };
+
+  const formatExecutionDate = (readyAt: bigint): string => {
+    const date = new Date(Number(readyAt) * 1000);
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
   };
 
   const toggleSection = (section: string) => {
@@ -397,83 +518,288 @@ export default function AdminOperationsManager() {
       {/* Pending Operations */}
       {activeTab === 'pending' && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-              Pending Operations
-            </h3>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={loadPendingOperations}
-              disabled={loadingOps}
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${loadingOps ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                Pending Operations
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {pendingOps.filter(op => currentTime >= op.readyAt).length} of {pendingOps.length} ready to execute
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadPendingOperations}
+                disabled={loadingOps}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${loadingOps ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              {pendingOps.some(op => currentTime >= op.readyAt) && (
+                <Button
+                  size="sm"
+                  onClick={handleExecuteAllReady}
+                  disabled={loading}
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-500/30"
+                >
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Zap className="w-4 h-4 mr-2" />
+                  )}
+                  Execute All Ready ({pendingOps.filter(op => currentTime >= op.readyAt).length})
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Deployment Block Input (for finding old operations) */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h4 className="font-bold text-blue-800 dark:text-blue-200 mb-2">🔍 Custom Block Search</h4>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
+                  Using Ankr RPC for reliable operation loading. Default searches from block 73210700 (mainnet deployment). Enter different block to search specific range:
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    placeholder="e.g., 42000000"
+                    value={deploymentBlock}
+                    onChange={(e) => setDeploymentBlock(e.target.value)}
+                    className="max-w-xs"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadPendingOperations}
+                    disabled={loadingOps || !deploymentBlock.trim()}
+                  >
+                    Search
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
 
           {pendingOps.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No pending operations</p>
+            <div className="space-y-6">
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p className="font-bold">No pending operations loaded</p>
+                <p className="text-sm mt-2">Searched blocks {searchedFromBlock.toString()} to {searchedFromBlock + 100n}</p>
+              </div>
+
+              {/* Manual Workaround Guide */}
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-2 border-amber-300 dark:border-amber-700 rounded-2xl p-6 shadow-lg">
+                <div className="flex items-start gap-4">
+                  <div className="bg-amber-500 rounded-full p-3 flex-shrink-0">
+                    <AlertTriangle className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-black text-amber-900 dark:text-amber-100 mb-3">
+                      No Operations Found in Current Range
+                    </h3>
+                    <p className="text-amber-800 dark:text-amber-200 mb-4">
+                      Using Ankr RPC but no operations found in searched blocks. You can verify and execute operations manually via BscScan:
+                    </p>
+
+                    <div className="bg-white dark:bg-gray-900/50 rounded-xl p-4 mb-4 border border-amber-200 dark:border-amber-800">
+                      <p className="text-sm font-bold text-amber-900 dark:text-amber-100 mb-3">
+                        📋 Quick Steps:
+                      </p>
+                      <ol className="text-sm text-amber-800 dark:text-amber-200 space-y-2 ml-4 list-decimal">
+                        <li>Check <a href="https://bscscan.com/address/0x101450a49E730d2e9502467242d0B6f157BABe60#events" target="_blank" rel="noopener noreferrer" className="underline font-bold hover:text-amber-950 dark:hover:text-amber-50">BscScan Events Tab</a> for OperationScheduled events (should see 21)</li>
+                        <li>Wait for the 48-hour timelock to expire (check <code className="bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded">readyAt</code> timestamp)</li>
+                        <li>Use <a href="https://bscscan.com/address/0x101450a49E730d2e9502467242d0B6f157BABe60#writeContract" target="_blank" rel="noopener noreferrer" className="underline font-bold hover:text-amber-950 dark:hover:text-amber-50">BscScan Write Contract</a> to execute each operation</li>
+                        <li>Call <code className="bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded">executeOp(opId, tag)</code> for each event</li>
+                      </ol>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <a
+                        href="https://bscscan.com/address/0x101450a49E730d2e9502467242d0B6f157BABe60#events"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-lg shadow-lg transition-colors"
+                      >
+                        View Events on BscScan →
+                      </a>
+                      <a
+                        href="https://bscscan.com/address/0x101450a49E730d2e9502467242d0B6f157BABe60#writeContract"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2 rounded-lg shadow-lg transition-colors"
+                      >
+                        Execute via BscScan →
+                      </a>
+                    </div>
+
+                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-4">
+                      💡 See <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">MANUAL_EXECUTION_GUIDE.md</code> for detailed instructions
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
-            <div className="space-y-3">
-              {pendingOps.map((op) => (
-                <div
-                  key={op.opId}
-                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-gray-900 dark:text-white">
-                          {op.tagName}
+            <div className="space-y-4">
+              {pendingOps.map((op) => {
+                const now = currentTime;
+                const isReady = now >= op.readyAt;
+                const progress = getProgressPercentage(op.readyAt, op.scheduledAt);
+                const timeRemaining = formatTimeRemaining(op.readyAt);
+                const executionDate = formatExecutionDate(op.readyAt);
+
+                return (
+                  <motion.div
+                    key={op.opId}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-gradient-to-br from-white via-white to-gray-50/30 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900/30 border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all"
+                  >
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className={`p-2 rounded-lg ${
+                            isReady
+                              ? 'bg-green-100 dark:bg-green-900/30'
+                              : 'bg-amber-100 dark:bg-amber-900/30'
+                          }`}>
+                            {isReady ? (
+                              <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                            ) : (
+                              <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                            )}
+                          </div>
+                          <div>
+                            <h4 className="text-lg font-black text-gray-900 dark:text-white">
+                              {op.tagName}
+                            </h4>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Operation ID
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <code className="text-xs font-mono bg-gray-100 dark:bg-gray-900/50 px-3 py-1.5 rounded-lg text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
+                            {op.opId.slice(0, 10)}...{op.opId.slice(-8)}
+                          </code>
+                          <span className={`px-3 py-1 text-xs font-bold rounded-full ${
+                            isReady
+                              ? 'bg-green-500 text-white shadow-lg shadow-green-500/30'
+                              : 'bg-amber-500 text-white shadow-lg shadow-amber-500/30'
+                          }`}>
+                            {isReady ? '✓ Ready to Execute' : '⏳ Timelock Active'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="mb-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                          {isReady ? 'Timelock Complete' : 'Timelock Progress'}
                         </span>
-                        <span className={`px-2 py-0.5 text-xs rounded-full ${
-                          op.status === 'ready' 
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                        }`}>
-                          {op.status === 'ready' ? 'Ready' : 'Pending'}
+                        <span className="text-sm font-mono font-bold text-gray-900 dark:text-white">
+                          {Math.round(progress)}%
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 font-mono mt-1">
-                        {op.opId.slice(0, 18)}...{op.opId.slice(-8)}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                        {formatTimeRemaining(op.readyAt)}
-                      </p>
+                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden shadow-inner">
+                        <motion.div
+                          className={`h-full ${
+                            isReady
+                              ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                              : 'bg-gradient-to-r from-amber-500 to-orange-500'
+                          } shadow-lg`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${progress}%` }}
+                          transition={{ duration: 0.5 }}
+                        />
+                      </div>
                     </div>
-                    <div className="flex gap-2">
+
+                    {/* Time Info */}
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Clock className="w-4 h-4 text-gray-500" />
+                          <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
+                            {isReady ? 'Ready Since' : 'Ready In'}
+                          </p>
+                        </div>
+                        <p className={`text-lg font-black ${
+                          isReady
+                            ? 'text-green-600 dark:text-green-400'
+                            : 'text-amber-600 dark:text-amber-400'
+                        }`}>
+                          {timeRemaining}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-2 mb-1">
+                          <AlertTriangle className="w-4 h-4 text-gray-500" />
+                          <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
+                            Execute After
+                          </p>
+                        </div>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">
+                          {executionDate}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-3">
                       <Button
                         variant="outline"
-                        size="sm"
+                        className="flex-1"
                         onClick={() => handleCancelOp(op.opId)}
                         disabled={loading}
                       >
-                        Cancel
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Cancel Operation
                       </Button>
-                      {op.status === 'ready' && (
+                      {isReady && (
                         <Button
-                          size="sm"
+                          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-500/30"
+                          onClick={() => handleExecuteOp(op.opId, op.tag)}
                           disabled={loading}
-                          onClick={() => {
-                            // Execute logic depends on tag type
-                            pushToast({
-                              title: 'Info',
-                              description: 'Use the appropriate execute form with this OpId',
-                              type: 'info'
-                            });
-                          }}
                         >
-                          Execute
+                          {loading ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <Zap className="w-4 h-4 mr-2" />
+                          )}
+                          Execute Now
                         </Button>
                       )}
                     </div>
-                  </div>
-                </div>
-              ))}
+
+                    {/* Warning for ready operations */}
+                    {isReady && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="mt-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-3"
+                      >
+                        <div className="flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5" />
+                          <div className="text-xs text-green-700 dark:text-green-300">
+                            <p className="font-bold">Timelock period completed!</p>
+                            <p className="mt-1">This operation is now ready to execute. Click &quot;Execute Now&quot; to apply the changes to the protocol.</p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </div>

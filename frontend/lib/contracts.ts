@@ -3,28 +3,30 @@ export type Network = 'mainnet' | 'testnet';
 
 // Contract addresses for each network
 const MAINNET_ADDRESSES = {
-  // BSC mainnet - Deployed January 2025
+  // BSC Mainnet - Deployed December 28, 2025
+  // ✅ All contracts verified on BscScan
+  // ⏳ 48-hour timelock before activation
   // These can be overridden at build-time via NEXT_PUBLIC_* env vars to avoid code edits on redeploy.
   core: (process.env.NEXT_PUBLIC_MAINNET_CORE ??
-    '0x1208a67DbEB7E5C2EC85771872D8e621053027E8') as `0x${string}`,
+    '0x101450a49E730d2e9502467242d0B6f157BABe60') as `0x${string}`,
   usdc: (process.env.NEXT_PUBLIC_MAINNET_USDC ??
     '0x55d398326f99059fF775485246999027B3197955') as `0x${string}`, // USDT on BSC
   chainlinkResolver: (process.env.NEXT_PUBLIC_MAINNET_RESOLVER ??
-    '0xAe49abC2F1538f2F10b8Fb7c313CC899B8BB038A') as `0x${string}`,
+    '0xaa0A8ef8eDeD0133e6435292ef3Eff33c7038f8b') as `0x${string}`,
   treasury: (process.env.NEXT_PUBLIC_MAINNET_TREASURY ??
-    '0xE3FcF06886AD45E64dc864B91ED7c60614cc03A5') as `0x${string}`,
+    '0xd0eD64B884bc51Bf91CdFCbA648910b481dBbe70') as `0x${string}`,
   admin: (process.env.NEXT_PUBLIC_MAINNET_ADMIN ??
     '0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c') as `0x${string}`,
   // Mainnet uses Diamond architecture (Router + Facets)
   facets: {
     market: (process.env.NEXT_PUBLIC_MAINNET_FACET_MARKET ??
-      '0x80ED66616a03Ff01D80E1F4f272764cD7aB97D7a') as `0x${string}`,
+      '0x8edbAa8A0E00859a1b5D613c23C642880ad63f31') as `0x${string}`,
     trading: (process.env.NEXT_PUBLIC_MAINNET_FACET_TRADING ??
-      '0x68B8AB4E60176629b3F690931894A8F4DC3A8b0d') as `0x${string}`,
+      '0x60F75d38399C44b295FD33FFDbb1cD35c9fF5257') as `0x${string}`,
     liquidity: (process.env.NEXT_PUBLIC_MAINNET_FACET_LIQUIDITY ??
-      '0x5B3934835879cEeab3c1988933c5e2C01D15762c') as `0x${string}`,
+      '0x1Fda96fb1A1c6136856Eb355d08f2aa94c7f3516') as `0x${string}`,
     settlement: (process.env.NEXT_PUBLIC_MAINNET_FACET_SETTLEMENT ??
-      '0xa01FA70fBb5E1Fe5f3FAc0Fbb92fd1e8B7b7b569') as `0x${string}`,
+      '0x9EfBED36e561db021014962d6aA08C308203fb1B') as `0x${string}`,
   },
 };
 
@@ -32,17 +34,27 @@ const TESTNET_ADDRESSES = {
   // Testnet uses Diamond architecture (Router + Facets)
   // Deployed: January 2025 (Final security audit fixes - all hardening complete)
   // Latest deployment: deadline-enabled buy/sell + all admin + cancellation UX
-  core: '0x2CF5F6E3234FAe485fae98Ea78B07cFB97Eb1ddd' as `0x${string}`,
-  usdc: '0xADEa1B9F54A9Be395DDCAf51e072667E1edA09cf' as `0x${string}`,
-  chainlinkResolver: '0x6217730cab1Fc4548747bc37777Bf622B1741e36' as `0x${string}`,
-  treasury: '0x5583238e692A5c57314a8D392749A3B102329846' as `0x${string}`,
-  admin: '0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F' as `0x${string}`,
+  // These can be overridden at build-time via NEXT_PUBLIC_* env vars
+  core: (process.env.NEXT_PUBLIC_TESTNET_CORE ??
+    '0x2CF5F6E3234FAe485fae98Ea78B07cFB97Eb1ddd') as `0x${string}`,
+  usdc: (process.env.NEXT_PUBLIC_TESTNET_USDC ??
+    '0xADEa1B9F54A9Be395DDCAf51e072667E1edA09cf') as `0x${string}`,
+  chainlinkResolver: (process.env.NEXT_PUBLIC_TESTNET_RESOLVER ??
+    '0x6217730cab1Fc4548747bc37777Bf622B1741e36') as `0x${string}`,
+  treasury: (process.env.NEXT_PUBLIC_TESTNET_TREASURY ??
+    '0x5583238e692A5c57314a8D392749A3B102329846') as `0x${string}`,
+  admin: (process.env.NEXT_PUBLIC_TESTNET_ADMIN ??
+    '0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F') as `0x${string}`,
   // Diamond facets
   facets: {
-    market: '0x97A832fa4fbF84D3Fec97fe4e3eF65FEc73aB35D' as `0x${string}`,
-    trading: '0xbfEe7bf201171CA527C83334C6D9b08d2F85790A' as `0x${string}`,
-    liquidity: '0x1D0d6Fd85A7Ae08Ac8A9B58Cb736d7c2CbB43a39' as `0x${string}`,
-    settlement: '0x5f9D480e972fBd90EcA50E01Fd277AbF6a8f7386' as `0x${string}`,
+    market: (process.env.NEXT_PUBLIC_TESTNET_FACET_MARKET ??
+      '0x97A832fa4fbF84D3Fec97fe4e3eF65FEc73aB35D') as `0x${string}`,
+    trading: (process.env.NEXT_PUBLIC_TESTNET_FACET_TRADING ??
+      '0xbfEe7bf201171CA527C83334C6D9b08d2F85790A') as `0x${string}`,
+    liquidity: (process.env.NEXT_PUBLIC_TESTNET_FACET_LIQUIDITY ??
+      '0x1D0d6Fd85A7Ae08Ac8A9B58Cb736d7c2CbB43a39') as `0x${string}`,
+    settlement: (process.env.NEXT_PUBLIC_TESTNET_FACET_SETTLEMENT ??
+      '0x5f9D480e972fBd90EcA50E01Fd277AbF6a8f7386') as `0x${string}`,
   },
 };
 

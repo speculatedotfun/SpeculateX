@@ -16,6 +16,26 @@
 
 ---
 
+## 🚀 Mainnet Deployment
+
+**Status:** ✅ **Live on BSC Mainnet**
+**Network:** Binance Smart Chain (Chain ID: 56)
+**All Contracts Verified** on [BscScan](https://bscscan.com/)
+
+### Contract Addresses
+
+| Contract | Address | Verified |
+|----------|---------|----------|
+| **CoreRouter** ⭐ | [`0x101450a49E730d2e9502467242d0B6f157BABe60`](https://bscscan.com/address/0x101450a49E730d2e9502467242d0B6f157BABe60#code) | ✅ |
+| Treasury | [`0xd0eD64B884bc51Bf91CdFCbA648910b481dBbe70`](https://bscscan.com/address/0xd0eD64B884bc51Bf91CdFCbA648910b481dBbe70#code) | ✅ |
+| ChainlinkResolver | [`0xaa0A8ef8eDeD0133e6435292ef3Eff33c7038f8b`](https://bscscan.com/address/0xaa0A8ef8eDeD0133e6435292ef3Eff33c7038f8b#code) | ✅ |
+
+⭐ **Use CoreRouter address** for all protocol interactions
+
+[View all contracts →](contracts/deployments/mainnet/addresses.json) | [Deployment Details →](DEPLOYMENT_SUCCESS.md)
+
+---
+
 ## 📖 Table of Contents
 
 - [What is SpeculateX?](#-what-is-speculatex)

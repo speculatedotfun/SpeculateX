@@ -15,13 +15,13 @@ import { PriceDisplay } from '@/components/market/PriceDisplay';
 import { Sparkline } from '@/components/market/Sparkline';
 import { useAccount } from 'wagmi';
 import { Shield, AlertTriangle } from 'lucide-react';
+import { formatPrice as formatPriceUtil, formatCompact } from '@/lib/format';
+import { Pagination } from '@/components/ui/Pagination';
 
 // --- Helper Functions ---
 
 const formatPriceLocal = (price: number): string => {
-  const cents = price * 100;
-  if (cents >= 100) return `$${cents.toFixed(2)}`;
-  return `${cents.toFixed(1).replace(/\.0$/, '')}¢`;
+  return price >= 1 ? formatPriceUtil(price, 'currency', 2) : formatPriceUtil(price, 'cents', 1);
 };
 
 const formatTimeRemaining = (expiryTimestamp: bigint): string => {
@@ -265,6 +265,8 @@ export default function MarketsPage() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeStatusTab, setActiveStatusTab] = useState<StatusFilter>('Active');
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 12;
 
   // Check for reduced motion preference
   useEffect(() => {
@@ -400,24 +402,37 @@ export default function MarketsPage() {
     }
   };
 
-  const filteredMarkets = markets.filter(market => {
-    if (searchTerm && !market.question.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-    if (activeStatusTab) {
-      if (activeStatusTab === 'Active' && market.status !== 'LIVE TRADING') return false;
-      if (activeStatusTab === 'Expired' && market.status !== 'EXPIRED') return false;
-      if (activeStatusTab === 'Resolved' && market.status !== 'RESOLVED') return false;
-      if (activeStatusTab === 'Cancelled' && market.status !== 'CANCELLED') return false;
-    }
-    if (activeCategory !== 'All') {
-      const categoryLower = activeCategory.toLowerCase();
-      const questionLower = market.question.toLowerCase();
-      if (categoryLower === 'crypto') {
-        const cryptoKeywords = ['btc', 'bitcoin', 'eth', 'ethereum', 'crypto', 'sol', 'solana', 'xrp', 'doge', 'dogecoin', 'bnb', 'matic'];
-        if (!cryptoKeywords.some(keyword => questionLower.includes(keyword))) return false;
-      } else if (!questionLower.includes(categoryLower)) return false;
-    }
-    return true;
-  });
+  const filteredMarkets = useMemo(() => {
+    return markets.filter(market => {
+      if (searchTerm && !market.question.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (activeStatusTab) {
+        if (activeStatusTab === 'Active' && market.status !== 'LIVE TRADING') return false;
+        if (activeStatusTab === 'Expired' && market.status !== 'EXPIRED') return false;
+        if (activeStatusTab === 'Resolved' && market.status !== 'RESOLVED') return false;
+        if (activeStatusTab === 'Cancelled' && market.status !== 'CANCELLED') return false;
+      }
+      if (activeCategory !== 'All') {
+        const categoryLower = activeCategory.toLowerCase();
+        const questionLower = market.question.toLowerCase();
+        if (categoryLower === 'crypto') {
+          const cryptoKeywords = ['btc', 'bitcoin', 'eth', 'ethereum', 'crypto', 'sol', 'solana', 'xrp', 'doge', 'dogecoin', 'bnb', 'matic'];
+          if (!cryptoKeywords.some(keyword => questionLower.includes(keyword))) return false;
+        } else if (!questionLower.includes(categoryLower)) return false;
+      }
+      return true;
+    });
+  }, [markets, searchTerm, activeStatusTab, activeCategory]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, activeStatusTab, activeCategory]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredMarkets.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedMarkets = filteredMarkets.slice(startIndex, endIndex);
 
   const stats = useMemo(() => {
     if (markets.length === 0) return { liquidity: 0, live: 0, resolved: 0, expired: 0, cancelled: 0, total: 0 };
@@ -432,11 +447,11 @@ export default function MarketsPage() {
     return { liquidity, live, resolved, expired, cancelled, total: markets.length };
   }, [markets]);
 
-  const formatNumber = useCallback((value: number, decimals = 0) => {
-    return value.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  const formatNumber = useCallback((value: number) => {
+    return formatCompact(value, value >= 1000 ? 1 : 0);
   }, []);
 
-  const liquidityDisplay = stats.liquidity >= 1 ? formatNumber(stats.liquidity, stats.liquidity >= 1000 ? 0 : 2) : formatNumber(stats.liquidity, 2);
+  const liquidityDisplay = formatCompact(stats.liquidity, stats.liquidity >= 1000 ? 1 : 2);
    
   const { data: activeTraders = 0 } = useQuery({
     queryKey: ['uniqueTraders'],
@@ -575,7 +590,7 @@ export default function MarketsPage() {
         {/* Results Counter */}
         <div className="mb-6 flex items-center justify-between px-2">
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            Showing <span className="text-gray-900 dark:text-white font-bold">{filteredMarkets.length}</span> results
+            Showing <span className="text-gray-900 dark:text-white font-bold">{filteredMarkets.length}</span> {filteredMarkets.length === 1 ? 'result' : 'results'}
           </p>
         </div>
 
@@ -612,7 +627,7 @@ export default function MarketsPage() {
             </motion.div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredMarkets.map((market, index) => (
+              {paginatedMarkets.map((market, index) => (
                 <motion.div
                   key={market.id}
                   layout={!prefersReducedMotion}
@@ -753,6 +768,20 @@ export default function MarketsPage() {
             </div>
           )}
         </AnimatePresence>
+
+        {/* Pagination */}
+        {!loading && filteredMarkets.length > 0 && (
+          <div className="mt-12">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              pageSize={ITEMS_PER_PAGE}
+              totalItems={filteredMarkets.length}
+              showItemCount={true}
+            />
+          </div>
+        )}
 
       </main>
 

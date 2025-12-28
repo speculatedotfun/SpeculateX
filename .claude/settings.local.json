@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(forge script:*)",
+      "Bash(forge install:*)",
+      "Bash(tree:*)",
+      "Bash(forge build:*)",
+      "Bash(cat:*)",
+      "Bash(node check-operations.js:*)",
+      "Bash(node check-operations-targeted.js:*)",
+      "Bash(npm run build:*)"
+    ]
+  }
+}

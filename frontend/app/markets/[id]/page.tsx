@@ -17,6 +17,7 @@ import { PriceChart } from '@/components/PriceChart';
 import { MarketHeader } from '@/components/market/MarketHeader';
 import { Skeleton } from '@/components/ui';
 import { PriceDisplay } from '@/components/market/PriceDisplay';
+import { ErrorState } from '@/components/ui/ErrorState';
 
 // Lib
 import { getMarket, getSpotPriceYesE6, getMarketResolution, getMarketState } from '@/lib/hooks';
@@ -459,35 +460,13 @@ export default function MarketDetailPage() {
     return (
       <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden flex flex-col">
         <Header />
-        <div className="flex-1 flex flex-col items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
-            className="text-center max-w-md bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl rounded-3xl p-8 border border-gray-200 dark:border-gray-700 shadow-xl"
-            role="alert"
-            aria-live="polite"
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-              className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4"
-            >
-              <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" aria-hidden="true" />
-            </motion.div>
-            <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Market Not Found</h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-6 font-medium">{error}</p>
-            <Link
-              href="/markets"
-              className="inline-flex items-center px-6 py-3 bg-[#14B8A6] text-white font-bold rounded-xl hover:bg-[#0D9488] transition-all shadow-lg hover:shadow-[#14B8A6]/20 hover:scale-105 active:scale-95"
-              aria-label="Return to browse all markets"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" aria-hidden="true" />
-              Browse Markets
-            </Link>
-          </motion.div>
-        </div>
+        <ErrorState
+          variant="page"
+          title="Market Not Found"
+          message={error}
+          showHomeButton
+          showBackButton
+        />
       </div>
     );
   }
@@ -496,16 +475,13 @@ export default function MarketDetailPage() {
     return (
       <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden flex flex-col">
         <Header />
-        <div className="flex-1 flex flex-col items-center justify-center p-4">
-          <div className="text-center max-w-md bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl rounded-3xl p-8 border border-gray-200 dark:border-gray-700 shadow-xl">
-            <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Invalid Market</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6 font-medium">The market ID provided is invalid.</p>
-            <Link href="/markets" className="inline-flex items-center px-6 py-3 bg-[#14B8A6] text-white font-bold rounded-xl hover:bg-[#0D9488] transition-all shadow-lg hover:shadow-[#14B8A6]/20">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Markets
-            </Link>
-          </div>
-        </div>
+        <ErrorState
+          variant="page"
+          title="Invalid Market"
+          message="The market ID provided is invalid."
+          showHomeButton
+          showBackButton
+        />
       </div>
     );
   }

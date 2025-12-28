@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/toast';
 import { useConfetti } from '@/lib/ConfettiContext';
 import { clamp, formatBalanceDisplay, toBigIntSafe } from '@/lib/tradingUtils';
 import { costFunction, spotPriceYesE18, findSharesOut, simulateBuyChunk } from '@/lib/lmsrMath';
+import { formatPrice as formatPriceUtil, formatCompact, formatTokenAmount } from '@/lib/format';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, AlertTriangle, Droplets, Wallet, ArrowRightLeft, TrendingUp, TrendingDown, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import { hapticFeedback } from '@/lib/haptics';
@@ -407,7 +408,7 @@ export default function TradingCard({
   const overJumpCap = tradeMode === 'buy' && maxJumpE6 > 0n && amountBigInt > maxJumpE6;
 
   // --- Formatting ---
-  const formatPrice = (p: number) => p >= 1 ? `$${p.toFixed(2)}` : `${(p * 100).toFixed(1)}¢`;
+  const formatPrice = (p: number) => p >= 1 ? formatPriceUtil(p, 'currency', 2) : formatPriceUtil(p, 'cents', 1);
   const maxBuyAmount = parseFloat(formatUnits(usdcBalanceRaw, 6));
   const maxSellAmount = side === 'yes' ? parseFloat(formatUnits(yesBalanceRaw, 18)) : parseFloat(formatUnits(noBalanceRaw, 18));
 
@@ -440,10 +441,10 @@ export default function TradingCard({
     return { chunk: safeChunk, count };
   }, [pendingSplitAmount, maxJumpE6]);
 
-  const totalSplitDisplay = pendingSplitAmount > 0n ? Number(formatUnits(pendingSplitAmount, 6)).toFixed(2) : amount;
+  const totalSplitDisplay = pendingSplitAmount > 0n ? formatPriceUtil(Number(formatUnits(pendingSplitAmount, 6)), 'decimal', 2) : amount;
   const splitChunkAmountDisplay = splitPreview.chunk > 0n
-    ? Number(formatUnits(splitPreview.chunk, 6)).toFixed(2)
-    : splitChunkDisplay > 0 ? splitChunkDisplay.toFixed(2) : '0.00';
+    ? formatPriceUtil(Number(formatUnits(splitPreview.chunk, 6)), 'decimal', 2)
+    : splitChunkDisplay > 0 ? formatPriceUtil(splitChunkDisplay, 'decimal', 2) : '0.00';
   const splitChunkCountDisplay = splitPreview.count;
 
   // --- Handlers ---
