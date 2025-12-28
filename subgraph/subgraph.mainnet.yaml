@@ -6,9 +6,9 @@ dataSources:
     name: SpeculateCore
     network: bsc
     source:
-      address: "0xDCdAf5219c7Cb8aB83475A4562e2c6Eb7B2a3725"
+      address: "0x101450a49E730d2e9502467242d0B6f157BABe60"
       abi: SpeculateCore
-      startBlock: 77000000  # Will find events from deployment
+      startBlock: 73199900  # Deployment block: 0x45d1b53 (73199955), using slightly earlier for safety
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -24,7 +24,7 @@ dataSources:
         - name: SpeculateCore
           file: ./abis/SpeculateCore.json
       eventHandlers:
-        - event: MarketCreated(indexed uint256,address,address,string,uint256,uint256)
+        - event: MarketCreated(indexed uint256,address,address,bytes32,string,uint256,uint256)
           handler: handleMarketCreated
         - event: Buy(indexed uint256,indexed address,bool,uint256,uint256,uint256)
           handler: handleBuy
