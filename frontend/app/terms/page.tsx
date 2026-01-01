@@ -6,8 +6,8 @@ import Header from '@/components/Header';
 
 export default function TermsOfServicePage() {
   return (
-    <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-x-hidden font-sans selection:bg-[#14B8A6]/30 selection:text-[#0f0a2e] dark:selection:text-white">
-      
+    <div className="min-h-screen relative overflow-x-hidden font-sans selection:bg-[#14B8A6]/30 selection:text-[#0f0a2e] dark:selection:text-white">
+
       {/* Background Gradient */}
       <div className="fixed inset-0 pointer-events-none -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-[#FAF9FF] via-[#F0F4F8] to-[#E8F0F5] dark:from-[#0f172a] dark:via-[#1a1f3a] dark:to-[#1e293b]"></div>
@@ -17,7 +17,7 @@ export default function TermsOfServicePage() {
       <Header />
 
       <main className="relative z-10 mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-        
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -32,11 +32,11 @@ export default function TermsOfServicePage() {
           </p>
 
           <div className="prose prose-slate dark:prose-invert max-w-none">
-            
+
             {/* Section 1 */}
             <section className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">1. Agreement to Terms</h2>
-              
+
               <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">1.1 Binding Agreement</h3>
               <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
                 Welcome to SpeculateX (&quot;SpeculateX,&quot; &quot;we,&quot; &quot;us,&quot; &quot;our,&quot; or &quot;the Site&quot;). These Terms of Service (&quot;Terms&quot;) form a legally binding agreement between you (&quot;User,&quot; &quot;you,&quot; or &quot;your&quot;) and SpeculateX regarding your access to and use of our website, applications, analytics, and related services located at https://speculatex.io/.
@@ -68,7 +68,7 @@ export default function TermsOfServicePage() {
             {/* Section 2 */}
             <section className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">2. Nature of Our Service</h2>
-              
+
               <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">2.1 Informational and Educational Resource</h3>
               <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
                 SpeculateX provides information, data, analytics, and user interfaces related to event outcomes, market trends, Web3 technologies, decentralized prediction markets, and blockchain activity. Content available on the Site may include:
@@ -119,7 +119,7 @@ export default function TermsOfServicePage() {
             {/* Section 4 */}
             <section className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">4. Intellectual Property Rights</h2>
-              
+
               <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">4.1 Ownership</h3>
               <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
                 All content on the Site, including text, branding, data, code, images, and design, is owned by SpeculateX or licensors and is protected by intellectual property laws.
@@ -257,7 +257,7 @@ export default function TermsOfServicePage() {
             {/* Section 10 */}
             <section className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">10. Dispute Resolution</h2>
-              
+
               <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">10.1 Governing Law</h3>
               <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
                 These Terms are governed by the laws of Singapore, excluding conflict of laws rules.
@@ -329,7 +329,7 @@ export default function TermsOfServicePage() {
           </div>
 
           <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
-            <Link 
+            <Link
               href="/"
               className="inline-flex items-center gap-2 text-[#14B8A6] hover:text-[#0d9488] font-bold transition-colors"
             >

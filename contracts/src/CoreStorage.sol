@@ -66,6 +66,7 @@ abstract contract CoreStorage {
     enum OracleType { None, ChainlinkFeed }
 
     struct ResolutionConfig {
+        uint256 startTime;      // When trading becomes active (0 = immediate)
         uint256 expiryTimestamp;
         OracleType oracleType;
         address oracleAddress;
@@ -190,7 +191,14 @@ abstract contract CoreStorage {
     mapping(uint256 => uint256) public lpFeeDustUSDC;
     mapping(uint256 => uint256) public lpResidualDustUSDC;
 
+    // ===== H-01 Fix: LP Fee Sandwich Attack Prevention =====
+    // Tracks when LP added liquidity to prevent instant fee claims
+    mapping(uint256 => mapping(address => uint256)) public lpAddedAtBlock;
+
+    // Minimum blocks LP must wait before claiming fees after adding liquidity
+    uint256 public lpFeeCooldownBlocks;
+
     // ===== Future Upgrade Gap =====
     uint256 public constant STORAGE_VERSION = 1;
-    uint256[50] private __gap;
+    uint256[48] private __gap; // Reduced from 50 to account for new storage
 }

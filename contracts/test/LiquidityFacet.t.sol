@@ -29,26 +29,29 @@ contract LiquidityFacetTest is TestSetup {
     function test_removeLiquidity_basic() public {
         uint256 addAmount = 10_000e6;
         uint256 removeAmount = 5_000e6;
-        
+
         // Add liquidity
         vm.startPrank(admin);
         usdc.approve(address(core), addAmount);
         LiquidityFacet(address(core)).addLiquidity(marketId, addAmount);
         vm.stopPrank();
-        
+
+        // Wait for cooldown (H-01 fix)
+        vm.roll(block.number + 2);
+
         uint256 adminBefore = usdc.balanceOf(admin);
         uint256 vaultBefore;
         (, , vaultBefore, , , ) = MarketFacet(address(core)).getMarketState(marketId);
-        
+
         // Remove liquidity
         vm.startPrank(admin);
         LiquidityFacet(address(core)).removeLiquidity(marketId, removeAmount);
         vm.stopPrank();
-        
+
         uint256 adminAfter = usdc.balanceOf(admin);
         uint256 vaultAfter;
         (, , vaultAfter, , , ) = MarketFacet(address(core)).getMarketState(marketId);
-        
+
         assertEq(adminAfter - adminBefore, removeAmount);
         assertEq(vaultBefore - vaultAfter, removeAmount);
     }
@@ -70,26 +73,33 @@ contract LiquidityFacetTest is TestSetup {
         usdc.approve(address(core), 20_000e6);
         LiquidityFacet(address(core)).addLiquidity(marketId, 20_000e6);
         vm.stopPrank();
-        
-        // Create large positions that would make removal unsafe
+
+        // Wait for cooldown (H-01 fix)
+        vm.roll(block.number + 2);
+
+        // Create positions that would make large removal unsafe
+        // Use smaller trades to stay within price jump limits
         vm.startPrank(alice);
-        usdc.approve(address(core), 50_000e6);
-        TradingFacet(address(core)).buy(marketId, true, 50_000e6, 0);
+        usdc.approve(address(core), 5_000e6);
+        TradingFacet(address(core)).buy(marketId, true, 5_000e6, 0);
         vm.stopPrank();
-        
+
         vm.startPrank(bob);
-        usdc.approve(address(core), 50_000e6);
-        TradingFacet(address(core)).buy(marketId, false, 50_000e6, 0);
+        usdc.approve(address(core), 5_000e6);
+        TradingFacet(address(core)).buy(marketId, false, 5_000e6, 0);
         vm.stopPrank();
-        
-        // Try to remove liquidity - should revert if it would violate solvency
+
+        // Try to remove most liquidity - should revert if it would violate solvency
         vm.startPrank(admin);
         vm.expectRevert(); // SolvencyIssue or similar
-        LiquidityFacet(address(core)).removeLiquidity(marketId, 15_000e6);
+        LiquidityFacet(address(core)).removeLiquidity(marketId, 35_000e6);
         vm.stopPrank();
     }
 
     function test_removeLiquidity_revertsOnLastLiquidity() public {
+        // Wait for cooldown first (H-01 fix) - market creator is the initial LP
+        vm.roll(block.number + 2);
+
         // Try to remove all liquidity when it's the only liquidity
         vm.startPrank(admin);
         // removeLiquidity enforces a minimum LP floor via LiquidityTooLow()
@@ -101,21 +111,24 @@ contract LiquidityFacetTest is TestSetup {
     function test_removeLiquidity_preservesPrice() public {
         uint256 addAmount = 10_000e6;
         uint256 removeAmount = 5_000e6;
-        
+
         // Add liquidity
         vm.startPrank(admin);
         usdc.approve(address(core), addAmount);
         LiquidityFacet(address(core)).addLiquidity(marketId, addAmount);
         vm.stopPrank();
-        
+
+        // Wait for cooldown (H-01 fix)
+        vm.roll(block.number + 2);
+
         // Get price before
         uint256 priceBefore = TradingFacet(address(core)).spotPriceYesE18(marketId);
-        
+
         // Remove liquidity
         vm.startPrank(admin);
         LiquidityFacet(address(core)).removeLiquidity(marketId, removeAmount);
         vm.stopPrank();
-        
+
         // Price should be preserved (approximately)
         uint256 priceAfter = TradingFacet(address(core)).spotPriceYesE18(marketId);
         // Allow small deviation due to rounding
@@ -148,12 +161,15 @@ contract LiquidityFacetTest is TestSetup {
         LiquidityFacet(address(core)).addLiquidity(marketId, 30_000e6);
         vm.stopPrank();
 
+        // Wait for cooldown (H-01 fix)
+        vm.roll(block.number + 2);
+
         // Generate fees (LP fee accrual)
         vm.startPrank(alice);
         usdc.approve(address(core), 5_000e6);
         TradingFacet(address(core)).buy(marketId, true, 5_000e6, 0);
         vm.stopPrank();
-        
+
         // Remove some liquidity (but leave enough for solvency).
         // NOTE: removeLiquidity auto-claims any pending LP fees first.
         vm.startPrank(admin);
@@ -161,7 +177,7 @@ contract LiquidityFacetTest is TestSetup {
         LiquidityFacet(address(core)).removeLiquidity(marketId, 1_000e6);
         uint256 afterRemove = usdc.balanceOf(admin);
         assertGt(afterRemove, beforeRemove);
-        
+
         // Calling claimLpFees again should not revert (it may be 0 if already claimed).
         LiquidityFacet(address(core)).claimLpFees(marketId);
         vm.stopPrank();

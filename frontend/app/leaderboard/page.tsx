@@ -55,9 +55,9 @@ export default function LeaderboardPage() {
 
   // Top 3 users
   const top3 = users.slice(0, 3);
-  
+
   return (
-    <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden font-sans">
+    <div className="min-h-screen relative overflow-hidden font-sans">
 
       {/* Background Gradient */}
       <div className="fixed inset-0 pointer-events-none -z-10">
@@ -68,7 +68,7 @@ export default function LeaderboardPage() {
       <Header />
 
       <main className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-        
+
         {/* Page Header */}
         <div className="text-center mb-16">
           <motion.div
@@ -180,23 +180,21 @@ export default function LeaderboardPage() {
                       <tr key={user.address} className="group hover:bg-white dark:hover:bg-gray-700/30 transition-colors">
                         <td className="px-8 py-5 whitespace-nowrap">
                           <div className="flex items-center gap-3">
-                            <span className={`flex items-center justify-center w-8 h-8 rounded-xl font-black text-sm transition-transform group-hover:scale-110 ${
-                              user.rank <= 3 
-                                ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-lg' 
+                            <span className={`flex items-center justify-center w-8 h-8 rounded-xl font-black text-sm transition-transform group-hover:scale-110 ${user.rank <= 3
+                                ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-lg'
                                 : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
-                            }`}>
+                              }`}>
                               {user.rank}
                             </span>
                           </div>
                         </td>
                         <td className="px-8 py-5 whitespace-nowrap">
                           <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-bold shadow-sm transition-transform group-hover:rotate-6 ${
-                              user.rank === 1 ? 'bg-yellow-100 text-yellow-700' : 
-                              user.rank === 2 ? 'bg-slate-100 text-slate-700' :
-                              user.rank === 3 ? 'bg-orange-100 text-orange-700' :
-                              'bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 text-gray-500 dark:text-gray-300'
-                            }`}>
+                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-bold shadow-sm transition-transform group-hover:rotate-6 ${user.rank === 1 ? 'bg-yellow-100 text-yellow-700' :
+                                user.rank === 2 ? 'bg-slate-100 text-slate-700' :
+                                  user.rank === 3 ? 'bg-orange-100 text-orange-700' :
+                                    'bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 text-gray-500 dark:text-gray-300'
+                              }`}>
                               {user.address.substring(2, 4).toUpperCase()}
                             </div>
                             <div className="flex flex-col">
@@ -211,25 +209,24 @@ export default function LeaderboardPage() {
                           </div>
                         </td>
                         <td className="px-8 py-5 whitespace-nowrap">
-                           <div className="flex justify-center group-hover:scale-110 transition-transform">
-                              <Sparkline 
-                                data={generateActivityData(user.address)} 
-                                color={user.rank <= 3 ? '#EAB308' : '#14B8A6'} 
-                                width={60} 
-                                height={24} 
-                              />
-                           </div>
+                          <div className="flex justify-center group-hover:scale-110 transition-transform">
+                            <Sparkline
+                              data={generateActivityData(user.address)}
+                              color={user.rank <= 3 ? '#EAB308' : '#14B8A6'}
+                              width={60}
+                              height={24}
+                            />
+                          </div>
                         </td>
                         <td className="px-8 py-5 whitespace-nowrap text-right text-sm font-black text-gray-900 dark:text-white tabular-nums">
                           {formatCurrency(user.totalVolume)}
                         </td>
                         <td className="px-8 py-5 whitespace-nowrap text-right">
                           <div className="flex flex-col items-end">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-xl text-xs font-black shadow-sm ${
-                              user.rank <= 3 
-                                ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white' 
+                            <span className={`inline-flex items-center px-3 py-1 rounded-xl text-xs font-black shadow-sm ${user.rank <= 3
+                                ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white'
                                 : 'bg-[#14B8A6]/10 text-[#14B8A6] dark:bg-[#14B8A6]/20'
-                            }`}>
+                              }`}>
                               {formatNumber(user.points)} PTS
                             </span>
                           </div>
@@ -316,29 +313,28 @@ function PodiumCard({ user, place, prefersReducedMotion = false }: { user: Leade
       className={`relative rounded-[40px] ${bgColor} border-2 ${borderColor} shadow-[0_20px_50px_rgba(0,0,0,0.05)] p-8 flex flex-col items-center justify-end ${heightClass} overflow-hidden group`}
     >
       <div className={`absolute -top-24 -left-24 w-48 h-48 bg-gradient-to-br ${glowColor} to-transparent blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700`} />
-      
+
       <div className="absolute top-10 flex flex-col items-center w-full">
-        <motion.div 
+        <motion.div
           animate={prefersReducedMotion ? {} : { y: [0, -5, 0] }}
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
           className={`mb-8 p-5 rounded-3xl bg-white dark:bg-gray-900 shadow-xl ${iconColor} border border-gray-100 dark:border-gray-800`}
         >
           {icon}
         </motion.div>
-        
+
         <div className="w-24 h-24 rounded-[32px] bg-gray-50 dark:bg-gray-700 overflow-hidden border-4 border-white dark:border-gray-600 shadow-2xl mb-6 relative group-hover:scale-110 transition-transform">
-           <div className={`w-full h-full flex items-center justify-center text-3xl font-black ${
-             isFirst ? 'bg-gradient-to-br from-yellow-100 to-amber-200 text-yellow-700' : 
-             isSecond ? 'bg-gradient-to-br from-slate-100 to-slate-200 text-slate-700' : 
-             'bg-gradient-to-br from-orange-100 to-orange-200 text-orange-700'
-           }`}>
-             {user.address.substring(2, 4).toUpperCase()}
-           </div>
-           <div className="absolute bottom-0 inset-x-0 bg-black/60 backdrop-blur-sm text-white text-[10px] font-black text-center py-1 tracking-widest uppercase">
-             RANK {place}
-           </div>
+          <div className={`w-full h-full flex items-center justify-center text-3xl font-black ${isFirst ? 'bg-gradient-to-br from-yellow-100 to-amber-200 text-yellow-700' :
+              isSecond ? 'bg-gradient-to-br from-slate-100 to-slate-200 text-slate-700' :
+                'bg-gradient-to-br from-orange-100 to-orange-200 text-orange-700'
+            }`}>
+            {user.address.substring(2, 4).toUpperCase()}
+          </div>
+          <div className="absolute bottom-0 inset-x-0 bg-black/60 backdrop-blur-sm text-white text-[10px] font-black text-center py-1 tracking-widest uppercase">
+            RANK {place}
+          </div>
         </div>
-        
+
         <h3 className="font-black text-xl text-gray-900 dark:text-white mb-1 font-mono tracking-tighter">
           {shortenAddress(user.address)}
         </h3>

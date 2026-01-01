@@ -25,17 +25,17 @@ export interface UseMarketDataResult {
   // Current prices
   currentPrices: MarketPrices;
   instantPrices: InstantPrices;
-  
+
   // Chart data
   chartData: PricePoint[];
-  
+
   // Market state
   marketState: MarketState | null;
-  
+
   // UI state
   isLoading: boolean;
   error: string | null;
-  
+
   // Actions
   refetch: () => Promise<void>;
 }
@@ -52,7 +52,7 @@ export function useMarketData(marketId: number): UseMarketDataResult {
   const [marketState, setMarketState] = useState<MarketState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Refs for polling
   const lastCheckedBlockRef = useRef<bigint | null>(null);
   const lastPriceUpdateTimeRef = useRef<number>(0);
@@ -68,17 +68,12 @@ export function useMarketData(marketId: number): UseMarketDataResult {
 
       // Load market state
       const stateResult = await fetchMarketState(marketIdBigInt);
-      
+
       // Also check resolution status
       const resolution = await getMarketResolution(marketIdBigInt);
-      
-      if (stateResult) {
-        const qYes = (stateResult as any).qYes as bigint;
-        const qNo = (stateResult as any).qNo as bigint;
-        const vault = (stateResult as any).vault as bigint;
-        const b = (stateResult as any).bE18 as bigint;
-        const priceYesE6 = (stateResult as any).priceYesE6 as bigint;
 
+      if (stateResult) {
+        const { qYes, qNo, vault, bE18: b, priceYesE6 } = stateResult;
         setMarketState({ qYes, qNo, vault, b, priceYes: priceYesE6 });
 
         let yesPrice = Number(priceYesE6) / 1e6;
@@ -129,22 +124,22 @@ export function useMarketData(marketId: number): UseMarketDataResult {
         // Check resolution status first
         const resolution = await getMarketResolution(marketIdBigInt);
         if (resolution && resolution.isResolved) {
-           // If resolved, stop polling and set final prices
-           let yesPrice = 0;
-           let noPrice = 0;
-           if (resolution.yesWins) {
-             yesPrice = 1;
-             noPrice = 0;
-           } else {
-             yesPrice = 0;
-             noPrice = 1;
-           }
-           
-           if (currentPrices.yes !== yesPrice) {
-             setCurrentPrices({ yes: yesPrice, no: noPrice });
-             setInstantPrices({ yes: yesPrice, no: noPrice });
-           }
-           return;
+          // If resolved, stop polling and set final prices
+          let yesPrice = 0;
+          let noPrice = 0;
+          if (resolution.yesWins) {
+            yesPrice = 1;
+            noPrice = 0;
+          } else {
+            yesPrice = 0;
+            noPrice = 1;
+          }
+
+          if (currentPrices.yes !== yesPrice) {
+            setCurrentPrices({ yes: yesPrice, no: noPrice });
+            setInstantPrices({ yes: yesPrice, no: noPrice });
+          }
+          return;
         }
 
         const priceYesE6 = await getSpotPriceYesE6(marketIdBigInt);

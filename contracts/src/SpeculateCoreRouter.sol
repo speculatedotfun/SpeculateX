@@ -53,6 +53,12 @@ contract SpeculateCoreRouter is CoreStorage, AccessControl {
         defaultFeeTreasuryBps = 100;
         defaultFeeLpBps       = 100;
         defaultFeeVaultBps    = 0;
+
+        // L-01 Fix: Validate fee parameters don't exceed 100%
+        if (defaultFeeTreasuryBps + defaultFeeLpBps + defaultFeeVaultBps > BPS) revert BadValue();
+
+        // H-01 Fix: Set cooldown to 1 block (prevents same-block sandwich attacks)
+        lpFeeCooldownBlocks = 1;
     }
 
     function scheduleOp(bytes32 tag, bytes calldata data)

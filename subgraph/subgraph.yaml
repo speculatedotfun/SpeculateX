@@ -6,9 +6,9 @@ dataSources:
     name: SpeculateCore
     network: chapel
     source:
-      address: "0x2CF5F6E3234FAe485fae98Ea78B07cFB97Eb1ddd"
+      address: "0xff020FeBB063d375e4D28291Da81f835Ba258Cb6"
       abi: SpeculateCore
-      startBlock: 79608437    # Deployed December 2024 (Latest Diamond Router with deadline support)
+      startBlock: 81765682  # Deployed December 31, 2025 (Latest Diamond Router - All Audit Fixes)
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -20,12 +20,16 @@ dataSources:
         - Redemption
         - User
         - GlobalState
+        - LpResidualClaim
+        - ResidualFinalization
       abis:
         - name: SpeculateCore
           file: ./abis/SpeculateCore.json
       eventHandlers:
         - event: MarketCreated(indexed uint256,address,address,bytes32,string,uint256,uint256)
           handler: handleMarketCreated
+        - event: ScheduledMarketCreated(indexed uint256,address,address,bytes32,string,uint256,uint256,uint256)
+          handler: handleScheduledMarketCreated
         - event: Buy(indexed uint256,indexed address,bool,uint256,uint256,uint256)
           handler: handleBuy
         - event: Sell(indexed uint256,indexed address,bool,uint256,uint256,uint256)
@@ -34,5 +38,11 @@ dataSources:
           handler: handleRedeemed
         - event: MarketResolved(indexed uint256,bool)
           handler: handleMarketResolved
+        - event: MarketCancelled(indexed uint256)
+          handler: handleMarketCancelled
+        - event: LpResidualClaimed(indexed uint256,indexed address,uint256)
+          handler: handleLpResidualClaimed
+        - event: ResidualFinalized(indexed uint256,uint256,uint256)
+          handler: handleResidualFinalized
       file: ./src/mapping.ts
 

@@ -30,14 +30,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body 
-        className={`${inter.className} min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] text-slate-900 dark:text-slate-50 antialiased mesh-gradient`}
+      <body
+        className={`${inter.className} min-h-screen flex flex-col bg-[#FAF9FF] dark:bg-[#0f172a] text-slate-900 dark:text-slate-50 antialiased mesh-gradient`}
       >
         <Providers>
           <DisclaimerModal />
           <LiveActivityTicker />
           <CommandPalette />
-          {children}
+          <main className="flex-1">
+            {children}
+          </main>
           <Footer />
         </Providers>
       </body>

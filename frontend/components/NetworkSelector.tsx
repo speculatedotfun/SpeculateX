@@ -70,9 +70,22 @@ export default function NetworkSelector() {
         aria-expanded={isOpen}
         aria-haspopup="menu"
       >
-        <Globe className="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" />
-        <span className="text-sm font-medium whitespace-nowrap text-gray-900 dark:text-white">
-          {currentNetwork === 'mainnet' ? 'Mainnet' : 'Testnet'}
+        {/* Network Status Indicator */}
+        <div className="relative">
+          <Globe className="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+          <span
+            className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ring-2 ring-white dark:ring-gray-800 ${
+              currentNetwork === 'mainnet'
+                ? 'bg-green-500 shadow-lg shadow-green-500/50'
+                : 'bg-yellow-500 shadow-lg shadow-yellow-500/50'
+            }`}
+            aria-hidden="true"
+          />
+        </div>
+        <span className="text-sm font-bold whitespace-nowrap text-gray-900 dark:text-white">
+          <span className={currentNetwork === 'mainnet' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}>
+            {currentNetwork === 'mainnet' ? 'BSC Mainnet' : 'BSC Testnet'}
+          </span>
         </span>
         <ChevronDown className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
       </button>
@@ -103,7 +116,10 @@ export default function NetworkSelector() {
                 role="menuitem"
                 aria-current={currentNetwork === 'testnet' ? 'true' : undefined}
               >
-                <span className="font-medium">Testnet</span>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-yellow-500 rounded-full" aria-hidden="true" />
+                  <span className="font-medium">BSC Testnet</span>
+                </div>
                 {currentNetwork === 'testnet' && (
                   <motion.div
                     initial={{ scale: 0, rotate: -180 }}
@@ -124,7 +140,10 @@ export default function NetworkSelector() {
                 role="menuitem"
                 aria-current={currentNetwork === 'mainnet' ? 'true' : undefined}
               >
-                <span className="font-medium">Mainnet</span>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-green-500 rounded-full" aria-hidden="true" />
+                  <span className="font-medium">BSC Mainnet</span>
+                </div>
                 {currentNetwork === 'mainnet' && (
                   <motion.div
                     initial={{ scale: 0, rotate: -180 }}

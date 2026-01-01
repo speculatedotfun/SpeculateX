@@ -36,10 +36,49 @@ export function formatPrice(p: number): string {
 }
 
 
+export async function waitForReceipt(publicClient: any, hash: `0x${string}`) {
+  if (!publicClient) return;
+  await publicClient.waitForTransactionReceipt({ hash });
+}
 
+export async function ensureAllowance({
+  publicClient,
+  owner,
+  tokenAddress,
+  spender,
+  required,
+  currentAllowance,
+  writeContractAsync,
+  setBusyLabel,
+  approvalLabel,
+  abi,
+}: {
+  publicClient: any;
+  owner: `0x${string}`;
+  tokenAddress: `0x${string}`;
+  spender: `0x${string}`;
+  required: bigint;
+  currentAllowance?: bigint;
+  writeContractAsync: any;
+  setBusyLabel: (label: string) => void;
+  approvalLabel: string;
+  abi: any;
+}) {
+  if (!owner || required <= 0n) return;
+  const hasEnough = currentAllowance !== undefined && currentAllowance >= required;
+  if (hasEnough) return;
 
+  setBusyLabel(approvalLabel);
+  const approveHash = await writeContractAsync({
+    address: tokenAddress,
+    abi,
+    functionName: 'approve',
+    args: [spender, MAX_UINT256],
+  });
 
-
-
-
-
+  try {
+    await waitForReceipt(publicClient, approveHash as `0x${string}`);
+  } catch (e) {
+    console.error('Allowance approval receipt wait failed', e);
+  }
+}

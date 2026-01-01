@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(forge test:*)",
+      "Bash(cast call:*)",
+      "Bash(forge create --rpc-url https://bsc-dataseed.binance.org/ --private-key 7b8e83bb2a7503959d93987c4d2f744a122e9dbddcdd2bf9c37acb8fa86fadb0 src/facets/MarketFacet.sol:MarketFacet --verify --etherscan-api-key FF3SJ2QQ2F5M286JD96V5E1I112M2ZWA48)",
+      "Bash(forge create --rpc-url https://bsc-dataseed.binance.org/ --private-key 7b8e83bb2a7503959d93987c4d2f744a122e9dbddcdd2bf9c37acb8fa86fadb0 src/facets/TradingFacet.sol:TradingFacet --verify --etherscan-api-key FF3SJ2QQ2F5M286JD96V5E1I112M2ZWA48)",
+      "Bash(forge create:*)",
+      "Bash(cast nonce:*)",
+      "Bash(cast sig:*)",
+      "Bash(forge verify-contract:*)",
+      "Bash(cast compute-address:*)",
+      "Bash(cast code:*)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(powershell -Command \"$env:ETH_RPC_URL=''https://data-seed-prebsc-1-s1.binance.org:8545''; forge create src/SpeculateCoreRouter.sol:SpeculateCoreRouter --constructor-args 0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c 0xad0F596e1736da0690690a4aEfE348dC77499ea1 0xfE75f39c7aBc1A45cd5b32F2f8B64B40DA362439 0 --private-key 53f20629f719a50e4fcfd59e28f94e77781e6557e9f8ebe68a09dc240563f0d1 --legacy\")",
+      "Bash(forge:*)",
+      "Bash(set:*)",
+      "Bash(findstr:*)",
+      "Bash(dir /s /b C:UsersAlmogfoundry.toml)",
+      "Bash(source .env)",
+      "Bash(echo:*)",
+      "Bash(cat:*)",
+      "Bash(wc:*)"
+    ]
+  }
+}

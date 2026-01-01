@@ -32,8 +32,8 @@ export default function DocsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden font-sans">
-      
+    <div className="min-h-screen relative overflow-hidden font-sans">
+
       {/* Background Gradient */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-br from-[#FAF9FF] via-[#F0F4F8] to-[#E8F0F5] dark:from-[#0f172a] dark:via-[#1a1f3a] dark:to-[#1e293b]"></div>
@@ -42,7 +42,7 @@ export default function DocsPage() {
 
       {/* Animated Blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div 
+        <motion.div
           className="absolute -top-[20%] -left-[10%] w-[800px] h-[800px] bg-gradient-to-br from-[#14B8A6]/10 to-purple-400/10 dark:from-[#14B8A6]/5 dark:to-purple-400/5 rounded-full blur-3xl"
           animate={{ x: [0, 50, 0], y: [0, 30, 0], scale: [1, 1.05, 1] }}
           transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
@@ -52,10 +52,10 @@ export default function DocsPage() {
       <Header />
 
       <main className="relative z-10 mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12">
-        
+
         {/* Navigation & Title */}
         <div className="mb-8">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
@@ -65,7 +65,7 @@ export default function DocsPage() {
               className="inline-flex items-center text-gray-500 hover:text-[#14B8A6] dark:text-gray-400 dark:hover:text-[#14B8A6] font-bold text-sm transition-colors group mb-6"
             >
               <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center mr-3 group-hover:border-[#14B8A6] transition-colors shadow-sm">
-                 <ArrowLeft className="w-4 h-4" />
+                <ArrowLeft className="w-4 h-4" />
               </div>
               Back to Home
             </Link>
@@ -81,7 +81,7 @@ export default function DocsPage() {
         </div>
 
         {/* Content Card */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}

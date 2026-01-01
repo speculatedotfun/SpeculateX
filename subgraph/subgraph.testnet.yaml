@@ -1,0 +1,38 @@
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: SpeculateCore
+    network: chapel
+    source:
+      address: "0xff020FeBB063d375e4D28291Da81f835Ba258Cb6"
+      abi: SpeculateCore
+      startBlock: 46800000    # Deployed December 31, 2025 (Latest Diamond Router - All Audit Fixes)
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Market
+        - Trade
+        - PositionBalance
+        - Redemption
+        - User
+        - GlobalState
+      abis:
+        - name: SpeculateCore
+          file: ./abis/SpeculateCore.json
+      eventHandlers:
+        - event: MarketCreated(indexed uint256,address,address,bytes32,string,uint256,uint256)
+          handler: handleMarketCreated
+        - event: Buy(indexed uint256,indexed address,bool,uint256,uint256,uint256)
+          handler: handleBuy
+        - event: Sell(indexed uint256,indexed address,bool,uint256,uint256,uint256)
+          handler: handleSell
+        - event: Redeemed(indexed uint256,indexed address,uint256)
+          handler: handleRedeemed
+        - event: MarketResolved(indexed uint256,bool)
+          handler: handleMarketResolved
+      file: ./src/mapping.ts
+

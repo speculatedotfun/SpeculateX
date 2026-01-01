@@ -12,13 +12,15 @@ import Header from '@/components/Header';
 import { getMarketCount, getMarket, getMarketState, getLpResidualPot, isAdmin as checkIsAdmin } from '@/lib/hooks';
 import { formatUnits } from 'viem';
 import { positionTokenAbi } from '@/lib/abis';
-import { motion } from 'framer-motion';
-import { Activity, Plus, Shield, Users, Wallet, Zap, BarChart3, Database, Settings } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Activity, Plus, Shield, Users, Wallet, Zap, BarChart3, Database, Settings, Lock } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Market {
   id: number;
   question: string;
-  status: 'active' | 'resolved' | 'expired';
+  status: 'active' | 'resolved' | 'expired' | 'scheduled';
+  startTime: bigint;
   vault: number;
   residual: number;
   yesToken: `0x${string}`;
@@ -68,14 +70,19 @@ export default function AdminPage() {
             const isResolved = Boolean(resolution?.isResolved);
             const yesWins = Boolean(resolution?.yesWins);
             const expiryTimestamp = resolution?.expiryTimestamp ? BigInt(resolution.expiryTimestamp) : 0n;
-            const isExpired = !isResolved && expiryTimestamp > 0n && BigInt(Math.floor(Date.now() / 1000)) > expiryTimestamp;
+            const startTime = resolution?.startTime ? BigInt(resolution.startTime) : 0n;
+            const now = BigInt(Math.floor(Date.now() / 1000));
 
-            // Determine status: if expired, use 'expired', otherwise use contract status
-            let status: 'active' | 'resolved' | 'expired';
-            if (isExpired) {
+            const isExpired = !isResolved && expiryTimestamp > 0n && now > expiryTimestamp;
+            const isScheduled = startTime > 0n && now < startTime;
+
+            let status: 'active' | 'resolved' | 'expired' | 'scheduled';
+            if (isScheduled) {
+              status = 'scheduled';
+            } else if (isExpired) {
               status = 'expired';
             } else {
-              status = statusNames[Math.min(contractStatus, 2)] as 'active' | 'resolved' | 'expired';
+              status = statusNames[Math.min(contractStatus, 2)] as 'active' | 'resolved' | 'expired' | 'scheduled';
             }
 
             let winningSupply: bigint = 0n;
@@ -106,6 +113,7 @@ export default function AdminPage() {
               yesWins,
               isResolved,
               winningSupply,
+              startTime,
             } as Market;
           } catch (error) {
             console.error(`Error loading market ${id}:`, error);
@@ -150,25 +158,20 @@ export default function AdminPage() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden flex flex-col">
-        {/* Enhanced Background Gradient */}
-        <div className="fixed inset-0 pointer-events-none -z-10">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#FAF9FF] via-[#F0F4F8] to-[#E8F0F5] dark:from-[#0f172a] dark:via-[#1a1f3a] dark:to-[#1e293b]"></div>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(20,184,166,0.08),transparent_50%),radial-gradient(circle_at_80%_80%,rgba(139,92,246,0.06),transparent_50%)]"></div>
-          <div className="absolute left-1/2 top-0 -translate-x-1/2 m-auto h-[500px] w-[500px] rounded-full bg-gradient-to-r from-[#14B8A6] via-purple-500 to-blue-500 opacity-[0.08] dark:opacity-[0.12] blur-[120px]"></div>
-        </div>
+      <div className="min-h-screen text-gray-900 dark:text-white overflow-hidden flex flex-col font-sans">
         <Header />
         <div className="flex-1 flex flex-col items-center justify-center p-4 relative z-10">
           <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.5 }}
-            className="bg-gradient-to-br from-white/90 via-white/80 to-gray-50/40 dark:from-gray-800/90 dark:via-gray-800/80 dark:to-gray-900/50 backdrop-blur-2xl rounded-[32px] p-10 shadow-[0_20px_70px_-15px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_70px_-15px_rgba(0,0,0,0.5)] border-2 border-white/60 dark:border-gray-700/60 max-w-md w-full text-center ring-1 ring-gray-900/5 dark:ring-white/5"
+            className="bg-white/80 dark:bg-gray-800/30 backdrop-blur-xl border border-gray-200 dark:border-white/10 p-12 rounded-[32px] max-w-lg w-full text-center shadow-2xl relative overflow-hidden group"
           >
-            <h1 className="text-3xl font-black bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 dark:from-white dark:via-gray-100 dark:to-gray-200 bg-clip-text text-transparent mb-4">Admin Panel</h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-6 font-medium">Please connect your wallet to access administrative controls.</p>
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-xl text-sm font-bold border border-blue-200/60 dark:border-blue-800/50 shadow-sm">
-              Connect via Header ↗
+            <div className="absolute inset-0 bg-gradient-to-br from-[#14B8A6]/10 via-transparent to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <Lock className="w-16 h-16 mx-auto mb-6 text-[#14B8A6]/50" />
+            <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-500 dark:from-white dark:to-gray-400 mb-4">Are you Elite?</h1>
+            <p className="text-gray-500 dark:text-gray-400 mb-8 text-lg font-light">Connect your wallet to access the control center.</p>
+            <div className="w-full h-12 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 flex items-center justify-center text-sm font-bold tracking-widest uppercase text-gray-500">
+              Waiting for Connection...
             </div>
           </motion.div>
         </div>
@@ -178,35 +181,17 @@ export default function AdminPage() {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden flex flex-col">
-        {/* Enhanced Background Gradient */}
-        <div className="fixed inset-0 pointer-events-none -z-10">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#FAF9FF] via-[#F0F4F8] to-[#E8F0F5] dark:from-[#0f172a] dark:via-[#1a1f3a] dark:to-[#1e293b]"></div>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(20,184,166,0.08),transparent_50%),radial-gradient(circle_at_80%_80%,rgba(139,92,246,0.06),transparent_50%)]"></div>
-          <div className="absolute left-1/2 top-0 -translate-x-1/2 m-auto h-[500px] w-[500px] rounded-full bg-gradient-to-r from-[#14B8A6] via-purple-500 to-blue-500 opacity-[0.08] dark:opacity-[0.12] blur-[120px]"></div>
-        </div>
+      <div className="min-h-screen text-gray-900 dark:text-white overflow-hidden flex flex-col font-sans">
         <Header />
         <div className="flex-1 flex flex-col items-center justify-center p-4 relative z-10">
           <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.5 }}
-            className="bg-gradient-to-br from-white/90 via-white/80 to-gray-50/40 dark:from-gray-800/90 dark:via-gray-800/80 dark:to-gray-900/50 backdrop-blur-2xl rounded-[32px] p-10 shadow-[0_20px_70px_-15px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_70px_-15px_rgba(0,0,0,0.5)] border-2 border-white/60 dark:border-gray-700/60 max-w-md w-full text-center ring-1 ring-gray-900/5 dark:ring-white/5"
+            className="bg-red-500/5 backdrop-blur-xl border border-red-500/20 p-12 rounded-[32px] max-w-lg w-full text-center shadow-2xl"
           >
-            <motion.div
-              initial={prefersReducedMotion ? false : { scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.2, type: "spring", stiffness: 200 }}
-              className="w-16 h-16 bg-gradient-to-br from-red-100 to-red-200/50 dark:from-red-900/30 dark:to-red-800/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg"
-            >
-              <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-            </motion.div>
-            <h1 className="text-3xl font-black bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 dark:from-white dark:via-gray-100 dark:to-gray-200 bg-clip-text text-transparent mb-2">Access Denied</h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-6 font-medium">
-              Your address <span className="font-mono bg-gradient-to-br from-gray-100 to-gray-200/50 dark:from-gray-700 dark:to-gray-800/50 px-2 py-1 rounded text-sm border border-gray-200 dark:border-gray-600">{address?.slice(0, 6)}...{address?.slice(-4)}</span> is not authorized as an administrator.
-            </p>
+            <Shield className="w-16 h-16 mx-auto mb-6 text-red-500" />
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-2">Access Denied</h1>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">Address <span className="font-mono text-red-500 dark:text-red-400">{address?.slice(0, 6)}...{address?.slice(-4)}</span> is not authorized.</p>
           </motion.div>
         </div>
       </div>
@@ -214,190 +199,165 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-x-hidden font-sans selection:bg-[#14B8A6]/30 selection:text-[#0f0a2e] dark:selection:text-white">
-
-      {/* Enhanced Background Pattern */}
-      <div className="fixed inset-0 pointer-events-none -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#FAF9FF] via-[#F0F4F8] to-[#E8F0F5] dark:from-[#0f172a] dark:via-[#1a1f3a] dark:to-[#1e293b]"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(20,184,166,0.08),transparent_50%),radial-gradient(circle_at_80%_80%,rgba(139,92,246,0.06),transparent_50%)]"></div>
-        <div className="absolute left-1/2 top-0 -translate-x-1/2 m-auto h-[600px] w-[600px] rounded-full bg-gradient-to-r from-[#14B8A6] via-purple-500 to-blue-500 opacity-[0.08] dark:opacity-[0.12] blur-[120px]"></div>
-      </div>
+    <div className="min-h-screen text-gray-900 dark:text-white font-sans selection:bg-[#14B8A6]/30 transition-colors duration-300">
+      <div className="fixed inset-0 pointer-events-none -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white via-gray-50 to-gray-100 dark:from-gray-900 dark:via-[#0f1219] dark:to-[#0f1219]"></div>
+      <div className="fixed inset-0 pointer-events-none -z-10 bg-[url('/grid.svg')] opacity-[0.03] invert dark:invert-0"></div>
 
       <Header />
 
-      <main className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+      <main className="relative z-10 mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-12">
 
-        {/* Page Header */}
-        <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.5 }}
-          >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-black uppercase tracking-widest mb-4">
-              <Shield className="w-3 h-3" />
-              Administrative Access
-            </div>
-            <h1 className="text-4xl sm:text-6xl font-black bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 dark:from-white dark:via-gray-100 dark:to-gray-200 bg-clip-text text-transparent tracking-tighter drop-shadow-sm leading-[0.9]">
-              Elite <br /> Dashboard.
+        {/* Header Section */}
+        <div className="mb-12 flex flex-col xl:flex-row xl:items-end justify-between gap-8">
+          <div>
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#14B8A6]/10 border border-[#14B8A6]/20 text-[#14B8A6] text-[10px] font-black uppercase tracking-widest mb-4"
+            >
+              <Shield className="w-3 h-3" /> Root Access Granted
+            </motion.div>
+            <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-gray-900 via-gray-700 to-gray-500 dark:from-white dark:via-gray-200 dark:to-gray-500 mb-2">
+              Command Center
             </h1>
-          </motion.div>
+            <p className="text-gray-500 dark:text-gray-400 text-lg font-light max-w-2xl">
+              Manage markets, resolve disputes, and configure protocol parameters in real-time.
+            </p>
+          </div>
 
-          {/* Quick Stats Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
-             <AdminStat value={markets.length.toString()} label="Total Markets" icon={Database} color="text-blue-500" />
-             <AdminStat value={markets.filter(m => m.status === 'active').length.toString()} label="Active" icon={Activity} color="text-emerald-500" />
-             <AdminStat value={markets.filter(m => m.isResolved).length.toString()} label="Resolved" icon={Zap} color="text-amber-500" />
+          <div className="flex gap-4">
+            <AdminStat value={markets.length} label="Total Markets" icon={Database} color="text-blue-500 dark:text-blue-400" />
+            <AdminStat value={markets.filter(m => m.status === 'active').length} label="Active" icon={Activity} color="text-emerald-500 dark:text-emerald-400" />
+            <AdminStat value={markets.filter(m => m.isResolved).length} label="Resolved" icon={Zap} color="text-amber-500 dark:text-amber-400" />
           </div>
         </div>
-        
-        {/* --- BENTO GRID START --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 auto-rows-min">
-          
-          {/* Create Market - Main Action (Span 8) */}
+
+        {/* Bento Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-min">
+
+          {/* Create Market (Span 8) */}
           <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="lg:col-span-8 group"
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+            className="md:col-span-8 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 relative overflow-hidden shadow-sm dark:shadow-none transition-colors"
           >
-            <div className="h-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-2xl border-2 border-white/60 dark:border-gray-700/60 rounded-[40px] p-8 lg:p-10 shadow-2xl transition-all duration-500 hover:border-[#14B8A6]/40 ring-1 ring-gray-900/5 dark:ring-white/5 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:opacity-10 transition-opacity">
-                <Plus className="w-40 h-40 text-[#14B8A6]" />
-              </div>
-              <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-8 flex items-center gap-4 tracking-tight">
-                <div className="bg-[#14B8A6] p-3 rounded-2xl text-white shadow-lg shadow-[#14B8A6]/20">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#14B8A6]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="p-3 bg-[#14B8A6]/10 dark:bg-[#14B8A6]/20 rounded-2xl text-[#14B8A6]">
                   <Plus className="w-6 h-6" />
                 </div>
-                Create Market
-              </h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Deploy Market</h2>
+              </div>
               <CreateMarketForm />
             </div>
           </motion.div>
 
-          {/* USDC Faucet - Side Action (Span 4) */}
-          <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="lg:col-span-4"
-          >
-            <div className="h-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-2xl border-2 border-white/60 dark:border-gray-700/60 rounded-[40px] p-8 shadow-2xl transition-all duration-500 hover:border-blue-500/40 ring-1 ring-gray-900/5 dark:ring-white/5 flex flex-col">
-              <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-6 flex items-center gap-4 tracking-tight">
-                <div className="bg-blue-500 p-3 rounded-2xl text-white shadow-lg shadow-blue-500/20">
-                  <Wallet className="w-5 h-5" />
-                </div>
-                USDC Faucet
-              </h2>
-              <div className="flex-1">
-                <MintUsdcForm />
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Admin Management (Span 6) */}
-          <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="lg:col-span-6"
-          >
-            <div className="h-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-2xl border-2 border-white/60 dark:border-gray-700/60 rounded-[40px] p-8 shadow-2xl transition-all duration-500 hover:border-purple-500/40 ring-1 ring-gray-900/5 dark:ring-white/5">
-              <h2 className="text-xl font-black text-gray-900 dark:text-white mb-6 flex items-center gap-4 tracking-tight uppercase tracking-widest">
-                <div className="bg-purple-500 p-3 rounded-2xl text-white shadow-lg shadow-purple-500/20">
-                  <Users className="w-5 h-5" />
-                </div>
-                Permissions
-              </h2>
-              <AdminManager />
-            </div>
-          </motion.div>
-
-          {/* Minter Permissions (Span 6) */}
-          <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="lg:col-span-6"
-          >
-            <div className="h-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-2xl border-2 border-white/60 dark:border-gray-700/60 rounded-[40px] p-8 shadow-2xl transition-all duration-500 hover:border-amber-500/40 ring-1 ring-gray-900/5 dark:ring-white/5">
-              <h2 className="text-xl font-black text-gray-900 dark:text-white mb-6 flex items-center gap-4 tracking-tight uppercase tracking-widest">
-                <div className="bg-amber-500 p-3 rounded-2xl text-white shadow-lg shadow-amber-500/20">
-                  <Shield className="w-5 h-5" />
-                </div>
-                Minter Access
-              </h2>
-              <USDCMinterManager />
-            </div>
-          </motion.div>
-
-          {/* Admin Operations Manager (Span 12) */}
-          <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="lg:col-span-12"
-          >
-            <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-2xl border-2 border-white/60 dark:border-gray-700/60 rounded-[40px] p-8 lg:p-10 shadow-2xl ring-1 ring-gray-900/5 dark:ring-white/5">
-              <h2 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-4 tracking-tight mb-8">
-                <div className="bg-orange-500 p-3 rounded-2xl text-white shadow-lg shadow-orange-500/20">
-                  <Settings className="w-6 h-6" />
-                </div>
-                Protocol Operations
-              </h2>
-              <AdminOperationsManager />
-            </div>
-          </motion.div>
-
-          {/* Market Management List (Span 12) */}
-          <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="lg:col-span-12"
-          >
-            <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-2xl border-2 border-white/60 dark:border-gray-700/60 rounded-[40px] p-8 lg:p-10 shadow-2xl ring-1 ring-gray-900/5 dark:ring-white/5">
-              <div className="flex items-center justify-between mb-10">
-                <h2 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-4 tracking-tight">
-                  <div className="bg-indigo-500 p-3 rounded-2xl text-white shadow-lg shadow-indigo-500/20">
-                    <BarChart3 className="w-6 h-6" />
+          {/* Sidebar Column (Span 4) */}
+          <div className="md:col-span-4 flex flex-col gap-6">
+            {/* USDC Faucet */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+              className="flex-1 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 relative overflow-hidden shadow-sm dark:shadow-none transition-colors"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+              <div className="relative z-10 h-full flex flex-col">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-blue-500/10 dark:bg-blue-500/20 rounded-2xl text-blue-500 dark:text-blue-400">
+                    <Wallet className="w-6 h-6" />
                   </div>
-                  System Ledger
-                </h2>
-                <div className="hidden md:flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] bg-gray-100 dark:bg-gray-900/50 px-4 py-2 rounded-full border border-gray-200/50 dark:border-gray-700/50">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Real-time synchronization
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">USDC Faucet</h2>
+                </div>
+                <div className="flex-1 flex flex-col justify-end">
+                  <MintUsdcForm />
                 </div>
               </div>
-              
-              {loading ? (
-                <div className="text-center py-32">
-                  <div className={`inline-block rounded-[20px] h-12 w-12 border-4 border-[#14B8A6] border-t-transparent ${prefersReducedMotion ? '' : 'animate-spin'}`}></div>
-                  <p className="mt-6 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest text-xs">Syncing Ledger...</p>
+            </motion.div>
+
+            {/* Minter Access */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+              className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 relative overflow-hidden shadow-sm dark:shadow-none transition-colors"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-amber-500/10 dark:bg-amber-500/20 rounded-2xl text-amber-500 dark:text-amber-400">
+                  <Shield className="w-6 h-6" />
                 </div>
-              ) : (
-                <AdminMarketManager markets={markets} />
-              )}
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Minter Role</h2>
+              </div>
+              <USDCMinterManager />
+            </motion.div>
+          </div>
+
+          {/* System Operations (Full Width) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+            className="md:col-span-12 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 shadow-sm dark:shadow-none transition-colors"
+          >
+            <div className="flex items-center gap-3 mb-8">
+              <div className="p-3 bg-orange-500/10 dark:bg-orange-500/20 rounded-2xl text-orange-500 dark:text-orange-400">
+                <Settings className="w-6 h-6" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Protocol Operations</h2>
             </div>
+            <AdminOperationsManager />
           </motion.div>
+
+          {/* Permissions (Span 6) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+            className="md:col-span-6 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 shadow-sm dark:shadow-none transition-colors"
+          >
+            <div className="flex items-center gap-3 mb-8">
+              <div className="p-3 bg-purple-500/10 dark:bg-purple-500/20 rounded-2xl text-purple-500 dark:text-purple-400">
+                <Users className="w-6 h-6" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Permissions</h2>
+            </div>
+            <AdminManager />
+          </motion.div>
+
+          {/* System Ledger (Span 12) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
+            className="md:col-span-12 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 shadow-sm dark:shadow-none transition-colors"
+          >
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-2xl text-indigo-500 dark:text-indigo-400">
+                  <BarChart3 className="w-6 h-6" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Global Market Ledger</h2>
+              </div>
+              <div className="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700 text-xs font-mono text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                LIVE SYNC
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="h-64 flex flex-col items-center justify-center text-gray-500">
+                <div className="w-10 h-10 border-4 border-[#14B8A6] border-t-transparent rounded-full animate-spin mb-4" />
+                <p className="text-sm tracking-widest uppercase">Synchronizing...</p>
+              </div>
+            ) : (
+              <AdminMarketManager markets={markets} />
+            )}
+          </motion.div>
+
         </div>
-        {/* --- BENTO GRID END --- */}
-        
       </main>
     </div>
   );
 }
 
-function AdminStat({ value, label, icon: Icon, color }: any) {
+function AdminStat({ value, label, icon: Icon, color }: { value: number | string, label: string, icon: any, color: string }) {
   return (
-    <div className="bg-white dark:bg-gray-800 px-4 py-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-center gap-3 group hover:border-[#14B8A6]/30 transition-all min-w-[120px]">
-      <div className={`${color} opacity-60 group-hover:opacity-100 transition-opacity`}>
-        <Icon className="w-4 h-4" />
+    <div className="px-6 py-4 bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-white/5 rounded-2xl min-w-[140px] hover:border-gray-300 dark:hover:border-white/10 transition-colors group shadow-sm dark:shadow-none">
+      <div className={cn("mb-2 opacity-70 group-hover:opacity-100 transition-opacity", color)}>
+        <Icon className="w-5 h-5" />
       </div>
-      <div>
-        <div className="text-lg font-black text-gray-900 dark:text-white leading-none mb-1">{value}</div>
-        <div className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-tighter whitespace-nowrap">{label}</div>
-      </div>
+      <div className="text-2xl font-black text-gray-900 dark:text-white leading-none mb-1">{value}</div>
+      <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{label}</div>
     </div>
   );
 }

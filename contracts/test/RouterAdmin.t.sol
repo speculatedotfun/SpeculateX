@@ -63,10 +63,9 @@ contract RouterAdminTest is TestSetup {
     }
 
     function test_recoverETH() public {
-        // Router rejects ETH via receive()
-        vm.expectRevert("NO_ETH");
+        // Router rejects ETH via receive() - the call reverts, so success should be false
         (bool success, ) = address(core).call{value: 1 ether}("");
-        assertFalse(success);
+        assertFalse(success, "Router should reject ETH");
         
         // Force send ETH using selfdestruct pattern (bypass receive)
         // We'll use a helper contract to force send exactly 1 ETH.

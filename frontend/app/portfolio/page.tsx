@@ -5,11 +5,11 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount } from 'wagmi';
 import { formatUnits } from 'viem';
-import { 
-  Wallet, 
-  TrendingUp, 
-  History, 
-  ArrowUpRight, 
+import {
+  Wallet,
+  TrendingUp,
+  History,
+  ArrowUpRight,
   ArrowDownRight,
   CheckCircle2,
   Clock,
@@ -47,10 +47,12 @@ const formatNumber = (value: number) => {
   }).format(value);
 };
 
+type PortfolioTab = 'positions' | 'history' | 'claims' | 'faucet';
+
 export default function PortfolioPage() {
   const { isConnected } = useAccount();
   const { data, isLoading, refetch, isRefetching } = useUserPortfolio();
-  const [activeTab, setActiveTab] = useState<'positions' | 'history' | 'claims' | 'faucet'>('positions');
+  const [activeTab, setActiveTab] = useState<PortfolioTab>('positions');
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
@@ -82,7 +84,7 @@ export default function PortfolioPage() {
     return isResolved && hasWon && hasBalance && notRedeemed;
   });
 
-  const lostPositions = positions.filter(p => 
+  const lostPositions = positions.filter(p =>
     p.status === 'Resolved' && !p.won
   );
 
@@ -101,11 +103,11 @@ export default function PortfolioPage() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden flex flex-col">
+      <div className="min-h-screen relative overflow-hidden flex flex-col">
         {/* Background Gradient */}
         <div className="fixed inset-0 pointer-events-none -z-10">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#FAF9FF] via-[#F0F4F8] to-[#E8F0F5] dark:from-[#0f172a] dark:via-[#1a1f3a] dark:to-[#1e293b]"></div>
-            <div className="absolute left-1/2 top-0 -translate-x-1/2 m-auto h-[500px] w-[500px] rounded-full bg-[#14B8A6] opacity-10 blur-[100px]"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-[#FAF9FF] via-[#F0F4F8] to-[#E8F0F5] dark:from-[#0f172a] dark:via-[#1a1f3a] dark:to-[#1e293b]"></div>
+          <div className="absolute left-1/2 top-0 -translate-x-1/2 m-auto h-[500px] w-[500px] rounded-full bg-[#14B8A6] opacity-10 blur-[100px]"></div>
         </div>
         <Header />
         <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
@@ -125,7 +127,7 @@ export default function PortfolioPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-x-hidden font-sans">
+    <div className="min-h-screen relative overflow-x-hidden font-sans">
 
       {/* Background Gradient */}
       <div className="fixed inset-0 pointer-events-none -z-10">
@@ -136,7 +138,7 @@ export default function PortfolioPage() {
       <Header />
 
       <main className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-        
+
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <motion.div
@@ -151,26 +153,26 @@ export default function PortfolioPage() {
           </motion.div>
 
           <div className="flex items-center gap-3">
-             {claimablePositions.length > 0 && (
-                <motion.div
-                  initial={prefersReducedMotion ? false : { scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-                  className="bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-2 rounded-xl flex items-center gap-3 shadow-sm mr-2"
+            {claimablePositions.length > 0 && (
+              <motion.div
+                initial={prefersReducedMotion ? false : { scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
+                className="bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-2 rounded-xl flex items-center gap-3 shadow-sm mr-2"
+              >
+                <Trophy className="w-4 h-4 text-green-600 dark:text-green-400" />
+                <div className="flex flex-col leading-none">
+                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">Winnings</span>
+                  <span className="text-xs font-bold">{claimablePositions.length} To Claim</span>
+                </div>
+                <button
+                  className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+                  onClick={() => setActiveTab('claims')}
                 >
-                  <Trophy className="w-4 h-4 text-green-600 dark:text-green-400" />
-                  <div className="flex flex-col leading-none">
-                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">Winnings</span>
-                    <span className="text-xs font-bold">{claimablePositions.length} To Claim</span>
-                  </div>
-                  <button 
-                    className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
-                    onClick={() => setActiveTab('claims')}
-                  >
-                    View
-                  </button>
-                </motion.div>
-              )}
+                  View
+                </button>
+              </motion.div>
+            )}
 
             <button
               onClick={async () => {
@@ -189,30 +191,30 @@ export default function PortfolioPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          <StatCard 
-            title="Total Value" 
-            value={isLoading ? "..." : formatCurrency(totalValue)} 
+          <StatCard
+            title="Total Value"
+            value={isLoading ? "..." : formatCurrency(totalValue)}
             subtext="Current market value"
             icon={TrendingUp}
             color="bg-[#14B8A6]"
           />
-          <StatCard 
-            title="Active Positions" 
-            value={isLoading ? "..." : activePositionsCount.toString()} 
+          <StatCard
+            title="Active Positions"
+            value={isLoading ? "..." : activePositionsCount.toString()}
             subtext="Live markets"
             icon={Clock}
             color="bg-blue-500"
           />
-          <StatCard 
-            title="Resolved" 
-            value={isLoading ? "..." : resolvedPositionsCount.toString()} 
+          <StatCard
+            title="Resolved"
+            value={isLoading ? "..." : resolvedPositionsCount.toString()}
             subtext="Finalized markets"
             icon={CheckCircle2}
             color="bg-purple-500"
           />
-          <StatCard 
-            title="Total Claimed" 
-            value={isLoading ? "..." : formatCurrency(totalClaimed)} 
+          <StatCard
+            title="Total Claimed"
+            value={isLoading ? "..." : formatCurrency(totalClaimed)}
             subtext="Winnings redeemed"
             icon={Trophy}
             color="bg-amber-500"
@@ -221,18 +223,17 @@ export default function PortfolioPage() {
 
         {/* Tabs & Content */}
         <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl rounded-[32px] border border-gray-200/50 dark:border-gray-700/50 shadow-xl overflow-hidden min-h-[500px]">
-          
+
           {/* Tab Header */}
           <div className="flex border-b border-gray-100 dark:border-gray-700/50 overflow-x-auto p-1 bg-gray-50/50 dark:bg-gray-900/20">
-            {['positions', 'claims', 'history', 'faucet'].map((tab) => (
+            {(['positions', 'claims', 'history', 'faucet'] as const).map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab as any)}
-                className={`flex-1 py-3 px-6 text-sm font-bold rounded-2xl transition-all relative whitespace-nowrap ${
-                  activeTab === tab 
-                    ? 'bg-white dark:bg-gray-800 text-[#14B8A6] shadow-sm' 
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                }`}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 py-3 px-6 text-sm font-bold rounded-2xl transition-all relative whitespace-nowrap ${activeTab === tab
+                  ? 'bg-white dark:bg-gray-800 text-[#14B8A6] shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  }`}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
                 {tab === 'claims' && claimablePositions.length > 0 && (
@@ -258,8 +259,8 @@ export default function PortfolioPage() {
                   {isLoading ? (
                     <LoadingState prefersReducedMotion={prefersReducedMotion} />
                   ) : positions.length === 0 ? (
-                    <EmptyState 
-                      title="No active positions" 
+                    <EmptyState
+                      title="No active positions"
                       description="You haven't made any trades yet. Start predicting to build your portfolio."
                       actionLink="/markets"
                       actionText="Explore Markets"
@@ -327,7 +328,7 @@ export default function PortfolioPage() {
                           </div>
                           <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wide">Ready to Claim</h3>
                         </div>
-                        
+
                         {claimablePositions.length === 0 ? (
                           <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-8 text-center border border-gray-100 dark:border-gray-700/50 border-dashed">
                             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No winnings available to claim right now.</p>
@@ -358,7 +359,7 @@ export default function PortfolioPage() {
                               <PositionCard
                                 key={`claimed-${position.marketId}-${position.side}`}
                                 position={position}
-                                onClaimSuccess={() => {}}
+                                onClaimSuccess={() => { }}
                                 isRedeemed={true}
                                 prefersReducedMotion={prefersReducedMotion}
                               />
@@ -382,8 +383,8 @@ export default function PortfolioPage() {
                   {isLoading ? (
                     <LoadingState prefersReducedMotion={prefersReducedMotion} />
                   ) : trades.length === 0 ? (
-                    <EmptyState 
-                      title="No trade history" 
+                    <EmptyState
+                      title="No trade history"
                       description="Your recent trades will appear here."
                       actionLink="/markets"
                       actionText="Start Trading"
@@ -391,25 +392,23 @@ export default function PortfolioPage() {
                   ) : (
                     <div className="space-y-3">
                       {trades.map((trade) => (
-                        <div 
-                          key={trade.id} 
+                        <div
+                          key={trade.id}
                           className="group bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:border-[#14B8A6]/30 dark:hover:border-[#14B8A6]/30 hover:shadow-md transition-all gap-4"
                         >
                           <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              trade.action === 'buy' 
-                                ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400' 
-                                : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400'
-                            }`}>
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${trade.action === 'buy'
+                              ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                              : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400'
+                              }`}>
                               {trade.action === 'buy' ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
                             </div>
                             <div>
                               <div className="flex items-center gap-2 mb-1">
-                                <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
-                                  trade.action === 'buy' 
-                                    ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' 
-                                    : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300'
-                                }`}>
+                                <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${trade.action === 'buy'
+                                  ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
+                                  : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300'
+                                  }`}>
                                   {trade.action} {trade.side}
                                 </span>
                                 <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
@@ -421,7 +420,7 @@ export default function PortfolioPage() {
                               </Link>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center justify-between sm:justify-end gap-8 bg-gray-50 dark:bg-gray-700/30 sm:bg-transparent sm:dark:bg-transparent p-3 sm:p-0 rounded-xl">
                             <div className="text-right">
                               <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">Amount</p>
@@ -553,23 +552,21 @@ function PositionCard({ position, onClaimSuccess, isRedeemed = false, prefersRed
   const showLost = position.status === 'Resolved' && !isWinner;
 
   return (
-    <div className={`bg-white dark:bg-gray-800 border rounded-3xl p-5 sm:p-6 transition-all duration-300 group relative overflow-hidden ${
-      canRedeem 
-        ? 'border-green-200 dark:border-green-800 shadow-[0_8px_30px_rgba(34,197,94,0.1)]' 
-        : 'border-gray-100 dark:border-gray-700 hover:shadow-lg hover:border-[#14B8A6]/30'
-    }`}>
+    <div className={`bg-white dark:bg-gray-800 border rounded-3xl p-5 sm:p-6 transition-all duration-300 group relative overflow-hidden ${canRedeem
+      ? 'border-green-200 dark:border-green-800 shadow-[0_8px_30px_rgba(34,197,94,0.1)]'
+      : 'border-gray-100 dark:border-gray-700 hover:shadow-lg hover:border-[#14B8A6]/30'
+      }`}>
       {canRedeem && (
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-green-400/20 to-transparent -mr-10 -mt-10 rounded-full blur-2xl pointer-events-none" />
       )}
-      
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-3">
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
-              position.side === 'YES' 
-                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800' 
-                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'
-            }`}>
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${position.side === 'YES'
+              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800'
+              : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'
+              }`}>
               {position.side}
             </span>
             {canRedeem && (
@@ -614,7 +611,7 @@ function PositionCard({ position, onClaimSuccess, isRedeemed = false, prefersRed
 
         <div className="flex flex-col items-end sm:border-l sm:border-gray-100 dark:sm:border-gray-700 sm:pl-6 gap-2 w-full sm:w-auto">
           {canRedeem ? (
-            <Button 
+            <Button
               onClick={handleClaim}
               disabled={isClaiming || isPending}
               className="w-full sm:w-auto bg-[#14B8A6] hover:bg-[#0D9488] text-white font-bold rounded-xl shadow-lg shadow-[#14B8A6]/20 transition-all active:scale-95"
@@ -622,11 +619,11 @@ function PositionCard({ position, onClaimSuccess, isRedeemed = false, prefersRed
               {isClaiming || isPending ? 'Claiming...' : 'Claim'}
             </Button>
           ) : (
-             <Link href={`/markets/${position.marketId}`} className="w-full sm:w-auto">
-               <Button variant="outline" className="w-full border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-bold hover:border-[#14B8A6] dark:hover:border-[#14B8A6] hover:text-[#14B8A6] dark:hover:text-[#14B8A6] rounded-xl">
-                 Trade
-               </Button>
-             </Link>
+            <Link href={`/markets/${position.marketId}`} className="w-full sm:w-auto">
+              <Button variant="outline" className="w-full border-2 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-bold hover:border-[#14B8A6] dark:hover:border-[#14B8A6] hover:text-[#14B8A6] dark:hover:text-[#14B8A6] rounded-xl">
+                Trade
+              </Button>
+            </Link>
           )}
         </div>
       </div>

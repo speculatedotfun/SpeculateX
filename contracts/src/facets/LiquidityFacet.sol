@@ -16,12 +16,15 @@ contract LiquidityFacet is CoreStorage {
 
     error InvalidMarket();
     error MarketNotActive();
+    error MarketNotStarted();
     error InsufficientSeed();
     error InsufficientShares();
     error SolvencyIssue();
     error CannotRemoveLastLiquidity();
     error LiquidityTooLow();
     error QTooLarge();
+    error FeeCooldownActive(); // H-01 Fix
+    error CannotRemoveLiquidityAfterExpiry(); // H-02 Fix
 
     function addLiquidity(uint256 id, uint256 usdcAdd) external nonReentrant whenNotPaused {
         Market storage m = markets[id];
@@ -37,6 +40,9 @@ contract LiquidityFacet is CoreStorage {
 
         lpShares[id][msg.sender] += usdcAdd;
         m.totalLpUsdc += usdcAdd;
+
+        // H-01 Fix: Record when LP added liquidity
+        lpAddedAtBlock[id][msg.sender] = block.number;
 
         // Preserve the current spot price when increasing liquidity depth:
         // LMSR price depends on (qYes, qNo, b). We change b, so we also scale q's by the same factor.
@@ -76,6 +82,11 @@ contract LiquidityFacet is CoreStorage {
         Market storage m = markets[id];
         if (address(m.yes) == address(0)) revert InvalidMarket();
 
+        // H-01 Fix: Enforce cooldown to prevent sandwich attacks
+        if (block.number <= lpAddedAtBlock[id][lp] + lpFeeCooldownBlocks) {
+            revert FeeCooldownActive();
+        }
+
         uint256 share = lpShares[id][lp];
         uint256 pending = (share * accFeePerUSDCE18[id]) / 1e18 - lpFeeDebt[id][lp];
 
@@ -93,7 +104,15 @@ contract LiquidityFacet is CoreStorage {
         Market storage m = markets[id];
         if (address(m.yes) == address(0)) revert InvalidMarket();
         if (m.status != MarketStatus.Active) revert MarketNotActive();
+        // Block liquidity removal before market starts (prevents gaming of scheduled markets)
+        if (m.resolution.startTime != 0 && block.timestamp < m.resolution.startTime) revert MarketNotStarted();
         if (lpShares[id][msg.sender] < usdcRemove) revert InsufficientShares();
+
+        // H-02 Fix: Prevent liquidity removal after market expiry (before resolution)
+        // This prevents gaming of residual distribution by removing liquidity before resolution
+        if (block.timestamp >= m.resolution.expiryTimestamp && !m.resolution.isResolved) {
+            revert CannotRemoveLiquidityAfterExpiry();
+        }
 
         // 1. Claim any pending fees first to simplify accounting
         _claimLpFees(id, msg.sender);

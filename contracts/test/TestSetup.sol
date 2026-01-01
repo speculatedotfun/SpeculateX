@@ -67,6 +67,7 @@ abstract contract TestSetup is Test {
 
     function _wireFacets() internal {
         _setFacet(MarketFacet.createMarket.selector, address(marketFacet));
+        _setFacet(MarketFacet.createScheduledMarket.selector, address(marketFacet));
         _setFacet(MarketFacet.getMarketState.selector, address(marketFacet));
         _setFacet(MarketFacet.getMarketResolution.selector, address(marketFacet));
 
@@ -139,6 +140,44 @@ abstract contract TestSetup is Test {
 
     function _getMarketTokens(uint256 id) internal view returns (address yes, address no) {
         (yes, no) = MarketFacet(address(core)).getMarketTokens(id);
+    }
+
+    function _createScheduledMarket(
+        address creator,
+        uint256 initUsdc,
+        uint256 startTime,
+        uint256 expiryTimestamp,
+        address oracleFeed,
+        uint256 targetValue,
+        CoreStorage.Comparison comparison
+    ) internal returns (uint256 id) {
+        // Default to mockOracle if address(0) is passed
+        if (oracleFeed == address(0)) {
+            oracleFeed = address(mockOracle);
+        }
+        // Keep the oracle "fresh" at the time of market creation
+        if (oracleFeed == address(mockOracle)) {
+            uint256 ts = block.timestamp == 0 ? 1 : block.timestamp;
+            mockOracle.setRoundData(1, int256(100e8), ts, ts, 1);
+            if (targetValue == 0) targetValue = 100e8;
+        }
+        vm.startPrank(creator);
+        usdc.approve(address(core), initUsdc);
+        id = MarketFacet(address(core)).createScheduledMarket(
+            "Will price be above target?",
+            "YES",
+            "YES",
+            "NO",
+            "NO",
+            initUsdc,
+            startTime,
+            expiryTimestamp,
+            oracleFeed,
+            bytes32(0),
+            targetValue,
+            comparison
+        );
+        vm.stopPrank();
     }
 }
 

@@ -12,8 +12,19 @@ function getSubgraphUrl(): string {
 
 // Get subgraph URLs dynamically based on network
 function getSubgraphHttpUrl(): string {
-  return process.env.NEXT_PUBLIC_GOLDSKY_HTTP_URL ?? 
-         process.env.NEXT_PUBLIC_SUBGRAPH_URL ?? 
+  const network = getCurrentNetwork();
+
+  // Network-specific URLs from environment
+  if (network === 'mainnet' && process.env.NEXT_PUBLIC_GOLDSKY_MAINNET_HTTP_URL) {
+    return process.env.NEXT_PUBLIC_GOLDSKY_MAINNET_HTTP_URL;
+  }
+  if (network === 'testnet' && process.env.NEXT_PUBLIC_GOLDSKY_TESTNET_HTTP_URL) {
+    return process.env.NEXT_PUBLIC_GOLDSKY_TESTNET_HTTP_URL;
+  }
+
+  // Legacy fallbacks
+  return process.env.NEXT_PUBLIC_GOLDSKY_HTTP_URL ??
+         process.env.NEXT_PUBLIC_SUBGRAPH_URL ??
          getSubgraphUrl();
 }
 

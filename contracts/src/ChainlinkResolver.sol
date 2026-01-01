@@ -77,6 +77,7 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable {
     error IncompleteRound();
     error UnsupportedDecimals();
     error InvalidRoundId();
+    error PhaseBoundaryRound(); // M-01 Fix
 
     uint256 public constant MIN_TIMELOCK = 24 hours;
     uint256 public constant OP_EXPIRY_WINDOW = 7 days;
@@ -155,8 +156,25 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable {
         emit OpCancelled(opId);
     }
 
+    /**
+     * @notice Parse composite Chainlink round ID into phase and aggregator round
+     * @dev Chainlink uses composite IDs: phaseId (upper 16 bits) | aggregatorRoundId (lower 64 bits)
+     * @param roundId The composite round ID
+     * @return phaseId The phase ID (upper 16 bits)
+     * @return aggregatorRoundId The aggregator round ID (lower 64 bits)
+     */
+    function parseRoundId(uint80 roundId) internal pure returns (uint16 phaseId, uint64 aggregatorRoundId) {
+        phaseId = uint16(roundId >> 64);
+        aggregatorRoundId = uint64(roundId);
+    }
+
     function resolve(uint256 marketId, uint80 roundId) external nonReentrant whenNotPaused {
         if (roundId == 0) revert InvalidRoundId();
+
+        // M-01 Fix: Parse round ID to check for phase boundaries
+        (uint16 phase, uint64 aggregatorRound) = parseRoundId(roundId);
+        if (aggregatorRound == 0) revert PhaseBoundaryRound(); // Cannot verify previous round at phase boundary
+
         ICoreResolutionView.ResolutionConfig memory r = ICoreResolutionView(core).getMarketResolution(marketId);
 
         if (r.oracleType != ICoreResolutionView.OracleType.ChainlinkFeed) revert NotChainlinkMarket();
@@ -182,14 +200,11 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable {
 
         // 4. Verify previous round was BEFORE expiry (proving this is the first update after expiry)
         // This is critical to prevent round selection gaming - we must verify first-ness or revert
-        if (roundId == 0) {
-            // roundId 0 is only possible at feed inception.
-            // We cannot verify first-ness without previous round data, so we require roundId > 0
-            revert InvalidRoundId();
-        }
-        
+        // M-01 Fix: Construct previous round ID from same phase to avoid phase boundary issues
+        uint80 prevRoundId = (uint80(phase) << 64) | (aggregatorRound - 1);
+
         // Must be able to fetch previous round to verify first-ness
-        try feed.getRoundData(roundId - 1) returns (uint80, int256, uint256, uint256 prevUpdatedAt, uint80) {
+        try feed.getRoundData(prevRoundId) returns (uint80, int256, uint256, uint256 prevUpdatedAt, uint80) {
             if (prevUpdatedAt >= r.expiryTimestamp) {
                 revert NotFirstRoundAfterExpiry(prevUpdatedAt, r.expiryTimestamp);
             }

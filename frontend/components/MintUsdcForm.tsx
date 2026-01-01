@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
-import { getAddresses, getNetwork, getCurrentNetwork } from '@/lib/contracts';
-import { usdcAbi, getCoreAbi } from '@/lib/abis';
+import { getAddresses, getNetwork } from '@/lib/contracts';
+import { usdcAbi } from '@/lib/abis';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Coins, CheckCircle2, TrendingUp, Sparkles } from 'lucide-react';
+import { Coins, TrendingUp, Sparkles, AlertCircle } from 'lucide-react';
 
 export default function MintUsdcForm() {
   const { address } = useAccount();
@@ -20,9 +20,8 @@ export default function MintUsdcForm() {
   const [showBalanceIncrease, setShowBalanceIncrease] = useState(false);
   const network = getNetwork();
   const addresses = getAddresses();
-  
-  // All hooks must be called before any early returns
-  const { data: hash, writeContract, isPending, error } = useWriteContract();
+
+  const { data: hash, writeContract, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
   const { data: balance, refetch: refetchBalance } = useReadContract({
@@ -30,9 +29,9 @@ export default function MintUsdcForm() {
     abi: usdcAbi,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
-    query: { 
-      enabled: network === 'testnet' && !!address, 
-      refetchInterval: isConfirming ? 1000 : false 
+    query: {
+      enabled: network === 'testnet' && !!address,
+      refetchInterval: isConfirming ? 1000 : false
     },
   });
 
@@ -54,13 +53,12 @@ export default function MintUsdcForm() {
       refetchBalance();
     }
   }, [isSuccess, mintAmount, pushToast, refetchBalance]);
-  
-  // Only show faucet on testnet
+
   if (network === 'mainnet') {
     return (
-      <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-2xl border border-blue-200 dark:border-blue-800 text-center">
-        <p className="text-blue-800 dark:text-blue-200 font-medium">
-          Faucet is only available on Testnet. Switch to Testnet to mint test USDC.
+      <div className="bg-blue-500/10 p-6 rounded-2xl border border-blue-500/20 text-center">
+        <p className="text-blue-400 font-medium text-sm">
+          Faucet is only available on Testnet.
         </p>
       </div>
     );
@@ -70,7 +68,6 @@ export default function MintUsdcForm() {
     if (!address || !mintAmount) return;
     try {
       const amount = parseUnits(mintAmount, 6);
-      // Call faucet directly on MockUSDC (testnet only)
       writeContract({
         address: addresses.usdc,
         abi: usdcAbi,
@@ -83,114 +80,70 @@ export default function MintUsdcForm() {
   };
 
   return (
-    <div className="space-y-6" role="region" aria-label="Mint testnet USDC">
-      {address ? (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl p-5 border border-blue-200/50 dark:border-blue-800/30 overflow-hidden"
-        >
-          {/* Sparkle effect on balance increase */}
-          <AnimatePresence>
-            {showBalanceIncrease && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 pointer-events-none"
-              >
-                <Sparkles className="absolute top-2 right-2 w-5 h-5 text-blue-500 animate-pulse" aria-hidden="true" />
-                <Sparkles className="absolute bottom-2 left-2 w-4 h-4 text-purple-500 animate-pulse" aria-hidden="true" />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                <Coins className="w-5 h-5 text-blue-500" aria-hidden="true" />
+    <div className="h-full flex flex-col justify-between">
+      <div>
+        {address ? (
+          <div className="relative mb-6">
+            <div className="text-xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider mb-2">My Balance</div>
+            <div className="flex items-end justify-between">
+              <div className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">
+                {parseFloat(userBalance).toLocaleString()} <span className="text-lg text-gray-400 dark:text-gray-500 font-medium">USDC</span>
               </div>
-              <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Your Balance</span>
+              {showBalanceIncrease && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-emerald-600 dark:text-emerald-400 font-bold text-sm mb-2 flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" /> +{(parseFloat(userBalance) - parseFloat(prevBalance)).toLocaleString()}
+                </motion.div>
+              )}
             </div>
-            {showBalanceIncrease && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0 }}
-                className="flex items-center gap-1 text-green-600 dark:text-green-400 text-sm font-bold"
-              >
-                <TrendingUp className="w-4 h-4" aria-hidden="true" />
-                +{(parseFloat(userBalance) - parseFloat(prevBalance)).toLocaleString()}
-              </motion.div>
-            )}
+            <AnimatePresence>
+              {showBalanceIncrease && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 pointer-events-none">
+                  <Sparkles className="absolute -top-4 -right-4 w-12 h-12 text-emerald-400/20 animate-spin-slow" />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-          <motion.div
-            key={userBalance}
-            initial={{ scale: showBalanceIncrease ? 1.1 : 1 }}
-            animate={{ scale: 1 }}
-            className="text-3xl font-black text-gray-900 dark:text-white mt-2"
-          >
-            {parseFloat(userBalance).toLocaleString()} <span className="text-lg text-gray-400">USDC</span>
-          </motion.div>
-        </motion.div>
-      ) : (
-        <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-100 dark:border-amber-800 text-center text-amber-800 dark:text-amber-200 font-medium text-sm" role="status">
-          Connect wallet to view balance
-        </div>
-      )}
-
-      <div className="space-y-3">
-        <label htmlFor="mint-amount-input" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1">
-          Mint Amount
-        </label>
-        <div className="relative">
-          <Input
-            id="mint-amount-input"
-            type="number"
-            value={mintAmount}
-            onChange={(e) => setMintAmount(e.target.value)}
-            className="pr-16 font-mono font-bold text-lg"
-            placeholder="1000"
-            aria-label="Amount of testnet USDC to mint"
-          />
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400" aria-hidden="true">USDC</div>
-        </div>
-        <div className="flex gap-2" role="group" aria-label="Quick amount selection">
-          {['1000', '5000', '10000'].map(amt => (
-            <motion.button
-              key={amt}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setMintAmount(amt)}
-              className="flex-1 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-              aria-label={`Set amount to ${Number(amt).toLocaleString()} USDC`}
-            >
-              +{Number(amt).toLocaleString()}
-            </motion.button>
-          ))}
-        </div>
+        ) : (
+          <div className="bg-amber-100 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 p-3 rounded-lg flex items-center gap-2 text-amber-700 dark:text-amber-500 text-xs font-bold mb-6">
+            <AlertCircle className="w-4 h-4" /> Connect wallet
+          </div>
+        )}
       </div>
 
-      <Button
-        onClick={handleMint}
-        disabled={isPending || isConfirming || !address}
-        className="w-full h-12 text-base shadow-lg shadow-blue-500/20 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-        aria-label={isPending || isConfirming ? 'Minting USDC in progress' : 'Mint testnet USDC'}
-      >
-        {isPending || isConfirming ? (
-          <span className="flex items-center justify-center gap-2">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-              className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-              aria-hidden="true"
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-gray-500 dark:text-gray-500 uppercase ml-1">Amount</label>
+          <div className="relative">
+            <Input
+              type="number"
+              value={mintAmount}
+              onChange={(e) => setMintAmount(e.target.value)}
+              className="bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white font-mono text-lg h-12 pr-16 focus:ring-blue-500"
+              placeholder="1000"
             />
-            {isPending ? 'Confirming...' : 'Minting...'}
-          </span>
-        ) : (
-          'Mint Testnet USDC'
-        )}
-      </Button>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">USDC</div>
+          </div>
+          <div className="flex gap-2">
+            {['1000', '5000', '10000'].map(amt => (
+              <button
+                key={amt}
+                onClick={() => setMintAmount(amt)}
+                className="flex-1 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-xs font-bold transition-all border border-transparent hover:border-gray-200 dark:hover:border-white/10"
+              >
+                +{Number(amt).toLocaleString()}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <Button
+          onClick={handleMint}
+          disabled={isPending || isConfirming || !address}
+          className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-blue-500/20 rounded-xl"
+        >
+          {isPending || isConfirming ? 'Minting...' : 'Mint Testnet USDC'}
+        </Button>
+      </div>
     </div>
   );
 }

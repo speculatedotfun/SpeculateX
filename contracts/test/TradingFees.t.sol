@@ -48,6 +48,9 @@ contract TradingFeesTest is TestSetup {
         (, , uint256 vault, , , ) = MarketFacet(address(core)).getMarketState(id);
         assertEq(vault, 20_000e6 + net);
 
+        // Wait for cooldown (H-01 fix)
+        vm.roll(block.number + 2);
+
         // LP fees should be claimable by the initial LP (admin)
         uint256 adminBefore = usdc.balanceOf(admin);
         LiquidityFacet(address(core)).claimLpFees(id);

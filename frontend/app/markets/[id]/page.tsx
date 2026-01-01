@@ -1,14 +1,14 @@
 'use client';
-// @ts-nocheck
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { useAccount, useReadContract, usePublicClient, useBlockNumber } from 'wagmi';
 import { useMarketData } from '@/lib/hooks/useMarketData';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MarketInfo, MarketResolution } from '@/lib/types';
 import { formatUnits, decodeEventLog } from 'viem';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Clock, AlertTriangle, CheckCircle2, Loader2, Share2, Check } from 'lucide-react';
+import { ArrowLeft, Clock, AlertTriangle, CheckCircle2, Loader2, Share2, Check, TrendingUp } from 'lucide-react';
 
 // Components
 import Header from '@/components/Header';
@@ -17,6 +17,9 @@ import { PriceChart } from '@/components/PriceChart';
 import { MarketHeader } from '@/components/market/MarketHeader';
 import { Skeleton } from '@/components/ui';
 import { PriceDisplay } from '@/components/market/PriceDisplay';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { LmsrPriceDepth } from '@/components/market/LmsrPriceDepth';
+import { LiveTradeFeed } from '@/components/market/LiveTradeFeed';
 
 // Lib
 import { getMarket, getSpotPriceYesE6, getMarketResolution, getMarketState } from '@/lib/hooks';
@@ -189,15 +192,15 @@ export default function MarketDetailPage() {
   const { address, isConnected } = useAccount();
 
   // Core market state
-  const [market, setMarket] = useState<any>(null);
-  const [resolution, setResolution] = useState<any>(null);
+  const [market, setMarket] = useState<MarketInfo | null>(null);
+  const [resolution, setResolution] = useState<MarketResolution | null>(null);
   const [error, setError] = useState<string>('');
 
   // Use centralized market data hook
   const marketData = useMarketData(marketIdNum);
 
   // UI state
-  const [activeTab, setActiveTab] = useState<'Position' | 'Comments' | 'Transactions' | 'Resolution'>('Resolution');
+  const [activeTab, setActiveTab] = useState<'Position' | 'Comments' | 'Transactions' | 'Resolution'>(isConnected ? 'Position' : 'Resolution');
   const [holderTab, setHolderTab] = useState<'yes' | 'no'>('yes');
   const [chartSide, setChartSide] = useState<'yes' | 'no'>('yes');
   const [timeRange, setTimeRange] = useState<SnapshotTimeRange>('ALL');
@@ -278,7 +281,7 @@ export default function MarketDetailPage() {
 
       try {
         const marketIdBigInt = BigInt(marketIdNum);
-        
+
         const onchainData = await getMarket(marketIdBigInt);
 
         if (!onchainData.yes || onchainData.yes === '0x0000000000000000000000000000000000000000') {
@@ -286,7 +289,7 @@ export default function MarketDetailPage() {
           return;
         }
 
-        let marketWithCreatedAt = onchainData as any;
+        const marketWithCreatedAt = onchainData as unknown as MarketInfo;
         setMarket(marketWithCreatedAt);
 
         const resolutionData = await getMarketResolution(marketIdBigInt);
@@ -302,7 +305,7 @@ export default function MarketDetailPage() {
 
   // Watch for MarketCreated events
   useEffect(() => {
-     // ... (Event watching logic preserved)
+    // ... (Event watching logic preserved)
   }, [publicClient, isMarketIdValid, marketIdNum, market?.createdAt]);
 
   useEffect(() => {
@@ -343,9 +346,9 @@ export default function MarketDetailPage() {
           txHash: trade.txHash ?? undefined,
         };
       }).filter((point: PricePoint | null): point is PricePoint => point !== null);
-      
+
       if (newPricePoints.length > 0) {
-         mergePricePoints(newPricePoints);
+        mergePricePoints(newPricePoints);
       }
     }
   }, [mergePricePoints]);
@@ -387,9 +390,12 @@ export default function MarketDetailPage() {
   });
 
   useEffect(() => {
-    if (yesBal) setYesBalance(formatUnits(yesBal as bigint, 18));
-    if (noBal) setNoBalance(formatUnits(noBal as bigint, 18));
-  }, [yesBal, noBal]);
+    if (yesBal !== undefined) setYesBalance(formatUnits(yesBal as bigint, 18));
+  }, [yesBal]);
+
+  useEffect(() => {
+    if (noBal !== undefined) setNoBalance(formatUnits(noBal as bigint, 18));
+  }, [noBal]);
 
   const currentPrice = chartSide === 'yes' ? marketData.currentPrices.yes : marketData.currentPrices.no;
   let chanceChangePercent = 0;
@@ -417,14 +423,14 @@ export default function MarketDetailPage() {
   }, [sortedChartData, market?.resolution?.isResolved, market?.resolution?.yesWins]);
 
   const totalVolume = marketData.marketState ? Number(formatUnits(marketData.marketState.vault ?? 0n, 6)) : 0;
-  
+
   // Merge createdAt from snapshotData if available (subgraph has it, on-chain doesn't)
   const marketWithCreatedAt = useMemo(() => {
     if (!market) return market;
     const createdAt = snapshotData?.createdAt ?? market.createdAt;
     return { ...market, createdAt };
   }, [market, snapshotData?.createdAt]);
-  
+
   const createdAtDate = (() => {
     const createdAt = marketWithCreatedAt?.createdAt ?? snapshotData?.createdAt;
     if (!createdAt) return null;
@@ -437,18 +443,15 @@ export default function MarketDetailPage() {
 
   const marketStatus = typeof market?.status === 'number' ? market.status : Number(market?.status ?? 0);
   const marketResolution = market?.resolution;
-  // Debug: log the resolution data to help diagnose expiryTimestamp issues
-  if (marketResolution && (!marketResolution.expiryTimestamp || marketResolution.expiryTimestamp === 0n)) {
-    console.warn(`[MarketDetail] Market ${marketId} has invalid expiryTimestamp:`, marketResolution);
-  }
-  const marketExpiry = marketResolution?.expiryTimestamp && marketResolution.expiryTimestamp !== 0n 
-    ? Number(marketResolution.expiryTimestamp) 
+  const marketExpiry = marketResolution?.expiryTimestamp && marketResolution.expiryTimestamp !== 0n
+    ? Number(marketResolution.expiryTimestamp)
     : 0;
   const marketIsResolved = Boolean(marketResolution?.isResolved);
   const marketIsExpired = marketExpiry > 0 && marketExpiry < Date.now() / 1000;
   const isChartRefreshing = snapshotLoading && sortedChartData.length > 0;
-  const marketIsActive = marketStatus === 0 && !marketIsResolved && !marketIsExpired;
-  
+  // Contract enum: MarketStatus { Active=0, Resolved=1, Cancelled=2 }
+  const marketIsActive = marketStatus === 0;
+
   const totalVolumeDisplay = totalVolume.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   if (marketData.isLoading || !market || !resolution) {
@@ -459,35 +462,13 @@ export default function MarketDetailPage() {
     return (
       <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden flex flex-col">
         <Header />
-        <div className="flex-1 flex flex-col items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
-            className="text-center max-w-md bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl rounded-3xl p-8 border border-gray-200 dark:border-gray-700 shadow-xl"
-            role="alert"
-            aria-live="polite"
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-              className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4"
-            >
-              <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" aria-hidden="true" />
-            </motion.div>
-            <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Market Not Found</h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-6 font-medium">{error}</p>
-            <Link
-              href="/markets"
-              className="inline-flex items-center px-6 py-3 bg-[#14B8A6] text-white font-bold rounded-xl hover:bg-[#0D9488] transition-all shadow-lg hover:shadow-[#14B8A6]/20 hover:scale-105 active:scale-95"
-              aria-label="Return to browse all markets"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" aria-hidden="true" />
-              Browse Markets
-            </Link>
-          </motion.div>
-        </div>
+        <ErrorState
+          variant="page"
+          title="Market Not Found"
+          message={error}
+          showHomeButton
+          showBackButton
+        />
       </div>
     );
   }
@@ -496,59 +477,56 @@ export default function MarketDetailPage() {
     return (
       <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden flex flex-col">
         <Header />
-        <div className="flex-1 flex flex-col items-center justify-center p-4">
-          <div className="text-center max-w-md bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl rounded-3xl p-8 border border-gray-200 dark:border-gray-700 shadow-xl">
-            <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Invalid Market</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6 font-medium">The market ID provided is invalid.</p>
-            <Link href="/markets" className="inline-flex items-center px-6 py-3 bg-[#14B8A6] text-white font-bold rounded-xl hover:bg-[#0D9488] transition-all shadow-lg hover:shadow-[#14B8A6]/20">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Markets
-            </Link>
-          </div>
-        </div>
+        <ErrorState
+          variant="page"
+          title="Invalid Market"
+          message="The market ID provided is invalid."
+          showHomeButton
+          showBackButton
+        />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-x-hidden font-sans">
-      
+    <div className="min-h-screen relative overflow-x-hidden font-sans pb-24 md:pb-0">
+
       {/* Background Gradient */}
       <div className="fixed inset-0 pointer-events-none -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-[#FAF9FF] via-[#F0F4F8] to-[#E8F0F5] dark:from-[#0f172a] dark:via-[#1a1f3a] dark:to-[#1e293b]"></div>
-        <div className="absolute left-1/2 top-0 -translate-x-1/2 m-auto h-[500px] w-[500px] rounded-full bg-[#14B8A6] opacity-10 blur-[100px]"></div>
+        {/* Dynamic ambient glow based on winning side */}
+        <div className={`absolute left-1/2 top-0 -translate-x-1/2 m-auto h-[600px] w-[600px] rounded-full blur-[120px] opacity-20 transition-colors duration-1000 ${marketData.currentPrices.yes >= 0.5 ? 'bg-emerald-500' : 'bg-rose-500'
+          }`}></div>
       </div>
 
       <Header />
-   
+
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        
+
         {/* Back Link & Share Button */}
         <motion.div initial={prefersReducedMotion ? false : { x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="mb-6 flex items-center justify-between">
           <Link
             href="/markets"
             className="inline-flex items-center text-gray-500 hover:text-[#14B8A6] dark:text-gray-400 dark:hover:text-[#14B8A6] font-bold text-sm transition-colors group"
-            aria-label="Navigate back to markets list"
           >
             <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center mr-3 group-hover:border-[#14B8A6] transition-colors shadow-sm">
-                <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+              <ArrowLeft className="w-4 h-4" />
             </div>
-            Back to Markets
+            Back
           </Link>
 
           <button
             onClick={handleShareMarket}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-[#14B8A6] dark:hover:text-[#14B8A6] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full hover:border-[#14B8A6] transition-all shadow-sm"
-            aria-label={copied ? 'Link copied!' : 'Copy market link to clipboard'}
           >
             {copied ? (
               <>
-                <Check className="w-4 h-4 text-[#14B8A6]" aria-hidden="true" />
+                <Check className="w-4 h-4 text-[#14B8A6]" />
                 <span className="text-[#14B8A6]">Copied!</span>
               </>
             ) : (
               <>
-                <Share2 className="w-4 h-4" aria-hidden="true" />
+                <Share2 className="w-4 h-4" />
                 <span className="hidden sm:inline">Share</span>
               </>
             )}
@@ -570,62 +548,11 @@ export default function MarketDetailPage() {
           onLogoError={() => setLogoSrc('/logos/default.png')}
         />
 
-        {/* Status Banner (Resolved/Expired/Cancelled) */}
-        {(marketIsResolved || marketIsExpired || marketStatus === 2) && (
-          <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`mt-2 mb-8 px-6 py-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm ${
-                marketStatus === 2
-                ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 text-red-900 dark:text-red-100'
-                : marketIsResolved
-                  ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800/50 text-purple-900 dark:text-purple-100'
-                  : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50 text-amber-900 dark:text-amber-100'
-            }`}
-            role="status"
-            aria-label={
-              marketStatus === 2
-                ? 'Market has been cancelled. All positions can be redeemed at 50% value.'
-                : marketIsResolved
-                  ? `Market finalized. Winning outcome: ${marketResolution?.yesWins ? 'YES' : 'NO'}`
-                  : 'Market expired'
-            }
-          >
-            <div className="flex items-center gap-3">
-               {marketStatus === 2 ? (
-                 <AlertTriangle className="w-5 h-5" aria-hidden="true" />
-               ) : marketIsResolved ? (
-                 <CheckCircle2 className="w-5 h-5" aria-hidden="true" />
-               ) : (
-                 <Clock className="w-5 h-5" aria-hidden="true" />
-               )}
-               <span className="font-bold text-sm sm:text-base">
-                 {marketStatus === 2 ? 'Market Cancelled' : marketIsResolved ? 'Market Finalized' : 'Market Expired'}
-               </span>
-            </div>
-            {marketStatus === 2 ? (
-              <div className="flex items-center gap-2 bg-white/60 dark:bg-black/20 px-3 py-1.5 rounded-full">
-                <span className="text-xs font-bold uppercase opacity-70">Redemption:</span>
-                <span className="text-xs font-black uppercase text-amber-600 dark:text-amber-400">
-                  50% Value
-                </span>
-              </div>
-            ) : marketIsResolved && (
-              <div className="flex items-center gap-2 bg-white/60 dark:bg-black/20 px-3 py-1.5 rounded-full">
-                <span className="text-xs font-bold uppercase opacity-70">Winning Outcome:</span>
-                <span className={`text-xs font-black uppercase ${marketResolution?.yesWins ? 'text-[#14B8A6]' : 'text-red-500'}`}>
-                    {marketResolution?.yesWins ? 'YES' : 'NO'}
-                </span>
-              </div>
-            )}
-          </motion.div>
-        )}
-
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-4">
-          
+
           {/* --- Left Column: Chart & Tabs (8 cols) --- */}
           <div className="lg:col-span-8 space-y-8">
-            
+
             {/* Chart Card */}
             <motion.div
               initial={prefersReducedMotion ? false : { y: 20, opacity: 0 }}
@@ -643,7 +570,7 @@ export default function MarketDetailPage() {
                     </span>
                   </div>
                   <div className="flex items-baseline gap-4 flex-wrap">
-                    <PriceDisplay 
+                    <PriceDisplay
                       price={chartSide === 'yes' ? marketData.currentPrices.yes : marketData.currentPrices.no}
                       priceClassName="text-5xl sm:text-6xl font-black tracking-tighter text-gray-900 dark:text-white"
                       showInCents={true}
@@ -654,32 +581,24 @@ export default function MarketDetailPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Outcome Toggle */}
-                <div className="bg-gray-100 dark:bg-gray-700/50 p-1.5 rounded-2xl flex w-full sm:w-auto" role="group" aria-label="Chart side selection">
+                <div className="bg-gray-100 dark:bg-gray-700/50 p-1.5 rounded-2xl flex w-full sm:w-auto overflow-hidden">
                   <button
                     onClick={() => setChartSide('yes')}
-                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-105 active:scale-95 ${
-                      chartSide === 'yes'
-                        ? 'bg-white dark:bg-gray-600 text-[#14B8A6] shadow-sm ring-1 ring-black/5'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                    }`}
-                    role="radio"
-                    aria-checked={chartSide === 'yes'}
-                    aria-label="Show YES outcome chart"
+                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${chartSide === 'yes'
+                      ? 'bg-white dark:bg-gray-600 text-[#14B8A6] shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      }`}
                   >
                     Yes
                   </button>
                   <button
                     onClick={() => setChartSide('no')}
-                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-105 active:scale-95 ${
-                      chartSide === 'no'
-                        ? 'bg-white dark:bg-gray-600 text-red-500 shadow-sm ring-1 ring-black/5'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                    }`}
-                    role="radio"
-                    aria-checked={chartSide === 'no'}
-                    aria-label="Show NO outcome chart"
+                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${chartSide === 'no'
+                      ? 'bg-white dark:bg-gray-600 text-red-500 shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      }`}
                   >
                     No
                   </button>
@@ -688,11 +607,11 @@ export default function MarketDetailPage() {
 
               {/* Chart Visual */}
               <div className="h-[350px] w-full mb-8 relative">
-                 {/* */}
+                {/* */}
                 {snapshotLoading && sortedChartData.length === 0 ? (
-                  <div className="absolute inset-0 flex items-center justify-center" role="status" aria-label="Loading chart data">
+                  <div className="absolute inset-0 flex items-center justify-center">
                     <div className="flex flex-col items-center gap-3">
-                      <Loader2 className="w-8 h-8 text-[#14B8A6] animate-spin" aria-hidden="true" />
+                      <Loader2 className="w-8 h-8 text-[#14B8A6] animate-spin" />
                       <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Loading Data</span>
                     </div>
                   </div>
@@ -705,7 +624,7 @@ export default function MarketDetailPage() {
                       useCentralizedData={true}
                     />
                     {isChartRefreshing && (
-                      <div className="absolute top-2 right-2 px-3 py-1 bg-[#14B8A6]/10 backdrop-blur-md rounded-full border border-[#14B8A6]/20 flex items-center gap-2" role="status" aria-label="Chart updating with live data">
+                      <div className="absolute top-2 right-2 px-3 py-1 bg-[#14B8A6]/10 backdrop-blur-md rounded-full border border-[#14B8A6]/20 flex items-center gap-2">
                         <span className="relative flex h-2 w-2">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#14B8A6] opacity-75"></span>
                           <span className="relative inline-flex rounded-full h-2 w-2 bg-[#14B8A6]"></span>
@@ -718,19 +637,15 @@ export default function MarketDetailPage() {
               </div>
 
               {/* Time Range Selector */}
-              <div className="flex items-center justify-start border-t border-gray-100 dark:border-gray-700/50 pt-6 gap-2 overflow-x-auto" role="group" aria-label="Time range selection">
+              <div className="flex items-center justify-start border-t border-gray-100 dark:border-gray-700/50 pt-6 gap-2 overflow-x-auto">
                 {(['1D', '1W', '1M', 'ALL'] as const).map((range) => (
                   <button
                     key={range}
                     onClick={() => setTimeRange(range)}
-                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap hover:scale-105 active:scale-95 ${
-                      timeRange === range
-                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                    role="radio"
-                    aria-checked={timeRange === range}
-                    aria-label={`Show ${range === 'ALL' ? 'all time' : range} chart data`}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap hover:scale-105 active:scale-95 ${timeRange === range
+                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      }`}
                   >
                     {range}
                   </button>
@@ -745,27 +660,22 @@ export default function MarketDetailPage() {
               transition={{ delay: prefersReducedMotion ? 0 : 0.3 }}
               className="bg-white dark:bg-gray-800 rounded-[32px] shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-gray-100 dark:border-gray-700 overflow-hidden"
             >
-              <div className="flex border-b border-gray-100 dark:border-gray-700 overflow-x-auto scrollbar-hide p-2 bg-gray-50/50 dark:bg-gray-900/20" role="tablist" aria-label="Market details navigation">
+              <div className="flex border-b border-gray-100 dark:border-gray-700 overflow-x-auto scrollbar-hide p-2 bg-gray-50/50 dark:bg-gray-900/20">
                 {(['Position', 'Comments', 'Transactions', 'Resolution'] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`flex-1 px-6 py-3 text-sm font-bold whitespace-nowrap transition-all relative rounded-2xl ${
-                      activeTab === tab
-                        ? 'text-[#14B8A6]'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                    }`}
-                    role="tab"
-                    aria-selected={activeTab === tab}
-                    aria-controls={`${tab.toLowerCase()}-panel`}
-                    aria-label={`View ${tab.toLowerCase()} information`}
+                    className={`flex-1 px-6 py-3 text-sm font-bold whitespace-nowrap transition-all relative rounded-2xl ${activeTab === tab
+                      ? 'text-[#14B8A6]'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      }`}
                   >
                     <span className="relative z-10">{tab}</span>
                     {activeTab === tab && (
-                      <motion.div 
-                        layoutId="activeTabPill" 
-                        className="absolute inset-0 bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 rounded-2xl z-0" 
-                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} 
+                      <motion.div
+                        layoutId="activeTabPill"
+                        className="absolute inset-0 bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 rounded-2xl z-0"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                       />
                     )}
                   </button>
@@ -780,18 +690,29 @@ export default function MarketDetailPage() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.2 }}
-                    role="tabpanel"
-                    id={`${activeTab.toLowerCase()}-panel`}
-                    aria-label={`${activeTab} content`}
                   >
+                    {/* Position Tab */}
                     {activeTab === 'Position' && (
-                      <PositionTab isConnected={isConnected} yesBalance={yesBalance} noBalance={noBalance} priceYes={marketData.currentPrices.yes} priceNo={marketData.currentPrices.no} />
+                      <div className="space-y-6">
+                        <PositionTab
+                          isConnected={isConnected}
+                          address={address}
+                          transactions={transactions}
+                          yesBalance={yesBalance}
+                          noBalance={noBalance}
+                          priceYes={marketData.currentPrices.yes}
+                          priceNo={marketData.currentPrices.no}
+                        />
+                      </div>
                     )}
+
                     {activeTab === 'Comments' && <CommentsTab marketId={marketId} isConnected={isConnected} address={address} />}
+
                     {activeTab === 'Transactions' && <TransactionsTab transactions={transactions} loading={snapshotLoading && transactions.length === 0} />}
+
                     {activeTab === 'Resolution' && (
-                      <ResolutionTab 
-                        resolution={resolution} 
+                      <ResolutionTab
+                        resolution={resolution}
                         marketId={marketIdNum}
                         marketStatus={marketStatus === 0 ? 'active' : marketStatus === 1 ? 'resolved' : 'cancelled'}
                       />
@@ -804,9 +725,10 @@ export default function MarketDetailPage() {
 
           {/* --- Right Column: Trading & Stats (4 cols) --- */}
           <div className="lg:col-span-4 space-y-6">
-            
-            {/* Trading Card (Desktop Sticky) */}
+
+            {/* Trading Card (Desktop Sticky) - ID for Mobile Scroll */}
             <motion.div
+              id="trading-card-section"
               initial={prefersReducedMotion ? false : { y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: prefersReducedMotion ? 0 : 0.4 }}
@@ -818,81 +740,67 @@ export default function MarketDetailPage() {
                     <TradingCard marketId={marketIdNum} marketData={marketData} />
                   </div>
 
+                  {/* Market Data Tools */}
+                  <div className="grid grid-cols-1 gap-6">
+                    <div className="h-[400px]">
+                      <LmsrPriceDepth
+                        qYes={marketData.marketState?.qYes ?? 0n}
+                        qNo={marketData.marketState?.qNo ?? 0n}
+                        b={marketData.marketState?.b ?? 0n}
+                        currentPrice={marketData.currentPrices.yes}
+                      />
+                    </div>
+                    <div className="h-[300px]">
+                      <LiveTradeFeed transactions={transactions} />
+                    </div>
+                  </div>
+
                   {!marketIsActive && (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className={`rounded-2xl border p-4 text-sm font-medium flex items-center gap-3 ${
-                        marketStatus === 2
-                          ? 'border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10 text-red-800 dark:text-red-400'
-                          : 'border-amber-200 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 text-amber-800 dark:text-amber-400'
-                      }`}
-                      role="alert"
-                      aria-live="polite"
+                      className="p-4 bg-gray-100 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 text-center"
                     >
-                      <AlertTriangle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
-                      <span>
-                        {marketStatus === 2
-                          ? 'This market has been cancelled. All positions can be redeemed at 50% value.'
-                          : 'Trading is currently closed for this market.'}
-                      </span>
+                      <p className="text-sm text-gray-500 font-bold">
+                        Trading is currently disabled for this market.
+                      </p>
                     </motion.div>
                   )}
 
-                  {/* Admin Actions (Right Sidebar) */}
-                  {isMarketIdValid && market && (
+                  {/* Admin Actions */}
+                  {address && (
                     <AdminMarketActions
                       marketId={marketIdNum}
                       marketStatus={marketStatus === 0 ? 'active' : marketStatus === 1 ? 'resolved' : 'cancelled'}
                       isResolved={marketIsResolved}
-                      expiryTimestamp={marketExpiry ? BigInt(marketExpiry) : 0n}
-                      oracleType={resolution?.oracleType || 0}
+                      expiryTimestamp={BigInt(marketExpiry)}
+                      oracleType={Number(resolution?.oracleType)}
                       oracleAddress={resolution?.oracleAddress}
                     />
                   )}
-
-                  <div className="bg-white dark:bg-gray-800 rounded-[24px] shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
-                    <TopHoldersCard 
-                        holderTab={holderTab} 
-                        setHolderTab={setHolderTab} 
-                        topHoldersYes={topHoldersYes} 
-                        topHoldersNo={topHoldersNo} 
-                        address={address} 
-                        yesBalance={yesBalance} 
-                        noBalance={noBalance} 
-                        priceYes={marketData.currentPrices.yes} 
-                        priceNo={marketData.currentPrices.no} 
-                    />
-                  </div>
                 </>
               )}
             </motion.div>
           </div>
 
         </div>
-        
-        {/* Instant Update Toast */}
-        <AnimatePresence>
-            {showInstantUpdateBadge && (
-            <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.9 }}
-              className="fixed bottom-8 right-8 px-5 py-3 rounded-full bg-gray-900/90 dark:bg-white/90 backdrop-blur text-white dark:text-gray-900 text-sm font-bold shadow-2xl flex items-center gap-3 z-50"
-              role="status"
-              aria-live="polite"
-              aria-label="Market prices have been updated"
-            >
-                <div className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#14B8A6] opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#14B8A6]"></span>
-                </div>
-                Prices updated
-            </motion.div>
-            )}
-        </AnimatePresence>
-
       </div>
+
+      {/* Mobile Floating Action Button (FAB) */}
+      <motion.div
+        initial={{ y: 100 }}
+        animate={{ y: 0 }}
+        className="fixed bottom-6 right-6 z-50 lg:hidden"
+      >
+        <button
+          onClick={() => document.getElementById('trading-card-section')?.scrollIntoView({ behavior: 'smooth' })}
+          className="bg-[#14B8A6] hover:bg-[#0D9488] text-white p-4 rounded-full shadow-2xl shadow-[#14B8A6]/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+          aria-label="Scroll to trading"
+        >
+          <TrendingUp className="w-6 h-6" />
+        </button>
+      </motion.div>
+
     </div>
   );
 }

@@ -15,6 +15,7 @@ contract TradingFacet is CoreStorage {
 
     error InvalidMarket();
     error MarketNotActive();
+    error MarketNotStarted();
     error MaxTradeExceeded();
     error DustAmount();
     error SlippageExceeded();
@@ -53,6 +54,8 @@ contract TradingFacet is CoreStorage {
         if (deadline != 0 && block.timestamp > deadline) revert Expired();
         Market storage m = markets[id];
         if (m.status != MarketStatus.Active) revert MarketNotActive();
+        // Check if market has started (startTime == 0 means immediate start)
+        if (m.resolution.startTime != 0 && block.timestamp < m.resolution.startTime) revert MarketNotStarted();
         if (block.timestamp >= m.resolution.expiryTimestamp) revert MarketNotActive();
         if (usdcIn == 0) revert DustAmount();
         if (usdcIn > maxUsdcPerTrade) revert MaxTradeExceeded();
@@ -180,6 +183,8 @@ contract TradingFacet is CoreStorage {
         if (deadline != 0 && block.timestamp > deadline) revert Expired();
         Market storage m = markets[id];
         if (m.status != MarketStatus.Active) revert MarketNotActive();
+        // Check if market has started (startTime == 0 means immediate start)
+        if (m.resolution.startTime != 0 && block.timestamp < m.resolution.startTime) revert MarketNotStarted();
         if (block.timestamp >= m.resolution.expiryTimestamp) revert MarketNotActive();
         if (sharesIn < dustSharesE18) revert DustAmount();
 
@@ -242,13 +247,17 @@ contract TradingFacet is CoreStorage {
         uint256 bufferUSDC = 1000; // 0.001 USDC (6 decimals)
         if (vaultValue + bufferUSDC < liabilityUSDC) revert BackingInsufficient();
 
-        if (vaultValue < m.priceBandThresholdUSDC) {
-            uint256 pOld = LMSRMath.calculateSpotPrice(m.qYes, m.qNo, m.bE18);
-            uint256 pNew = LMSRMath.calculateSpotPrice(nextQYes, nextQNo, m.bE18);
+        // M-03 Fix: Always enforce price jump limits, but use dynamic cap for larger markets
+        // This prevents flash loan manipulation while allowing larger markets more flexibility
+        uint256 pOld = LMSRMath.calculateSpotPrice(m.qYes, m.qNo, m.bE18);
+        uint256 pNew = LMSRMath.calculateSpotPrice(nextQYes, nextQNo, m.bE18);
 
-            uint256 diff = pOld > pNew ? (pOld - pNew) : (pNew - pOld);
-            uint256 cap = m.maxJumpE18 > 0 ? m.maxJumpE18 : maxInstantJumpE18;
-            if (diff > cap) revert SolvencyIssue();
-        }
+        uint256 diff = pOld > pNew ? (pOld - pNew) : (pNew - pOld);
+
+        // Dynamic cap: 15% for small markets, 30% for markets with vault >= threshold
+        uint256 baseCap = m.maxJumpE18 > 0 ? m.maxJumpE18 : maxInstantJumpE18;
+        uint256 cap = vaultValue < m.priceBandThresholdUSDC ? baseCap : (baseCap * 2);
+
+        if (diff > cap) revert SolvencyIssue();
     }
 }

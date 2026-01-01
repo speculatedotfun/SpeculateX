@@ -1,0 +1,41 @@
+{
+  "chainId": 97,
+  "network": "BSC Testnet",
+  "deploymentDate": "2025-12-31",
+  "deployer": "0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c",
+  "admin": "0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c",
+  "contracts": {
+    "Treasury": "0x6B29add17417B00986165433FeDCCD438c2BFE63",
+    "CoreRouter": "0x57EB390222D1Dd4517070735C24A899d6D41b759",
+    "ChainlinkResolver": "0xd278C4bC3A5C1ce5Bb7228fcC29F9831379fF060",
+    "MarketFacet": "0xe5c3E95B1a25d3899a4f9453cEa2a75CC18a8460",
+    "TradingFacet": "0xCFF063f8dC8411c95bb89148113B03f4AA9aD9f9",
+    "LiquidityFacet": "0xCcd71AfdC6daF6738F312E4AA822d60B809E3A6F",
+    "SettlementFacet": "0x99201df4C85e00F097c263dDC72768A36085CA6C"
+  },
+  "tokens": {
+    "USDC": "0x55d398326f99059fF775485246999027B3197955"
+  },
+  "config": {
+    "timelockDelay": 0,
+    "treasuryDailyLimit": 50000000000
+  },
+  "verification": {
+    "Treasury": "verified",
+    "CoreRouter": "verified",
+    "ChainlinkResolver": "verified",
+    "MarketFacet": "verified",
+    "TradingFacet": "verified",
+    "LiquidityFacet": "verified",
+    "SettlementFacet": "verified"
+  },
+  "bscscanLinks": {
+    "Treasury": "https://testnet.bscscan.com/address/0x6B29add17417B00986165433FeDCCD438c2BFE63",
+    "CoreRouter": "https://testnet.bscscan.com/address/0x57EB390222D1Dd4517070735C24A899d6D41b759",
+    "ChainlinkResolver": "https://testnet.bscscan.com/address/0xd278C4bC3A5C1ce5Bb7228fcC29F9831379fF060",
+    "MarketFacet": "https://testnet.bscscan.com/address/0xe5c3E95B1a25d3899a4f9453cEa2a75CC18a8460",
+    "TradingFacet": "https://testnet.bscscan.com/address/0xCFF063f8dC8411c95bb89148113B03f4AA9aD9f9",
+    "LiquidityFacet": "https://testnet.bscscan.com/address/0xCcd71AfdC6daF6738F312E4AA822d60B809E3A6F",
+    "SettlementFacet": "https://testnet.bscscan.com/address/0x99201df4C85e00F097c263dDC72768A36085CA6C"
+  }
+}

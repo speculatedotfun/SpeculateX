@@ -59,26 +59,25 @@ export function TradePreview({
       {/* Price Impact Section */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 pb-4 border-b border-gray-200 dark:border-gray-700 border-dashed">
         <div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+          <div className="text-xs text-gray-600 dark:text-gray-400 mb-1 flex items-center gap-1">
             Current Price
           </div>
           <div className="font-mono font-bold text-base sm:text-lg text-gray-900 dark:text-white">{formatPrice(currentPrice)}</div>
         </div>
         <div className="sm:text-center">
-          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1 justify-end sm:justify-center">
+          <div className="text-xs text-gray-600 dark:text-gray-400 mb-1 flex items-center gap-1 justify-end sm:justify-center">
             Price Impact
           </div>
-          <div className={`font-mono font-bold text-base sm:text-lg flex items-center gap-1 justify-end sm:justify-center ${
-            Math.abs(priceImpact) > 5 ? 'text-amber-600 dark:text-amber-400' :
-            Math.abs(priceImpact) > 2 ? 'text-orange-600 dark:text-orange-400' :
-            'text-gray-600 dark:text-gray-400'
-          }`}>
+          <div className={`font-mono font-bold text-base sm:text-lg flex items-center gap-1 justify-end sm:justify-center ${Math.abs(priceImpact) > 5 ? 'text-amber-600 dark:text-amber-400' :
+              Math.abs(priceImpact) > 2 ? 'text-orange-600 dark:text-orange-400' :
+                'text-gray-600 dark:text-gray-300'
+            }`}>
             {isPriceIncrease ? <TrendingUp className="w-4 h-4" aria-hidden="true" /> : <TrendingDown className="w-4 h-4" aria-hidden="true" />}
             {priceImpact > 0 ? '+' : ''}{priceImpact.toFixed(2)}%
           </div>
         </div>
         <div className="col-span-2 sm:col-span-1 sm:text-right">
-          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">New Price</div>
+          <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">New Price</div>
           <div className={`font-mono font-bold text-base sm:text-lg ${newPrice !== currentPrice ? 'text-amber-600 dark:text-amber-400' : 'text-gray-900 dark:text-white'}`}>
             {formatPrice(newPrice)}
           </div>
@@ -88,7 +87,7 @@ export function TradePreview({
       {/* Details List */}
       <div className="space-y-2.5" role="list">
         <div className="flex justify-between items-center" role="listitem">
-          <span className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
+          <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
             {isBuy ? 'Est. Shares' : 'Shares to Sell'}
           </span>
           <span className="font-bold text-gray-900 dark:text-white text-sm sm:text-base tabular-nums">{shares.toFixed(4)}</span>
@@ -141,8 +140,8 @@ export function TradePreview({
 
         {gasEstimate && (
           <div className="flex justify-between items-center text-xs" role="listitem">
-            <span className="text-gray-500 dark:text-gray-400">Est. Network Cost</span>
-            <span className="font-mono text-gray-500 dark:text-gray-400">~{gasEstimate.toString()} wei</span>
+            <span className="text-gray-600 dark:text-gray-400">Est. Network Cost</span>
+            <span className="font-mono text-gray-600 dark:text-gray-400">~{gasEstimate.toString()} wei</span>
           </div>
         )}
       </div>
@@ -171,7 +170,7 @@ export function TradePreview({
         </div>
       )}
 
-      <p className="text-xs text-gray-400 dark:text-gray-500 italic text-center pt-2" role="note">
+      <p className="text-xs text-gray-500 dark:text-gray-400 italic text-center pt-2" role="note">
         All values are estimates and may vary based on market conditions
       </p>
     </div>

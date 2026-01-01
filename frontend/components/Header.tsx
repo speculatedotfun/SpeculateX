@@ -74,44 +74,43 @@ function CustomConnectButton({ prefersReducedMotion = false }: { prefersReducedM
 
               return (
                 <div className="flex items-center gap-3">
-                  <button
-                    onClick={openAccountModal}
-                    type="button"
-                    className="group flex items-center gap-3 rounded-full bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 pl-4 pr-2 py-1.5 hover:border-[#14B8A6] dark:hover:border-[#14B8A6] transition-all shadow-sm"
-                  >
-                    <div className="flex flex-col items-end leading-none">
-                       {/* Status Dot */}
-                       <div className="flex items-center gap-1.5 mb-0.5">
-                          <span className="relative flex h-1.5 w-1.5">
-                            <span className={`absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 ${prefersReducedMotion ? '' : 'animate-ping'}`}></span>
-                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-                          </span>
-                          <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 group-hover:text-[#14B8A6] transition-colors uppercase tracking-wider">
-                            Connected
-                          </span>
-                       </div>
-                       <span className="text-xs font-bold text-gray-900 dark:text-gray-100 font-mono">
-                        {account.displayName}
-                       </span>
-                    </div>
+                  <div className="group relative rounded-full bg-gradient-to-r from-teal-400 to-cyan-400 p-[1px]">
+                    <button
+                      onClick={openAccountModal}
+                      type="button"
+                      className="relative flex items-center gap-3 rounded-full bg-white dark:bg-gray-900 px-1 py-1 pr-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+                    >
+                      {/* Avatar */}
+                      <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-[#14B8A6] to-cyan-500 flex items-center justify-center text-white shadow-md">
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
+                        </svg>
+                        {/* Online Dot */}
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-white dark:bg-gray-900 rounded-full flex items-center justify-center">
+                          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                        </div>
+                      </div>
 
-                    {/* Avatar */}
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#14B8A6] to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-teal-500/20">
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                        />
-                      </svg>
-                    </div>
-                  </button>
+                      <div className="flex flex-col items-start leading-none gap-0.5">
+                        <span className="text-[10px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-cyan-500 uppercase tracking-wider">
+                          {account.displayBalance ? account.displayBalance : 'Connected'}
+                        </span>
+                        <span className="text-xs font-bold text-gray-900 dark:text-gray-100 font-mono">
+                          {account.displayName}
+                        </span>
+                      </div>
+                    </button>
+                  </div>
                 </div>
               );
             })()}
@@ -183,16 +182,14 @@ export default function Header() {
   ];
 
   return (
-    <header 
-      className={`sticky top-0 z-50 transition-all duration-300 border-b ${
-        scrolled 
-          ? 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-sm border-gray-200/50 dark:border-gray-800/50' 
-          : 'bg-transparent border-transparent'
+    <header className={`sticky top-0 z-50 transition-all duration-300 border-b ${scrolled
+      ? 'bg-white/70 dark:bg-[#0f1219]/70 backdrop-blur-xl shadow-lg shadow-black/5 border-gray-200/50 dark:border-white/5'
+      : 'bg-transparent border-transparent'
       }`}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 sm:h-20 items-center justify-between">
-          
+        <div className={`flex items-center justify-between transition-all duration-300 ${scrolled ? 'h-16' : 'h-16 sm:h-20'}`}>
+
           {/* Logo */}
           <Link href="/" className="flex items-center group flex-shrink-0 relative z-20" onClick={() => setIsMobileMenuOpen(false)}>
             <div className="relative w-[140px] sm:w-[200px] h-10 sm:h-10 transition-transform duration-300 group-hover:scale-105">
@@ -225,17 +222,16 @@ export default function Header() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`relative px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
-                    active
-                      ? 'text-[#14B8A6]'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800/50'
-                  }`}
+                  className={`relative px-4 py-2 rounded-full text-sm font-bold transition-all duration-300 ${active
+                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-cyan-500'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    }`}
                 >
                   {link.label}
                   {active && (
                     <motion.div
                       layoutId={prefersReducedMotion ? undefined : "navbar-indicator"}
-                      className="absolute inset-0 bg-[#14B8A6]/10 dark:bg-[#14B8A6]/20 rounded-full -z-10"
+                      className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-teal-400 to-cyan-400 mx-auto w-1/2 rounded-full shadow-[0_0_10px_rgba(20,184,166,0.5)]"
                       transition={prefersReducedMotion ? { duration: 0 } : { type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                   )}
@@ -248,18 +244,16 @@ export default function Header() {
           <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0 relative z-20">
             {/* Network Selector */}
             <NetworkSelector />
-            
+
             {/* Theme Toggle */}
             <ThemeToggle />
-            
+
             {/* Mobile Menu Button */}
             <motion.button
               whileTap={prefersReducedMotion ? {} : { scale: 0.9 }}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#14B8A6] dark:hover:text-[#14B8A6] transition-colors border border-transparent focus:border-[#14B8A6]/20 focus:bg-[#14B8A6]/5 dark:focus:bg-[#14B8A6]/10 focus:text-[#14B8A6] outline-none focus:ring-2 focus:ring-[#14B8A6] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+              className="md:hidden p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-teal-500 dark:hover:text-teal-400 transition-colors border border-transparent outline-none"
               aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-              aria-expanded={isMobileMenuOpen}
-              aria-controls="mobile-navigation"
             >
               <AnimatePresence mode="wait">
                 {isMobileMenuOpen ? (
@@ -283,19 +277,20 @@ export default function Header() {
                 )}
               </AnimatePresence>
             </motion.button>
-            
+
             {/* Custom Wallet Button (Desktop) */}
             <div className="hidden sm:block">
               {isLandingPage ? (
                 <Link
                   href="/markets"
-                  className="group relative inline-flex items-center justify-center rounded-full bg-[#14B8A6] dark:bg-[#14B8A6] px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-[#14B8A6]/25 dark:shadow-[#14B8A6]/30 hover:bg-[#0D9488] dark:hover:bg-[#0D9488] hover:shadow-xl hover:shadow-[#14B8A6]/30 dark:hover:shadow-[#14B8A6]/40 transition-all duration-300 active:scale-95"
+                  className="group relative inline-flex items-center justify-center rounded-full bg-teal-500 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-teal-500/25 dark:shadow-teal-500/10 hover:bg-teal-600 hover:shadow-xl hover:shadow-teal-500/30 transition-all duration-300 active:scale-95 overflow-hidden ring-2 ring-transparent hover:ring-teal-500/20"
                 >
-                  <span className="mr-2">Launch App</span>
-                  <svg 
-                    className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" 
-                    fill="none" 
-                    stroke="currentColor" 
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />
+                  <span className="mr-2 relative z-10">Launch App</span>
+                  <svg
+                    className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1 relative z-10"
+                    fill="none"
+                    stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -317,7 +312,7 @@ export default function Header() {
               animate={{ opacity: 1, height: 'auto' }}
               exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
               transition={prefersReducedMotion ? { duration: 0 } : undefined}
-              className="md:hidden absolute top-full left-0 right-0 border-t border-gray-100 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-xl overflow-hidden"
+              className="md:hidden absolute top-full left-0 right-0 border-t border-gray-100 dark:border-gray-800 bg-white/95 dark:bg-[#0f1219]/95 backdrop-blur-xl shadow-xl overflow-hidden"
               aria-label="Mobile navigation"
             >
               <div className="flex flex-col p-4 space-y-2" role="menu">
@@ -329,11 +324,10 @@ export default function Header() {
                       href={link.href}
                       onClick={() => setIsMobileMenuOpen(false)}
                       role="menuitem"
-                      className={`relative px-4 py-3 rounded-xl text-base font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#14B8A6] focus:ring-offset-2 dark:focus:ring-offset-gray-900 ${
-                        active
-                          ? 'text-[#14B8A6] bg-[#14B8A6]/5 dark:bg-[#14B8A6]/10'
-                          : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800'
-                      }`}
+                      className={`relative px-4 py-3 rounded-xl text-base font-bold transition-all focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 ${active
+                        ? 'text-teal-500 bg-teal-50/50 dark:bg-teal-500/10'
+                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800'
+                        }`}
                       aria-current={active ? 'page' : undefined}
                     >
                       <div className="flex items-center justify-between">
@@ -341,7 +335,7 @@ export default function Header() {
                         {active && (
                           <motion.div
                             layoutId={prefersReducedMotion ? undefined : "mobile-menu-indicator"}
-                            className="w-1.5 h-1.5 rounded-full bg-[#14B8A6]"
+                            className="w-1.5 h-1.5 rounded-full bg-teal-500"
                             aria-hidden="true"
                             transition={prefersReducedMotion ? { duration: 0 } : undefined}
                           />
@@ -360,7 +354,7 @@ export default function Header() {
                         return (
                           <button
                             onClick={connected ? openAccountModal : openConnectModal}
-                            className="w-full py-3 rounded-xl bg-[#14B8A6] text-white font-bold shadow-lg shadow-[#14B8A6]/20 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-[#14B8A6] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                            className="w-full py-3 rounded-xl bg-teal-500 text-white font-bold shadow-lg shadow-teal-500/20 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
                             aria-label={connected ? `Manage wallet: ${account.displayName}` : 'Connect your wallet'}
                           >
                             {connected ? account.displayName : 'Connect Wallet'}
@@ -375,6 +369,6 @@ export default function Header() {
           )}
         </AnimatePresence>
       </div>
-    </header>
+    </header >
   );
 }

@@ -7,8 +7,8 @@ import { AlertTriangle } from 'lucide-react';
 
 export default function RiskDisclosurePage() {
   return (
-    <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-x-hidden font-sans selection:bg-[#14B8A6]/30 selection:text-[#0f0a2e] dark:selection:text-white">
-      
+    <div className="min-h-screen relative overflow-x-hidden font-sans selection:bg-[#14B8A6]/30 selection:text-[#0f0a2e] dark:selection:text-white">
+
       {/* Background Gradient */}
       <div className="fixed inset-0 pointer-events-none -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-[#FAF9FF] via-[#F0F4F8] to-[#E8F0F5] dark:from-[#0f172a] dark:via-[#1a1f3a] dark:to-[#1e293b]"></div>
@@ -18,7 +18,7 @@ export default function RiskDisclosurePage() {
       <Header />
 
       <main className="relative z-10 mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-        
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -44,7 +44,7 @@ export default function RiskDisclosurePage() {
           </div>
 
           <div className="prose prose-slate dark:prose-invert max-w-none">
-            
+
             <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-8 text-lg">
               This Risk Disclosure Statement explains the significant risks associated with engaging in prediction market activity, interacting with blockchain networks, or using tools provided by SpeculateX. By using the Site, you acknowledge and accept the following risks.
             </p>
@@ -155,7 +155,7 @@ export default function RiskDisclosurePage() {
           </div>
 
           <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
-            <Link 
+            <Link
               href="/"
               className="inline-flex items-center gap-2 text-[#14B8A6] hover:text-[#0d9488] font-bold transition-colors"
             >

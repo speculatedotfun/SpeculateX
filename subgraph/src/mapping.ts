@@ -1,10 +1,14 @@
 import { Address, BigInt, Bytes } from '@graphprotocol/graph-ts';
 import {
   MarketCreated,
+  ScheduledMarketCreated,
   Buy,
   Sell,
   Redeemed,
   MarketResolved,
+  MarketCancelled,
+  LpResidualClaimed,
+  ResidualFinalized,
 } from '../generated/SpeculateCore/SpeculateCore';
 import {
   Market,
@@ -13,6 +17,8 @@ import {
   Redemption,
   User,
   GlobalState,
+  LpResidualClaim,
+  ResidualFinalization,
 } from '../generated/schema';
 
 const NEG_ONE = BigInt.fromI32(-1);
@@ -93,6 +99,38 @@ export function handleMarketCreated(event: MarketCreated): void {
   market.totalTokensYes = BigInt.fromI32(0);
   market.totalTokensNo = BigInt.fromI32(0);
   market.isResolved = false;
+  market.isScheduled = false;
+  market.startTime = null;
+  market.isCancelled = false;
+  market.save();
+}
+
+export function handleScheduledMarketCreated(event: ScheduledMarketCreated): void {
+  const marketId = event.params.id.toString();
+  let market = Market.load(marketId);
+  if (market !== null) {
+    return;
+  }
+
+  market = new Market(marketId);
+  
+  // Event params: id, yes, no, questionHash, question, initUsdc, startTime, expiryTimestamp
+  market.yesToken = event.params.yes;
+  market.noToken = event.params.no;
+  market.question = event.params.question;
+  market.initUsdc = event.params.initUsdc;
+  market.startTime = event.params.startTime;
+  market.expiryTimestamp = event.params.expiryTimestamp;
+  
+  market.createdAt = event.block.timestamp;
+  market.blockNumber = event.block.number;
+  market.txHash = event.transaction.hash;
+  market.totalVolumeUsdc = BigInt.fromI32(0);
+  market.totalTokensYes = BigInt.fromI32(0);
+  market.totalTokensNo = BigInt.fromI32(0);
+  market.isResolved = false;
+  market.isScheduled = true;
+  market.isCancelled = false;
   market.save();
 }
 
@@ -196,5 +234,59 @@ export function handleMarketResolved(event: MarketResolved): void {
   market.resolutionTimestamp = event.block.timestamp;
   market.resolutionTxHash = event.transaction.hash;
   market.save();
+}
+
+export function handleMarketCancelled(event: MarketCancelled): void {
+  const marketId = event.params.id.toString();
+  const market = Market.load(marketId);
+  if (market === null) {
+    return;
+  }
+
+  market.isCancelled = true;
+  market.cancellationTimestamp = event.block.timestamp;
+  market.cancellationTxHash = event.transaction.hash;
+  market.save();
+}
+
+export function handleLpResidualClaimed(event: LpResidualClaimed): void {
+  const marketId = event.params.id.toString();
+  const market = Market.load(marketId);
+  if (market === null) {
+    return;
+  }
+
+  const lp = getOrCreateUser(event.params.lp);
+  const claimId = createTradeId(event.transaction.hash, event.logIndex);
+  const claim = new LpResidualClaim(claimId);
+  claim.market = marketId;
+  claim.lp = lp.id;
+  claim.amount = event.params.amount;
+  claim.txHash = event.transaction.hash;
+  claim.blockNumber = event.block.number;
+  claim.timestamp = event.block.timestamp;
+  claim.save();
+}
+
+export function handleResidualFinalized(event: ResidualFinalized): void {
+  const marketId = event.params.id.toString();
+  const market = Market.load(marketId);
+  if (market === null) {
+    return;
+  }
+
+  const finalizationId = marketId + '-residual-finalized';
+  let finalization = ResidualFinalization.load(finalizationId);
+  if (finalization === null) {
+    finalization = new ResidualFinalization(finalizationId);
+  }
+
+  finalization.market = marketId;
+  finalization.residue = event.params.residue;
+  finalization.totalLp = event.params.totalLp;
+  finalization.txHash = event.transaction.hash;
+  finalization.blockNumber = event.block.number;
+  finalization.timestamp = event.block.timestamp;
+  finalization.save();
 }
 

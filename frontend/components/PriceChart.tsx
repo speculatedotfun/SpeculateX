@@ -23,7 +23,7 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
   const throttledResizeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const moduleRef = useRef<typeof import('lightweight-charts') | null>(null);
   const [isChartReady, setIsChartReady] = useState(false);
-  
+
   const hasData = Array.isArray(data) && data.length > 0;
   const showLoadingOverlay = !hasData;
   const [chartError, setChartError] = useState<string | null>(null);
@@ -37,12 +37,12 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
       if (a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
       return (a.txHash || '').localeCompare(b.txHash || '');
     });
-    
+
     const dedupedData: PricePoint[] = [];
     const timestampMap = new Map<number, PricePoint>();
     for (const point of sortedData) timestampMap.set(point.timestamp, point);
     dedupedData.push(...Array.from(timestampMap.values()).sort((a, b) => a.timestamp - b.timestamp));
-    
+
     const sortedDataFinal = dedupedData;
     const yesData: (LineData | { time: Time; value: undefined })[] = [];
     const noData: (LineData | { time: Time; value: undefined })[] = [];
@@ -59,7 +59,7 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
 
       const timeGap = currentTimestamp - previous.timestamp;
       const isSeedPoint = previous.txHash === 'seed';
-      
+
       if (timeGap > 120 && !isSeedPoint) {
         const breakTime = previous.timestamp + 30;
         yesData.push({ time: breakTime as Time, value: undefined as any });
@@ -227,7 +227,8 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
       chartRef.current?.remove();
       chartRef.current = null;
     };
-  }, [height, isDark]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [height, isDark, processDataWithBreaks]);
 
   const updateChartData = useCallback(() => {
     if (!yesSeriesRef.current || !noSeriesRef.current) return;
@@ -239,7 +240,7 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
 
   const updateSeriesStyling = useCallback(() => {
     if (!yesSeriesRef.current || !noSeriesRef.current) return;
-    
+
     try {
       yesSeriesRef.current.applyOptions({
         lineWidth: selectedSide === 'yes' ? 3 : 2,

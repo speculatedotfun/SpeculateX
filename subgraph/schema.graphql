@@ -5,6 +5,8 @@ type Market @entity(immutable: false) {
   question: String!
   initUsdc: BigInt!
   expiryTimestamp: BigInt!
+  startTime: BigInt
+  isScheduled: Boolean!
   createdAt: BigInt!
   blockNumber: BigInt!
   txHash: Bytes!
@@ -18,6 +20,11 @@ type Market @entity(immutable: false) {
   trades: [Trade!]! @derivedFrom(field: "market")
   balances: [PositionBalance!]! @derivedFrom(field: "market")
   redemptions: [Redemption!]! @derivedFrom(field: "market")
+  lpResidualClaims: [LpResidualClaim!]! @derivedFrom(field: "market")
+  residualFinalization: ResidualFinalization
+  isCancelled: Boolean!
+  cancellationTimestamp: BigInt
+  cancellationTxHash: Bytes
 }
 
 type Trade @entity(immutable: false) {
@@ -58,10 +65,31 @@ type User @entity(immutable: false) {
   trades: [Trade!]! @derivedFrom(field: "user")
   balances: [PositionBalance!]! @derivedFrom(field: "user")
   redemptions: [Redemption!]! @derivedFrom(field: "user")
+  lpResidualClaims: [LpResidualClaim!]! @derivedFrom(field: "lp")
 }
 
 type GlobalState @entity(immutable: false) {
   id: ID!
   uniqueTraders: Int!
+}
+
+type LpResidualClaim @entity(immutable: false) {
+  id: ID!
+  market: Market!
+  lp: User!
+  amount: BigInt!
+  txHash: Bytes!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+}
+
+type ResidualFinalization @entity(immutable: false) {
+  id: ID!
+  market: Market!
+  residue: BigInt!
+  totalLp: BigInt!
+  txHash: Bytes!
+  blockNumber: BigInt!
+  timestamp: BigInt!
 }
 

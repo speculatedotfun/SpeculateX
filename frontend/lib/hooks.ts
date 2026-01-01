@@ -3,6 +3,7 @@ import { config } from './wagmi';
 import { getAddresses, getChainId, getCurrentNetwork, MAINNET_CHAIN_ID, TESTNET_CHAIN_ID } from './contracts';
 import { formatUnits, keccak256, stringToBytes, parseAbiItem } from 'viem';
 import { getCoreAbi } from './abis';
+import { MarketInfo, MarketState, MarketResolution } from './types';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
@@ -35,35 +36,40 @@ async function getQuestionFromMarketCreatedEvent(marketId: bigint): Promise<stri
   const publicClient = getClientForCurrentNetwork();
   const currentBlock = await publicClient.getBlockNumber();
 
-  // Adaptive scan: start small and expand if not found (avoid RPC limits)
-  const ranges = [50_000n, 150_000n, 450_000n, 1_000_000n];
+  // Scan backwards in small chunks to avoid RPC limits
+  const CHUNK_SIZE = 2000n;
+  const MAX_BACKLOOK = 1_000_000n;
+  const startBlock = currentBlock > MAX_BACKLOOK ? currentBlock - MAX_BACKLOOK : 0n;
+
   const event = parseAbiItem(
     'event MarketCreated(uint256 indexed id, address yes, address no, bytes32 questionHash, string question, uint256 initUsdc, uint256 expiryTimestamp)'
   );
 
-  for (const span of ranges) {
-    const fromBlock = currentBlock > span ? (currentBlock - span) : 0n;
+  for (let to = currentBlock; to > startBlock; to -= CHUNK_SIZE) {
+    const from = to - CHUNK_SIZE < startBlock ? startBlock : to - CHUNK_SIZE;
     try {
       const logs = await publicClient.getLogs({
         address: addresses.core,
         event,
         args: { id: marketId },
-        fromBlock,
-        toBlock: currentBlock, // Use current block instead of 'latest' to avoid RPC range limits
+        fromBlock: from,
+        toBlock: to,
       });
+
       if (logs && logs.length > 0) {
-        const q = ((logs[0] as any).args?.question ?? '') as string;
+        const log = logs[0] as { args: { question?: string } };
+        const q = log.args?.question ?? '';
         const trimmed = (q || '').trim();
         if (trimmed) {
           questionCache.set(key, trimmed);
           if (typeof window !== 'undefined') {
-            try { localStorage.setItem(`marketQuestion:${key}`, trimmed); } catch {}
+            try { localStorage.setItem(`marketQuestion:${key}`, trimmed); } catch { }
           }
           return trimmed;
         }
       }
-    } catch {
-      // ignore and expand range
+    } catch (e) {
+      console.warn(`[getMarketQuestion] RPC error at range ${from}-${to}, continuing...`, e);
     }
   }
 
@@ -73,7 +79,7 @@ async function getQuestionFromMarketCreatedEvent(marketId: bigint): Promise<stri
 // Helper to get public client for current network
 function getClientForCurrentNetwork() {
   const chainId = getChainId();
-  return getPublicClient(config, { chainId: chainId as any });
+  return getPublicClient(config, { chainId: chainId as 56 | 97 });
 }
 
 // Get market count
@@ -110,7 +116,7 @@ export async function getMarket(id: bigint) {
       abi: getCoreAbi(getCurrentNetwork()),
       functionName: 'markets',
       args: [id],
-    }) as any;
+    }) as Record<string, any> | any[];
 
     const isObject = !!result && typeof result === 'object' && !Array.isArray(result) && 'yes' in result;
 
@@ -129,7 +135,7 @@ export async function getMarket(id: bigint) {
     // Note: string is a dynamic type, so we read it via a separate getter function
     const questionHash = (isObject ? (result.questionHash ?? ZERO_BYTES32) : (result?.[10] ?? ZERO_BYTES32)) as `0x${string}`;
     const creator = (isObject ? (result.creator ?? ZERO_ADDRESS) : (result?.[12] ?? ZERO_ADDRESS)) as `0x${string}`;
-    
+
     // Read question via separate getter (string is dynamic type, not in tuple)
     let question = '';
     try {
@@ -158,21 +164,23 @@ export async function getMarket(id: bigint) {
         abi: getCoreAbi(getCurrentNetwork()),
         functionName: 'getMarketResolution',
         args: [id],
-      }) as any;
-      
+      }) as Record<string, any> | any[];
+
       // Handle both object and tuple formats
+      // Struct: { startTime, expiryTimestamp, oracleType, oracleAddress, priceFeedId, targetValue, comparison, yesWins, isResolved, oracleDecimals }
       const isResolutionObject = !!resolutionResult && typeof resolutionResult === 'object' && !Array.isArray(resolutionResult) && 'expiryTimestamp' in resolutionResult;
-      
+
       resolution = {
-        expiryTimestamp: BigInt(isResolutionObject ? (resolutionResult.expiryTimestamp ?? 0n) : (resolutionResult?.[0] ?? 0n)),
-        oracleType: Number(isResolutionObject ? (resolutionResult.oracleType ?? 0) : (resolutionResult?.[1] ?? 0)),
-        oracleAddress: (isResolutionObject ? (resolutionResult.oracleAddress ?? ZERO_ADDRESS) : (resolutionResult?.[2] ?? ZERO_ADDRESS)) as `0x${string}`,
-        priceFeedId: (isResolutionObject ? (resolutionResult.priceFeedId ?? ZERO_BYTES32) : (resolutionResult?.[3] ?? ZERO_BYTES32)) as `0x${string}`,
-        targetValue: BigInt(isResolutionObject ? (resolutionResult.targetValue ?? 0n) : (resolutionResult?.[4] ?? 0n)),
-        comparison: Number(isResolutionObject ? (resolutionResult.comparison ?? 0) : (resolutionResult?.[5] ?? 0)),
-        yesWins: Boolean(isResolutionObject ? (resolutionResult.yesWins ?? false) : (resolutionResult?.[6] ?? false)),
-        isResolved: Boolean(isResolutionObject ? (resolutionResult.isResolved ?? false) : (resolutionResult?.[7] ?? false)),
-        oracleDecimals: Number(isResolutionObject ? (resolutionResult.oracleDecimals ?? 0) : (resolutionResult?.[8] ?? 0)),
+        startTime: BigInt(isResolutionObject ? (resolutionResult.startTime ?? 0n) : (resolutionResult?.[0] ?? 0n)),
+        expiryTimestamp: BigInt(isResolutionObject ? (resolutionResult.expiryTimestamp ?? 0n) : (resolutionResult?.[1] ?? 0n)),
+        oracleType: Number(isResolutionObject ? (resolutionResult.oracleType ?? 0) : (resolutionResult?.[2] ?? 0)),
+        oracleAddress: (isResolutionObject ? (resolutionResult.oracleAddress ?? ZERO_ADDRESS) : (resolutionResult?.[3] ?? ZERO_ADDRESS)) as `0x${string}`,
+        priceFeedId: (isResolutionObject ? (resolutionResult.priceFeedId ?? ZERO_BYTES32) : (resolutionResult?.[4] ?? ZERO_BYTES32)) as `0x${string}`,
+        targetValue: BigInt(isResolutionObject ? (resolutionResult.targetValue ?? 0n) : (resolutionResult?.[5] ?? 0n)),
+        comparison: Number(isResolutionObject ? (resolutionResult.comparison ?? 0) : (resolutionResult?.[6] ?? 0)),
+        yesWins: Boolean(isResolutionObject ? (resolutionResult.yesWins ?? false) : (resolutionResult?.[7] ?? false)),
+        isResolved: Boolean(isResolutionObject ? (resolutionResult.isResolved ?? false) : (resolutionResult?.[8] ?? false)),
+        oracleDecimals: Number(isResolutionObject ? (resolutionResult.oracleDecimals ?? 0) : (resolutionResult?.[9] ?? 0)),
       };
     } catch (e) {
       // Fallback: try to read from markets struct (for old contracts that don't have getMarketResolution)
@@ -180,17 +188,18 @@ export async function getMarket(id: bigint) {
       const resolutionRaw = isObject
         ? result.resolution
         : (Array.isArray(result) ? (result?.[18] ?? result?.[17] ?? result?.[16] ?? result?.[12]) : undefined);
-      
+
       resolution = {
-        expiryTimestamp: BigInt(resolutionRaw?.expiryTimestamp ?? resolutionRaw?.[0] ?? 0n),
-        oracleType: Number(resolutionRaw?.oracleType ?? resolutionRaw?.[1] ?? 0),
-        oracleAddress: (resolutionRaw?.oracleAddress ?? resolutionRaw?.[2] ?? ZERO_ADDRESS) as `0x${string}`,
-        priceFeedId: (resolutionRaw?.priceFeedId ?? resolutionRaw?.[3] ?? ZERO_BYTES32) as `0x${string}`,
-        targetValue: BigInt(resolutionRaw?.targetValue ?? resolutionRaw?.[4] ?? 0n),
-        comparison: Number(resolutionRaw?.comparison ?? resolutionRaw?.[5] ?? 0),
-        yesWins: Boolean(resolutionRaw?.yesWins ?? resolutionRaw?.[6] ?? false),
-        isResolved: Boolean(resolutionRaw?.isResolved ?? resolutionRaw?.[7] ?? false),
-        oracleDecimals: Number(resolutionRaw?.oracleDecimals ?? resolutionRaw?.[8] ?? 0),
+        startTime: BigInt(resolutionRaw?.startTime ?? resolutionRaw?.[0] ?? 0n),
+        expiryTimestamp: BigInt(resolutionRaw?.expiryTimestamp ?? resolutionRaw?.[1] ?? 0n),
+        oracleType: Number(resolutionRaw?.oracleType ?? resolutionRaw?.[2] ?? 0),
+        oracleAddress: (resolutionRaw?.oracleAddress ?? resolutionRaw?.[3] ?? ZERO_ADDRESS) as `0x${string}`,
+        priceFeedId: (resolutionRaw?.priceFeedId ?? resolutionRaw?.[4] ?? ZERO_BYTES32) as `0x${string}`,
+        targetValue: BigInt(resolutionRaw?.targetValue ?? resolutionRaw?.[5] ?? 0n),
+        comparison: Number(resolutionRaw?.comparison ?? resolutionRaw?.[6] ?? 0),
+        yesWins: Boolean(resolutionRaw?.yesWins ?? resolutionRaw?.[7] ?? false),
+        isResolved: Boolean(resolutionRaw?.isResolved ?? resolutionRaw?.[8] ?? false),
+        oracleDecimals: Number(resolutionRaw?.oracleDecimals ?? resolutionRaw?.[9] ?? 0),
       };
     }
 
@@ -295,7 +304,7 @@ export async function getMarketState(id: bigint) {
       abi: getCoreAbi(getCurrentNetwork()),
       functionName: 'getMarketState',
       args: [id],
-    }) as any;
+    }) as any[];
 
     // Mainnet (old): [qYes,qNo,vault,b,priceYesE6]
     // Testnet (diamond): [qYes,qNo,vault,bE18,status,questionHash]
@@ -305,7 +314,7 @@ export async function getMarketState(id: bigint) {
     const vault = BigInt(arr?.[2] ?? 0n);
     const bE18 = BigInt(arr?.[3] ?? 0n);
 
-    let status = 0;
+    let status = 1; // Default to ACTIVE for legacy markets
     let questionHash = ZERO_BYTES32 as `0x${string}`;
     let priceYesE6: bigint;
 
@@ -319,7 +328,8 @@ export async function getMarketState(id: bigint) {
     }
 
     return { qYes, qNo, vault, bE18, status, questionHash, priceYesE6 };
-  } catch (e: any) {
+  } catch (error: any) {
+    const e = error as Error & { shortMessage?: string };
     if (isNoFacetError(e)) {
       // router not activated yet (facets not wired)
       return { qYes: 0n, qNo: 0n, vault: 0n, bE18: 0n, status: 0, questionHash: ZERO_BYTES32 as `0x${string}`, priceYesE6: 500000n, notActivated: true };
@@ -339,20 +349,22 @@ export async function getMarketResolution(id: bigint) {
       functionName: 'getMarketResolution',
       args: [id],
     }) as any;
-    
+
     return {
-      expiryTimestamp: result.expiryTimestamp || result[0] || 0n,
-      oracleType: result.oracleType !== undefined ? Number(result.oracleType) : (result[1] !== undefined ? Number(result[1]) : 0),
-      oracleAddress: result.oracleAddress || result[2] || ZERO_ADDRESS,
-      priceFeedId: result.priceFeedId || result[3] || '0x0000000000000000000000000000000000000000000000000000000000000000',
-      targetValue: result.targetValue || result[4] || 0n,
-      comparison: result.comparison !== undefined ? Number(result.comparison) : (result[5] !== undefined ? Number(result[5]) : 0),
-      yesWins: result.yesWins !== undefined ? Boolean(result.yesWins) : (result[6] !== undefined ? Boolean(result[6]) : false),
-      isResolved: result.isResolved !== undefined ? Boolean(result.isResolved) : (result[7] !== undefined ? Boolean(result[7]) : false),
+      startTime: result.startTime || result[0] || 0n,
+      expiryTimestamp: result.expiryTimestamp || result[1] || 0n,
+      oracleType: result.oracleType !== undefined ? Number(result.oracleType) : (result[2] !== undefined ? Number(result[2]) : 0),
+      oracleAddress: result.oracleAddress || result[3] || ZERO_ADDRESS,
+      priceFeedId: result.priceFeedId || result[4] || '0x0000000000000000000000000000000000000000000000000000000000000000',
+      targetValue: result.targetValue || result[5] || 0n,
+      comparison: result.comparison !== undefined ? Number(result.comparison) : (result[6] !== undefined ? Number(result[6]) : 0),
+      yesWins: result.yesWins !== undefined ? Boolean(result.yesWins) : (result[7] !== undefined ? Boolean(result[7]) : false),
+      isResolved: result.isResolved !== undefined ? Boolean(result.isResolved) : (result[8] !== undefined ? Boolean(result[8]) : false),
     };
   } catch (error) {
     console.error('Error loading market resolution:', error);
     return {
+      startTime: 0n,
       expiryTimestamp: 0n,
       oracleType: 0,
       oracleAddress: ZERO_ADDRESS,
@@ -455,8 +467,6 @@ export async function getInvariantUsdc(id: bigint) {
 }
 
 export async function getLpResidualPot(id: bigint): Promise<bigint> {
-  // Diamond (testnet): residual pot is stored per-market on the Market struct as `residualUSDC`.
-  // Monolithic (mainnet): keep this working by using getMarket() which normalizes both layouts.
   const market = await getMarket(id);
-  return BigInt((market as any)?.residualUSDC ?? 0n);
+  return BigInt((market as Record<string, any>)?.residualUSDC ?? 0n);
 }

@@ -3,46 +3,72 @@ export type Network = 'mainnet' | 'testnet';
 
 // Contract addresses for each network
 const MAINNET_ADDRESSES = {
-  // BSC mainnet - Deployed January 2025
+  // BSC Mainnet - Deployed December 31, 2025 (All audit fixes + Scheduled Markets)
+  // ✅ LP fee cooldown protection (H-01)
+  // ✅ Expiry liquidity lock (H-02)
+  // ✅ Chainlink phase boundary handling (M-01)
+  // ✅ Always-enforced price jump limits (M-03)
+  // ✅ Fee validation (L-01)
+  // ✅ Minimum market duration (L-06)
+  // ✅ Scheduled markets support
+  // ⏳ Facets pending 24-hour timelock activation
   // These can be overridden at build-time via NEXT_PUBLIC_* env vars to avoid code edits on redeploy.
   core: (process.env.NEXT_PUBLIC_MAINNET_CORE ??
-    '0x1208a67DbEB7E5C2EC85771872D8e621053027E8') as `0x${string}`,
+    '0x1FcCf26f103823cb905Ea5D14628059cc5221918') as `0x${string}`,
   usdc: (process.env.NEXT_PUBLIC_MAINNET_USDC ??
-    '0x55d398326f99059fF775485246999027B3197955') as `0x${string}`, // USDT on BSC
+    '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d') as `0x${string}`, // Real USDC on BSC
   chainlinkResolver: (process.env.NEXT_PUBLIC_MAINNET_RESOLVER ??
-    '0xAe49abC2F1538f2F10b8Fb7c313CC899B8BB038A') as `0x${string}`,
+    '0x83ea7A65EcBd64f7bBABb728C9966A842d3E502e') as `0x${string}`,
   treasury: (process.env.NEXT_PUBLIC_MAINNET_TREASURY ??
-    '0xE3FcF06886AD45E64dc864B91ED7c60614cc03A5') as `0x${string}`,
+    '0xE8fe348d2A9e585c577497c8e5ab2F8F54267BDd') as `0x${string}`,
   admin: (process.env.NEXT_PUBLIC_MAINNET_ADMIN ??
     '0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c') as `0x${string}`,
+  startBlock: BigInt(process.env.NEXT_PUBLIC_MAINNET_START_BLOCK ?? '73210700'),
   // Mainnet uses Diamond architecture (Router + Facets)
   facets: {
     market: (process.env.NEXT_PUBLIC_MAINNET_FACET_MARKET ??
-      '0x80ED66616a03Ff01D80E1F4f272764cD7aB97D7a') as `0x${string}`,
+      '0x4d5BA295825e1D093A160F583489347C375D96e2') as `0x${string}`,
     trading: (process.env.NEXT_PUBLIC_MAINNET_FACET_TRADING ??
-      '0x68B8AB4E60176629b3F690931894A8F4DC3A8b0d') as `0x${string}`,
+      '0xb1fef506a722E5Dfebb4bb30e9076c302ac57412') as `0x${string}`,
     liquidity: (process.env.NEXT_PUBLIC_MAINNET_FACET_LIQUIDITY ??
-      '0x5B3934835879cEeab3c1988933c5e2C01D15762c') as `0x${string}`,
+      '0xFBDAF15D9536ffF9869332874116c5c943470B0D') as `0x${string}`,
     settlement: (process.env.NEXT_PUBLIC_MAINNET_FACET_SETTLEMENT ??
-      '0xa01FA70fBb5E1Fe5f3FAc0Fbb92fd1e8B7b7b569') as `0x${string}`,
+      '0x5E447549E5669B8D5Dd0DC5ED36CA47b5e479d07') as `0x${string}`,
   },
 };
 
 const TESTNET_ADDRESSES = {
   // Testnet uses Diamond architecture (Router + Facets)
-  // Deployed: January 2025 (Final security audit fixes - all hardening complete)
-  // Latest deployment: deadline-enabled buy/sell + all admin + cancellation UX
-  core: '0x2CF5F6E3234FAe485fae98Ea78B07cFB97Eb1ddd' as `0x${string}`,
-  usdc: '0xADEa1B9F54A9Be395DDCAf51e072667E1edA09cf' as `0x${string}`,
-  chainlinkResolver: '0x6217730cab1Fc4548747bc37777Bf622B1741e36' as `0x${string}`,
-  treasury: '0x5583238e692A5c57314a8D392749A3B102329846' as `0x${string}`,
-  admin: '0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F' as `0x${string}`,
+  // Deployed: December 31, 2025 (All audit fixes + Correct USDC - H-01, H-02, M-01, M-03, L-01, L-06)
+  // ✅ LP fee cooldown protection (H-01)
+  // ✅ Expiry liquidity lock (H-02)
+  // ✅ Chainlink phase boundary handling (M-01)
+  // ✅ Always-enforced price jump limits (M-03)
+  // ✅ Fee validation (L-01)
+  // ✅ Minimum market duration (L-06)
+  // ✅ Correct MockUSDC address (fixed from mainnet USDT)
+  // These can be overridden at build-time via NEXT_PUBLIC_* env vars
+  core: (process.env.NEXT_PUBLIC_TESTNET_CORE ??
+    '0xff020FeBB063d375e4D28291Da81f835Ba258Cb6') as `0x${string}`,
+  usdc: (process.env.NEXT_PUBLIC_TESTNET_USDC ??
+    '0xBAAbf17Be1674A6f62b215Bb7dfc1BA7Fc34d3c1') as `0x${string}`, // MockUSDC with faucet
+  chainlinkResolver: (process.env.NEXT_PUBLIC_TESTNET_RESOLVER ??
+    '0xe7422B1dBAdFE333489106ED0Ed5536061FF662f') as `0x${string}`,
+  treasury: (process.env.NEXT_PUBLIC_TESTNET_TREASURY ??
+    '0xc0348B3DAbe6B45F8efdF5B98b18D336dac74213') as `0x${string}`,
+  admin: (process.env.NEXT_PUBLIC_TESTNET_ADMIN ??
+    '0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c') as `0x${string}`,
+  startBlock: BigInt(process.env.NEXT_PUBLIC_TESTNET_START_BLOCK ?? '46200000'),
   // Diamond facets
   facets: {
-    market: '0x97A832fa4fbF84D3Fec97fe4e3eF65FEc73aB35D' as `0x${string}`,
-    trading: '0xbfEe7bf201171CA527C83334C6D9b08d2F85790A' as `0x${string}`,
-    liquidity: '0x1D0d6Fd85A7Ae08Ac8A9B58Cb736d7c2CbB43a39' as `0x${string}`,
-    settlement: '0x5f9D480e972fBd90EcA50E01Fd277AbF6a8f7386' as `0x${string}`,
+    market: (process.env.NEXT_PUBLIC_TESTNET_FACET_MARKET ??
+      '0x105153F60C3C1cDfbadA7bF6b5D9c06e71479bC0') as `0x${string}`,
+    trading: (process.env.NEXT_PUBLIC_TESTNET_FACET_TRADING ??
+      '0x753726D293B96Eec6AEc54587b523D8370269Af7') as `0x${string}`,
+    liquidity: (process.env.NEXT_PUBLIC_TESTNET_FACET_LIQUIDITY ??
+      '0x1517d6d95F2f70d3a0548a2992db465c944B12F0') as `0x${string}`,
+    settlement: (process.env.NEXT_PUBLIC_TESTNET_FACET_SETTLEMENT ??
+      '0x6334c14700844C3b30dd8925222a3F3401919041') as `0x${string}`,
   },
 };
 
@@ -120,12 +146,12 @@ export function setNetwork(network: Network) {
     }
   }
   keysToRemove.forEach(key => localStorage.removeItem(key));
-  
+
   // Clear IndexedDB
   if ('indexedDB' in window) {
     indexedDB.deleteDatabase('SpeculateCache');
   }
-  
+
   // Reload page to apply changes
   window.location.reload();
 }
@@ -134,11 +160,11 @@ export function setNetwork(network: Network) {
 if (typeof window !== 'undefined') {
   const storedCoreAddress = localStorage.getItem('lastCoreAddress');
   const currentCoreAddress = addresses.core.toLowerCase();
-  
+
   if (storedCoreAddress && storedCoreAddress !== currentCoreAddress) {
     console.log('[contracts] Core address changed, clearing all caches...');
     console.log('[contracts] Old Core:', storedCoreAddress, 'New Core:', currentCoreAddress);
-    
+
     // Clear ALL localStorage items (more aggressive clearing)
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -166,7 +192,7 @@ if (typeof window !== 'undefined') {
       console.log('[contracts] Removed localStorage key:', key);
     });
     console.log(`[contracts] Cleared ${keysToRemove.length} localStorage items`);
-    
+
     // Clear IndexedDB
     if ('indexedDB' in window) {
       const deleteReq = indexedDB.deleteDatabase('SpeculateCache');
@@ -177,7 +203,7 @@ if (typeof window !== 'undefined') {
         console.warn('[contracts] Failed to clear IndexedDB:', deleteReq.error);
       };
     }
-    
+
     // Clear React Query cache if available
     try {
       // Store a flag to clear React Query cache on next render
@@ -186,11 +212,11 @@ if (typeof window !== 'undefined') {
     } catch (e) {
       // Ignore if sessionStorage not available
     }
-    
+
     // Update stored address
     localStorage.setItem('lastCoreAddress', currentCoreAddress);
     console.log('[contracts] ✅ Cache cleared successfully. Page will reload in 1 second...');
-    
+
     // Reload page after clearing cache to ensure fresh data
     setTimeout(() => {
       window.location.reload();
