@@ -5,7 +5,7 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicCl
 import { getAddresses, getCurrentNetwork, getNetwork } from '@/lib/contracts';
 import { getCoreAbi, getChainlinkResolverAbi } from '@/lib/abis';
 import { isAdmin as checkIsAdmin } from '@/lib/hooks';
-import { keccak256, stringToBytes, encodeAbiParameters } from 'viem';
+import { keccak256, stringToBytes, encodeAbiParameters, decodeErrorResult } from 'viem';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { 
@@ -113,22 +113,85 @@ export function AdminMarketActions({
         throw new Error("Oracle hasn't updated since market expiry yet");
       }
 
-      // Linear search backwards
+      // Helper function to parse Chainlink composite round ID
+      // Format: phaseId (upper 16 bits) | aggregatorRoundId (lower 64 bits)
+      const parseRoundId = (roundId: bigint) => {
+        const phase = Number(roundId >> 64n);
+        const aggregatorRound = Number(roundId & 0xFFFFFFFFFFFFFFFFn);
+        return { phase, aggregatorRound };
+      };
+
+      // Helper function to construct round ID from phase and aggregator round
+      const constructRoundId = (phase: number, aggregatorRound: number) => {
+        return (BigInt(phase) << 64n) | BigInt(aggregatorRound);
+      };
+
+      // Linear search backwards, properly handling phase boundaries
       let found = false;
       for (let i = 0; i < 50; i++) {
-        const prev: any = await publicClient.readContract({
-          address: oracleAddr as `0x${string}`,
-          abi: aggregatorAbi,
-          functionName: 'getRoundData',
-          args: [targetRoundId - 1n],
-        });
+        const { phase, aggregatorRound } = parseRoundId(targetRoundId);
         
-        const prevUpdatedAt = prev[3];
-        if (prevUpdatedAt < expiry) {
-          found = true;
-          break;
+        // Check if we're at a phase boundary - cannot go back further
+        if (aggregatorRound === 0) {
+          throw new Error("Cannot resolve at phase boundary. Market may need manual resolution.");
         }
-        targetRoundId -= 1n;
+
+        // Construct previous round ID in the same phase
+        const prevRoundId = constructRoundId(phase, aggregatorRound - 1);
+        
+        try {
+          const prev: any = await publicClient.readContract({
+            address: oracleAddr as `0x${string}`,
+            abi: aggregatorAbi,
+            functionName: 'getRoundData',
+            args: [prevRoundId],
+          });
+          
+          const prevUpdatedAt = prev[3];
+          const prevRoundUpdatedAtNum = Number(prevUpdatedAt);
+          const expiryNum = Number(expiry);
+          
+          console.log(`Checking round ${i}:`, {
+            targetRoundId: targetRoundId.toString(),
+            prevRoundId: prevRoundId.toString(),
+            prevUpdatedAt: prevRoundUpdatedAtNum,
+            expiry: expiryNum,
+            isBeforeExpiry: prevRoundUpdatedAtNum < expiryNum,
+          });
+          
+          if (prevUpdatedAt < expiry) {
+            found = true;
+            // Verify the target round is after expiry
+            const targetRoundData: any = await publicClient.readContract({
+              address: oracleAddr as `0x${string}`,
+              abi: aggregatorAbi,
+              functionName: 'getRoundData',
+              args: [targetRoundId],
+            });
+            const targetUpdatedAt = Number(targetRoundData[3]);
+            console.log('Found first round after expiry:', {
+              roundId: targetRoundId.toString(),
+              updatedAt: targetUpdatedAt,
+              expiry: expiryNum,
+              isAfterExpiry: targetUpdatedAt >= expiryNum,
+            });
+            
+            if (targetUpdatedAt < expiryNum) {
+              throw new Error(`Selected round (${targetRoundId.toString()}) updatedAt (${targetUpdatedAt}) is before expiry (${expiryNum}). This should not happen.`);
+            }
+            
+            break; // targetRoundId is the first one after expiry
+          }
+          targetRoundId = prevRoundId;
+        } catch (error: any) {
+          // If previous round doesn't exist, we might be at phase boundary
+          // Try to check if we can go to previous phase
+          if (phase > 0) {
+            // Try to get the last round of previous phase (this is complex, so we'll error)
+            throw new Error(`Cannot find previous round. Market may be at phase boundary or too old. Error: ${error.message}`);
+          }
+          throw new Error(`Cannot find previous round data. Error: ${error.message}`);
+        }
       }
 
       if (!found) throw new Error("Could not find the exact transition round within 50 updates");
@@ -144,14 +207,83 @@ export function AdminMarketActions({
       });
 
       if (hash && publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash });
-        pushToast({ title: 'Success', description: `Market #${marketId} resolved successfully!`, type: 'success' });
-        // Refresh page data
-        window.location.reload();
+        try {
+          const receipt = await publicClient.waitForTransactionReceipt({ hash });
+          
+          // Check if transaction failed
+          if (receipt.status === 'reverted') {
+            throw new Error('Transaction reverted. Check the transaction on block explorer for details.');
+          }
+          
+          pushToast({ title: 'Success', description: `Market #${marketId} resolved successfully!`, type: 'success' });
+          // Refresh page data
+          window.location.reload();
+        } catch (txError: any) {
+          // If transaction failed, try to decode the error
+          throw new Error(`Transaction failed: ${txError.message || 'Unknown error'}. Check block explorer for details.`);
+        }
       }
     } catch (e: any) {
       console.error('Error resolving market:', e);
-      pushToast({ title: 'Error', description: e.message || 'Failed to resolve market', type: 'error' });
+      
+      // Try to extract more detailed error information
+      let errorMessage = e.message || 'Failed to resolve market';
+      
+      // Try to decode error from transaction if available
+      if (e.data || e.cause?.data) {
+        try {
+          const errorData = e.data || e.cause?.data;
+          if (errorData && publicClient) {
+            const decoded = decodeErrorResult({
+              abi: resolverAbi,
+              data: errorData,
+            });
+            errorMessage = `Contract Error: ${decoded.errorName}`;
+            
+            // Map specific errors to user-friendly messages
+            const errorMap: Record<string, string> = {
+              'PhaseBoundaryRound': 'Cannot resolve at phase boundary. The market may need manual resolution.',
+              'MarketNotExpired': 'Market has not expired yet.',
+              'NotFirstRoundAfterExpiry': 'Selected round is not the first round after expiry.',
+              'Stale': 'Round data is too stale (older than 2 hours).',
+              'IncompleteRound': 'Round data is incomplete or previous round is missing.',
+              'OracleDecimalsMismatch': 'Oracle decimals have changed since market creation.',
+              'RoundTooEarly': 'Selected round occurred before market expiry.',
+              'InvalidRoundId': 'Invalid round ID provided.',
+              'NotChainlinkMarket': 'Market does not use Chainlink oracle.',
+              'FeedMissing': 'Oracle feed address is not set.',
+            };
+            
+            if (errorMap[decoded.errorName]) {
+              errorMessage = errorMap[decoded.errorName];
+            }
+          }
+        } catch (decodeError) {
+          // If decoding fails, use original error message
+          console.error('Failed to decode error:', decodeError);
+        }
+      }
+      
+      // Check for common error patterns in message
+      if (errorMessage.includes('PhaseBoundaryRound') || errorMessage.includes('phase boundary')) {
+        errorMessage = 'Cannot resolve at phase boundary. The market may need manual resolution.';
+      } else if (errorMessage.includes('MarketNotExpired')) {
+        errorMessage = 'Market has not expired yet.';
+      } else if (errorMessage.includes('NotFirstRoundAfterExpiry')) {
+        errorMessage = 'Selected round is not the first round after expiry.';
+      } else if (errorMessage.includes('Stale')) {
+        errorMessage = 'Round data is too stale (older than 2 hours).';
+      } else if (errorMessage.includes('IncompleteRound')) {
+        errorMessage = 'Round data is incomplete or previous round is missing.';
+      } else if (errorMessage.includes('OracleDecimalsMismatch')) {
+        errorMessage = 'Oracle decimals have changed since market creation.';
+      } else if (errorMessage.includes('PAUSED') || errorMessage.includes('paused')) {
+        errorMessage = 'Resolver contract is paused.';
+      } else if (errorMessage.includes('revert') || errorMessage.includes('execution reverted')) {
+        errorMessage = 'Transaction reverted. Check the transaction on block explorer for the specific error reason.';
+      }
+      
+      pushToast({ title: 'Error', description: errorMessage, type: 'error' });
     } finally {
       setResolving(false);
     }

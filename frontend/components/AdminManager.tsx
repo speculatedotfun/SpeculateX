@@ -1,11 +1,10 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient } from 'wagmi';
 import { getAddresses, getCurrentNetwork, getNetwork } from '@/lib/contracts';
 import { getCoreAbi, getChainlinkResolverAbi } from '@/lib/abis';
 import { isAdmin as checkIsAdmin } from '@/lib/hooks';
-import { keccak256, stringToBytes } from 'viem';
+import { keccak256, stringToBytes, decodeErrorResult } from 'viem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
@@ -112,9 +111,9 @@ export default function AdminManager() {
       const { getMarketCount, getMarket } = await import('@/lib/hooks');
       const count = await getMarketCount();
       const now = Math.floor(Date.now() / 1000);
-      
+
       const marketList: Array<{ id: number; question: string; expiryTimestamp: bigint; isResolved: boolean; expired: boolean }> = [];
-      
+
       // Check up to 50 markets (to avoid too many calls)
       const maxMarkets = Number(count) > 50 ? 50 : Number(count);
       for (let i = 1; i <= maxMarkets; i++) {
@@ -124,7 +123,7 @@ export default function AdminManager() {
             const expiry = Number(market.resolution.expiryTimestamp);
             const isResolved = market.resolution.isResolved;
             const expired = expiry > 0 && expiry < now;
-            
+
             // Only show markets that are expired but not resolved, and have Chainlink oracle
             if (expired && !isResolved && market.resolution.oracleType === 1) {
               marketList.push({
@@ -132,6 +131,7 @@ export default function AdminManager() {
                 question: market.question || `Market #${i}`,
                 expiryTimestamp: market.resolution.expiryTimestamp,
                 isResolved: false,
+                expired: true,
                 expired: true,
               });
             }
@@ -141,7 +141,7 @@ export default function AdminManager() {
           continue;
         }
       }
-      
+
       setMarkets(marketList);
     } catch (e) {
       console.error('Error loading markets:', e);
@@ -174,20 +174,20 @@ export default function AdminManager() {
     try {
       setResolvingMarketId(marketId);
       pushToast({ title: 'Searching Oracle', description: `Finding correct round for market #${marketId}...`, type: 'info' });
-      
+
       // 1. Get market resolution config to find expiry and oracle address
       const { getMarket } = await import('@/lib/hooks');
       const market = await getMarket(BigInt(marketId));
       if (!market || !market.resolution) throw new Error("Market data not found");
-      
+
       const expiry = BigInt(market.resolution.expiryTimestamp);
       const oracleAddr = market.resolution.oracleAddress;
 
       // 2. Find the first round after expiry
       // We'll use a simple search: start from latest and go back
       const aggregatorAbi = [
-        { type: 'function', name: 'latestRoundData', inputs: [], outputs: [{name:'roundId',type:'uint80'},{name:'answer',type:'int256'},{name:'startedAt',type:'uint256'},{name:'updatedAt',type:'uint256'},{name:'answeredInRound',type:'uint80'}], stateMutability: 'view' },
-        { type: 'function', name: 'getRoundData', inputs: [{name:'_roundId',type:'uint80'}], outputs: [{name:'roundId',type:'uint80'},{name:'answer',type:'int256'},{name:'startedAt',type:'uint256'},{name:'updatedAt',type:'uint256'},{name:'answeredInRound',type:'uint80'}], stateMutability: 'view' }
+        { type: 'function', name: 'latestRoundData', inputs: [], outputs: [{ name: 'roundId', type: 'uint80' }, { name: 'answer', type: 'int256' }, { name: 'startedAt', type: 'uint256' }, { name: 'updatedAt', type: 'uint256' }, { name: 'answeredInRound', type: 'uint80' }], stateMutability: 'view' },
+        { type: 'function', name: 'getRoundData', inputs: [{ name: '_roundId', type: 'uint80' }], outputs: [{ name: 'roundId', type: 'uint80' }, { name: 'answer', type: 'int256' }, { name: 'startedAt', type: 'uint256' }, { name: 'updatedAt', type: 'uint256' }, { name: 'answeredInRound', type: 'uint80' }], stateMutability: 'view' }
       ] as const;
 
       const latest: any = await pc.readContract({
@@ -203,31 +203,64 @@ export default function AdminManager() {
         throw new Error("Oracle hasn't updated since market expiry yet");
       }
 
-      // Linear search backwards (usually only a few steps needed for recent markets)
+      // Helper function to parse Chainlink composite round ID
+      // Format: phaseId (upper 16 bits) | aggregatorRoundId (lower 64 bits)
+      const parseRoundId = (roundId: bigint) => {
+        const phase = Number(roundId >> 64n);
+        const aggregatorRound = Number(roundId & 0xFFFFFFFFFFFFFFFFn);
+        return { phase, aggregatorRound };
+      };
+
+      // Helper function to construct round ID from phase and aggregator round
+      const constructRoundId = (phase: number, aggregatorRound: number) => {
+        return (BigInt(phase) << 64n) | BigInt(aggregatorRound);
+      };
+
+      // Linear search backwards, properly handling phase boundaries
       pushToast({ title: 'Searching', description: 'Verifying historical price rounds...', type: 'info' });
-      
+
       let found = false;
       for (let i = 0; i < 50; i++) { // Max 50 steps back
-        const prev: any = await pc.readContract({
-          address: oracleAddr as `0x${string}`,
-          abi: aggregatorAbi,
-          functionName: 'getRoundData',
-          args: [targetRoundId - 1n],
-        });
+        const { phase, aggregatorRound } = parseRoundId(targetRoundId);
         
-        const prevUpdatedAt = prev[3];
-        if (prevUpdatedAt < expiry) {
-          found = true;
-          break; // targetRoundId is the first one after expiry
+        // Check if we're at a phase boundary - cannot go back further
+        if (aggregatorRound === 0) {
+          throw new Error("Cannot resolve at phase boundary. Market may need manual resolution.");
         }
-        targetRoundId -= 1n;
+
+        // Construct previous round ID in the same phase
+        const prevRoundId = constructRoundId(phase, aggregatorRound - 1);
+        
+        try {
+          const prev: any = await pc.readContract({
+            address: oracleAddr as `0x${string}`,
+            abi: aggregatorAbi,
+            functionName: 'getRoundData',
+            args: [prevRoundId],
+          });
+
+          const prevUpdatedAt = prev[3];
+          if (prevUpdatedAt < expiry) {
+            found = true;
+            break; // targetRoundId is the first one after expiry
+          }
+          targetRoundId = prevRoundId;
+        } catch (error: any) {
+          // If previous round doesn't exist, we might be at phase boundary
+          // Try to check if we can go to previous phase
+          if (phase > 0) {
+            // Try to get the last round of previous phase (this is complex, so we'll error)
+            throw new Error(`Cannot find previous round. Market may be at phase boundary or too old. Error: ${error.message}`);
+          }
+          throw new Error(`Cannot find previous round data. Error: ${error.message}`);
+        }
       }
 
       if (!found) throw new Error("Could not find the exact transition round within 50 updates. Market might be too old.");
 
       // 3. Resolve with the found roundId
       pushToast({ title: 'Resolving Market', description: `Executing resolve with round ${targetRoundId.toString()}...`, type: 'info' });
-      
+
       const hash = await resolveMarketAsync({
         address: currentResolver as `0x${string}`,
         abi: getChainlinkResolverAbi(getNetwork()),
@@ -236,14 +269,82 @@ export default function AdminManager() {
       });
 
       if (hash && pc) {
-        await pc.waitForTransactionReceipt({ hash });
-        pushToast({ title: 'Success', description: `Market #${marketId} resolved deterministically!`, type: 'success' });
-        await loadResolvableMarkets();
+        try {
+          const receipt = await pc.waitForTransactionReceipt({ hash });
+          
+          // Check if transaction failed
+          if (receipt.status === 'reverted') {
+            throw new Error('Transaction reverted. Check the transaction on block explorer for details.');
+          }
+          
+          pushToast({ title: 'Success', description: `Market #${marketId} resolved deterministically!`, type: 'success' });
+          await loadResolvableMarkets();
+        } catch (txError: any) {
+          // If transaction failed, try to decode the error
+          throw new Error(`Transaction failed: ${txError.message || 'Unknown error'}. Check block explorer for details.`);
+        }
       }
     } catch (e: any) {
       console.error('Error resolving market:', e);
-      const errorMsg = e.message || 'Failed to resolve market';
-      pushToast({ title: 'Error', description: errorMsg, type: 'error' });
+      
+      // Try to extract more detailed error information
+      let errorMessage = e.message || 'Failed to resolve market';
+      
+      // Try to decode error from transaction if available
+      if (e.data || e.cause?.data) {
+        try {
+          const errorData = e.data || e.cause?.data;
+          if (errorData && pc) {
+            const decoded = decodeErrorResult({
+              abi: getChainlinkResolverAbi(getNetwork()),
+              data: errorData,
+            });
+            errorMessage = `Contract Error: ${decoded.errorName}`;
+            
+            // Map specific errors to user-friendly messages
+            const errorMap: Record<string, string> = {
+              'PhaseBoundaryRound': 'Cannot resolve at phase boundary. The market may need manual resolution.',
+              'MarketNotExpired': 'Market has not expired yet.',
+              'NotFirstRoundAfterExpiry': 'Selected round is not the first round after expiry.',
+              'Stale': 'Round data is too stale (older than 2 hours).',
+              'IncompleteRound': 'Round data is incomplete or previous round is missing.',
+              'OracleDecimalsMismatch': 'Oracle decimals have changed since market creation.',
+              'RoundTooEarly': 'Selected round occurred before market expiry.',
+              'InvalidRoundId': 'Invalid round ID provided.',
+              'NotChainlinkMarket': 'Market does not use Chainlink oracle.',
+              'FeedMissing': 'Oracle feed address is not set.',
+            };
+            
+            if (errorMap[decoded.errorName]) {
+              errorMessage = errorMap[decoded.errorName];
+            }
+          }
+        } catch (decodeError) {
+          // If decoding fails, use original error message
+          console.error('Failed to decode error:', decodeError);
+        }
+      }
+      
+      // Check for common error patterns in message
+      if (errorMessage.includes('PhaseBoundaryRound') || errorMessage.includes('phase boundary')) {
+        errorMessage = 'Cannot resolve at phase boundary. The market may need manual resolution.';
+      } else if (errorMessage.includes('MarketNotExpired')) {
+        errorMessage = 'Market has not expired yet.';
+      } else if (errorMessage.includes('NotFirstRoundAfterExpiry')) {
+        errorMessage = 'Selected round is not the first round after expiry.';
+      } else if (errorMessage.includes('Stale')) {
+        errorMessage = 'Round data is too stale (older than 2 hours).';
+      } else if (errorMessage.includes('IncompleteRound')) {
+        errorMessage = 'Round data is incomplete or previous round is missing.';
+      } else if (errorMessage.includes('OracleDecimalsMismatch')) {
+        errorMessage = 'Oracle decimals have changed since market creation.';
+      } else if (errorMessage.includes('PAUSED') || errorMessage.includes('paused')) {
+        errorMessage = 'Resolver contract is paused.';
+      } else if (errorMessage.includes('revert') || errorMessage.includes('execution reverted')) {
+        errorMessage = 'Transaction reverted. Check the transaction on block explorer for the specific error reason.';
+      }
+      
+      pushToast({ title: 'Error', description: errorMessage, type: 'error' });
     } finally {
       setResolvingMarketId(null);
     }
@@ -288,14 +389,13 @@ export default function AdminManager() {
 
   const handleSetChainlinkResolver = async () => {
     if (!chainlinkResolverAddress || !publicClient) return;
-    
+
     try {
       setIsCheckingResolver(true);
       const addresses = getAddresses();
       const network = getNetwork();
-      
+
       if (network === 'testnet') {
-        // Testnet: Check if timelock is 0, if so we can schedule and execute immediately
         const minTimelockDelay = await publicClient.readContract({
           address: addresses.core,
           abi: getCoreAbi(getCurrentNetwork()),
@@ -304,19 +404,17 @@ export default function AdminManager() {
         }) as bigint;
 
         if (minTimelockDelay === 0n) {
-          // Timelock is 0, so we can schedule and execute in one flow
           const OP_SET_RESOLVER = keccak256(stringToBytes('OP_SET_RESOLVER'));
           const resolverAddr = chainlinkResolverAddress as `0x${string}`;
-          
+
           pushToast({ title: 'Scheduling Resolver', description: 'Scheduling resolver registration...', type: 'info' });
-          
-          // Schedule the operation (encode the address)
+
           const { encodeAbiParameters } = await import('viem');
           const encodedData = encodeAbiParameters(
             [{ type: 'address' }],
             [chainlinkResolverAddress as `0x${string}`]
           );
-          
+
           const opId = await setChainlinkResolverAsync({
             address: addresses.core,
             abi: getCoreAbi(getCurrentNetwork()),
@@ -324,13 +422,10 @@ export default function AdminManager() {
             args: [OP_SET_RESOLVER, encodedData],
           });
 
-          // Wait for transaction
           if (opId) {
             await publicClient.waitForTransactionReceipt({ hash: opId });
-            
-            // Execute immediately (timelock is 0)
             pushToast({ title: 'Executing Resolver', description: 'Executing resolver registration...', type: 'info' });
-            
+
             const executeHash = await setChainlinkResolverAsync({
               address: addresses.core,
               abi: getCoreAbi(getCurrentNetwork()),
@@ -352,7 +447,6 @@ export default function AdminManager() {
           });
         }
       } else {
-        // Mainnet: Direct setter (if it exists)
         const hash = await setChainlinkResolverAsync({
           address: addresses.core,
           abi: getCoreAbi(getCurrentNetwork()),
@@ -383,7 +477,7 @@ export default function AdminManager() {
     }
     const feed = feedId || selectedFeed;
     const addr = feedAddr || feedAddress;
-    
+
     if (!feed || !addr) {
       pushToast({ title: 'Error', description: 'Please select a feed and provide an address', type: 'error' });
       return;
@@ -392,9 +486,9 @@ export default function AdminManager() {
     try {
       const addresses = getAddresses();
       const feedIdHash = keccak256(stringToBytes(feed));
-      
+
       pushToast({ title: 'Registering Feed', description: `Registering ${feed}...`, type: 'info' });
-      
+
       const hash = await setGlobalFeedAsync({
         address: addresses.chainlinkResolver,
         abi: chainlinkResolverAbi,
@@ -421,7 +515,7 @@ export default function AdminManager() {
         className="flex items-center justify-center py-12"
       >
         <Loader2 className="w-6 h-6 animate-spin text-purple-500" aria-hidden="true" />
-        <span className="ml-3 text-sm font-medium text-gray-600 dark:text-gray-400" role="status">Checking admin access...</span>
+        <span className="ml-3 text-sm font-medium text-gray-500" role="status">Checking admin access...</span>
       </motion.div>
     );
   }
@@ -429,284 +523,138 @@ export default function AdminManager() {
   if (!isAdmin) return null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-6"
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.1 }}
-        className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-2xl p-5 shadow-sm"
-        role="region"
-        aria-label="Admin access information"
-      >
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-            <Shield className="w-5 h-5 text-purple-600 dark:text-purple-400" aria-hidden="true" />
-          </div>
-          <div className="text-sm text-purple-900 dark:text-purple-100">
-            <p className="font-bold mb-1">Super Admin Access</p>
-            <p className="opacity-80 leading-relaxed">Admins can create markets, resolve disputes, manage liquidity, and grant admin privileges to others.</p>
-          </div>
-        </div>
-      </motion.div>
+    <div className="space-y-6">
 
-      <div className="space-y-4">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-           <label htmlFor="admin-address" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 mb-2 block">Grant Admin Role</label>
-           <div className="flex gap-3">
-             <div className="relative flex-1">
-               <Input
-                 id="admin-address"
-                 value={newAdminAddress}
-                 onChange={(e) => setNewAdminAddress(e.target.value)}
-                 placeholder="0x..."
-                 className="font-mono pr-10"
-                 aria-label="New admin Ethereum address"
-                 aria-invalid={newAdminAddress.length > 0 && !validAddress}
-                 aria-describedby={newAdminAddress.length > 0 && !validAddress ? "admin-address-error" : undefined}
-               />
-               <AnimatePresence>
-                 {validAddress && (
-                   <motion.div
-                     initial={{ scale: 0, opacity: 0 }}
-                     animate={{ scale: 1, opacity: 1 }}
-                     exit={{ scale: 0, opacity: 0 }}
-                     className="absolute right-3 top-1/2 -translate-y-1/2"
-                   >
-                     <CheckCircle2 className="w-5 h-5 text-green-500" aria-hidden="true" />
-                   </motion.div>
-                 )}
-               </AnimatePresence>
-             </div>
-             <Button onClick={handleAdd} disabled={!validAddress} className="bg-purple-600 hover:bg-purple-700 text-white min-w-[120px] disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Grant admin and market creator roles">
-               <UserPlus className="w-4 h-4 mr-2" aria-hidden="true" /> Add
-             </Button>
-           </div>
-           {newAdminAddress.length > 0 && !validAddress && (
-             <motion.p
-               initial={{ opacity: 0, y: -5 }}
-               animate={{ opacity: 1, y: 0 }}
-               id="admin-address-error"
-               className="text-xs text-red-600 dark:text-red-400 mt-1.5 ml-1"
-               role="alert"
-             >
-               Invalid Ethereum address format
-             </motion.p>
-           )}
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <label htmlFor="resolver-address" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 mb-2 block">
-            Register Chainlink Resolver
-            {currentResolver && currentResolver !== '0x0000000000000000000000000000000000000000' && (
-              <span className="ml-2 text-green-600 dark:text-green-400 text-[10px] normal-case font-normal">
-                (Currently: {currentResolver.slice(0, 6)}...{currentResolver.slice(-4)})
-              </span>
-            )}
-          </label>
-          <div className="flex gap-3">
-            <div className="relative flex-1">
-              <Input
-                id="resolver-address"
-                value={chainlinkResolverAddress}
-                onChange={(e) => setChainlinkResolverAddress(e.target.value)}
-                placeholder="0x..."
-                className="font-mono pr-10"
-                aria-label="Chainlink resolver contract address"
-                aria-invalid={chainlinkResolverAddress.length > 0 && !validResolverAddress}
-                aria-describedby={chainlinkResolverAddress.length > 0 && !validResolverAddress ? "resolver-address-error" : undefined}
-              />
-              <AnimatePresence>
-                {validResolverAddress && (
-                  <motion.div
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0, opacity: 0 }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
-                  >
-                    <CheckCircle2 className="w-5 h-5 text-green-500" aria-hidden="true" />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-            <Button 
-              onClick={handleSetChainlinkResolver} 
-              disabled={!validResolverAddress || isCheckingResolver} 
-              className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px] disabled:opacity-50 disabled:cursor-not-allowed" 
-              aria-label="Register Chainlink resolver contract"
-            >
-              {isCheckingResolver ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> Setting...
-                </>
-              ) : (
-                <>
-                  <Link className="w-4 h-4 mr-2" aria-hidden="true" /> Register
-                </>
-              )}
-            </Button>
-          </div>
-          {chainlinkResolverAddress.length > 0 && !validResolverAddress && (
-            <motion.p
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              id="resolver-address-error"
-              className="text-xs text-red-600 dark:text-red-400 mt-1.5 ml-1"
-              role="alert"
-            >
-              Invalid Ethereum address format
-            </motion.p>
-          )}
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 block">
-              Manual Market Resolution
-            </label>
-            <Button
-              onClick={loadResolvableMarkets}
-              disabled={loadingMarkets || !currentResolver || currentResolver === '0x0000000000000000000000000000000000000000'}
-              variant="outline"
-              size="sm"
-              className="text-xs"
-              aria-label="Refresh markets list"
-            >
-              {loadingMarkets ? (
-                <Loader2 className="w-3 h-3 mr-1 animate-spin" aria-hidden="true" />
-              ) : (
-                <Clock className="w-3 h-3 mr-1" aria-hidden="true" />
-              )}
-              Refresh
-            </Button>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 leading-relaxed">
-            Manually resolve expired Chainlink markets. Markets must be expired and not yet resolved.
-          </p>
-
-          {!currentResolver || currentResolver === '0x0000000000000000000000000000000000000000' ? (
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 text-xs text-yellow-800 dark:text-yellow-200">
-              Chainlink resolver not registered. Please register it above first.
-            </div>
-          ) : loadingMarkets ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-5 h-5 animate-spin text-gray-400" aria-hidden="true" />
-              <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">Loading markets...</span>
-            </div>
-          ) : markets.length === 0 ? (
-            <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-center text-sm text-gray-500 dark:text-gray-400">
-              No expired markets ready for resolution.
-            </div>
-          ) : (
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {markets.map((market, index) => {
-                const expiryDate = new Date(Number(market.expiryTimestamp) * 1000);
-                const isResolving = resolvingMarketId === market.id;
-                
-                return (
-                  <motion.div
-                    key={market.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 + index * 0.05 }}
-                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 flex items-start justify-between gap-3"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-bold text-gray-400 dark:text-gray-500">#{market.id}</span>
-                        <span className="text-xs text-red-600 dark:text-red-400 font-medium">Expired</span>
-                      </div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate" title={market.question}>
-                        {market.question}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Expired: {expiryDate.toLocaleString()}
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() => handleResolveMarket(market.id)}
-                      disabled={isResolving}
-                      size="sm"
-                      className="bg-[#14B8A6] hover:bg-[#0D9488] text-white shrink-0 disabled:opacity-50"
-                      aria-label={`Resolve market #${market.id}`}
-                    >
-                      {isResolving ? (
-                        <>
-                          <Loader2 className="w-3 h-3 mr-1 animate-spin" aria-hidden="true" />
-                          Resolving...
-                        </>
-                      ) : (
-                        <>
-                          <Zap className="w-3 h-3 mr-1" aria-hidden="true" />
-                          Resolve
-                        </>
-                      )}
-                    </Button>
-                  </motion.div>
-                );
-              })}
-            </div>
-          )}
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="space-y-3 pt-4 border-t border-gray-100 dark:border-gray-700"
-        >
-          <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1">Current Admins</h4>
-          {currentAdmins.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No admins listed</p>
-          ) : (
-            <div className="space-y-2" role="list" aria-label="Current administrators">
-              {currentAdmins.map((admin, index) => (
+      {/* 1. Grant Admin Role */}
+      <div className="space-y-2">
+        <label htmlFor="admin-address" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 block">Grant Admin Role</label>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Input
+              id="admin-address"
+              value={newAdminAddress}
+              onChange={(e) => setNewAdminAddress(e.target.value)}
+              placeholder="0x..."
+              className="font-mono pr-10 bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:ring-purple-500"
+              aria-label="New admin Ethereum address"
+            />
+            <AnimatePresence>
+              {validAddress && (
                 <motion.div
-                  key={admin}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.7 + index * 0.05 }}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700 transition-colors"
-                  role="listitem"
+                  initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-sm" aria-hidden="true">
-                      {admin.slice(2, 4).toUpperCase()}
-                    </div>
-                    <span className="font-mono text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {admin.slice(0, 6)}...{admin.slice(-4)}
-                    </span>
-                  </div>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
-                    aria-label={`Remove admin ${admin}`}
-                  >
-                    <X className="w-4 h-4" aria-hidden="true" />
-                  </motion.button>
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
                 </motion.div>
-              ))}
-            </div>
-          )}
-        </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          <Button onClick={handleAdd} disabled={!validAddress} className="bg-purple-600 hover:bg-purple-700 text-white min-w-[100px]">
+            <UserPlus className="w-4 h-4 mr-2" /> Add
+          </Button>
+        </div>
+        {newAdminAddress.length > 0 && !validAddress && (
+          <p className="text-xs text-red-500 dark:text-red-400 ml-1">Invalid Ethereum address format</p>
+        )}
       </div>
-    </motion.div>
+
+      {/* 2. Chainlink Resolver */}
+      <div className="space-y-2 pt-4 border-t border-gray-200 dark:border-white/5">
+        <label htmlFor="resolver-address" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 block">
+          Chainlink Resolver
+          {currentResolver && currentResolver !== '0x0000000000000000000000000000000000000000' && (
+            <span className="ml-2 text-green-600 dark:text-green-400 text-[10px] normal-case font-mono">
+              (Current: {currentResolver.slice(0, 6)}...{currentResolver.slice(-4)})
+            </span>
+          )}
+        </label>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Input
+              id="resolver-address"
+              value={chainlinkResolverAddress}
+              onChange={(e) => setChainlinkResolverAddress(e.target.value)}
+              placeholder="0x..."
+              className="font-mono pr-10 bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:ring-blue-500"
+            />
+            <AnimatePresence>
+              {validResolverAddress && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                >
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          <Button
+            onClick={handleSetChainlinkResolver}
+            disabled={!validResolverAddress || isCheckingResolver}
+            className="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px]"
+          >
+            {isCheckingResolver ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Link className="w-4 h-4 mr-2" />}
+            Set
+          </Button>
+        </div>
+      </div>
+
+      {/* 3. Manual Resolution */}
+      <div className="space-y-2 pt-4 border-t border-gray-200 dark:border-white/5">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 block">
+            Manual Resolution (Expired)
+          </label>
+          <Button
+            onClick={loadResolvableMarkets}
+            disabled={loadingMarkets || !currentResolver || currentResolver === '0x0000000000000000000000000000000000000000'}
+            variant="ghost"
+            size="sm"
+            className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+          >
+            {loadingMarkets ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Clock className="w-3 h-3 mr-1" />}
+            Refresh
+          </Button>
+        </div>
+
+        {!currentResolver || currentResolver === '0x0000000000000000000000000000000000000000' ? (
+          <div className="bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 text-xs text-yellow-800 dark:text-yellow-200">
+            Resolver not registered.
+          </div>
+        ) : markets.length === 0 ? (
+          <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+            No expired markets found.
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+            {markets.map((market) => {
+              const isResolving = resolvingMarketId === market.id;
+              return (
+                <div key={market.id} className="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-white/5 rounded-lg p-3 flex items-center justify-between gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-gray-500 dark:text-gray-400">#{market.id}</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate max-w-[200px]">{market.question}</span>
+                    </div>
+                    <div className="text-[10px] text-red-500 dark:text-red-400 mt-1">
+                      Expired: {new Date(Number(market.expiryTimestamp) * 1000).toLocaleString()}
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => handleResolveMarket(market.id)}
+                    disabled={isResolving}
+                    size="sm"
+                    className="bg-[#14B8A6] hover:bg-[#0D9488] text-white shrink-0 h-8 text-xs"
+                  >
+                    {isResolving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+    </div>
   );
 }
