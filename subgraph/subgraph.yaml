@@ -6,9 +6,9 @@ dataSources:
     name: SpeculateCore
     network: chapel
     source:
-      address: "0xff020FeBB063d375e4D28291Da81f835Ba258Cb6"
+      address: "0x769706b79F3AfCb2D2aaa658D4444f68E6A03489"
       abi: SpeculateCore
-      startBlock: 81765682  # Deployed December 31, 2025 (Latest Diamond Router - All Audit Fixes)
+      startBlock: 82087927  # Deployed January 2, 2026 (With createScheduledMarket + All Audit Fixes)
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7

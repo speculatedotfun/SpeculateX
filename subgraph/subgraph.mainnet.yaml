@@ -6,9 +6,9 @@ dataSources:
     name: SpeculateCore
     network: bsc
     source:
-      address: "0x1FcCf26f103823cb905Ea5D14628059cc5221918"
+      address: "0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365"
       abi: SpeculateCore
-      startBlock: 73724752   # Will find events from deployment
+      startBlock: 73821951   # Deployed January 2, 2026 (With createScheduledMarket + 24h timelock)
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7

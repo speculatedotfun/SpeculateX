@@ -10,19 +10,19 @@
 
 | Contract | Address | BscScan |
 |----------|---------|---------|
-| **SpeculateCoreRouter** | `0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b` | [View](https://bscscan.com/address/0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b) |
-| **ChainlinkResolver** | `0x4076a6951B8d1EB2f4008A8b1E73FCB614e44dC2` | [View](https://bscscan.com/address/0x4076a6951B8d1EB2f4008A8b1E73FCB614e44dC2) |
-| **Treasury** | `0x641b1FF8875eC2f1822F748C32858348409E0e39` | [View](https://bscscan.com/address/0x641b1FF8875eC2f1822F748C32858348409E0e39) |
+| **SpeculateCoreRouter** | `0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365` | [View](https://bscscan.com/address/0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365) |
+| **ChainlinkResolver** | `0xA1CA75ce55865155E38e3aFA29AbCBB9f188B2f5` | [View](https://bscscan.com/address/0xA1CA75ce55865155E38e3aFA29AbCBB9f188B2f5) |
+| **Treasury** | `0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651` | [View](https://bscscan.com/address/0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651) |
 | **Admin** | `0x29D67d1Ad683A76b2750f74B40b6e79d715C933c` | [View](https://bscscan.com/address/0x29D67d1Ad683A76b2750f74B40b6e79d715C933c) |
 
 ### Facets (Mainnet / Diamond)
 
 | Facet | Address | BscScan |
 |-------|---------|---------|
-| **MarketFacet** | `0xf670Eb4cfe8B0a6f98Ba5Dbbdf145Cad49a94ba2` | [View](https://bscscan.com/address/0xf670Eb4cfe8B0a6f98Ba5Dbbdf145Cad49a94ba2) |
-| **TradingFacet** | `0xBca0707dAc82c3946a2A326Ba33C821c0A2E28bE` | [View](https://bscscan.com/address/0xBca0707dAc82c3946a2A326Ba33C821c0A2E28bE) |
-| **LiquidityFacet** | `0xD9DCA9eC368E44d7bDAe1A6997f4BB21ADDFeb87` | [View](https://bscscan.com/address/0xD9DCA9eC368E44d7bDAe1A6997f4BB21ADDFeb87) |
-| **SettlementFacet** | `0x7B95420f86c7325F4fdeCE2ad8C249C84708852B` | [View](https://bscscan.com/address/0x7B95420f86c7325F4fdeCE2ad8C249C84708852B) |
+| **MarketFacet** | `0x8aE4e9fAA34aFA70cf7D01239f1fB87b1ea303e7` | [View](https://bscscan.com/address/0x8aE4e9fAA34aFA70cf7D01239f1fB87b1ea303e7) |
+| **TradingFacet** | `0x55390A0AAc12b1FD765969e3B5A9Ee51894E8830` | [View](https://bscscan.com/address/0x55390A0AAc12b1FD765969e3B5A9Ee51894E8830) |
+| **LiquidityFacet** | `0x5A5350E102C3224024901ad9379Baf9af4FBAb87` | [View](https://bscscan.com/address/0x5A5350E102C3224024901ad9379Baf9af4FBAb87) |
+| **SettlementFacet** | `0xc12560a00609FFd23110a5630497d4926da4d83D` | [View](https://bscscan.com/address/0xc12560a00609FFd23110a5630497d4926da4d83D) |
 
 ### External Contracts
 
@@ -46,25 +46,25 @@
 
 | Contract | Address | BscScan |
 |----------|---------|---------|
-| **SpeculateCoreRouter** | `0x22B5E95C7B81D340CfCEBE93A2EE665dC310C491` | [View](https://testnet.bscscan.com/address/0x22B5E95C7B81D340CfCEBE93A2EE665dC310C491) |
-| **ChainlinkResolver** | `0x359a1104E6990050B0CD6e365A1cF9840262021a` | [View](https://testnet.bscscan.com/address/0x359a1104E6990050B0CD6e365A1cF9840262021a) |
-| **Treasury** | `0xfE75f39c7aBc1A45cd5b32F2f8B64B40DA362439` | [View](https://testnet.bscscan.com/address/0xfE75f39c7aBc1A45cd5b32F2f8B64B40DA362439) |
+| **SpeculateCoreRouter** | `0x769706b79F3AfCb2D2aaa658D4444f68E6A03489` | [View](https://testnet.bscscan.com/address/0x769706b79F3AfCb2D2aaa658D4444f68E6A03489) |
+| **ChainlinkResolver** | `0x9d488714EA67096dBf9083813b53eBd741938261` | [View](https://testnet.bscscan.com/address/0x9d488714EA67096dBf9083813b53eBd741938261) |
+| **Treasury** | `0x03BDBFc8A9c237eB81C5c3F5dD4c566F79E9CfE7` | [View](https://testnet.bscscan.com/address/0x03BDBFc8A9c237eB81C5c3F5dD4c566F79E9CfE7) |
 | **Admin** | `0x29D67d1Ad683A76b2750f74B40b6e79d715C933c` | [View](https://testnet.bscscan.com/address/0x29D67d1Ad683A76b2750f74B40b6e79d715C933c) |
 
 ### External Contracts
 
 | Contract | Address | BscScan |
 |----------|---------|---------|
-| **MockUSDC** | `0xad0F596e1736da0690690a4aEfE348dC77499ea1` | [View](https://testnet.bscscan.com/address/0xad0F596e1736da0690690a4aEfE348dC77499ea1) |
+| **MockUSDC** | `0x3A84EDDD1A1C4bE4aEfB157476a82002bdD005D4` | [View](https://testnet.bscscan.com/address/0x3A84EDDD1A1C4bE4aEfB157476a82002bdD005D4) |
 
 ### Facets (Testnet / Diamond)
 
 | Facet | Address | BscScan |
 |------|---------|---------|
-| **MarketFacet** | `0x080479E449123F269E85DE8cC915E5f9a417B3C5` | [View](https://testnet.bscscan.com/address/0x080479E449123F269E85DE8cC915E5f9a417B3C5) |
-| **TradingFacet** | `0xBF0C4E718697347ECb68d6763088A258d10377e9` | [View](https://testnet.bscscan.com/address/0xBF0C4E718697347ECb68d6763088A258d10377e9) |
-| **LiquidityFacet** | `0x18fe9F9C590b960Af2eE5001942bE152eFe9F879` | [View](https://testnet.bscscan.com/address/0x18fe9F9C590b960Af2eE5001942bE152eFe9F879) |
-| **SettlementFacet** | `0x4B6e27aEbd6eaB2F6b239fE1D8470C2275B6B5c9` | [View](https://testnet.bscscan.com/address/0x4B6e27aEbd6eaB2F6b239fE1D8470C2275B6B5c9) |
+| **MarketFacet** | `0x858D0Bb450b208Ee5841FFC5f49cf0Fcc6Fc5cb3` | [View](https://testnet.bscscan.com/address/0x858D0Bb450b208Ee5841FFC5f49cf0Fcc6Fc5cb3) |
+| **TradingFacet** | `0xCc960988f0ea3B407DCE9886E1c43619F93F99B0` | [View](https://testnet.bscscan.com/address/0xCc960988f0ea3B407DCE9886E1c43619F93F99B0) |
+| **LiquidityFacet** | `0x47650b66e83bf8AE1F8538F270b5F07fc3c83db9` | [View](https://testnet.bscscan.com/address/0x47650b66e83bf8AE1F8538F270b5F07fc3c83db9) |
+| **SettlementFacet** | `0x20213F0E39DA96A8f09eb0756E33B3732eb9Fb25` | [View](https://testnet.bscscan.com/address/0x20213F0E39DA96A8f09eb0756E33B3732eb9Fb25) |
 
 ### Chainlink Price Feeds (Testnet)
 
@@ -78,18 +78,20 @@
 ## 📝 הערות חשובות
 
 ### Mainnet
-- ✅ **SpeculateCoreRouter**: `0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b` (Diamond Architecture - Full Security Audit)
-- ✅ **ChainlinkResolver**: `0x4076a6951B8d1EB2f4008A8b1E73FCB614e44dC2` (Phase Boundary Protection)
-- ✅ **Treasury**: `0x641b1FF8875eC2f1822F748C32858348409E0e39` (With withdrawal limits)
+- ✅ **SpeculateCoreRouter**: `0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365` (Diamond Architecture - Full Security Audit)
+- ✅ **ChainlinkResolver**: `0xA1CA75ce55865155E38e3aFA29AbCBB9f188B2f5` (Phase Boundary Protection)
+- ✅ **Treasury**: `0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651` (With withdrawal limits)
 - ✅ **USDC**: `0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d` (BSC USDC)
 - ✅ **Facets**: see table above (All security fixes deployed)
+- ⏳ **Timelock**: 24 hours - All 23 operations scheduled, waiting for execution
 
 ### Testnet
-- ✅ **SpeculateCoreRouter**: `0x22B5E95C7B81D340CfCEBE93A2EE665dC310C491` (Diamond - All Audit Fixes)
-- ✅ **ChainlinkResolver**: `0x359a1104E6990050B0CD6e365A1cF9840262021a` (Deterministic Resolution + All Audit Fixes)
-- ✅ **Treasury**: `0xfE75f39c7aBc1A45cd5b32F2f8B64B40DA362439` (With MAX_SINGLE_LARGE_WITHDRAW cap)
-- ✅ **MockUSDC**: `0xad0F596e1736da0690690a4aEfE348dC77499ea1` (MockUSDC with Faucet)
+- ✅ **SpeculateCoreRouter**: `0x769706b79F3AfCb2D2aaa658D4444f68E6A03489` (Diamond - All Audit Fixes)
+- ✅ **ChainlinkResolver**: `0x9d488714EA67096dBf9083813b53eBd741938261` (Deterministic Resolution + All Audit Fixes)
+- ✅ **Treasury**: `0x03BDBFc8A9c237eB81C5c3F5dD4c566F79E9CfE7` (With MAX_SINGLE_LARGE_WITHDRAW cap)
+- ✅ **MockUSDC**: `0x3A84EDDD1A1C4bE4aEfB157476a82002bdD005D4` (MockUSDC with Faucet)
 - ✅ **Facets**: see table above (All with security hardening)
+- ✅ **All 23 operations wired** (including createScheduledMarket)
 
 ---
 
@@ -100,22 +102,23 @@
 ```bash
 # כתובות Mainnet
 USDC_ADDRESS=0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d
-SPECULATE_CORE_ADDRESS=0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b
-CHAINLINK_RESOLVER_ADDRESS=0x4076a6951B8d1EB2f4008A8b1E73FCB614e44dC2
-TREASURY_ADDRESS=0x641b1FF8875eC2f1822F748C32858348409E0e39
+SPECULATE_CORE_ADDRESS=0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365
+CHAINLINK_RESOLVER_ADDRESS=0xA1CA75ce55865155E38e3aFA29AbCBB9f188B2f5
+TREASURY_ADDRESS=0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651
 
 # כתובות Testnet
-# SPECULATE_CORE_ADDRESS=0x22B5E95C7B81D340CfCEBE93A2EE665dC310C491
-# CHAINLINK_RESOLVER_ADDRESS=0x359a1104E6990050B0CD6e365A1cF9840262021a
+# SPECULATE_CORE_ADDRESS=0x769706b79F3AfCb2D2aaa658D4444f68E6A03489
+# CHAINLINK_RESOLVER_ADDRESS=0x9d488714EA67096dBf9083813b53eBd741938261
+# USDC_ADDRESS=0x3A84EDDD1A1C4bE4aEfB157476a82002bdD005D4
 ```
 
 ### `frontend/.env.local` (אופציונלי - לדריסה)
 
 ```bash
 # כתובות Testnet (אופציונלי - יש ברירות מחדל בקוד)
-# NEXT_PUBLIC_TESTNET_CORE=0x22B5E95C7B81D340CfCEBE93A2EE665dC310C491
-# NEXT_PUBLIC_TESTNET_USDC=0xad0F596e1736da0690690a4aEfE348dC77499ea1
-# NEXT_PUBLIC_TESTNET_RESOLVER=0x359a1104E6990050B0CD6e365A1cF9840262021a
+# NEXT_PUBLIC_TESTNET_CORE=0x769706b79F3AfCb2D2aaa658D4444f68E6A03489
+# NEXT_PUBLIC_TESTNET_USDC=0x3A84EDDD1A1C4bE4aEfB157476a82002bdD005D4
+# NEXT_PUBLIC_TESTNET_RESOLVER=0x9d488714EA67096dBf9083813b53eBd741938261
 ```
 
 **הערה**: רוב הכתובות כבר מוגדרות בקוד (`frontend/lib/contracts.ts`) ואין צורך להגדיר אותן ב-.env, אלא אם כן אתה רוצה לדרוס אותן.
@@ -130,4 +133,4 @@ TREASURY_ADDRESS=0x641b1FF8875eC2f1822F748C32858348409E0e39
 
 ---
 
-**עדכון אחרון**: December 29, 2025 (Latest Deployment - All Audit Fixes Applied)
+**עדכון אחרון**: January 2, 2026 (Latest Deployment - createScheduledMarket + 24h Timelock on Mainnet)

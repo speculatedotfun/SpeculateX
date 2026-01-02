@@ -2,10 +2,11 @@
 
 ## ✅ Deployment Status: VERIFIED & ACTIVE
 
-**Deployment Date:** December 29, 2025
+**Deployment Date:** January 2, 2026
 **Network:** BSC Mainnet (Chain ID: 56)
 **Deployer:** 0x29D67d1Ad683A76b2750f74B40b6e79d715C933c
 **Admin:** 0x29D67d1Ad683A76b2750f74B40b6e79d715C933c
+**Start Block:** 73821951
 
 ---
 
@@ -13,13 +14,13 @@
 
 | Contract | Address | Verification |
 |----------|---------|--------------|
-| **Treasury** | `0x641b1FF8875eC2f1822F748C32858348409E0e39` | ✅ Verified |
-| **CoreRouter** ⭐ | `0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b` | ✅ Verified |
-| **ChainlinkResolver** | `0x4076a6951B8d1EB2f4008A8b1E73FCB614e44dC2` | ✅ Verified |
-| **MarketFacet** | `0xf670Eb4cfe8B0a6f98Ba5Dbbdf145Cad49a94ba2` | ✅ Verified |
-| **TradingFacet** | `0xBca0707dAc82c3946a2A326Ba33C821c0A2E28bE` | ✅ Verified |
-| **LiquidityFacet** | `0xD9DCA9eC368E44d7bDAe1A6997f4BB21ADDFeb87` | ✅ Verified |
-| **SettlementFacet** | `0x7B95420f86c7325F4fdeCE2ad8C249C84708852B` | ✅ Verified |
+| **Treasury** | `0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651` | ✅ Verified |
+| **CoreRouter** ⭐ | `0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365` | ✅ Verified |
+| **ChainlinkResolver** | `0xA1CA75ce55865155E38e3aFA29AbCBB9f188B2f5` | ✅ Verified |
+| **MarketFacet** | `0x8aE4e9fAA34aFA70cf7D01239f1fB87b1ea303e7` | ✅ Verified |
+| **TradingFacet** | `0x55390A0AAc12b1FD765969e3B5A9Ee51894E8830` | ✅ Verified |
+| **LiquidityFacet** | `0x5A5350E102C3224024901ad9379Baf9af4FBAb87` | ✅ Verified |
+| **SettlementFacet** | `0xc12560a00609FFd23110a5630497d4926da4d83D` | ✅ Verified |
 
 ⭐ **Main Contract** - Use this address in your frontend/subgraph
 
@@ -27,13 +28,13 @@
 
 ## 🔗 BscScan Links
 
-- [Treasury](https://bscscan.com/address/0x641b1FF8875eC2f1822F748C32858348409E0e39#code)
-- [CoreRouter](https://bscscan.com/address/0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b#code) ⭐
-- [ChainlinkResolver](https://bscscan.com/address/0x4076a6951B8d1EB2f4008A8b1E73FCB614e44dC2#code)
-- [MarketFacet](https://bscscan.com/address/0xf670Eb4cfe8B0a6f98Ba5Dbbdf145Cad49a94ba2#code)
-- [TradingFacet](https://bscscan.com/address/0xBca0707dAc82c3946a2A326Ba33C821c0A2E28bE#code)
-- [LiquidityFacet](https://bscscan.com/address/0xD9DCA9eC368E44d7bDAe1A6997f4BB21ADDFeb87#code)
-- [SettlementFacet](https://bscscan.com/address/0x7B95420f86c7325F4fdeCE2ad8C249C84708852B#code)
+- [Treasury](https://bscscan.com/address/0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651#code)
+- [CoreRouter](https://bscscan.com/address/0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365#code) ⭐
+- [ChainlinkResolver](https://bscscan.com/address/0xA1CA75ce55865155E38e3aFA29AbCBB9f188B2f5#code)
+- [MarketFacet](https://bscscan.com/address/0x8aE4e9fAA34aFA70cf7D01239f1fB87b1ea303e7#code)
+- [TradingFacet](https://bscscan.com/address/0x55390A0AAc12b1FD765969e3B5A9Ee51894E8830#code)
+- [LiquidityFacet](https://bscscan.com/address/0x5A5350E102C3224024901ad9379Baf9af4FBAb87#code)
+- [SettlementFacet](https://bscscan.com/address/0xc12560a00609FFd23110a5630497d4926da4d83D#code)
 
 ---
 
@@ -44,7 +45,7 @@
 
 ### What's Happening?
 
-All facet operations were **scheduled** during deployment but are **NOT active yet**.
+All 23 facet operations (including `createScheduledMarket`) were **scheduled** during deployment but are **NOT active yet**.
 
 The 24-hour timelock is a security feature that:
 - Prevents immediate changes to the protocol
@@ -53,7 +54,7 @@ The 24-hour timelock is a security feature that:
 
 ### Next Steps
 
-1. **Wait 24 hours** from deployment time
+1. **Wait 24 hours** from deployment time (block 73821951)
 2. **Execute timelock operations** to activate all facets
 3. **System becomes fully operational**
 
@@ -68,6 +69,7 @@ See `../docs/TIMELOCK_EXECUTION.md` for detailed execution instructions.
 | **Timelock Delay** | 86,400 seconds (24 hours) |
 | **Treasury Daily Limit** | 50,000 USDC (50,000,000,000 with 6 decimals) |
 | **Collateral Token** | USDC (0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d) |
+| **Operations Scheduled** | 23 (1 resolver + 22 facets, including createScheduledMarket) |
 
 ---
 
@@ -78,10 +80,14 @@ See `../docs/TIMELOCK_EXECUTION.md` for detailed execution instructions.
 Update your frontend environment variables:
 
 ```env
-NEXT_PUBLIC_MAINNET_CORE=0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b
-NEXT_PUBLIC_MAINNET_TREASURY=0x641b1FF8875eC2f1822F748C32858348409E0e39
-NEXT_PUBLIC_MAINNET_RESOLVER=0x4076a6951B8d1EB2f4008A8b1E73FCB614e44dC2
+NEXT_PUBLIC_MAINNET_CORE=0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365
+NEXT_PUBLIC_MAINNET_TREASURY=0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651
+NEXT_PUBLIC_MAINNET_RESOLVER=0xA1CA75ce55865155E38e3aFA29AbCBB9f188B2f5
 NEXT_PUBLIC_MAINNET_USDC=0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d
+NEXT_PUBLIC_MAINNET_FACET_MARKET=0x8aE4e9fAA34aFA70cf7D01239f1fB87b1ea303e7
+NEXT_PUBLIC_MAINNET_FACET_TRADING=0x55390A0AAc12b1FD765969e3B5A9Ee51894E8830
+NEXT_PUBLIC_MAINNET_FACET_LIQUIDITY=0x5A5350E102C3224024901ad9379Baf9af4FBAb87
+NEXT_PUBLIC_MAINNET_FACET_SETTLEMENT=0xc12560a00609FFd23110a5630497d4926da4d83D
 NEXT_PUBLIC_CHAIN_ID=56
 ```
 
@@ -94,9 +100,9 @@ dataSources:
   - name: SpeculateCore
     network: bsc
     source:
-      address: "0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b"
+      address: "0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365"
       abi: SpeculateCore
-      startBlock: <deployment_block>
+      startBlock: 73821951
 ```
 
 ### ABI Files
@@ -113,12 +119,13 @@ Get ABIs from:
 - [x] All contracts deployed
 - [x] All contracts verified on BscScan
 - [x] Admin roles configured
-- [x] Timelock operations scheduled
+- [x] Timelock operations scheduled (23 operations)
 - [ ] Wait 24 hours
 - [ ] Execute timelock operations
 - [ ] Update frontend
 - [ ] Update subgraph
 - [ ] Test market creation
+- [ ] Test scheduled market creation
 - [ ] Public announcement
 
 ---
@@ -145,9 +152,10 @@ Get ABIs from:
 3. ⏳ Frontend updated with new addresses
 4. ⏳ Subgraph deployed and synced
 5. ⏳ Test market creation works
-6. ⏳ Test trading works
-7. ⏳ Test liquidity provision works
-8. ⏳ Test market resolution works
+6. ⏳ Test scheduled market creation works
+7. ⏳ Test trading works
+8. ⏳ Test liquidity provision works
+9. ⏳ Test market resolution works
 
 ---
 
@@ -179,5 +187,5 @@ Your SpeculateX protocol is successfully deployed and verified on BSC Mainnet!
 
 ---
 
-**Deployment completed on:** December 29, 2025
+**Deployment completed on:** January 2, 2026
 **By:** Almog

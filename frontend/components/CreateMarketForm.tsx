@@ -208,15 +208,16 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
       const targetValueBigInt = parseUnits(targetPrice, 8);
       const comparisonEnum = comparison === 'above' ? 0 : 1;
 
-      // Always use the ChainlinkResolver as the oracle. It acts as the gateway to all feeds.
-      const oracleAddress = addresses.chainlinkResolver;
-
       // Verify that this asset has a feed on the current network
       const feedAddress = network === 'testnet' ? selectedAsset.testnetFeed : selectedAsset.mainnetFeed;
       if (!feedAddress || feedAddress === '0x0000000000000000000000000000000000000000') {
         pushToast({ title: 'Unsupported Asset', description: `No Chainlink feed for ${selectedAsset.symbol} on ${network}.`, type: 'error' });
         return;
       }
+
+      // Use the actual Chainlink feed address for market creation (not the resolver)
+      // The resolver is used later for market resolution, but the feed is needed for validation
+      const oracleAddress = feedAddress as `0x${string}`;
 
 
       const feedId = keccak256(stringToBytes(selectedAsset.feedId));

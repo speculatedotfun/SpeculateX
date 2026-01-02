@@ -31,6 +31,15 @@ export function useMarketContractData(marketId: number, marketIdBI: bigint) {
         query: { enabled: marketId >= 0 },
     }) as any;
 
+    // 2b. Market Resolution (needed for startTime check on scheduled markets)
+    const { data: resolutionData, refetch: refetchResolution } = useReadContract({
+        address: addresses.core,
+        abi: coreAbiForNetwork,
+        functionName: 'getMarketResolution',
+        args: [marketIdBI],
+        query: { enabled: marketId >= 0 },
+    }) as any;
+
     // 3. USDC Balance & Allowance
     const { data: usdcBalanceData, refetch: refetchUsdcBalance } = useReadContract({
         address: addresses.usdc,
@@ -98,6 +107,7 @@ export function useMarketContractData(marketId: number, marketIdBI: bigint) {
         await Promise.all([
             refetchMarketData(),
             refetchMarketState(),
+            refetchResolution(),
             refetchUsdcBalance(),
             refetchUsdcAllowance(),
             refetchYesBalance(),
@@ -115,6 +125,7 @@ export function useMarketContractData(marketId: number, marketIdBI: bigint) {
     return {
         contractData,
         marketStateData,
+        resolutionData,
         usdcBalanceData,
         usdcAllowanceData,
         yesBalanceData,

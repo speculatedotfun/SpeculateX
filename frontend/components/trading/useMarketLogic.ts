@@ -6,11 +6,13 @@ import { formatUnits } from 'viem';
 interface UseMarketLogicProps {
     contractData: any;
     marketStateData: any;
+    resolutionData?: any;
 }
 
 export function useMarketLogic({
     contractData,
     marketStateData,
+    resolutionData,
 }: UseMarketLogicProps) {
     const isObject = contractData && typeof contractData === 'object' && !Array.isArray(contractData);
     const status = Number(isObject ? contractData.status : contractData?.[9] ?? 0);
@@ -22,8 +24,14 @@ export function useMarketLogic({
     const feeLpBps = Number(isObject ? contractData.feeLpBps ?? 0 : contractData?.[7] ?? 0);
     const feeVaultBps = Number(isObject ? contractData.feeVaultBps ?? 0 : contractData?.[8] ?? 0);
 
-    const resolution = isObject ? contractData.resolution : contractData?.[18];
-    const startTime = BigInt(resolution?.startTime ?? 0n);
+    // Get startTime from resolutionData (preferred) or fallback to contractData.resolution
+    const resolution = resolutionData || (isObject ? contractData.resolution : contractData?.[18]);
+    const isResolutionObject = resolution && typeof resolution === 'object' && !Array.isArray(resolution) && ('startTime' in resolution || 'expiryTimestamp' in resolution);
+    const startTime = BigInt(
+        isResolutionObject 
+            ? (resolution.startTime ?? 0n)
+            : (Array.isArray(resolution) ? (resolution?.[0] ?? 0n) : (resolution?.startTime ?? 0n))
+    );
     const now = Math.floor(Date.now() / 1000);
     const isScheduled = startTime > 0n && BigInt(now) < startTime;
 

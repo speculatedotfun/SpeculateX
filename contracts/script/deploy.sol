@@ -19,7 +19,7 @@ contract DeploySpeculateX is Script {
     // - ADMIN_ADDRESS: multisig/owner (recommended; defaults to deployer if omitted)
     // - USDC_ADDRESS: real USDC for mainnet (required unless DEPLOY_MOCK_USDC=true)
     // - DEPLOY_MOCK_USDC: "true" to deploy MockUSDC (testnet/local only)
-    // - CORE_TIMELOCK_DELAY: seconds (default 48h on mainnet, 0 on testnets)
+    // - CORE_TIMELOCK_DELAY: seconds (default 24h on mainnet, 0 on testnets)
     // - TREASURY_DAILY_LIMIT: uint (default 50_000e6)
     //
     // NOTE: On BSC mainnet (chainId=56) the router enforces minTimelockDelay >= 24h.
@@ -53,7 +53,7 @@ contract DeploySpeculateX is Script {
         bool renounceDeployer = vm.envOr("RENOUNCE_DEPLOYER", block.chainid == 56);
 
         bool deployMock = vm.envOr("DEPLOY_MOCK_USDC", false);
-        uint256 defaultDelay = block.chainid == 56 ? 48 hours : 0;
+        uint256 defaultDelay = block.chainid == 56 ? 24 hours : 0; // 24h for mainnet, 0 for testnet
         uint256 timelockDelay = vm.envOr("CORE_TIMELOCK_DELAY", defaultDelay);
         uint256 treasuryDailyLimit = vm.envOr("TREASURY_DAILY_LIMIT", uint256(50_000e6));
 
@@ -109,6 +109,7 @@ contract DeploySpeculateX is Script {
 
         // MarketFacet
         bytes32 op1 = _schedule(core, OP_SET_FACET, "createMarket(string,string,string,string,string,uint256,uint256,address,bytes32,uint256,uint8)", address(marketFacet));
+        bytes32 op1b = _schedule(core, OP_SET_FACET, "createScheduledMarket(string,string,string,string,string,uint256,uint256,uint256,address,bytes32,uint256,uint8)", address(marketFacet));
         bytes32 op2 = _schedule(core, OP_SET_FACET, "getMarketState(uint256)", address(marketFacet));
         bytes32 op3 = _schedule(core, OP_SET_FACET, "getMarketResolution(uint256)", address(marketFacet));
         bytes32 op4 = _schedule(core, OP_SET_FACET, "getMarketQuestion(uint256)", address(marketFacet));
@@ -139,6 +140,7 @@ contract DeploySpeculateX is Script {
         console.log("Scheduled operations (opIds):");
         console.logBytes32(opResolver);
         console.logBytes32(op1);
+        console.logBytes32(op1b);
         console.logBytes32(op2);
         console.logBytes32(op3);
         console.logBytes32(op4);
@@ -167,6 +169,7 @@ contract DeploySpeculateX is Script {
             core.executeSetResolver(opResolver, address(resolver));
 
             _exec(core, op1, "createMarket(string,string,string,string,string,uint256,uint256,address,bytes32,uint256,uint8)", address(marketFacet));
+            _exec(core, op1b, "createScheduledMarket(string,string,string,string,string,uint256,uint256,uint256,address,bytes32,uint256,uint8)", address(marketFacet));
             _exec(core, op2, "getMarketState(uint256)", address(marketFacet));
             _exec(core, op3, "getMarketResolution(uint256)", address(marketFacet));
             _exec(core, op4, "getMarketQuestion(uint256)", address(marketFacet));

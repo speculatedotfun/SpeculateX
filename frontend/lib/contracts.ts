@@ -14,26 +14,26 @@ const MAINNET_ADDRESSES = {
   // ⏳ Facets pending 24-hour timelock activation
   // These can be overridden at build-time via NEXT_PUBLIC_* env vars to avoid code edits on redeploy.
   core: (process.env.NEXT_PUBLIC_MAINNET_CORE ??
-    '0x1FcCf26f103823cb905Ea5D14628059cc5221918') as `0x${string}`,
+    '0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365') as `0x${string}`,
   usdc: (process.env.NEXT_PUBLIC_MAINNET_USDC ??
-    '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d') as `0x${string}`, // Real USDC on BSC
+    '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d') as `0x${string}`, // Real USDC on BSC (use this, not MockUSDC)
   chainlinkResolver: (process.env.NEXT_PUBLIC_MAINNET_RESOLVER ??
-    '0x83ea7A65EcBd64f7bBABb728C9966A842d3E502e') as `0x${string}`,
+    '0xA1CA75ce55865155E38e3aFA29AbCBB9f188B2f5') as `0x${string}`,
   treasury: (process.env.NEXT_PUBLIC_MAINNET_TREASURY ??
-    '0xE8fe348d2A9e585c577497c8e5ab2F8F54267BDd') as `0x${string}`,
+    '0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651') as `0x${string}`,
   admin: (process.env.NEXT_PUBLIC_MAINNET_ADMIN ??
     '0x29D67d1Ad683A76b2750f74B40b6e79d715C933c') as `0x${string}`,
-  startBlock: BigInt(String(process.env.NEXT_PUBLIC_MAINNET_START_BLOCK || '73210700')),
+  startBlock: BigInt(String(process.env.NEXT_PUBLIC_MAINNET_START_BLOCK || '73821951')),
   // Mainnet uses Diamond architecture (Router + Facets)
   facets: {
     market: (process.env.NEXT_PUBLIC_MAINNET_FACET_MARKET ??
-      '0x4d5BA295825e1D093A160F583489347C375D96e2') as `0x${string}`,
+      '0x8aE4e9fAA34aFA70cf7D01239f1fB87b1ea303e7') as `0x${string}`,
     trading: (process.env.NEXT_PUBLIC_MAINNET_FACET_TRADING ??
-      '0xb1fef506a722E5Dfebb4bb30e9076c302ac57412') as `0x${string}`,
+      '0x55390A0AAc12b1FD765969e3B5A9Ee51894E8830') as `0x${string}`,
     liquidity: (process.env.NEXT_PUBLIC_MAINNET_FACET_LIQUIDITY ??
-      '0xFBDAF15D9536ffF9869332874116c5c943470B0D') as `0x${string}`,
+      '0x5A5350E102C3224024901ad9379Baf9af4FBAb87') as `0x${string}`,
     settlement: (process.env.NEXT_PUBLIC_MAINNET_FACET_SETTLEMENT ??
-      '0x5E447549E5669B8D5Dd0DC5ED36CA47b5e479d07') as `0x${string}`,
+      '0xc12560a00609FFd23110a5630497d4926da4d83D') as `0x${string}`,
   },
 };
 
@@ -49,26 +49,26 @@ const TESTNET_ADDRESSES = {
   // ✅ Correct MockUSDC address (fixed from mainnet USDT)
   // These can be overridden at build-time via NEXT_PUBLIC_* env vars
   core: (process.env.NEXT_PUBLIC_TESTNET_CORE ??
-    '0x233e50371C739d31f5131b3C6e26D8d16389154A') as `0x${string}`,
+    '0x769706b79F3AfCb2D2aaa658D4444f68E6A03489') as `0x${string}`,
   usdc: (process.env.NEXT_PUBLIC_TESTNET_USDC ??
-    '0xf89608F7586D5a7D63F008f759b0Be4B1815BDb2') as `0x${string}`, // MockUSDC with faucet
+    '0x3A84EDDD1A1C4bE4aEfB157476a82002bdD005D4') as `0x${string}`, // MockUSDC with faucet
   chainlinkResolver: (process.env.NEXT_PUBLIC_TESTNET_RESOLVER ??
-    '0x898df0EA320BbAF912c1FeaD43CB12225aBf7423') as `0x${string}`,
+    '0x9d488714EA67096dBf9083813b53eBd741938261') as `0x${string}`,
   treasury: (process.env.NEXT_PUBLIC_TESTNET_TREASURY ??
-    '0x4146809dAa8cFD28c3C90e0415cD8Ff430DA26B9') as `0x${string}`,
+    '0x03BDBFc8A9c237eB81C5c3F5dD4c566F79E9CfE7') as `0x${string}`,
   admin: (process.env.NEXT_PUBLIC_TESTNET_ADMIN ??
     '0x29D67d1Ad683A76b2750f74B40b6e79d715C933c') as `0x${string}`,
-  startBlock: BigInt(String(process.env.NEXT_PUBLIC_TESTNET_START_BLOCK || '82085859')),
+  startBlock: BigInt(String(process.env.NEXT_PUBLIC_TESTNET_START_BLOCK || '82087927')),
   // Diamond facets
   facets: {
     market: (process.env.NEXT_PUBLIC_TESTNET_FACET_MARKET ??
-      '0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651') as `0x${string}`,
+      '0x858D0Bb450b208Ee5841FFC5f49cf0Fcc6Fc5cb3') as `0x${string}`,
     trading: (process.env.NEXT_PUBLIC_TESTNET_FACET_TRADING ??
-      '0x5fE1972Cb9D1b5040ccEF327E78cC0F47A71cb62') as `0x${string}`,
+      '0xCc960988f0ea3B407DCE9886E1c43619F93F99B0') as `0x${string}`,
     liquidity: (process.env.NEXT_PUBLIC_TESTNET_FACET_LIQUIDITY ??
-      '0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365') as `0x${string}`,
+      '0x47650b66e83bf8AE1F8538F270b5F07fc3c83db9') as `0x${string}`,
     settlement: (process.env.NEXT_PUBLIC_TESTNET_FACET_SETTLEMENT ??
-      '0xA1CA75ce55865155E38e3aFA29AbCBB9f188B2f5') as `0x${string}`,
+      '0x20213F0E39DA96A8f09eb0756E33B3732eb9Fb25') as `0x${string}`,
   },
 };
 

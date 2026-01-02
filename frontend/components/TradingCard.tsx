@@ -56,6 +56,7 @@ export default function TradingCard({ marketId }: TradingCardProps) {
   const {
     contractData,
     marketStateData,
+    resolutionData,
     usdcBalanceData,
     usdcAllowanceData,
     yesBalanceData,
@@ -83,7 +84,7 @@ export default function TradingCard({ marketId }: TradingCardProps) {
     tradeDisabledReason,
     maxJumpE6,
     jumpLimitE18,
-  } = useMarketLogic({ contractData, marketStateData });
+  } = useMarketLogic({ contractData, marketStateData, resolutionData });
 
   // --- Derived State ---
   const usdcBalanceRaw = toBigIntSafe(usdcBalanceData);
