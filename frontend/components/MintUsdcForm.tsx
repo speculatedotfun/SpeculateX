@@ -31,12 +31,12 @@ export default function MintUsdcForm() {
     args: address ? [address] : undefined,
     query: {
       enabled: network === 'testnet' && !!address,
-      refetchInterval: isConfirming ? 1000 : false
+      refetchInterval: isConfirming || isPending ? 1000 : false
     },
   });
 
   useEffect(() => {
-    if (balance) {
+    if (balance !== undefined) {
       const newBalance = formatUnits(balance as bigint, 6);
       if (parseFloat(newBalance) > parseFloat(userBalance)) {
         setPrevBalance(userBalance);
@@ -44,13 +44,19 @@ export default function MintUsdcForm() {
         setTimeout(() => setShowBalanceIncrease(false), 3000);
       }
       setUserBalance(newBalance);
+    } else if (network === 'testnet' && address) {
+      // Initialize to 0 if balance is undefined but we should have a value
+      setUserBalance('0');
     }
-  }, [balance, userBalance]);
+  }, [balance, userBalance, network, address]);
 
   useEffect(() => {
     if (isSuccess) {
       pushToast({ title: 'Success', description: `Minted ${Number(mintAmount).toLocaleString()} USDC`, type: 'success' });
-      refetchBalance();
+      // Wait a bit for the transaction to be indexed, then refetch
+      setTimeout(() => {
+        refetchBalance();
+      }, 2000);
     }
   }, [isSuccess, mintAmount, pushToast, refetchBalance]);
 
