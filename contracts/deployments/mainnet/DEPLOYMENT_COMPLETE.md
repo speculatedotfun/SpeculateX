@@ -4,8 +4,8 @@
 
 **Deployment Date:** December 29, 2025
 **Network:** BSC Mainnet (Chain ID: 56)
-**Deployer:** 0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c
-**Admin:** 0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c
+**Deployer:** 0x29D67d1Ad683A76b2750f74B40b6e79d715C933c
+**Admin:** 0x29D67d1Ad683A76b2750f74B40b6e79d715C933c
 
 ---
 
@@ -127,7 +127,7 @@ Get ABIs from:
 
 ### Security
 
-- **Admin Address:** `0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c`
+- **Admin Address:** `0x29D67d1Ad683A76b2750f74B40b6e79d715C933c`
   - Has full control over protocol
   - Can schedule upgrades (24h+ timelock required)
   - Can pause protocol in emergencies

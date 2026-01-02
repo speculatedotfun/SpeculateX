@@ -22,7 +22,7 @@ const MAINNET_ADDRESSES = {
   treasury: (process.env.NEXT_PUBLIC_MAINNET_TREASURY ??
     '0xE8fe348d2A9e585c577497c8e5ab2F8F54267BDd') as `0x${string}`,
   admin: (process.env.NEXT_PUBLIC_MAINNET_ADMIN ??
-    '0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c') as `0x${string}`,
+    '0x29D67d1Ad683A76b2750f74B40b6e79d715C933c') as `0x${string}`,
   startBlock: BigInt(String(process.env.NEXT_PUBLIC_MAINNET_START_BLOCK || '73210700')),
   // Mainnet uses Diamond architecture (Router + Facets)
   facets: {
@@ -57,7 +57,7 @@ const TESTNET_ADDRESSES = {
   treasury: (process.env.NEXT_PUBLIC_TESTNET_TREASURY ??
     '0xc0348B3DAbe6B45F8efdF5B98b18D336dac74213') as `0x${string}`,
   admin: (process.env.NEXT_PUBLIC_TESTNET_ADMIN ??
-    '0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c') as `0x${string}`,
+    '0x29D67d1Ad683A76b2750f74B40b6e79d715C933c') as `0x${string}`,
   startBlock: BigInt(String(process.env.NEXT_PUBLIC_TESTNET_START_BLOCK || '46200000')),
   // Diamond facets
   facets: {

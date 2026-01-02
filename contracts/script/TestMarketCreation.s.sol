@@ -8,8 +8,8 @@ import {SpeculateCoreRouter} from "../src/SpeculateCoreRouter.sol";
 /// Usage: forge script script/TestMarketCreation.s.sol:TestMarketCreation --rpc-url bsc_testnet
 contract TestMarketCreation is Script {
     address constant CORE = 0x57EB390222D1Dd4517070735C24A899d6D41b759;
-    address constant ADMIN = 0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c;
-    address constant TEST_USER = 0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c; // Same as admin for test
+    address constant ADMIN = 0x29D67d1Ad683A76b2750f74B40b6e79d715C933c;
+    address constant TEST_USER = 0x29D67d1Ad683A76b2750f74B40b6e79d715C933c; // Same as admin for test
 
     function run() external view {
         SpeculateCoreRouter core = SpeculateCoreRouter(payable(CORE));

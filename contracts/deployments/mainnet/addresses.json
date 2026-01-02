@@ -2,8 +2,8 @@
   "chainId": 56,
   "network": "BSC Mainnet",
   "deploymentDate": "2025-12-28",
-  "deployer": "0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c",
-  "admin": "0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c",
+  "deployer": "0x29D67d1Ad683A76b2750f74B40b6e79d715C933c",
+  "admin": "0x29D67d1Ad683A76b2750f74B40b6e79d715C933c",
   "contracts": {
     "Treasury": "0xd0eD64B884bc51Bf91CdFCbA648910b481dBbe70",
     "CoreRouter": "0x101450a49E730d2e9502467242d0B6f157BABe60",

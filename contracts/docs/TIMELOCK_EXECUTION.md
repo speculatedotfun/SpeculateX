@@ -193,7 +193,7 @@ cast call 0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b "facetOf(bytes4)(address)" 
 
 ### Error: "Unauthorized"
 - Make sure you're using the admin wallet
-- Admin address: `0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c`
+- Admin address: `0x29D67d1Ad683A76b2750f74B40b6e79d715C933c`
 - Check `PRIVATE_KEY_MAIN` or `PRIVATE_KEY` in your `.env`
 
 ### Error: "vm.envAddress: environment variable not found"
@@ -220,7 +220,7 @@ Once all 22 operations are executed:
 
 ## Security Notes
 
-- **Admin wallet**: `0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c`
+- **Admin wallet**: `0x29D67d1Ad683A76b2750f74B40b6e79d715C933c`
   - Only this wallet can execute timelock operations
   - **PROTECT THIS PRIVATE KEY!**
 

@@ -1,7 +1,7 @@
 # BSC Testnet Deployment Summary
 **Date:** 2025-12-31
 **Network:** BSC Testnet (Chain ID: 97)
-**Deployer:** 0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c
+**Deployer:** 0x29D67d1Ad683A76b2750f74B40b6e79d715C933c
 
 ## Deployed Contracts
 

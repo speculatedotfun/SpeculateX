@@ -13,7 +13,7 @@
 | **SpeculateCoreRouter** | `0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b` | [View](https://bscscan.com/address/0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b) | ✅ Deployed |
 | **ChainlinkResolver** | `0x4076a6951B8d1EB2f4008A8b1E73FCB614e44dC2` | [View](https://bscscan.com/address/0x4076a6951B8d1EB2f4008A8b1E73FCB614e44dC2) | ✅ Deployed |
 | **Treasury** | `0x641b1FF8875eC2f1822F748C32858348409E0e39` | [View](https://bscscan.com/address/0x641b1FF8875eC2f1822F748C32858348409E0e39) | ✅ Deployed |
-| **Admin** | `0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c` | [View](https://bscscan.com/address/0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c) | ✅ Admin |
+| **Admin** | `0x29D67d1Ad683A76b2750f74B40b6e79d715C933c` | [View](https://bscscan.com/address/0x29D67d1Ad683A76b2750f74B40b6e79d715C933c) | ✅ Admin |
 
 ### Facets (Mainnet / Diamond) - v2 with Scheduled Markets
 

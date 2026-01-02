@@ -2,8 +2,8 @@
   "chainId": 97,
   "network": "BSC Testnet",
   "deploymentDate": "2025-12-31",
-  "deployer": "0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c",
-  "admin": "0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c",
+  "deployer": "0x29D67d1Ad683A76b2750f74B40b6e79d715C933c",
+  "admin": "0x29D67d1Ad683A76b2750f74B40b6e79d715C933c",
   "contracts": {
     "Treasury": "0x6B29add17417B00986165433FeDCCD438c2BFE63",
     "CoreRouter": "0x57EB390222D1Dd4517070735C24A899d6D41b759",
