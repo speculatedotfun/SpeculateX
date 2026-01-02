@@ -31,7 +31,7 @@ export default function MintUsdcForm() {
     args: address ? [address] : undefined,
     query: {
       enabled: network === 'testnet' && !!address,
-      refetchInterval: isConfirming || isPending ? 1000 : false
+      refetchInterval: (isConfirming || isPending || isSuccess) ? 1000 : false
     },
   });
 
@@ -53,12 +53,31 @@ export default function MintUsdcForm() {
   useEffect(() => {
     if (isSuccess) {
       pushToast({ title: 'Success', description: `Minted ${Number(mintAmount).toLocaleString()} USDC`, type: 'success' });
-      // Wait a bit for the transaction to be indexed, then refetch
-      setTimeout(() => {
-        refetchBalance();
-      }, 2000);
+      // Refetch immediately and then again after delays to ensure we get the updated balance
+      refetchBalance();
+      const timeout1 = setTimeout(() => refetchBalance(), 1000);
+      const timeout2 = setTimeout(() => refetchBalance(), 3000);
+      const timeout3 = setTimeout(() => refetchBalance(), 5000);
+      return () => {
+        clearTimeout(timeout1);
+        clearTimeout(timeout2);
+        clearTimeout(timeout3);
+      };
     }
   }, [isSuccess, mintAmount, pushToast, refetchBalance]);
+
+  // Also refetch when hash changes (new transaction started)
+  useEffect(() => {
+    if (hash) {
+      // Start polling for balance updates while transaction is pending/confirming
+      const interval = setInterval(() => {
+        if (isPending || isConfirming) {
+          refetchBalance();
+        }
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [hash, isPending, isConfirming, refetchBalance]);
 
   if (network === 'mainnet') {
     return (
