@@ -49,26 +49,26 @@ const TESTNET_ADDRESSES = {
   // ✅ Correct MockUSDC address (fixed from mainnet USDT)
   // These can be overridden at build-time via NEXT_PUBLIC_* env vars
   core: (process.env.NEXT_PUBLIC_TESTNET_CORE ??
-    '0xff020FeBB063d375e4D28291Da81f835Ba258Cb6') as `0x${string}`,
+    '0x233e50371C739d31f5131b3C6e26D8d16389154A') as `0x${string}`,
   usdc: (process.env.NEXT_PUBLIC_TESTNET_USDC ??
-    '0xBAAbf17Be1674A6f62b215Bb7dfc1BA7Fc34d3c1') as `0x${string}`, // MockUSDC with faucet
+    '0xf89608F7586D5a7D63F008f759b0Be4B1815BDb2') as `0x${string}`, // MockUSDC with faucet
   chainlinkResolver: (process.env.NEXT_PUBLIC_TESTNET_RESOLVER ??
-    '0xe7422B1dBAdFE333489106ED0Ed5536061FF662f') as `0x${string}`,
+    '0x898df0EA320BbAF912c1FeaD43CB12225aBf7423') as `0x${string}`,
   treasury: (process.env.NEXT_PUBLIC_TESTNET_TREASURY ??
-    '0xc0348B3DAbe6B45F8efdF5B98b18D336dac74213') as `0x${string}`,
+    '0x4146809dAa8cFD28c3C90e0415cD8Ff430DA26B9') as `0x${string}`,
   admin: (process.env.NEXT_PUBLIC_TESTNET_ADMIN ??
     '0x29D67d1Ad683A76b2750f74B40b6e79d715C933c') as `0x${string}`,
-  startBlock: BigInt(String(process.env.NEXT_PUBLIC_TESTNET_START_BLOCK || '46200000')),
+  startBlock: BigInt(String(process.env.NEXT_PUBLIC_TESTNET_START_BLOCK || '82085859')),
   // Diamond facets
   facets: {
     market: (process.env.NEXT_PUBLIC_TESTNET_FACET_MARKET ??
-      '0x105153F60C3C1cDfbadA7bF6b5D9c06e71479bC0') as `0x${string}`,
+      '0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651') as `0x${string}`,
     trading: (process.env.NEXT_PUBLIC_TESTNET_FACET_TRADING ??
-      '0x753726D293B96Eec6AEc54587b523D8370269Af7') as `0x${string}`,
+      '0x5fE1972Cb9D1b5040ccEF327E78cC0F47A71cb62') as `0x${string}`,
     liquidity: (process.env.NEXT_PUBLIC_TESTNET_FACET_LIQUIDITY ??
-      '0x1517d6d95F2f70d3a0548a2992db465c944B12F0') as `0x${string}`,
+      '0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365') as `0x${string}`,
     settlement: (process.env.NEXT_PUBLIC_TESTNET_FACET_SETTLEMENT ??
-      '0x6334c14700844C3b30dd8925222a3F3401919041') as `0x${string}`,
+      '0xA1CA75ce55865155E38e3aFA29AbCBB9f188B2f5') as `0x${string}`,
   },
 };
 
