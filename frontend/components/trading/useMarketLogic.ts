@@ -24,22 +24,30 @@ export function useMarketLogic({
     const feeLpBps = Number(isObject ? contractData.feeLpBps ?? 0 : contractData?.[7] ?? 0);
     const feeVaultBps = Number(isObject ? contractData.feeVaultBps ?? 0 : contractData?.[8] ?? 0);
 
-    // Get startTime from resolutionData (preferred) or fallback to contractData.resolution
+    // Get startTime and expiryTimestamp from resolutionData (preferred) or fallback to contractData.resolution
     const resolution = resolutionData || (isObject ? contractData.resolution : contractData?.[18]);
     const isResolutionObject = resolution && typeof resolution === 'object' && !Array.isArray(resolution) && ('startTime' in resolution || 'expiryTimestamp' in resolution);
     const startTime = BigInt(
-        isResolutionObject 
+        isResolutionObject
             ? (resolution.startTime ?? 0n)
             : (Array.isArray(resolution) ? (resolution?.[0] ?? 0n) : (resolution?.startTime ?? 0n))
     );
+    const expiryTimestamp = BigInt(
+        isResolutionObject
+            ? (resolution.expiryTimestamp ?? 0n)
+            : (Array.isArray(resolution) ? (resolution?.[1] ?? 0n) : (resolution?.expiryTimestamp ?? 0n))
+    );
     const now = Math.floor(Date.now() / 1000);
-    const isScheduled = startTime > 0n && BigInt(now) < startTime;
+    const nowBigInt = BigInt(now);
+    const isScheduled = startTime > 0n && nowBigInt < startTime;
+    const isExpired = expiryTimestamp > 0n && nowBigInt > expiryTimestamp;
 
     // Contract enum: MarketStatus { Active=0, Resolved=1, Cancelled=2 }
     const isActive = status === 0;
     const isResolved = status === 1;
     const isCancelled = status === 2;
-    const isTradeable = isActive && !isScheduled;
+    // Market is only tradeable if active, not scheduled, and not expired
+    const isTradeable = isActive && !isScheduled && !isExpired;
 
     // Jump limit logic
     const SAFETY_MARGIN_BPS = 9800n;
@@ -50,8 +58,9 @@ export function useMarketLogic({
         if (isResolved) return 'Market is resolved.';
         if (isCancelled) return 'Market is cancelled.';
         if (isScheduled) return 'Market has not started yet.';
+        if (isExpired) return 'Market has expired. Awaiting resolution.';
         return '';
-    }, [isResolved, isCancelled, isScheduled]);
+    }, [isResolved, isCancelled, isScheduled, isExpired]);
 
     return {
         qYes,
@@ -65,6 +74,7 @@ export function useMarketLogic({
         isResolved,
         isCancelled,
         isActive,
+        isExpired,
         isTradeable,
         tradeDisabledReason,
         maxJumpE6,

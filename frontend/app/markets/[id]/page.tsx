@@ -452,7 +452,8 @@ export default function MarketDetailPage() {
   const marketIsExpired = marketExpiry > 0 && marketExpiry < nowSeconds;
   const isChartRefreshing = snapshotLoading && sortedChartData.length > 0;
   // Contract enum: MarketStatus { Active=0, Resolved=1, Cancelled=2 }
-  const marketIsActive = marketStatus === 0;
+  // A market is only "active" (live for trading) if status=0 AND not expired AND not resolved
+  const marketIsActive = marketStatus === 0 && !marketIsExpired && !marketIsResolved;
 
   const totalVolumeDisplay = totalVolume.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
@@ -545,6 +546,8 @@ export default function MarketDetailPage() {
           logoSrc={logoSrc}
           marketIsActive={marketIsActive}
           marketIsCancelled={marketStatus === 2}
+          marketIsExpired={marketIsExpired}
+          marketIsResolved={marketIsResolved}
           yesPrice={marketData.currentPrices.yes}
           expiryTimestamp={BigInt(marketExpiry)}
           onLogoError={() => setLogoSrc('/logos/default.png')}

@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 
 import "./interfaces/AggregatorV3Interface.sol";
+import "./interfaces/AutomationCompatibleInterface.sol";
 
 interface ICoreResolutionView {
     enum OracleType { None, ChainlinkFeed }
@@ -24,7 +25,7 @@ interface ICoreResolutionView {
     function resolveMarketWithPrice(uint256 id, uint256 price) external;
 }
 
-contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable {
+contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable, AutomationCompatibleInterface {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     uint256 public timelockDelay = 24 hours;
@@ -168,7 +169,113 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable {
         aggregatorRoundId = uint64(roundId);
     }
 
-    function resolve(uint256 marketId, uint80 roundId) external nonReentrant whenNotPaused {
+    /**
+     * @notice Chainlink Automation: Check if upkeep is needed
+     * @param checkData Encoded marketId (uint256) - the market to check
+     * @return upkeepNeeded Whether upkeep is needed
+     * @return performData Encoded (marketId, roundId) if upkeep is needed
+     */
+    function checkUpkeep(bytes calldata checkData)
+        external
+        view
+        override
+        returns (bool upkeepNeeded, bytes memory performData)
+    {
+        if (checkData.length < 32) {
+            return (false, "");
+        }
+        
+        uint256 marketId = abi.decode(checkData, (uint256));
+        
+        // Get market resolution config
+        ICoreResolutionView.ResolutionConfig memory r = ICoreResolutionView(core).getMarketResolution(marketId);
+        
+        // Check if market is already resolved
+        if (r.isResolved) {
+            return (false, "");
+        }
+        
+        // Check if market has expired
+        if (block.timestamp < r.expiryTimestamp) {
+            return (false, "");
+        }
+        
+        // Check if it's a Chainlink market
+        // Workaround: If oracleType is wrong but we have a valid priceFeedId, assume it's Chainlink
+        bool isChainlink = (r.oracleType == ICoreResolutionView.OracleType.ChainlinkFeed) ||
+                          (r.priceFeedId != bytes32(0) && (r.oracleAddress == address(0) || r.oracleAddress == address(1)));
+        if (!isChainlink) {
+            return (false, "");
+        }
+        
+        // Handle edge case: if oracleAddress is invalid, try to extract from priceFeedId
+        address feedAddress = r.oracleAddress;
+        if (feedAddress == address(0) || feedAddress == address(1)) {
+            // Try to extract address from priceFeedId (last 20 bytes, right-aligned)
+            bytes32 feedId = r.priceFeedId;
+            // Extract address from bytes32 (last 20 bytes = shift right by 96 bits)
+            assembly {
+                feedAddress := shr(96, feedId)
+            }
+            // If still invalid, return false
+            if (feedAddress == address(0) || feedAddress == address(1)) {
+                return (false, "");
+            }
+        }
+        
+        // Try to find the first round after expiry
+        AggregatorV3Interface feed = AggregatorV3Interface(feedAddress);
+        
+        // Get latest round
+        (uint80 latestRoundId, , , uint256 latestUpdatedAt, ) = feed.latestRoundData();
+        
+        // Check if latest round is after expiry
+        if (latestUpdatedAt < r.expiryTimestamp) {
+            return (false, "");
+        }
+        
+        // Check staleness
+        if (block.timestamp - latestUpdatedAt > maxStaleness) {
+            return (false, "");
+        }
+        
+        // Parse round ID to check phase boundaries
+        (uint16 phase, uint64 aggregatorRound) = parseRoundId(latestRoundId);
+        if (aggregatorRound == 0) {
+            return (false, ""); // Cannot verify at phase boundary
+        }
+        
+        // Check previous round was before expiry
+        uint80 prevRoundId = (uint80(phase) << 64) | (aggregatorRound - 1);
+        try feed.getRoundData(prevRoundId) returns (uint80, int256, uint256, uint256 prevUpdatedAt, uint80) {
+            if (prevUpdatedAt >= r.expiryTimestamp) {
+                return (false, ""); // Not the first round after expiry
+            }
+        } catch {
+            return (false, ""); // Cannot verify first-ness
+        }
+        
+        // All checks passed - upkeep needed
+        performData = abi.encode(marketId, latestRoundId);
+        return (true, performData);
+    }
+
+    /**
+     * @notice Chainlink Automation: Perform the upkeep
+     * @param performData Encoded (marketId, roundId) from checkUpkeep
+     */
+    function performUpkeep(bytes calldata performData) external override {
+        if (performData.length < 64) {
+            revert BadValue();
+        }
+        
+        (uint256 marketId, uint80 roundId) = abi.decode(performData, (uint256, uint80));
+        
+        // Call the resolve function
+        resolve(marketId, roundId);
+    }
+
+    function resolve(uint256 marketId, uint80 roundId) public nonReentrant whenNotPaused {
         if (roundId == 0) revert InvalidRoundId();
 
         // M-01 Fix: Parse round ID to check for phase boundaries
@@ -177,11 +284,31 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable {
 
         ICoreResolutionView.ResolutionConfig memory r = ICoreResolutionView(core).getMarketResolution(marketId);
 
-        if (r.oracleType != ICoreResolutionView.OracleType.ChainlinkFeed) revert NotChainlinkMarket();
-        if (r.oracleAddress == address(0)) revert FeedMissing();
+        // Workaround: If oracleType is wrong but we have a valid priceFeedId, assume it's Chainlink
+        bool isChainlink = (r.oracleType == ICoreResolutionView.OracleType.ChainlinkFeed) ||
+                          (r.priceFeedId != bytes32(0) && (r.oracleAddress == address(0) || r.oracleAddress == address(1)));
+        if (!isChainlink) {
+            revert NotChainlinkMarket();
+        }
+        
+        // Handle edge case: if oracleAddress is invalid, try to extract from priceFeedId
+        address feedAddress = r.oracleAddress;
+        if (feedAddress == address(0) || feedAddress == address(1)) {
+            // Try to extract address from priceFeedId (last 20 bytes, right-aligned)
+            bytes32 feedId = r.priceFeedId;
+            // Extract address from bytes32 (last 20 bytes = shift right by 96 bits)
+            assembly {
+                feedAddress := shr(96, feedId)
+            }
+            // If still invalid, revert
+            if (feedAddress == address(0) || feedAddress == address(1)) {
+                revert FeedMissing();
+            }
+        }
+        
         if (block.timestamp < r.expiryTimestamp) revert MarketNotExpired();
 
-        AggregatorV3Interface feed = AggregatorV3Interface(r.oracleAddress);
+        AggregatorV3Interface feed = AggregatorV3Interface(feedAddress);
         
         // 1. Verify decimals if set
         uint8 decNow = feed.decimals();

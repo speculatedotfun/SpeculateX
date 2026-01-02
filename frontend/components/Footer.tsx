@@ -2,8 +2,13 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  // Don't render footer on landing page (it has its own custom footer)
+  if (pathname === '/') return null;
   return (
     <footer className="relative w-full bg-transparent mt-auto">
       {/* Ambient Background Glow */}

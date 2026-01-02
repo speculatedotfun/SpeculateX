@@ -52,8 +52,8 @@ const TESTNET_ADDRESSES = {
     '0x769706b79F3AfCb2D2aaa658D4444f68E6A03489') as `0x${string}`,
   usdc: (process.env.NEXT_PUBLIC_TESTNET_USDC ??
     '0x3A84EDDD1A1C4bE4aEfB157476a82002bdD005D4') as `0x${string}`, // MockUSDC with faucet
-  chainlinkResolver: (process.env.NEXT_PUBLIC_TESTNET_RESOLVER ??
-    '0x9d488714EA67096dBf9083813b53eBd741938261') as `0x${string}`,
+    chainlinkResolver: (process.env.NEXT_PUBLIC_TESTNET_RESOLVER ??
+      '0x23F77F3a2E722d190FDf48EEE7E13D5cdfbF2157') as `0x${string}`,
   treasury: (process.env.NEXT_PUBLIC_TESTNET_TREASURY ??
     '0x03BDBFc8A9c237eB81C5c3F5dD4c566F79E9CfE7') as `0x${string}`,
   admin: (process.env.NEXT_PUBLIC_TESTNET_ADMIN ??

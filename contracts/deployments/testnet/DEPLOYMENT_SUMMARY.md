@@ -9,7 +9,7 @@
 ### Core Contracts
 - **Treasury:** [0x03BDBFc8A9c237eB81C5c3F5dD4c566F79E9CfE7](https://testnet.bscscan.com/address/0x03BDBFc8A9c237eB81C5c3F5dD4c566F79E9CfE7)
 - **CoreRouter:** [0x769706b79F3AfCb2D2aaa658D4444f68E6A03489](https://testnet.bscscan.com/address/0x769706b79F3AfCb2D2aaa658D4444f68E6A03489)
-- **ChainlinkResolver:** [0x9d488714EA67096dBf9083813b53eBd741938261](https://testnet.bscscan.com/address/0x9d488714EA67096dBf9083813b53eBd741938261)
+- **ChainlinkResolver:** [0x23F77F3a2E722d190FDf48EEE7E13D5cdfbF2157](https://testnet.bscscan.com/address/0x23F77F3a2E722d190FDf48EEE7E13D5cdfbF2157) (Chainlink Automation Support)
 - **MockUSDC:** [0x3A84EDDD1A1C4bE4aEfB157476a82002bdD005D4](https://testnet.bscscan.com/address/0x3A84EDDD1A1C4bE4aEfB157476a82002bdD005D4)
 
 ### Facets (Diamond Pattern)

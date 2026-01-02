@@ -47,7 +47,7 @@
 | Contract | Address | BscScan | Status |
 |----------|---------|---------|--------|
 | **SpeculateCoreRouter** | `0x769706b79F3AfCb2D2aaa658D4444f68E6A03489` | [View](https://testnet.bscscan.com/address/0x769706b79F3AfCb2D2aaa658D4444f68E6A03489) | ✅ Active (All Audit Fixes) |
-| **ChainlinkResolver** | `0x9d488714EA67096dBf9083813b53eBd741938261` | [View](https://testnet.bscscan.com/address/0x9d488714EA67096dBf9083813b53eBd741938261) | ✅ Active (All Audit Fixes) |
+| **ChainlinkResolver** | `0x23F77F3a2E722d190FDf48EEE7E13D5cdfbF2157` | [View](https://testnet.bscscan.com/address/0x23F77F3a2E722d190FDf48EEE7E13D5cdfbF2157) | ✅ Active (Chainlink Automation + All Audit Fixes) |
 | **Treasury** | `0x03BDBFc8A9c237eB81C5c3F5dD4c566F79E9CfE7` | [View](https://testnet.bscscan.com/address/0x03BDBFc8A9c237eB81C5c3F5dD4c566F79E9CfE7) | ✅ Deployed (With Cap) |
 | **Admin** | `0x29D67d1Ad683A76b2750f74B40b6e79d715C933c` | [View](https://testnet.bscscan.com/address/0x29D67d1Ad683A76b2750f74B40b6e79d715C933c) | ✅ Admin |
 
@@ -88,7 +88,7 @@ TREASURY_ADDRESS=0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651
 
 # Testnet Addresses
 # SPECULATE_CORE_ADDRESS=0x769706b79F3AfCb2D2aaa658D4444f68E6A03489
-# CHAINLINK_RESOLVER_ADDRESS=0x9d488714EA67096dBf9083813b53eBd741938261
+# CHAINLINK_RESOLVER_ADDRESS=0x23F77F3a2E722d190FDf48EEE7E13D5cdfbF2157
 # USDC_ADDRESS=0x3A84EDDD1A1C4bE4aEfB157476a82002bdD005D4
 ```
 

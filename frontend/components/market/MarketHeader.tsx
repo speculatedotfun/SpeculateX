@@ -13,6 +13,8 @@ interface MarketHeaderProps {
   logoSrc: string;
   marketIsActive: boolean;
   marketIsCancelled?: boolean;
+  marketIsExpired?: boolean;
+  marketIsResolved?: boolean;
   yesPrice: number;
   expiryTimestamp: bigint;
   onLogoError: () => void;
@@ -26,6 +28,8 @@ export function MarketHeader({
   logoSrc,
   marketIsActive,
   marketIsCancelled = false,
+  marketIsExpired = false,
+  marketIsResolved = false,
   yesPrice,
   expiryTimestamp,
   onLogoError,
@@ -89,11 +93,15 @@ export function MarketHeader({
                 <div
                   className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border shadow-sm ${marketIsCancelled
                     ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
-                    : isScheduled
-                      ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300'
-                      : marketIsActive
-                        ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
-                        : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400'
+                    : marketIsResolved
+                      ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300'
+                      : marketIsExpired
+                        ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300'
+                        : isScheduled
+                          ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300'
+                          : marketIsActive
+                            ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+                            : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400'
                     }`}
                 >
                   {marketIsActive && !isScheduled && !marketIsCancelled ? (
@@ -102,10 +110,10 @@ export function MarketHeader({
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </span>
                   ) : (
-                    <div className={`w-2 h-2 rounded-full ${marketIsCancelled ? 'bg-red-500' : isScheduled ? 'bg-blue-500' : 'bg-gray-400'}`} />
+                    <div className={`w-2 h-2 rounded-full ${marketIsCancelled ? 'bg-red-500' : marketIsResolved ? 'bg-purple-500' : marketIsExpired ? 'bg-orange-500' : isScheduled ? 'bg-blue-500' : 'bg-gray-400'}`} />
                   )}
                   <span className="text-[10px] font-black uppercase tracking-widest">
-                    {marketIsCancelled ? 'Cancelled' : isScheduled ? 'Scheduled' : marketIsActive ? 'Live Market' : 'Closed'}
+                    {marketIsCancelled ? 'Cancelled' : marketIsResolved ? 'Resolved' : marketIsExpired ? 'Expired' : isScheduled ? 'Scheduled' : marketIsActive ? 'Live Market' : 'Closed'}
                   </span>
                 </div>
                 <time className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">

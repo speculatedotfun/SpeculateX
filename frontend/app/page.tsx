@@ -8,13 +8,16 @@ import '@/lib/bigint-serializer';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion, useSpring, useTransform, useMotionValue, AnimatePresence } from 'framer-motion';
+import { motion, useSpring, useTransform, useMotionValue } from 'framer-motion';
 import { getMarketCount, getMarket, getMarketState, getSpotPriceYesE6, getMarketResolution } from '@/lib/hooks';
 import { formatUnits } from 'viem';
 import { useQuery } from '@tanstack/react-query';
 import { fetchSubgraph } from '@/lib/subgraphClient';
 import { getAssetLogo } from '@/lib/marketUtils';
-import Header from '@/components/Header';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import NetworkSelector from '@/components/NetworkSelector';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { ArrowRight, ShieldCheck, Zap, BarChart3, Globe } from 'lucide-react';
 
 interface FeaturedMarket {
   id: number;
@@ -41,9 +44,80 @@ function Counter({ value }: { value: string | number }) {
   );
 }
 
+function CustomConnectButton() {
+  return (
+    <ConnectButton.Custom>
+      {({
+        account,
+        chain,
+        openAccountModal,
+        openConnectModal,
+        openChainModal,
+        authenticationStatus,
+        mounted,
+      }) => {
+        const ready = mounted && authenticationStatus !== 'loading';
+        const connected =
+          ready &&
+          account &&
+          chain &&
+          (!authenticationStatus || authenticationStatus === 'authenticated');
+
+        return (
+          <div
+            {...(!ready && {
+              'aria-hidden': true,
+              style: {
+                opacity: 0,
+                pointerEvents: 'none',
+                userSelect: 'none',
+              },
+            })}
+          >
+            {(() => {
+              if (!connected) {
+                return (
+                  <button
+                    onClick={openConnectModal}
+                    type="button"
+                    className="font-bold text-sm bg-white dark:bg-white/10 text-gray-900 dark:text-white px-5 py-2.5 rounded-full shadow-lg shadow-black/5 hover:bg-gray-50 dark:hover:bg-white/20 hover:scale-105 active:scale-95 transition-all duration-200 border border-gray-200 dark:border-white/10 backdrop-blur-md"
+                  >
+                    Connect Wallet
+                  </button>
+                );
+              }
+
+              if (chain.unsupported) {
+                return (
+                  <button
+                    onClick={openChainModal}
+                    type="button"
+                    className="font-bold text-sm bg-red-500 text-white px-5 py-2.5 rounded-full shadow-lg shadow-red-500/30 hover:bg-red-600 active:scale-95 transition-all duration-200"
+                  >
+                    Wrong Network
+                  </button>
+                );
+              }
+
+              return (
+                <button
+                  onClick={openAccountModal}
+                  type="button"
+                  className="flex items-center gap-2 font-bold text-sm bg-white dark:bg-white/10 text-gray-900 dark:text-white px-4 py-2 rounded-full shadow-lg shadow-black/5 hover:bg-gray-50 dark:hover:bg-white/20 active:scale-95 transition-all duration-200 border border-gray-200 dark:border-white/10 backdrop-blur-md"
+                >
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  {account.displayName}
+                </button>
+              );
+            })()}
+          </div>
+        );
+      }}
+    </ConnectButton.Custom>
+  );
+}
 
 export default function Home() {
-  console.log('[DEBUG] Rendering Home page');
   const [marketCount, setMarketCount] = useState<number>(0);
   const [stats, setStats] = useState({
     liquidity: 0,
@@ -244,12 +318,44 @@ export default function Home() {
         <motion.div style={{ x: moveXReverse, y: moveY }} className="absolute -bottom-[10%] left-[20%] -z-10 h-[600px] w-[600px] rounded-full bg-blue-500/20 blur-[130px] animate-blob animation-delay-4000" />
       </div>
 
-      <Header />
+      {/* Floating Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 p-6 pointer-events-none">
+        <div className="max-w-[1400px] mx-auto flex items-center justify-between">
+          {/* Logo */}
+          <Link href="/" className="pointer-events-auto group relative z-20">
+            <div className="relative w-[140px] sm:w-[160px] h-10 transition-transform duration-300 group-hover:scale-105">
+              <Image
+                src="/Whitelogo.png"
+                alt="SpeculateX Logo"
+                fill
+                sizes="(max-width: 640px) 140px, 160px"
+                priority
+                className="object-contain object-left dark:hidden"
+              />
+              <Image
+                src="/darklogo.png"
+                alt="SpeculateX Logo"
+                fill
+                sizes="(max-width: 640px) 140px, 160px"
+                priority
+                className="object-contain object-left hidden dark:block"
+              />
+            </div>
+          </Link>
+
+          {/* Right Actions */}
+          <div className="flex items-center gap-3 pointer-events-auto">
+            <NetworkSelector />
+            <ThemeToggle />
+            <CustomConnectButton />
+          </div>
+        </div>
+      </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex items-center relative z-10 w-full pb-12 lg:pb-0 pt-8 lg:pt-0">
+      <main className="flex-1 flex flex-col items-center justify-center relative z-10 w-full pt-24 min-h-screen">
         <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center min-h-[calc(100vh-200px)]">
 
             {/* Left Column: Hero Text */}
             <div className="lg:col-span-7 space-y-10 relative z-20">
@@ -302,43 +408,46 @@ export default function Home() {
                   <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />
                   <div className="relative flex items-center justify-center gap-3 font-bold text-xl tracking-tight">
                     Start Trading
-                    <svg className="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
+                    <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" strokeWidth={3} />
                   </div>
                 </Link>
 
-                <div className="hidden sm:flex items-center gap-3 text-sm font-bold text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-gray-800/50 backdrop-blur-md px-4 py-3 rounded-full border border-gray-200 dark:border-gray-700/50">
-                  <div className="flex -space-x-3">
-                    <div className="w-8 h-8 rounded-full border-2 border-white dark:border-[#0f172a] bg-gradient-to-br from-yellow-300 to-orange-400 flex items-center justify-center text-xs shadow-sm">🦄</div>
-                    <div className="w-8 h-8 rounded-full border-2 border-white dark:border-[#0f172a] bg-gradient-to-br from-blue-300 to-indigo-400 flex items-center justify-center text-xs shadow-sm">🦍</div>
-                    <div className="w-8 h-8 rounded-full border-2 border-white dark:border-[#0f172a] bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-[10px] text-gray-600 dark:text-gray-300 font-black tracking-tighter shadow-sm">+2k</div>
-                  </div>
-                  <span>Active Traders</span>
+                {/* Optional secondary CTA or info */}
+                <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-white/40 dark:bg-white/5 border border-white/40 dark:border-white/10 backdrop-blur-sm">
+                  <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                  <span className="text-sm font-bold text-gray-600 dark:text-gray-300">Audited & Secure</span>
                 </div>
               </motion.div>
 
+              {/* Stats - moved below hero text for better landing flow */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8 }}
-                className="pt-12 opacity-60 hover:opacity-100 transition-opacity duration-500"
+                className="pt-8 border-t border-gray-200 dark:border-white/10 max-w-2xl"
               >
-                <div className="flex flex-wrap items-center gap-x-8 gap-y-4 grayscale hover:grayscale-0 transition-all duration-500">
-                  <span className="font-bold text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-[#F3BA2F] shadow-[0_0_8px_#F3BA2F]"></div>
-                    BNB Chain
-                  </span>
-                  <span className="font-bold text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-[#375BD2] shadow-[0_0_8px_#375BD2]"></div>
-                    Chainlink
-                  </span>
-                  <span className="font-bold text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-[#6F4CFF] shadow-[0_0_8px_#6F4CFF]"></div>
-                    The Graph
-                  </span>
+                <div className="grid grid-cols-3 gap-8">
+                  <div>
+                    <div className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-1">Total Volume</div>
+                    <div className="text-2xl font-black text-gray-900 dark:text-white font-mono">
+                      <Counter value={liquidityDisplay} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-1">Live Markets</div>
+                    <div className="text-2xl font-black text-gray-900 dark:text-white font-mono">
+                      <Counter value={stats.live.toString()} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-1">Total Traders</div>
+                    <div className="text-2xl font-black text-gray-900 dark:text-white font-mono">
+                      <Counter value={formatNumber(typeof traders === 'number' ? traders : Number(traders) || 0)} />
+                    </div>
+                  </div>
                 </div>
               </motion.div>
+
             </div>
 
             {/* Right Column: Visuals with Advanced Parallax & Tilt */}
@@ -359,106 +468,91 @@ export default function Home() {
                 <motion.div
                   animate={{ y: [0, -15, 0] }}
                   transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                  className="grid grid-cols-2 gap-6"
+                  className="space-y-6"
                 >
                   {/* Featured Market - Spanning Top */}
-                  <div className="col-span-2">
-                    <div className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-2xl rounded-[32px] p-8 relative group overflow-hidden transition-all duration-500 shadow-2xl border border-white/20 dark:border-white/5 hover:border-teal-500/30">
-                      {/* Shine Effect */}
-                      <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                      <div className="absolute -inset-1 bg-gradient-to-r from-teal-500 to-purple-500 opacity-0 group-hover:opacity-10 transition-opacity blur-2xl duration-700" />
+                  <div className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-2xl rounded-[32px] p-8 relative group overflow-hidden transition-all duration-500 shadow-2xl border border-white/20 dark:border-white/5 hover:border-teal-500/30">
+                    {/* Shine Effect */}
+                    <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                    <div className="absolute -inset-1 bg-gradient-to-r from-teal-500 to-purple-500 opacity-0 group-hover:opacity-10 transition-opacity blur-2xl duration-700" />
 
-                      <div className="flex items-center justify-between mb-8 relative z-10">
-                        <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                          <span className="w-2 h-2 bg-teal-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(20,184,166,0.5)]"></span>
-                          {featuredMarket?.isDemo ? "Demo Market" : "Trending Now"}
+                    <div className="flex items-center justify-between mb-8 relative z-10">
+                      <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                        <span className="w-2 h-2 bg-teal-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(20,184,166,0.5)]"></span>
+                        {featuredMarket?.isDemo ? "Demo Market" : "Trending Now"}
+                      </span>
+                      <div className="px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 flex items-center gap-1.5 backdrop-blur-md">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
                         </span>
-                        <div className="px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 flex items-center gap-1.5 backdrop-blur-md">
-                          <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
-                          </span>
-                          <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wide">Live</span>
+                        <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wide">Live</span>
+                      </div>
+                    </div>
+
+                    {loadingFeaturedMarket ? (
+                      <div className="space-y-4 animate-pulse">
+                        <div className="h-24 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="h-16 bg-gray-200 dark:bg-gray-800 rounded-xl" />
+                          <div className="h-16 bg-gray-200 dark:bg-gray-800 rounded-xl" />
                         </div>
                       </div>
+                    ) : featuredMarket ? (
+                      <Link href={featuredMarket.isDemo ? "/markets" : `/markets/${featuredMarket.id}`} className="block relative z-10">
+                        <h3 className="font-black text-2xl lg:text-3xl text-gray-900 dark:text-white leading-[1.1] mb-8 line-clamp-3 group-hover:text-teal-500 transition-colors duration-300">
+                          {featuredMarket.question}
+                        </h3>
 
-                      {loadingFeaturedMarket ? (
-                        <div className="space-y-4 animate-pulse">
-                          <div className="h-24 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="h-16 bg-gray-200 dark:bg-gray-800 rounded-xl" />
-                            <div className="h-16 bg-gray-200 dark:bg-gray-800 rounded-xl" />
+                        <div className="relative pt-6 border-t border-gray-100 dark:border-white/5">
+                          <div className="absolute -top-3 left-0 right-0 flex justify-center">
+                            <span className="bg-white dark:bg-[#0f1219] px-3 py-0.5 rounded-full text-[10px] font-bold text-gray-400 border border-gray-100 dark:border-gray-800 uppercase tracking-widest shadow-sm">Current Odds</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-emerald-50/50 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl p-4 text-center group/yes hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors relative overflow-hidden">
+                              <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover/yes:opacity-100 transition-opacity" />
+                              <span className="text-[10px] font-bold text-emerald-600/60 dark:text-emerald-400/60 uppercase block mb-1 group-hover/yes:scale-110 transition-transform">Yes</span>
+                              <span className="text-4xl font-black text-emerald-600 dark:text-emerald-400 text-shadow-sm tracking-tighter">
+                                {(featuredMarket.priceYes * 100).toFixed(0)}%
+                              </span>
+                            </div>
+                            <div className="bg-rose-50/50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/20 rounded-2xl p-4 text-center group/no hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors relative overflow-hidden">
+                              <div className="absolute inset-0 bg-rose-500/5 opacity-0 group-hover/no:opacity-100 transition-opacity" />
+                              <span className="text-[10px] font-bold text-rose-600/60 dark:text-rose-400/60 uppercase block mb-1 group-hover/no:scale-110 transition-transform">No</span>
+                              <span className="text-4xl font-black text-rose-600 dark:text-rose-400 text-shadow-sm tracking-tighter">
+                                {(featuredMarket.priceNo * 100).toFixed(0)}%
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      ) : featuredMarket ? (
-                        <Link href={featuredMarket.isDemo ? "/markets" : `/markets/${featuredMarket.id}`} className="block relative z-10">
-                          <h3 className="font-black text-2xl lg:text-3xl text-gray-900 dark:text-white leading-[1.1] mb-8 line-clamp-3 group-hover:text-teal-500 transition-colors duration-300">
-                            {featuredMarket.question}
-                          </h3>
+                      </Link>
+                    ) : (
+                      <div className="py-8 text-center text-gray-400 italic">No markets active</div>
+                    )}
+                  </div>
 
-                          <div className="relative pt-6 border-t border-gray-100 dark:border-white/5">
-                            <div className="absolute -top-3 left-0 right-0 flex justify-center">
-                              <span className="bg-white dark:bg-[#0f1219] px-3 py-0.5 rounded-full text-[10px] font-bold text-gray-400 border border-gray-100 dark:border-gray-800 uppercase tracking-widest shadow-sm">Current Odds</span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="bg-emerald-50/50 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl p-4 text-center group/yes hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors relative overflow-hidden">
-                                <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover/yes:opacity-100 transition-opacity" />
-                                <span className="text-[10px] font-bold text-emerald-600/60 dark:text-emerald-400/60 uppercase block mb-1 group-hover/yes:scale-110 transition-transform">Yes</span>
-                                <span className="text-4xl font-black text-emerald-600 dark:text-emerald-400 text-shadow-sm tracking-tighter">
-                                  {(featuredMarket.priceYes * 100).toFixed(0)}%
-                                </span>
-                              </div>
-                              <div className="bg-rose-50/50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/20 rounded-2xl p-4 text-center group/no hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors relative overflow-hidden">
-                                <div className="absolute inset-0 bg-rose-500/5 opacity-0 group-hover/no:opacity-100 transition-opacity" />
-                                <span className="text-[10px] font-bold text-rose-600/60 dark:text-rose-400/60 uppercase block mb-1 group-hover/no:scale-110 transition-transform">No</span>
-                                <span className="text-4xl font-black text-rose-600 dark:text-rose-400 text-shadow-sm tracking-tighter">
-                                  {(featuredMarket.priceNo * 100).toFixed(0)}%
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </Link>
-                      ) : (
-                        <div className="py-8 text-center text-gray-400 italic">No markets active</div>
-                      )}
+                  {/* Quick Features Row */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/40 dark:bg-gray-900/20 backdrop-blur-md p-4 rounded-2xl border border-white/20 dark:border-white/5 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
+                        <Globe className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-gray-500 dark:text-gray-400">Network</div>
+                        <div className="font-bold text-gray-900 dark:text-white">BNB Chain</div>
+                      </div>
+                    </div>
+                    <div className="bg-white/40 dark:bg-gray-900/20 backdrop-blur-md p-4 rounded-2xl border border-white/20 dark:border-white/5 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-500">
+                        <Zap className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-gray-500 dark:text-gray-400">Speed</div>
+                        <div className="font-bold text-gray-900 dark:text-white">Instant</div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Left Stat: Liquidity */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                    className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl rounded-[28px] p-6 flex flex-col justify-center text-center hover:scale-105 hover:-translate-y-2 transition-all duration-300 shadow-xl border border-white/20 dark:border-white/5 group relative overflow-hidden"
-                  >
-                    <div className="absolute top-0 left-0 w-1 h-full bg-teal-500" />
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 group-hover:text-teal-500 transition-colors">Total Liquidity</span>
-                    {loadingStats ? (
-                      <div className="h-8 w-20 bg-gray-200 dark:bg-gray-700 rounded mx-auto animate-pulse" />
-                    ) : (
-                      <span className="text-3xl lg:text-4xl font-black text-gray-900 dark:text-white tracking-tighter">
-                        <Counter value={liquidityDisplay} />
-                      </span>
-                    )}
-                  </motion.div>
-
-                  {/* Right Stat: Traders */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.7 }}
-                    className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl rounded-[28px] p-6 flex flex-col justify-center text-center hover:scale-105 hover:-translate-y-2 transition-all duration-300 shadow-xl border border-white/20 dark:border-white/5 group relative overflow-hidden"
-                  >
-                    <div className="absolute top-0 left-0 w-1 h-full bg-purple-500" />
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 group-hover:text-purple-500 transition-colors">Active Traders</span>
-                    {loadingStats ? (
-                      <div className="h-8 w-20 bg-gray-200 dark:bg-gray-700 rounded mx-auto animate-pulse" />
-                    ) : (
-                      <span className="text-3xl lg:text-4xl font-black text-gray-900 dark:text-white tracking-tighter">
-                        <Counter value={formatNumber(typeof traders === 'number' ? traders : Number(traders) || 0)} />
-                      </span>
-                    )}
-                  </motion.div>
                 </motion.div>
               </motion.div>
             </div>
@@ -466,6 +560,18 @@ export default function Home() {
           </div>
         </div>
       </main>
+
+      {/* Footer / Powered By */}
+      <footer className="w-full py-8 text-center relative z-10 pointer-events-none">
+        <div className="inline-flex items-center gap-6 px-6 py-3 rounded-full bg-white/30 dark:bg-black/30 backdrop-blur-md border border-white/20 dark:border-white/5 pointer-events-auto hover:bg-white/40 transition-colors">
+          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Powered By</span>
+          <div className="flex items-center gap-4 opacity-70 grayscale hover:grayscale-0 transition-all duration-300">
+            <div className="h-5 w-5 bg-yellow-500 rounded-full" title="BNB Chain" />
+            <div className="h-5 w-5 bg-blue-500 rounded-full" title="Chainlink" />
+            <div className="h-5 w-5 bg-purple-500 rounded-full" title="The Graph" />
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
