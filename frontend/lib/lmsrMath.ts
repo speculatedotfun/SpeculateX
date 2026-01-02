@@ -95,18 +95,18 @@ export function ln(x: bigint): bigint {
 
 export function costFunction(qYes: bigint, qNo: bigint, b: bigint): bigint {
   if (b === 0n) throw new Error('invalid liquidity');
-  
+
   // LMSR cost function: C(q) = max(qY,qN) + b * ln(1 + exp(|qY - qN| / b))
   const maxQ = qYes > qNo ? qYes : qNo;
   const minQ = qYes < qNo ? qYes : qNo;
   const pos = div(maxQ - minQ, b);
   const scaled = mul(pos, LOG2_E);
-  
+
   if (scaled > 192n * SCALE) {
     // exp(pos) too large; ln(1 + exp(-pos)) ≈ 0
     return maxQ;
   }
-  
+
   const expPos = exp2(scaled);
   const inner = SCALE + div(SCALE, expPos);  // 1 + exp(-pos)
   return maxQ + mul(b, ln(inner));
@@ -114,20 +114,20 @@ export function costFunction(qYes: bigint, qNo: bigint, b: bigint): bigint {
 
 export function spotPriceYesE18(qYes: bigint, qNo: bigint, b: bigint): bigint {
   if (b === 0n) return SCALE / 2n;
-  
+
   // Match contract's _spotYesFromQ formula:
   // price = e / (1 + e) where e = 2^(|qY - qN| * log2(e) / b)
   if (qYes === qNo) return SCALE / 2n;  // 0.5
-  
+
   const yGreater = qYes > qNo;
   const absDelta = yGreater ? qYes - qNo : qNo - qYes;
   const absDeltaScaled = div(absDelta, b);
   const scaled = mul(absDeltaScaled, LOG2_E);
-  
+
   if (scaled > 192n * SCALE) {
     return yGreater ? SCALE : 0n;
   }
-  
+
   const e = exp2(scaled);
   return yGreater ? div(e, SCALE + e) : div(SCALE, SCALE + e);
 }
@@ -181,9 +181,9 @@ export function simulateBuyChunk(
 ) {
   if (usdcIn <= 0n || bE18 === 0n) return null;
 
-  const feeT = usdcIn * BigInt(feeTreasuryBps) / 10_000n;
-  const feeV = usdcIn * BigInt(feeVaultBps) / 10_000n;
-  const feeL = usdcIn * BigInt(feeLpBps) / 10_000n;
+  const feeT = usdcIn * BigInt(Math.floor(feeTreasuryBps)) / 10_000n;
+  const feeV = usdcIn * BigInt(Math.floor(feeVaultBps)) / 10_000n;
+  const feeL = usdcIn * BigInt(Math.floor(feeLpBps)) / 10_000n;
   const net = usdcIn - feeT - feeV - feeL;
   if (net <= 0n) return null;
 

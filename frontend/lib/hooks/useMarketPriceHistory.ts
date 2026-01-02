@@ -266,7 +266,7 @@ export function useMarketPriceHistory(
 
                 // Fetch Trade events for this market
                 // We limit to 45000 blocks to avoid RPC limits (usually 50k)
-                const currentBlock = await publicClient.getBlockNumber();
+                const currentBlock = BigInt(await publicClient.getBlockNumber());
                 const BLOCK_LIMIT = 2000n;
                 let blockRange = BLOCK_LIMIT;
 

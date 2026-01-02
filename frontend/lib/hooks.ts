@@ -34,12 +34,12 @@ async function getQuestionFromMarketCreatedEvent(marketId: bigint): Promise<stri
   }
 
   const publicClient = getClientForCurrentNetwork();
-  const currentBlock = await publicClient.getBlockNumber();
+  const currentBlock = BigInt(await publicClient.getBlockNumber());
 
   // Scan backwards in small chunks to avoid RPC limits
   const CHUNK_SIZE = 2000n;
   const MAX_BACKLOOK = 1_000_000n;
-  const startBlock = currentBlock > MAX_BACKLOOK ? currentBlock - MAX_BACKLOOK : 0n;
+  const startBlock = (currentBlock && currentBlock > MAX_BACKLOOK) ? currentBlock - MAX_BACKLOOK : 0n;
 
   const event = parseAbiItem(
     'event MarketCreated(uint256 indexed id, address yes, address no, bytes32 questionHash, string question, uint256 initUsdc, uint256 expiryTimestamp)'
@@ -94,7 +94,16 @@ export async function getMarketCount(): Promise<bigint> {
       functionName: 'marketCount',
       args: [],
     });
-    return result as bigint;
+    // Ensure we always return a BigInt, converting from number if needed
+    if (typeof result === 'bigint') {
+      return result;
+    } else if (typeof result === 'number') {
+      return BigInt(Math.floor(result));
+    } else if (typeof result === 'string') {
+      return BigInt(result);
+    } else {
+      return BigInt(String(result || 0));
+    }
   } catch (error: any) {
     console.error(`[getMarketCount] Error reading contract on chain ${chainId}:`, error);
     // If contract doesn't exist on this chain, return 0
@@ -120,21 +129,24 @@ export async function getMarket(id: bigint) {
 
     const isObject = !!result && typeof result === 'object' && !Array.isArray(result) && 'yes' in result;
 
-    const yes = (isObject ? result.yes : result?.[0]) as `0x${string}` | undefined;
-    const no = (isObject ? result.no : result?.[1]) as `0x${string}` | undefined;
-    const qYes = BigInt(isObject ? result.qYes ?? 0n : result?.[2] ?? 0n);
-    const qNo = BigInt(isObject ? result.qNo ?? 0n : result?.[3] ?? 0n);
-    const bE18 = BigInt(isObject ? result.bE18 ?? 0n : result?.[4] ?? 0n);
-    const usdcVault = BigInt(isObject ? result.usdcVault ?? 0n : result?.[5] ?? 0n);
-    const feeTreasuryBps = Number(isObject ? (result.feeTreasuryBps ?? 0) : (result?.[6] ?? 0));
-    const feeLpBps = Number(isObject ? (result.feeLpBps ?? 0) : (result?.[7] ?? 0));
-    const feeVaultBps = Number(isObject ? (result.feeVaultBps ?? 0) : (result?.[8] ?? 0));
-    const status = Number(isObject ? (result.status ?? 0) : (result?.[9] ?? 0));
+    const resObj = isObject ? (result as Record<string, any>) : null;
+    const resArr = Array.isArray(result) ? (result as any[]) : null;
+
+    const yes = (resObj ? resObj.yes : resArr?.[0]) as `0x${string}` | undefined;
+    const no = (resObj ? resObj.no : resArr?.[1]) as `0x${string}` | undefined;
+    const qYes = BigInt(resObj ? resObj.qYes ?? 0n : resArr?.[2] ?? 0n);
+    const qNo = BigInt(resObj ? resObj.qNo ?? 0n : resArr?.[3] ?? 0n);
+    const bE18 = BigInt(resObj ? resObj.bE18 ?? 0n : resArr?.[4] ?? 0n);
+    const usdcVault = BigInt(resObj ? resObj.usdcVault ?? 0n : resArr?.[5] ?? 0n);
+    const feeTreasuryBps = Number(resObj ? (resObj.feeTreasuryBps ?? 0) : (resArr?.[6] ?? 0));
+    const feeLpBps = Number(resObj ? (resObj.feeLpBps ?? 0) : (resArr?.[7] ?? 0));
+    const feeVaultBps = Number(resObj ? (resObj.feeVaultBps ?? 0) : (resArr?.[8] ?? 0));
+    const status = Number(resObj ? (resObj.status ?? 0) : (resArr?.[9] ?? 0));
 
     // Updated struct layout: questionHash (index 10), question (index 11), creator (index 12)
     // Note: string is a dynamic type, so we read it via a separate getter function
-    const questionHash = (isObject ? (result.questionHash ?? ZERO_BYTES32) : (result?.[10] ?? ZERO_BYTES32)) as `0x${string}`;
-    const creator = (isObject ? (result.creator ?? ZERO_ADDRESS) : (result?.[12] ?? ZERO_ADDRESS)) as `0x${string}`;
+    const questionHash = (isObject ? (result.questionHash ?? ZERO_BYTES32) : ((result as any)?.[10] ?? ZERO_BYTES32)) as `0x${string}`;
+    const creator = (isObject ? (result.creator ?? ZERO_ADDRESS) : ((result as any)?.[12] ?? ZERO_ADDRESS)) as `0x${string}`;
 
     // Read question via separate getter (string is dynamic type, not in tuple)
     let question = '';
@@ -151,9 +163,9 @@ export async function getMarket(id: bigint) {
       console.warn(`[getMarket] getMarketQuestion not available for market ${id}, will try event fallback`);
     }
 
-    const totalLpUsdc = BigInt(isObject ? (result.totalLpUsdc ?? 0n) : (result?.[13] ?? 0n));
-    const lpFeesUSDC = BigInt(isObject ? (result.lpFeesUSDC ?? 0n) : (result?.[14] ?? 0n));
-    const residualUSDC = BigInt(isObject ? (result.residualUSDC ?? 0n) : (result?.[15] ?? 0n));
+    const totalLpUsdc = BigInt(isObject ? (result.totalLpUsdc ?? 0n) : ((result as any)?.[13] ?? 0n));
+    const lpFeesUSDC = BigInt(isObject ? (result.lpFeesUSDC ?? 0n) : ((result as any)?.[14] ?? 0n));
+    const residualUSDC = BigInt(isObject ? (result.residualUSDC ?? 0n) : ((result as any)?.[15] ?? 0n));
 
     // Read resolution via dedicated getter function (more reliable than parsing nested struct from markets mapping)
     // This avoids struct field misalignment issues when reading nested structs from the Diamond contract
@@ -169,25 +181,26 @@ export async function getMarket(id: bigint) {
       // Handle both object and tuple formats
       // Struct: { startTime, expiryTimestamp, oracleType, oracleAddress, priceFeedId, targetValue, comparison, yesWins, isResolved, oracleDecimals }
       const isResolutionObject = !!resolutionResult && typeof resolutionResult === 'object' && !Array.isArray(resolutionResult) && 'expiryTimestamp' in resolutionResult;
+      const resAny = resolutionResult as any;
 
       resolution = {
-        startTime: BigInt(isResolutionObject ? (resolutionResult.startTime ?? 0n) : (resolutionResult?.[0] ?? 0n)),
-        expiryTimestamp: BigInt(isResolutionObject ? (resolutionResult.expiryTimestamp ?? 0n) : (resolutionResult?.[1] ?? 0n)),
-        oracleType: Number(isResolutionObject ? (resolutionResult.oracleType ?? 0) : (resolutionResult?.[2] ?? 0)),
-        oracleAddress: (isResolutionObject ? (resolutionResult.oracleAddress ?? ZERO_ADDRESS) : (resolutionResult?.[3] ?? ZERO_ADDRESS)) as `0x${string}`,
-        priceFeedId: (isResolutionObject ? (resolutionResult.priceFeedId ?? ZERO_BYTES32) : (resolutionResult?.[4] ?? ZERO_BYTES32)) as `0x${string}`,
-        targetValue: BigInt(isResolutionObject ? (resolutionResult.targetValue ?? 0n) : (resolutionResult?.[5] ?? 0n)),
-        comparison: Number(isResolutionObject ? (resolutionResult.comparison ?? 0) : (resolutionResult?.[6] ?? 0)),
-        yesWins: Boolean(isResolutionObject ? (resolutionResult.yesWins ?? false) : (resolutionResult?.[7] ?? false)),
-        isResolved: Boolean(isResolutionObject ? (resolutionResult.isResolved ?? false) : (resolutionResult?.[8] ?? false)),
-        oracleDecimals: Number(isResolutionObject ? (resolutionResult.oracleDecimals ?? 0) : (resolutionResult?.[9] ?? 0)),
+        startTime: BigInt(isResolutionObject ? (resolutionResult.startTime ?? 0n) : (resAny?.[0] ?? 0n)),
+        expiryTimestamp: BigInt(isResolutionObject ? (resolutionResult.expiryTimestamp ?? 0n) : (resAny?.[1] ?? 0n)),
+        oracleType: Number(isResolutionObject ? (resolutionResult.oracleType ?? 0) : (resAny?.[2] ?? 0)),
+        oracleAddress: (isResolutionObject ? (resolutionResult.oracleAddress ?? ZERO_ADDRESS) : (resAny?.[3] ?? ZERO_ADDRESS)) as `0x${string}`,
+        priceFeedId: (isResolutionObject ? (resolutionResult.priceFeedId ?? ZERO_BYTES32) : (resAny?.[4] ?? ZERO_BYTES32)) as `0x${string}`,
+        targetValue: BigInt(isResolutionObject ? (resolutionResult.targetValue ?? 0n) : (resAny?.[5] ?? 0n)),
+        comparison: Number(isResolutionObject ? (resolutionResult.comparison ?? 0) : (resAny?.[6] ?? 0)),
+        yesWins: Boolean(isResolutionObject ? (resolutionResult.yesWins ?? false) : (resAny?.[7] ?? false)),
+        isResolved: Boolean(isResolutionObject ? (resolutionResult.isResolved ?? false) : (resAny?.[8] ?? false)),
+        oracleDecimals: Number(isResolutionObject ? (resolutionResult.oracleDecimals ?? 0) : (resAny?.[9] ?? 0)),
       };
     } catch (e) {
       // Fallback: try to read from markets struct (for old contracts that don't have getMarketResolution)
       console.warn(`[getMarket] getMarketResolution failed for market ${id}, falling back to struct parsing:`, e);
       const resolutionRaw = isObject
         ? result.resolution
-        : (Array.isArray(result) ? (result?.[18] ?? result?.[17] ?? result?.[16] ?? result?.[12]) : undefined);
+        : (Array.isArray(result) ? ((result as any)?.[18] ?? (result as any)?.[17] ?? (result as any)?.[16] ?? (result as any)?.[12]) : undefined);
 
       resolution = {
         startTime: BigInt(resolutionRaw?.startTime ?? resolutionRaw?.[0] ?? 0n),
@@ -272,12 +285,13 @@ export async function getSpotPriceYesE6(marketId: bigint): Promise<bigint> {
   const addresses = getAddresses();
   const publicClient = getClientForCurrentNetwork();
   try {
-    return await publicClient.readContract({
+    const result = await publicClient.readContract({
       address: addresses.core,
       abi: getCoreAbi(getCurrentNetwork()),
       functionName: 'spotPriceYesE6',
       args: [marketId],
-    }) as bigint;
+    });
+    return typeof result === 'bigint' ? result : BigInt(result);
   } catch (e: any) {
     if (isNoFacetError(e)) return 500000n; // neutral 50/50 until activated
     throw e;
@@ -447,23 +461,25 @@ export async function getPendingLpFees(id: bigint, user: `0x${string}`) {
   if (!user || user === ZERO_ADDRESS) return 0n;
   const addresses = getAddresses();
   const publicClient = getClientForCurrentNetwork();
-  return await publicClient.readContract({
+  const result = await publicClient.readContract({
     address: addresses.core,
     abi: getCoreAbi(getCurrentNetwork()),
     functionName: 'pendingLpFees',
     args: [id, user],
-  }) as bigint;
+  });
+  return typeof result === 'bigint' ? result : BigInt(result);
 }
 
 export async function getInvariantUsdc(id: bigint) {
   const addresses = getAddresses();
   const publicClient = getClientForCurrentNetwork();
-  return await publicClient.readContract({
+  const result = await publicClient.readContract({
     address: addresses.core,
     abi: getCoreAbi(getCurrentNetwork()),
     functionName: 'invariantUsdc',
     args: [id],
-  }) as bigint;
+  });
+  return typeof result === 'bigint' ? result : BigInt(result);
 }
 
 export async function getLpResidualPot(id: bigint): Promise<bigint> {

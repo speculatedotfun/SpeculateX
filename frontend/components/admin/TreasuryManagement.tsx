@@ -65,7 +65,7 @@ export function TreasuryManagement() {
 
         try {
             const startBlock = addresses.startBlock || 0n;
-            const currentBlock = await publicClient.getBlockNumber();
+            const currentBlock = BigInt(await publicClient.getBlockNumber());
 
             // Scanning in chunks 
             const chunkSize = 2000n;

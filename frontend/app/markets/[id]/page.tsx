@@ -1,4 +1,6 @@
 'use client';
+
+export const dynamic = 'force-dynamic';
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { useAccount, useReadContract, usePublicClient, useBlockNumber } from 'wagmi';
@@ -249,7 +251,7 @@ export default function MarketDetailPage() {
     timeRange,
     snapshotData,
     snapshotLoading,
-    market?.createdAt,
+    Number(market?.createdAt),
     marketData.currentPrices
   );
 
@@ -422,7 +424,7 @@ export default function MarketDetailPage() {
     return [...sortedChartData, snapPoint];
   }, [sortedChartData, market?.resolution?.isResolved, market?.resolution?.yesWins]);
 
-  const totalVolume = marketData.marketState ? Number(formatUnits(marketData.marketState.vault ?? 0n, 6)) : 0;
+  const totalVolume = marketData.marketState ? Number(formatUnits(marketData.marketState.vault || 0n, 6)) : 0;
 
   // Merge createdAt from snapshotData if available (subgraph has it, on-chain doesn't)
   const marketWithCreatedAt = useMemo(() => {
@@ -443,11 +445,11 @@ export default function MarketDetailPage() {
 
   const marketStatus = typeof market?.status === 'number' ? market.status : Number(market?.status ?? 0);
   const marketResolution = market?.resolution;
-  const marketExpiry = marketResolution?.expiryTimestamp && marketResolution.expiryTimestamp !== 0n
-    ? Number(marketResolution.expiryTimestamp)
-    : 0;
+  const marketExpiry = marketResolution?.expiryTimestamp ? Number(marketResolution.expiryTimestamp) : 0;
   const marketIsResolved = Boolean(marketResolution?.isResolved);
-  const marketIsExpired = marketExpiry > 0 && marketExpiry < Date.now() / 1000;
+  // Separate variable to avoid type confusion
+  const nowSeconds = Date.now() / 1000;
+  const marketIsExpired = marketExpiry > 0 && marketExpiry < nowSeconds;
   const isChartRefreshing = snapshotLoading && sortedChartData.length > 0;
   // Contract enum: MarketStatus { Active=0, Resolved=1, Cancelled=2 }
   const marketIsActive = marketStatus === 0;
@@ -737,7 +739,7 @@ export default function MarketDetailPage() {
               {isMarketIdValid && market && (
                 <>
                   <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-[32px] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] dark:shadow-black/30 border border-white/20 dark:border-gray-700/50 overflow-hidden relative z-20">
-                    <TradingCard marketId={marketIdNum} marketData={marketData} />
+                    <TradingCard marketId={marketIdNum} />
                   </div>
 
                   {/* Market Data Tools */}

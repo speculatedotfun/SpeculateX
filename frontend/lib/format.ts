@@ -113,7 +113,7 @@ export function formatTokenAmount(
   displayDecimals: number = 2
 ): string {
   const amountBigInt = typeof amount === 'string' ? BigInt(amount) : amount;
-  const divisor = BigInt(10 ** decimals);
+  const divisor = 10n ** BigInt(decimals);
   const quotient = amountBigInt / divisor;
   const remainder = amountBigInt % divisor;
 
@@ -142,8 +142,8 @@ export function formatPercentageChange(change: number): { text: string; classNam
     className: isPositive
       ? 'text-green-600 dark:text-green-400'
       : isNegative
-      ? 'text-red-600 dark:text-red-400'
-      : 'text-gray-600 dark:text-gray-400',
+        ? 'text-red-600 dark:text-red-400'
+        : 'text-gray-600 dark:text-gray-400',
   };
 }
 
@@ -159,7 +159,8 @@ export function formatPercentageChange(change: number): { text: string; classNam
  */
 export function formatTimeAgo(timestamp: number): string {
   // Convert to milliseconds if in seconds
-  const timestampMs = timestamp < 10000000000 ? timestamp * 1000 : timestamp;
+  const timestampNum = Number(timestamp);
+  const timestampMs = timestampNum < 10000000000 ? timestampNum * 1000 : timestampNum;
   const now = Date.now();
   const diff = now - timestampMs;
 

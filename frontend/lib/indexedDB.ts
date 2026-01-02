@@ -248,7 +248,8 @@ class IndexedDBCache {
 // Singleton instance
 let cacheInstance: IndexedDBCache | null = null;
 
-export const getIndexedDBCache = (): IndexedDBCache => {
+export const getIndexedDBCache = (): IndexedDBCache | null => {
+  if (typeof window === 'undefined') return null; // SSG safety
   if (!cacheInstance) {
     cacheInstance = new IndexedDBCache();
   }
@@ -263,17 +264,17 @@ export const useIndexedDBCache = () => {
 // Utility functions for common operations
 export const saveMarketsToCache = async (markets: any[]) => {
   const cache = getIndexedDBCache();
-  await cache.saveMarketsCache(markets);
+  if (cache) await cache.saveMarketsCache(markets);
 };
 
 export const loadMarketsFromCache = async (): Promise<any[] | null> => {
   const cache = getIndexedDBCache();
-  return await cache.getMarketsCache();
+  return cache ? await cache.getMarketsCache() : null;
 };
 
 export const isMarketsCacheFresh = async (maxAge: number = 60 * 60 * 1000): Promise<boolean> => {
   const cache = getIndexedDBCache();
-  return await cache.isCacheFresh('markets', 'latest', maxAge);
+  return cache ? await cache.isCacheFresh('markets', 'latest', maxAge) : false;
 };
 
 export default IndexedDBCache;

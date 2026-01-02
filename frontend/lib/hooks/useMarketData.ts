@@ -107,11 +107,13 @@ export function useMarketData(marketId: number): UseMarketDataResult {
     if (!blockNumber || !publicClient || marketId <= 0) return;
 
     // Check every block
-    if (lastCheckedBlockRef.current && blockNumber - lastCheckedBlockRef.current < 1n) {
+    // Explicitly cast to BigInt to avoid "Cannot mix BigInt and other types" if blockNumber is a number
+    const currentBlock = BigInt(blockNumber);
+    if (lastCheckedBlockRef.current && currentBlock - lastCheckedBlockRef.current < 1n) {
       return;
     }
 
-    lastCheckedBlockRef.current = blockNumber;
+    lastCheckedBlockRef.current = currentBlock;
 
     // Throttle updates
     const now = Date.now();

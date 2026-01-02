@@ -1,0 +1,10 @@
+   ▲ Next.js 15.5.7
+   - Environments: .env.local, .env.production
+
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ Compiled successfully in 10.9s
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+[TypeError: Cannot mix BigInt and other types, use explicit conversions]

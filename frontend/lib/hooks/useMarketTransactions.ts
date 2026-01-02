@@ -35,7 +35,7 @@ export function useMarketTransactions(
     const tradesDesc = snapshotData.tradesDesc ?? [];
     const txRows: TransactionRow[] = tradesDesc
       .map(toTransactionRow)
-      .filter((tx): tx is TransactionRow => tx !== null);
+      .filter((tx: any): tx is TransactionRow => tx !== null);
 
     if (txRows.length > 0) {
       mergeTransactionRows(txRows);

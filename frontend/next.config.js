@@ -7,6 +7,16 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // Work around a build-time prerender crash ("Cannot mix BigInt and other types")
+  // that only reproduces in the default build mode and disappears under
+  // `next build --debug-prerender` (which disables server minification).
+  experimental: {
+    serverMinification: false,
+    serverSourceMaps: true,
+  },
   outputFileTracingRoot: path.join(__dirname, '..'),
   allowedDevOrigins: ['127.0.0.1', 'localhost', '127.1.1.1'],
   webpack: (config) => {

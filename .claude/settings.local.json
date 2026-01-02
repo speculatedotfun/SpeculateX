@@ -21,7 +21,11 @@
       "Bash(source .env)",
       "Bash(echo:*)",
       "Bash(cat:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(npx next build --debug)",
+      "Bash(npm run build:*)",
+      "Bash(npx next build)",
+      "Bash(tee build-error.txt)"
     ]
   }
 }

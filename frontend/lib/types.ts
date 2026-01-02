@@ -1,4 +1,8 @@
 export interface MarketInfo {
+    id?: number;
+    exists?: boolean;
+    question?: string;
+    createdAt?: bigint;
     yes: `0x${string}`;
     no: `0x${string}`;
     qYes: bigint;
@@ -12,17 +16,7 @@ export interface MarketInfo {
     creator: `0x${string}`;
     totalLpUsdc: bigint;
     lpFeesUSDC: bigint;
-    resolution: {
-        startTime: bigint;
-        expiryTimestamp: bigint;
-        oracleType: number;
-        oracleAddress: `0x${string}`;
-        priceFeedId: `0x${string}`;
-        targetValue: bigint;
-        comparison: number;
-        yesWins: boolean;
-        isResolved: boolean;
-    };
+    resolution: MarketResolution;
 }
 
 export interface MarketState {

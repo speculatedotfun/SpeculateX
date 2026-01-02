@@ -236,7 +236,7 @@ export const createTradeBatchProcessor = (
     // - Recent trades
 
     const usdcAmount = Math.abs(parseFloat(trade.usdcDelta || '0'));
-    const recency = (Date.now() - (trade.timestamp || 0)) / 1000; // seconds ago
+    const recency = (Date.now() - Number(trade.timestamp || 0)) / 1000; // seconds ago
 
     // Priority formula: size bonus + recency bonus
     return Math.log10(usdcAmount + 1) - (recency / 3600); // Favor large recent trades

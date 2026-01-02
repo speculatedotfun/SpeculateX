@@ -111,9 +111,13 @@ export const applyMarketDelta = (
         }
 
         // Re-sort by balance (descending)
-        balances.sort((a: any, b: any) =>
-          BigInt(b.tokenBalance || '0') - BigInt(a.tokenBalance || '0')
-        );
+        balances.sort((a: any, b: any) => {
+          const balB = BigInt(b.tokenBalance || '0');
+          const balA = BigInt(a.tokenBalance || '0');
+          if (balB > balA) return 1;
+          if (balB < balA) return -1;
+          return 0;
+        });
 
         updatedData[balanceKey] = balances;
       }

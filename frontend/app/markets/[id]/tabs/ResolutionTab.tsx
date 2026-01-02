@@ -46,7 +46,7 @@ export function ResolutionTab({ resolution, marketId, marketStatus }: Resolution
     ? (resolution?.yesWins !== undefined ? 'resolved' : 'cancelled')
     : 'active');
 
-  const startTime = Number(resolution.startTime ?? 0);
+  const startTime = resolution.startTime ? Number(resolution.startTime) : 0;
   const expiryTime = Number(resolution.expiryTimestamp);
   const now = Math.floor(Date.now() / 1000);
   const isStarted = now >= startTime;

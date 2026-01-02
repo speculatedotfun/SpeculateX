@@ -23,7 +23,7 @@ interface LiquiditySectionProps {
   isLpProcessing: boolean;
   isBusy: boolean;
   isTradeable: boolean;
-  pendingLpAction: null | 'add' | 'remove' | 'claim';
+  pendingLpAction: string | null;
   pendingLpFeesValue: bigint;
   pendingLpResidualValue: bigint;
   handleAddLiquidity: () => void;
@@ -186,11 +186,10 @@ export function LiquiditySection({
               value={addLiquidityAmount}
               onChange={handleAddInputChange}
               placeholder="0.00"
-              className={`w-full h-12 pl-10 pr-20 rounded-xl bg-white dark:bg-gray-900 border ${
-                addValidationError
+              className={`w-full h-12 pl-10 pr-20 rounded-xl bg-white dark:bg-gray-900 border ${addValidationError
                   ? 'border-red-500 dark:border-red-400 focus:ring-red-500'
                   : 'border-gray-200 dark:border-gray-700 focus:ring-[#14B8A6]'
-              } text-gray-900 dark:text-white font-bold focus:ring-2 focus:border-transparent outline-none transition-all`}
+                } text-gray-900 dark:text-white font-bold focus:ring-2 focus:border-transparent outline-none transition-all`}
               disabled={!isTradeable || isBusy || isLpProcessing}
               aria-label="Liquidity amount in USDC"
               aria-invalid={!!addValidationError}
@@ -269,11 +268,10 @@ export function LiquiditySection({
                 value={removeLiquidityAmount}
                 onChange={handleRemoveInputChange}
                 placeholder="0.00"
-                className={`w-full h-12 pl-10 pr-20 rounded-xl bg-white dark:bg-gray-900 border ${
-                  removeValidationError
+                className={`w-full h-12 pl-10 pr-20 rounded-xl bg-white dark:bg-gray-900 border ${removeValidationError
                     ? 'border-red-500 dark:border-red-400 focus:ring-red-500'
                     : 'border-gray-200 dark:border-gray-700 focus:ring-orange-500'
-                } text-gray-900 dark:text-white font-bold focus:ring-2 focus:border-transparent outline-none transition-all`}
+                  } text-gray-900 dark:text-white font-bold focus:ring-2 focus:border-transparent outline-none transition-all`}
                 disabled={!isTradeable || isBusy || isLpProcessing || isExpiredNotResolved}
                 aria-label="Remove liquidity amount in USDC"
                 aria-invalid={!!removeValidationError}

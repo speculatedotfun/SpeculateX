@@ -1,8 +1,14 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
+// Import BigInt serializer first
+import '@/lib/bigint-serializer';
+
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SearchIcon, Activity, Clock, SlidersHorizontal, TrendingUp, Loader2, X, CheckCircle2, XCircle } from 'lucide-react';
 import Header from '@/components/Header';
@@ -251,6 +257,8 @@ interface MarketCard {
 }
 
 export default function MarketsPage() {
+  console.log('[DEBUG] Rendering Markets page');
+  const searchParams = useSearchParams();
   const { address } = useAccount();
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -322,14 +330,15 @@ export default function MarketsPage() {
             getMarketResolution(BigInt(i)),
             getMarketState(BigInt(i)),
           ]);
+          console.log(`Processing market ${i} for build debug`);
 
           if (!market.exists) return null;
 
           const now = Math.floor(Date.now() / 1000);
-          const expiryTimestamp = resolution.expiryTimestamp || 0n;
-          const startTime = resolution.startTime || 0n; // Added
+          const expiryTimestamp = resolution.expiryTimestamp ? (typeof resolution.expiryTimestamp === 'bigint' ? resolution.expiryTimestamp : BigInt(resolution.expiryTimestamp)) : 0n;
+          const startTime = resolution.startTime ? (typeof resolution.startTime === 'bigint' ? resolution.startTime : BigInt(resolution.startTime)) : 0n;
           const isExpired = expiryTimestamp > 0n && Number(expiryTimestamp) < now;
-          const isScheduled = startTime > 0n && Number(startTime) > now; // Added check
+          const isScheduled = startTime > 0n && Number(startTime) > now;
 
           // Use status from getMarketState (more reliable) - it's at index 4 for diamond/testnet
           // Fallback to market.status if state.status is not available
@@ -361,10 +370,12 @@ export default function MarketsPage() {
           }
 
           const totalPairs = Number(formatUnits(state.vault, 6));
+          console.log(`[BuildDebug] Market ${i} totalPairs: ${totalPairs}`);
           let yesPriceNum = parseFloat(priceYes);
           let yesPriceClean = Number.isFinite(yesPriceNum) ? yesPriceNum : 0;
           let noPriceClean = Number.isFinite(yesPriceNum) ? Math.max(0, 1 - yesPriceNum) : 0;
           let yesPercent = Math.round(yesPriceClean * 100);
+          console.log(`[BuildDebug] Market ${i} yesPercent: ${yesPercent}`);
           let noPercent = 100 - yesPercent;
 
           if (resolution.isResolved) {
@@ -376,7 +387,7 @@ export default function MarketsPage() {
           }
 
           return {
-            id: i,
+            id: i as number,
             question: typeof market.question === 'string' ? market.question : String(market.question ?? 'Untitled Market'),
             yesPrice: yesPriceClean,
             noPrice: noPriceClean,
@@ -384,9 +395,29 @@ export default function MarketsPage() {
             yesPercent,
             noPercent,
             status,
-            totalPairsUSDC: state.vault,
-            expiryTimestamp: resolution.expiryTimestamp || 0n,
-            startTime: resolution.startTime || 0n, // Added
+            totalPairsUSDC: (() => {
+              const vault = state.vault;
+              if (typeof vault === 'bigint') return vault;
+              if (typeof vault === 'number') return BigInt(Math.floor(vault));
+              if (typeof vault === 'string') return BigInt(vault);
+              return 0n;
+            })(),
+            expiryTimestamp: (() => {
+              const ts = resolution.expiryTimestamp;
+              if (!ts) return 0n;
+              if (typeof ts === 'bigint') return ts;
+              if (typeof ts === 'number') return BigInt(Math.floor(ts));
+              if (typeof ts === 'string') return BigInt(ts);
+              return 0n;
+            })(),
+            startTime: (() => {
+              const st = resolution.startTime;
+              if (!st) return 0n;
+              if (typeof st === 'bigint') return st;
+              if (typeof st === 'number') return BigInt(Math.floor(st));
+              if (typeof st === 'string') return BigInt(st);
+              return 0n;
+            })(),
             oracleType: resolution.oracleType || 0,
             isResolved: resolution.isResolved || false,
             yesWins: resolution.yesWins,
@@ -445,7 +476,8 @@ export default function MarketsPage() {
     if (markets.length === 0) return { liquidity: 0, live: 0, resolved: 0, expired: 0, cancelled: 0, total: 0 };
     let liquidity = 0, live = 0, resolved = 0, expired = 0, cancelled = 0;
     for (const market of markets) {
-      liquidity += Number(formatUnits(market.totalPairsUSDC, 6));
+      const vaultValue = typeof market.totalPairsUSDC === 'bigint' ? market.totalPairsUSDC : BigInt(market.totalPairsUSDC || 0);
+      liquidity += Number(formatUnits(vaultValue, 6));
       if (market.status === 'LIVE TRADING') live += 1;
       else if (market.status === 'RESOLVED') resolved += 1;
       else if (market.status === 'EXPIRED') expired += 1;

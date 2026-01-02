@@ -105,7 +105,7 @@ export function useAdminOperations() {
         setLoadingOps(true);
 
         try {
-            const currentBlock = await publicClient.getBlockNumber();
+            const currentBlock = BigInt(await publicClient.getBlockNumber());
             let opsToKeep: ScheduledOp[] = [];
             let startBlock = addresses.startBlock || 73210700n;
 

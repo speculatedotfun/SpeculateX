@@ -187,9 +187,9 @@ export function simulateTrade(
   try {
     // Validate inputs are BigInt
     if (typeof currentState.qYes !== 'bigint' ||
-        typeof currentState.qNo !== 'bigint' ||
-        typeof currentState.bE18 !== 'bigint' ||
-        typeof trade.usdcIn !== 'bigint') {
+      typeof currentState.qNo !== 'bigint' ||
+      typeof currentState.bE18 !== 'bigint' ||
+      typeof trade.usdcIn !== 'bigint') {
       throw new Error('Invalid input types - expected BigInt');
     }
     // Calculate net USDC after fees (simplified)
@@ -391,7 +391,7 @@ export class PricePredictor {
     trade: TradeSimulation,
     useCache = true
   ): Promise<PricePrediction> {
-    const cacheKey = `${state.qYes || 0}-${state.qNo || 0}-${state.bE18 || 0}-${trade.isYes}-${trade.usdcIn || 0}`;
+    const cacheKey = `${state.qYes?.toString() || '0'}-${state.qNo?.toString() || '0'}-${state.bE18?.toString() || '0'}-${trade.isYes}-${trade.usdcIn?.toString() || '0'}`;
 
     if (useCache && this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey)!;

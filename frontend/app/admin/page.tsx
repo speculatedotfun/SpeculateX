@@ -1,5 +1,8 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
+
 import { useEffect, useState, useCallback } from 'react';
 import { useAccount, usePublicClient } from 'wagmi';
 import CreateMarketForm from '@/components/CreateMarketForm';
@@ -20,17 +23,21 @@ interface Market {
   id: number;
   question: string;
   status: 'active' | 'resolved' | 'expired' | 'scheduled';
-  startTime: bigint;
+  startTime: string; // Changed from bigint to string
   vault: number;
   residual: number;
   yesToken: `0x${string}`;
   noToken: `0x${string}`;
   yesWins: boolean;
   isResolved: boolean;
-  winningSupply: bigint;
+  winningSupply: string; // Changed from bigint to string
+  targetValue: string; // Changed from bigint to string
+  comparison: number;
 }
 
+
 export default function AdminPage() {
+  console.log('[DEBUG] Rendering Admin page');
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
   const [markets, setMarkets] = useState<Market[]>([]);
@@ -71,10 +78,11 @@ export default function AdminPage() {
             const yesWins = Boolean(resolution?.yesWins);
             const expiryTimestamp = resolution?.expiryTimestamp ? BigInt(resolution.expiryTimestamp) : 0n;
             const startTime = resolution?.startTime ? BigInt(resolution.startTime) : 0n;
-            const now = BigInt(Math.floor(Date.now() / 1000));
-
-            const isExpired = !isResolved && expiryTimestamp > 0n && now > expiryTimestamp;
-            const isScheduled = startTime > 0n && now < startTime;
+            const targetValue = resolution?.targetValue ? BigInt(resolution.targetValue) : 0n;
+            const comparison = Number(resolution?.comparison ?? 0);
+            const now = Math.floor(Date.now() / 1000);
+            const isExpired = !isResolved && Number(expiryTimestamp) > 0 && now > Number(expiryTimestamp);
+            const isScheduled = Number(startTime) > 0 && now < Number(startTime);
 
             let status: 'active' | 'resolved' | 'expired' | 'scheduled';
             if (isScheduled) {
@@ -112,8 +120,10 @@ export default function AdminPage() {
               noToken: market.no as `0x${string}`,
               yesWins,
               isResolved,
-              winningSupply,
-              startTime,
+              winningSupply: winningSupply.toString(),
+              startTime: startTime.toString(),
+              targetValue: targetValue.toString(),
+              comparison,
             } as Market;
           } catch (error) {
             console.error(`Error loading market ${id}:`, error);

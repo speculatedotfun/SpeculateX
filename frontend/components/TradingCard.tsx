@@ -369,7 +369,9 @@ export default function TradingCard({ marketId }: TradingCardProps) {
                     userSharePct={(parseFloat(formatUnits(lpSharesValue, 6)) / parseFloat(formatUnits(totalLpUsdc, 6))) * 100 || 0}
                     pendingFeesFloat={parseFloat(formatUnits(pendingFeesValue, 6))}
                     pendingResidualFloat={parseFloat(formatUnits(pendingResidualValue, 6))}
-                    lpFeePoolFloat={parseFloat(formatUnits(toBigIntSafe(contractData?.lpFeesUSDC), 6))}
+                    lpFeePoolFloat={parseFloat(formatUnits(toBigIntSafe(
+                      Array.isArray(contractData) ? contractData?.[14] : contractData?.lpFeesUSDC
+                    ), 6))}
                     isResolved={isResolved}
                     addLiquidityAmount={addLiquidityAmount}
                     setAddLiquidityAmount={setAddLiquidityAmount}
@@ -389,7 +391,11 @@ export default function TradingCard({ marketId }: TradingCardProps) {
                     handleAddLiquidity={handleAddLiquidity}
                     handleRemoveLiquidity={handleRemoveLiquidity}
                     handleClaimAllLp={() => handleClaimAllLp(pendingFeesValue > 0n, pendingResidualValue > 0n)}
-                    expiryTimestamp={toBigIntSafe(contractData?.resolution?.expiryTimestamp)}
+                    expiryTimestamp={toBigIntSafe(
+                      Array.isArray(contractData)
+                        ? contractData?.[18]?.expiryTimestamp
+                        : contractData?.resolution?.expiryTimestamp
+                    )}
                     currentTimestamp={Math.floor(Date.now() / 1000)}
                   />
                 </div>

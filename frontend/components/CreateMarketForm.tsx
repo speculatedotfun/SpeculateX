@@ -21,45 +21,8 @@ interface CreateMarketFormProps {
   standalone?: boolean;
 }
 
-// --- Verified Chainlink Supported Assets ---
-const CRYPTO_ASSETS = [
-  // Majors
-  {
-    symbol: 'BTC',
-    name: 'Bitcoin',
-    icon: '₿',
-    feedId: 'BTC/USD',
-    testnetFeed: '0x5741306c21795FdCBb9b265Ea0255F499DFe515C',
-    mainnetFeed: '0x264990fbd0A4796A3E3d8E37C4d5F87a3aCa5Ebf',
-    color: 'from-orange-400 to-orange-600'
-  },
-  {
-    symbol: 'ETH',
-    name: 'Ethereum',
-    icon: 'Ξ',
-    feedId: 'ETH/USD',
-    testnetFeed: '0x143db3CEEfbdfe5631aDD3E50f7614B6ba708BA7',
-    mainnetFeed: '0x9ef1B8c0E4F7dc8bF5719Ea496883DC6401d5b2e',
-    color: 'from-blue-400 to-purple-600'
-  },
-  { symbol: 'SOL', name: 'Solana', icon: '◎', feedId: 'SOL/USD', color: 'from-green-400 to-teal-600' },
-  {
-    symbol: 'BNB',
-    name: 'Binance Coin',
-    icon: '🔶',
-    feedId: 'BNB/USD',
-    testnetFeed: '0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526',
-    mainnetFeed: '0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE',
-    color: 'from-yellow-400 to-yellow-600'
-  },
-  { symbol: 'XRP', name: 'Ripple', icon: '✕', feedId: 'XRP/USD', color: 'from-gray-400 to-gray-600' },
-  { symbol: 'ADA', name: 'Cardano', icon: '₳', feedId: 'ADA/USD', color: 'from-blue-500 to-blue-700' },
-  { symbol: 'AVAX', name: 'Avalanche', icon: '🔺', feedId: 'AVAX/USD', color: 'from-red-500 to-red-700' },
-  { symbol: 'LINK', name: 'Chainlink', icon: '⬡', feedId: 'LINK/USD', color: 'from-blue-400 to-blue-600' },
-  { symbol: 'DOGE', name: 'Dogecoin', icon: 'Ð', feedId: 'DOGE/USD', color: 'from-yellow-300 to-yellow-500' },
-  { symbol: 'MATIC', name: 'Polygon', icon: '💜', feedId: 'MATIC/USD', color: 'from-purple-500 to-purple-700' },
-  { symbol: 'DOT', name: 'Polkadot', icon: '🟣', feedId: 'DOT/USD', color: 'from-pink-500 to-pink-700' },
-];
+import { Asset, CRYPTO_ASSETS } from '@/lib/assets';
+
 
 export default function CreateMarketForm({ standalone = false }: CreateMarketFormProps) {
   const { address } = useAccount();
@@ -245,14 +208,16 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
       const targetValueBigInt = parseUnits(targetPrice, 8);
       const comparisonEnum = comparison === 'above' ? 0 : 1;
 
-      const oracleAddress = isDiamondNetwork(network)
-        ? (network === 'testnet' ? ((selectedAsset as any).testnetFeed as `0x${string}`) : ((selectedAsset as any).mainnetFeed as `0x${string}`))
-        : (process.env.NEXT_PUBLIC_CHAINLINK_RESOLVER_ADDRESS as `0x${string}`);
+      // Always use the ChainlinkResolver as the oracle. It acts as the gateway to all feeds.
+      const oracleAddress = addresses.chainlinkResolver;
 
-      if (isDiamondNetwork(network) && (!oracleAddress || oracleAddress === ('0x0000000000000000000000000000000000000000' as any))) {
-        pushToast({ title: 'Unsupported Asset', description: 'No Chainlink feed for this asset on this network.', type: 'error' });
+      // Verify that this asset has a feed on the current network
+      const feedAddress = network === 'testnet' ? selectedAsset.testnetFeed : selectedAsset.mainnetFeed;
+      if (!feedAddress || feedAddress === '0x0000000000000000000000000000000000000000') {
+        pushToast({ title: 'Unsupported Asset', description: `No Chainlink feed for ${selectedAsset.symbol} on ${network}.`, type: 'error' });
         return;
       }
+
 
       const feedId = keccak256(stringToBytes(selectedAsset.feedId));
       const dateObj = new Date(resolutionDate);

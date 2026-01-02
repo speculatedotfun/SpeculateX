@@ -145,30 +145,30 @@ export function useUserPortfolio() {
       // Get all markets to check for positions not in subgraph
       const marketCount = await getMarketCount();
       const allMarketIds = Array.from({ length: Number(marketCount) }, (_, i) => i + 1);
-      
+
       // Create a set of market IDs we already have from subgraph
       const subgraphMarketIds = new Set(balancesRaw.map(b => Number(b.market.id)));
-      
+
       // Check all markets on-chain for user positions
       const onChainPositions: PortfolioPosition[] = [];
       const checkedMarkets = new Set<number>();
-      
+
       // First, verify and enhance subgraph positions with on-chain data
       const verifiedPositions = await Promise.all(
         balancesRaw.map(async (b) => {
           const marketId = Number(b.market.id);
           checkedMarkets.add(marketId);
-          
+
           try {
             // Get on-chain market data
             const market = await getMarket(BigInt(marketId));
             const resolution = await getMarketResolution(BigInt(marketId));
-            
+
             if (!market.exists) return null;
-            
+
             const side = b.side === 'yes' ? 'YES' : 'NO';
             const tokenAddress = side === 'YES' ? market.yes : market.no;
-            
+
             // Get actual on-chain balance
             let onChainBalance = 0n;
             try {
@@ -182,13 +182,13 @@ export function useUserPortfolio() {
               console.error(`Failed to get balance for market ${marketId}`, e);
               onChainBalance = BigInt(b.tokenBalance);
             }
-            
+
             const balance = Number(formatUnits(onChainBalance, 18));
-            
+
             // Use on-chain resolution data (more reliable)
-            const isResolved = resolution.isResolved ?? resolution?.[7] ?? false;
-            const yesWins = resolution.yesWins ?? resolution?.[6] ?? null;
-            
+            const isResolved = resolution.isResolved;
+            const yesWins = resolution.yesWins;
+
             let currentPrice = 0;
             let won = false;
 
@@ -246,7 +246,7 @@ export function useUserPortfolio() {
                 won = false;
               }
             }
-            
+
             return {
               marketId,
               question: b.market.question,
@@ -264,23 +264,23 @@ export function useUserPortfolio() {
       );
 
       // Filter out nulls and positions with 0 balance
-      const positions: PortfolioPosition[] = verifiedPositions
-        .filter((p): p is PortfolioPosition => p !== null && p.balance > 0.000001);
+      const positions = (verifiedPositions.filter(p => p !== null) as PortfolioPosition[])
+        .filter((p: PortfolioPosition) => p.balance > 0.000001);
 
       // Check additional markets that might not be in subgraph yet
       // Limit to checking last 20 markets to avoid too many calls
       const marketsToCheck = allMarketIds
         .filter(id => !checkedMarkets.has(id))
         .slice(-20);
-      
+
       for (const marketId of marketsToCheck) {
         try {
           const market = await getMarket(BigInt(marketId));
           if (!market.exists) continue;
-          
+
           const resolution = await getMarketResolution(BigInt(marketId));
-          const isResolved = resolution.isResolved ?? resolution?.[7] ?? false;
-          
+          const isResolved = resolution.isResolved;
+
           // Check both YES and NO token balances
           for (const side of ['YES', 'NO'] as const) {
             const tokenAddress = side === 'YES' ? market.yes : market.no;
@@ -291,11 +291,11 @@ export function useUserPortfolio() {
                 functionName: 'balanceOf',
                 args: [userAddress],
               }) as bigint;
-              
+
               const balanceNum = Number(formatUnits(balance, 18));
               if (balanceNum > 0.000001) {
                 // Found a position not in subgraph!
-                const yesWins = resolution.yesWins ?? resolution?.[6] ?? null;
+                const yesWins = resolution.yesWins;
                 let currentPrice = 0;
                 let won = false;
 
@@ -319,7 +319,7 @@ export function useUserPortfolio() {
                     currentPrice = 0;
                   }
                 }
-                
+
                 positions.push({
                   marketId,
                   question: market.question,
@@ -373,9 +373,9 @@ export function useUserPortfolio() {
 
       // Reuse marketCount from above
       const maxMarketId = Number(marketCount);
-      
+
       // Filter out redemptions from markets that don't exist on current Core contract
-      redemptions = redemptions.filter(r => 
+      redemptions = redemptions.filter(r =>
         r.marketId > 0 && r.marketId <= maxMarketId
       );
 
@@ -385,18 +385,18 @@ export function useUserPortfolio() {
           // Key local storage by user address to prevent seeing other users' data
           const storageKey = `userRedemptions_${address.toLowerCase()}`;
           const legacyKey = 'userRedemptions';
-          
+
           // Migrate legacy data if exists (one-time cleanup)
           const legacyData = localStorage.getItem(legacyKey);
           if (legacyData) {
-             // We can't safely migrate because we don't know who owned it.
-             // Safest to just delete it to prevent data leak between accounts.
-             localStorage.removeItem(legacyKey);
+            // We can't safely migrate because we don't know who owned it.
+            // Safest to just delete it to prevent data leak between accounts.
+            localStorage.removeItem(legacyKey);
           }
 
           const localRedemptionsRaw = JSON.parse(localStorage.getItem(storageKey) || '[]');
           const subgraphTxHashes = new Set(redemptions.map(r => r.txHash.toLowerCase()));
-          
+
           const localRedemptions = localRedemptionsRaw
             .filter((r: any) => {
               const notInSubgraph = !subgraphTxHashes.has(r.txHash?.toLowerCase() || '');

@@ -1,3 +1,6 @@
+// Import BigInt serializer first - must be before any other imports
+import '@/lib/bigint-serializer';
+
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';

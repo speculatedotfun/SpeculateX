@@ -1,5 +1,10 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
+// Import BigInt serializer first
+import '@/lib/bigint-serializer';
+
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -36,7 +41,9 @@ function Counter({ value }: { value: string | number }) {
   );
 }
 
+
 export default function Home() {
+  console.log('[DEBUG] Rendering Home page');
   const [marketCount, setMarketCount] = useState<number>(0);
   const [stats, setStats] = useState({
     liquidity: 0,
@@ -113,7 +120,7 @@ export default function Home() {
       let expired = 0;
       let foundFeatured = false;
 
-      const limit = Math.min(count, 20);
+      const limit = Math.min(Number(count), 20);
 
       for (let i = 1; i <= limit; i++) {
         const marketId = BigInt(i);

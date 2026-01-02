@@ -10,7 +10,9 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
 import { Shield, UserPlus, X, Link, Database, Loader2, CheckCircle2, Zap, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { CRYPTO_ASSETS } from '@/lib/assets';
 const chainlinkResolverAbi = getChainlinkResolverAbi(getNetwork());
+
 
 export default function AdminManager() {
   const { address } = useAccount();
@@ -28,7 +30,8 @@ export default function AdminManager() {
   const [validFeedAddress, setValidFeedAddress] = useState(false);
   const [currentResolver, setCurrentResolver] = useState<string | null>(null);
   const [isCheckingResolver, setIsCheckingResolver] = useState(false);
-  const [markets, setMarkets] = useState<Array<{ id: number; question: string; expiryTimestamp: bigint; isResolved: boolean; expired: boolean }>>([]);
+  const [markets, setMarkets] = useState<Array<{ id: number; question: string; expiryTimestamp: string; isResolved: boolean; expired: boolean }>>([]);
+
   const [loadingMarkets, setLoadingMarkets] = useState(false);
   const [resolvingMarketId, setResolvingMarketId] = useState<number | null>(null);
 
@@ -52,12 +55,8 @@ export default function AdminManager() {
     query: { enabled: !!addresses.core },
   });
 
-  // BSC Chapel Testnet Chainlink feed addresses
-  const KNOWN_FEEDS = [
-    { id: 'BTC/USD', address: '0x5741306c21795FdCBb9b265Ea0255F499DFe515C' },
-    { id: 'ETH/USD', address: '0x143db3CEEfbdfe5631aDD3E50f7614B6ba708BA7' },
-    { id: 'BNB/USD', address: '0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526' },
-  ];
+  // Use shared assets directory
+
 
   // Load initial admin (check if current user is admin)
   useEffect(() => {
@@ -112,7 +111,8 @@ export default function AdminManager() {
       const count = await getMarketCount();
       const now = Math.floor(Date.now() / 1000);
 
-      const marketList: Array<{ id: number; question: string; expiryTimestamp: bigint; isResolved: boolean; expired: boolean }> = [];
+      const marketList: Array<{ id: number; question: string; expiryTimestamp: string; isResolved: boolean; expired: boolean }> = [];
+
 
       // Check up to 50 markets (to avoid too many calls)
       const maxMarkets = Number(count) > 50 ? 50 : Number(count);
@@ -129,9 +129,8 @@ export default function AdminManager() {
               marketList.push({
                 id: i,
                 question: market.question || `Market #${i}`,
-                expiryTimestamp: market.resolution.expiryTimestamp,
+                expiryTimestamp: market.resolution.expiryTimestamp.toString(),
                 isResolved: false,
-                expired: true,
                 expired: true,
               });
             }
@@ -222,7 +221,7 @@ export default function AdminManager() {
       let found = false;
       for (let i = 0; i < 50; i++) { // Max 50 steps back
         const { phase, aggregatorRound } = parseRoundId(targetRoundId);
-        
+
         // Check if we're at a phase boundary - cannot go back further
         if (aggregatorRound === 0) {
           throw new Error("Cannot resolve at phase boundary. Market may need manual resolution.");
@@ -230,7 +229,7 @@ export default function AdminManager() {
 
         // Construct previous round ID in the same phase
         const prevRoundId = constructRoundId(phase, aggregatorRound - 1);
-        
+
         try {
           const prev: any = await pc.readContract({
             address: oracleAddr as `0x${string}`,
@@ -271,12 +270,12 @@ export default function AdminManager() {
       if (hash && pc) {
         try {
           const receipt = await pc.waitForTransactionReceipt({ hash });
-          
+
           // Check if transaction failed
           if (receipt.status === 'reverted') {
             throw new Error('Transaction reverted. Check the transaction on block explorer for details.');
           }
-          
+
           pushToast({ title: 'Success', description: `Market #${marketId} resolved deterministically!`, type: 'success' });
           await loadResolvableMarkets();
         } catch (txError: any) {
@@ -286,10 +285,10 @@ export default function AdminManager() {
       }
     } catch (e: any) {
       console.error('Error resolving market:', e);
-      
+
       // Try to extract more detailed error information
       let errorMessage = e.message || 'Failed to resolve market';
-      
+
       // Try to decode error from transaction if available
       if (e.data || e.cause?.data) {
         try {
@@ -300,7 +299,7 @@ export default function AdminManager() {
               data: errorData,
             });
             errorMessage = `Contract Error: ${decoded.errorName}`;
-            
+
             // Map specific errors to user-friendly messages
             const errorMap: Record<string, string> = {
               'PhaseBoundaryRound': 'Cannot resolve at phase boundary. The market may need manual resolution.',
@@ -314,7 +313,7 @@ export default function AdminManager() {
               'NotChainlinkMarket': 'Market does not use Chainlink oracle.',
               'FeedMissing': 'Oracle feed address is not set.',
             };
-            
+
             if (errorMap[decoded.errorName]) {
               errorMessage = errorMap[decoded.errorName];
             }
@@ -324,7 +323,7 @@ export default function AdminManager() {
           console.error('Failed to decode error:', decodeError);
         }
       }
-      
+
       // Check for common error patterns in message
       if (errorMessage.includes('PhaseBoundaryRound') || errorMessage.includes('phase boundary')) {
         errorMessage = 'Cannot resolve at phase boundary. The market may need manual resolution.';
@@ -343,7 +342,7 @@ export default function AdminManager() {
       } else if (errorMessage.includes('revert') || errorMessage.includes('execution reverted')) {
         errorMessage = 'Transaction reverted. Check the transaction on block explorer for the specific error reason.';
       }
-      
+
       pushToast({ title: 'Error', description: errorMessage, type: 'error' });
     } finally {
       setResolvingMarketId(null);
@@ -467,14 +466,6 @@ export default function AdminManager() {
   };
 
   const handleRegisterFeed = async (feedId?: string, feedAddr?: string) => {
-    if (getNetwork() === 'testnet') {
-      pushToast({
-        title: 'Not supported on Testnet',
-        description: 'New Testnet resolver has no feed registry. Each market stores the Chainlink feed address directly.',
-        type: 'error',
-      });
-      return;
-    }
     const feed = feedId || selectedFeed;
     const addr = feedAddr || feedAddress;
 
@@ -506,6 +497,7 @@ export default function AdminManager() {
       pushToast({ title: 'Error', description: e.message || 'Failed to register feed', type: 'error' });
     }
   };
+
 
   if (isLoading) {
     return (
