@@ -49,7 +49,7 @@
 | **SpeculateCoreRouter** | `0x22B5E95C7B81D340CfCEBE93A2EE665dC310C491` | [View](https://testnet.bscscan.com/address/0x22B5E95C7B81D340CfCEBE93A2EE665dC310C491) |
 | **ChainlinkResolver** | `0x359a1104E6990050B0CD6e365A1cF9840262021a` | [View](https://testnet.bscscan.com/address/0x359a1104E6990050B0CD6e365A1cF9840262021a) |
 | **Treasury** | `0xfE75f39c7aBc1A45cd5b32F2f8B64B40DA362439` | [View](https://testnet.bscscan.com/address/0xfE75f39c7aBc1A45cd5b32F2f8B64B40DA362439) |
-| **Admin** | `0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c` | [View](https://testnet.bscscan.com/address/0x4DC74A8532550fFCA11Fb958549Ca0b72E3f1f1c) |
+| **Admin** | `0x29D67d1Ad683A76b2750f74B40b6e79d715C933c` | [View](https://testnet.bscscan.com/address/0x29D67d1Ad683A76b2750f74B40b6e79d715C933c) |
 
 ### External Contracts
 
