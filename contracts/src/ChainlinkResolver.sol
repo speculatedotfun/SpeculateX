@@ -11,12 +11,13 @@ import "./interfaces/AutomationCompatibleInterface.sol";
 interface ICoreResolutionView {
     enum OracleType { None, ChainlinkFeed }
     struct ResolutionConfig {
+        uint256 startTime;      // When trading becomes active (0 = immediate)
         uint256 expiryTimestamp;
         OracleType oracleType;
         address oracleAddress;
         bytes32 priceFeedId;
         uint256 targetValue;
-        uint8 comparison; // not used here
+        uint8 comparison; // Comparison enum (not used here)
         bool yesWins;
         bool isResolved;
         uint8 oracleDecimals;
@@ -234,8 +235,10 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable, Automati
             return (false, "");
         }
         
-        // Check staleness
-        if (block.timestamp - latestUpdatedAt > maxStaleness) {
+        // Check staleness - for expired markets, allow up to 7 days old
+        // This allows resolution of markets that expired hours/days ago
+        uint256 maxAllowedAge = 7 days;
+        if (block.timestamp - latestUpdatedAt > maxAllowedAge) {
             return (false, "");
         }
         
@@ -343,8 +346,12 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable, Automati
         }
 
         // 5. Staleness check
-        if (block.timestamp - updatedAt > maxStaleness) {
-            revert Stale(updatedAt, block.timestamp, maxStaleness);
+        // For expired markets, we allow stale data as long as it was the first round after expiry
+        // This is because markets may be resolved hours/days after expiry
+        // Only check staleness if the round is extremely old (more than 7 days)
+        uint256 maxAllowedAge = 7 days;
+        if (block.timestamp - updatedAt > maxAllowedAge) {
+            revert Stale(updatedAt, block.timestamp, maxAllowedAge);
         }
 
         // 6. Normalize price to 1e18

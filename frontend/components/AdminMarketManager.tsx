@@ -121,11 +121,13 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
   };
 
   const handleFinalize = (id: number) => {
-    writeContract({
-      address: addresses.core,
-      abi: coreAbiForNetwork,
-      functionName: 'finalizeResidual',
-      args: [BigInt(id)],
+    // Note: Residual is automatically finalized when market is resolved
+    // This function is kept for backwards compatibility but does nothing
+    // The residual is already finalized in _finalizeMarket() when resolveMarketWithPrice() is called
+    pushToast({ 
+      title: 'Info', 
+      description: 'Residual is automatically finalized when market is resolved. No action needed.', 
+      type: 'info' 
     });
   };
 
@@ -315,7 +317,7 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
                           </Button>
                         )}
 
-                        {market.status === 'active' && (
+                        {(market.status === 'active' || market.status === 'expired') && (
 
                           <>
                             <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-400/10" onClick={() => handleResolve(market, true)} disabled={isPending}>
@@ -332,9 +334,9 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
                               {market.yesWins ? 'YES WON' : 'NO WON'}
                             </span>
                             {market.residual > 0 && (
-                              <Button size="xs" variant="outline" className="h-7 text-[10px] border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800" onClick={() => handleFinalize(market.id)}>
-                                Claim ${market.residual.toFixed(0)}
-                              </Button>
+                              <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                                ${market.residual.toFixed(2)} residual
+                              </span>
                             )}
                           </div>
                         )}

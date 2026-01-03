@@ -98,7 +98,7 @@ export function useMarketContractData(marketId: number, marketIdBI: bigint) {
     const { data: pendingResidualData, refetch: refetchPendingResidual } = useReadContract({
         address: addresses.core,
         abi: coreAbiForNetwork,
-        functionName: 'lpResidualDebt',
+        functionName: 'pendingLpResidual',
         args: [marketIdBI, address || '0x0000000000000000000000000000000000000000'],
         query: { enabled: !!address },
     });

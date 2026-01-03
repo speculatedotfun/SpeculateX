@@ -374,6 +374,7 @@ export async function getMarketResolution(id: bigint) {
       comparison: result.comparison !== undefined ? Number(result.comparison) : (result[6] !== undefined ? Number(result[6]) : 0),
       yesWins: result.yesWins !== undefined ? Boolean(result.yesWins) : (result[7] !== undefined ? Boolean(result[7]) : false),
       isResolved: result.isResolved !== undefined ? Boolean(result.isResolved) : (result[8] !== undefined ? Boolean(result[8]) : false),
+      oracleDecimals: result.oracleDecimals !== undefined ? Number(result.oracleDecimals) : (result[9] !== undefined ? Number(result[9]) : 0),
     };
   } catch (error) {
     console.error('Error loading market resolution:', error);
@@ -387,6 +388,7 @@ export async function getMarketResolution(id: bigint) {
       comparison: 0,
       yesWins: false,
       isResolved: false,
+      oracleDecimals: 0,
     };
   }
 }

@@ -233,6 +233,16 @@ export default function AdminPage() {
             <p className="text-gray-500 dark:text-gray-400 text-lg font-light max-w-2xl">
               Manage markets, resolve disputes, and configure protocol parameters in real-time.
             </p>
+            <button
+              onClick={async () => {
+                if (!address) return;
+                const isAdminForce = await checkIsAdmin(address);
+                alert(`Role Verification:\n\nCreate/Resolve Role (ADMIN): ${isAdminForce ? '✅ GRANTED' : '❌ MISSING'}\n\nAddress: ${address}\n\nNote: If role is MISSING, you cannot perform admin actions.`);
+              }}
+              className="mt-4 px-4 py-2 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+            >
+              Verify Access
+            </button>
           </div>
 
           <div className="flex gap-4">
