@@ -16,6 +16,8 @@ import { fetchSubgraph } from '@/lib/subgraphClient';
 import { getAssetLogo } from '@/lib/marketUtils';
 import Header from '@/components/Header';
 import { ArrowRight, ShieldCheck, TrendingUp, Activity, Users, Zap, Flame, Clock } from 'lucide-react';
+import { Counter } from '@/components/Counter';
+import { LandingMarketCard } from '@/components/LandingMarketCard';
 
 export default function Home() {
   const [marketCount, setMarketCount] = useState<number>(0);
