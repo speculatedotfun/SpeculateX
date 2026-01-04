@@ -175,7 +175,7 @@ export default function PortfolioPage() {
               <Wallet className="w-3 h-3 text-[#14B8A6]" /> Portfolio Overview
             </div>
             <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-gray-900 to-gray-500 dark:from-white dark:to-gray-500 tracking-tighter mb-2">
-              My Assets
+              My Portfolio
             </h1>
           </motion.div>
 

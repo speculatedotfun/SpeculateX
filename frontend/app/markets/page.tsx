@@ -368,7 +368,7 @@ export default function MarketsPage() {
           initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="sticky top-24 z-30 mb-8 w-full"
+          className="mb-8 w-full"
         >
           <div className="bg-white/80 dark:bg-[#131722]/90 backdrop-blur-2xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl p-2 shadow-2xl shadow-black/5 flex flex-col md:flex-row gap-3">
 
