@@ -392,7 +392,7 @@ export default function PortfolioPage() {
                                 <thead className="bg-gray-50/50 dark:bg-white/5 border-b border-gray-100 dark:border-white/5">
                                   <tr>
                                     <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Position</th>
-                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Price</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Avg</th>
                                     <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Shares</th>
                                     <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Value</th>
                                     <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">P/L</th>
@@ -429,7 +429,7 @@ export default function PortfolioPage() {
                                 <thead className="bg-gray-50/50 dark:bg-white/5 border-b border-gray-100 dark:border-white/5">
                                   <tr>
                                     <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Position</th>
-                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Price</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Avg</th>
                                     <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Shares</th>
                                     <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Value</th>
                                     <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">P/L</th>
