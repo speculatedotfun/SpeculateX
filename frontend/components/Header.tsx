@@ -24,6 +24,18 @@ function HeaderAccountButton({ account, openAccountModal }: { account: any, open
   const displayName = account.address ? getDisplayName(account.address, nicknames) : account.displayName;
   const hasNickname = account.address && nicknames[account.address.toLowerCase()];
 
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isModalOpen]);
+
   const handleCopyAddress = () => {
     if (account.address) {
       navigator.clipboard.writeText(account.address);
@@ -81,15 +93,17 @@ function HeaderAccountButton({ account, openAccountModal }: { account: any, open
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
             onClick={() => setIsModalOpen(false)}
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-gray-700 overflow-hidden"
+              className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-gray-700 overflow-hidden my-auto"
+              style={{ maxHeight: '90vh' }}
             >
               {/* Header */}
               <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
@@ -103,7 +117,7 @@ function HeaderAccountButton({ account, openAccountModal }: { account: any, open
               </div>
 
               {/* Account Info */}
-              <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-80px)]">
+              <div className="p-6 space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 140px)' }}>
                 <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
                   <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-[#14B8A6] to-cyan-500 flex items-center justify-center text-white shadow-md">
                     <User className="w-6 h-6" />
