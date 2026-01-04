@@ -750,19 +750,27 @@ function PositionRow({ position, trades = [], onClaimSuccess, isRedeemed = false
       </td>
       <td className="px-6 py-4">
         {!canRedeem && !showLost && !showClaimed && avgPurchasePrice > 0 ? (
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
-              {(avgPurchasePrice * 100).toFixed(2)}¢
-            </span>
-            <ArrowRight className="w-3 h-3 text-gray-400" />
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
+                {(avgPurchasePrice * 100).toFixed(2)}¢
+              </span>
+              <ArrowRight className="w-3 h-3 text-gray-400" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Now</span>
+              <span className="text-xs font-mono font-bold text-gray-900 dark:text-white">
+                {(position.currentPrice * 100).toFixed(2)}¢
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Now</span>
             <span className="text-xs font-mono font-bold text-gray-900 dark:text-white">
               {(position.currentPrice * 100).toFixed(2)}¢
             </span>
           </div>
-        ) : (
-          <span className="text-xs font-mono font-bold text-gray-900 dark:text-white">
-            {(position.currentPrice * 100).toFixed(2)}¢
-          </span>
         )}
       </td>
       <td className="px-6 py-4 text-right font-medium tabular-nums text-gray-900 dark:text-white">
