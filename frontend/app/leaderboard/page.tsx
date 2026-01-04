@@ -116,7 +116,7 @@ export default function LeaderboardPage() {
                         animate={{ opacity: 1, y: 0 }}
                         className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-gray-900 to-gray-500 dark:from-white dark:to-gray-500 tracking-tighter mb-6"
                     >
-                        Legends Leaderboard
+                        Leaderboard
                     </motion.h1>
 
                     <motion.p
