@@ -3,15 +3,177 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAccount } from 'wagmi';
+import { useAccount, useDisconnect } from 'wagmi';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { isAdmin as checkIsAdmin } from '@/lib/hooks';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import NetworkSelector from '@/components/NetworkSelector';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, User, LogOut, Copy, Check } from 'lucide-react';
 import { hapticFeedback } from '@/lib/haptics';
+import { useNicknames, getDisplayName } from '@/lib/hooks/useNicknames';
+import { NicknameManager } from '@/components/NicknameManager';
+
+// --- Sub-component for account button with nickname support ---
+function HeaderAccountButton({ account, openAccountModal }: { account: any, openAccountModal: () => void }) {
+  const { nicknames } = useNicknames();
+  const { disconnect } = useDisconnect();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const displayName = account.address ? getDisplayName(account.address, nicknames) : account.displayName;
+  const hasNickname = account.address && nicknames[account.address.toLowerCase()];
+
+  const handleCopyAddress = () => {
+    if (account.address) {
+      navigator.clipboard.writeText(account.address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <>
+      <div className="flex items-center gap-3">
+        <div className="group relative rounded-full bg-gradient-to-r from-teal-400 to-cyan-400 p-[1px]">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            type="button"
+            className="relative flex items-center gap-3 rounded-full bg-white dark:bg-gray-900 px-1 py-1 pr-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+          >
+            {/* Avatar */}
+            <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-[#14B8A6] to-cyan-500 flex items-center justify-center text-white shadow-md">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
+              </svg>
+              {/* Online Dot */}
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-white dark:bg-gray-900 rounded-full flex items-center justify-center">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-start leading-none gap-0.5">
+              <span className="text-[10px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-cyan-500 uppercase tracking-wider">
+                {account.displayBalance ? account.displayBalance : 'Connected'}
+              </span>
+              <span className={`text-xs font-bold text-gray-900 dark:text-gray-100 ${hasNickname ? '' : 'font-mono'}`}>
+                {displayName}
+              </span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* Account Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-gray-700 overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Account</h2>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                </button>
+              </div>
+
+              {/* Account Info */}
+              <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-80px)]">
+                <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+                  <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-[#14B8A6] to-cyan-500 flex items-center justify-center text-white shadow-md">
+                    <User className="w-6 h-6" />
+                    <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-white dark:bg-gray-900 rounded-full flex items-center justify-center">
+                      <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-gray-900 dark:text-white mb-1">
+                      {displayName}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-gray-500 dark:text-gray-400 truncate">
+                        {account.address}
+                      </span>
+                      <button
+                        onClick={handleCopyAddress}
+                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                        title="Copy address"
+                      >
+                        {copied ? (
+                          <Check className="w-3 h-3 text-green-500" />
+                        ) : (
+                          <Copy className="w-3 h-3 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Balance */}
+                {account.displayBalance && (
+                  <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-xl border border-teal-100 dark:border-teal-800">
+                    <div className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                      Balance
+                    </div>
+                    <div className="text-lg font-black text-teal-600 dark:text-teal-400">
+                      {account.displayBalance}
+                    </div>
+                  </div>
+                )}
+
+                {/* Nickname Section */}
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Set Nickname
+                  </h3>
+                  <NicknameManager onClose={() => setIsModalOpen(false)} />
+                </div>
+
+                {/* Disconnect Button */}
+                <button
+                  onClick={() => {
+                    disconnect();
+                    setIsModalOpen(false);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl font-bold transition-colors border border-red-200 dark:border-red-800"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Disconnect Wallet
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
 
 // --- Sub-component to fix nesting/parsing issues ---
 function CustomConnectButton({ prefersReducedMotion = false }: { prefersReducedMotion?: boolean }) {
@@ -72,47 +234,7 @@ function CustomConnectButton({ prefersReducedMotion = false }: { prefersReducedM
                 );
               }
 
-              return (
-                <div className="flex items-center gap-3">
-                  <div className="group relative rounded-full bg-gradient-to-r from-teal-400 to-cyan-400 p-[1px]">
-                    <button
-                      onClick={openAccountModal}
-                      type="button"
-                      className="relative flex items-center gap-3 rounded-full bg-white dark:bg-gray-900 px-1 py-1 pr-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
-                    >
-                      {/* Avatar */}
-                      <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-[#14B8A6] to-cyan-500 flex items-center justify-center text-white shadow-md">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                          />
-                        </svg>
-                        {/* Online Dot */}
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-white dark:bg-gray-900 rounded-full flex items-center justify-center">
-                          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-start leading-none gap-0.5">
-                        <span className="text-[10px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-cyan-500 uppercase tracking-wider">
-                          {account.displayBalance ? account.displayBalance : 'Connected'}
-                        </span>
-                        <span className="text-xs font-bold text-gray-900 dark:text-gray-100 font-mono">
-                          {account.displayName}
-                        </span>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              );
+              return <HeaderAccountButton account={account} openAccountModal={openAccountModal} />;
             })()}
           </div>
         );

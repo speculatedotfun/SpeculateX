@@ -73,11 +73,21 @@ export function LiquiditySection({
       setAddLiquidityAmount('');
       return;
     }
+    
+    // Allow typing freely - only validate format, don't format the number yet
+    // This allows users to type "1000" without it being formatted to "1.000000" immediately
     if (!liquidityRegex.test(val)) return;
+    
+    // Allow decimal point and trailing decimal point
     if (val === '.' || val.endsWith('.')) {
       setAddLiquidityAmount(val);
       return;
     }
+    
+    // Store the raw value as-is to allow free typing
+    setAddLiquidityAmount(val);
+    
+    // Only validate the amount, but don't format it during typing
     const num = parseFloat(val);
     if (!Number.isFinite(num)) return;
 
@@ -85,8 +95,15 @@ export function LiquiditySection({
       setAddValidationError(`Amount exceeds available balance ($${maxBuyAmount.toFixed(2)})`);
       return;
     }
-
-    setAddLiquidityAmount(formatLiquidity(num));
+  };
+  
+  const handleAddInputBlur = () => {
+    // Format the value only when user finishes typing (on blur)
+    if (!addLiquidityAmount) return;
+    const num = parseFloat(addLiquidityAmount);
+    if (Number.isFinite(num)) {
+      setAddLiquidityAmount(formatLiquidity(num));
+    }
   };
 
   const handleRemoveInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -97,11 +114,20 @@ export function LiquiditySection({
       setRemoveLiquidityAmount('');
       return;
     }
+    
+    // Allow typing freely - only validate format, don't format the number yet
     if (!liquidityRegex.test(val)) return;
+    
+    // Allow decimal point and trailing decimal point
     if (val === '.' || val.endsWith('.')) {
       setRemoveLiquidityAmount(val);
       return;
     }
+    
+    // Store the raw value as-is to allow free typing
+    setRemoveLiquidityAmount(val);
+    
+    // Only validate the amount, but don't format it during typing
     const num = parseFloat(val);
     if (!Number.isFinite(num)) return;
 
@@ -116,8 +142,15 @@ export function LiquiditySection({
       setRemoveValidationError(`Amount exceeds your LP shares ($${lpShareFloat.toFixed(2)})`);
       return;
     }
-
-    setRemoveLiquidityAmount(formatLiquidity(num));
+  };
+  
+  const handleRemoveInputBlur = () => {
+    // Format the value only when user finishes typing (on blur)
+    if (!removeLiquidityAmount) return;
+    const num = parseFloat(removeLiquidityAmount);
+    if (Number.isFinite(num)) {
+      setRemoveLiquidityAmount(formatLiquidity(num));
+    }
   };
 
   const hasClaimableRewards = pendingLpFeesValue > 0n || pendingLpResidualValue > 0n;
@@ -185,6 +218,7 @@ export function LiquiditySection({
               pattern={liquidityRegex.source}
               value={addLiquidityAmount}
               onChange={handleAddInputChange}
+              onBlur={handleAddInputBlur}
               placeholder="0.00"
               className={`w-full h-12 pl-10 pr-20 rounded-xl bg-white dark:bg-gray-900 border ${addValidationError
                   ? 'border-red-500 dark:border-red-400 focus:ring-red-500'
@@ -267,6 +301,7 @@ export function LiquiditySection({
                 pattern={liquidityRegex.source}
                 value={removeLiquidityAmount}
                 onChange={handleRemoveInputChange}
+                onBlur={handleRemoveInputBlur}
                 placeholder="0.00"
                 className={`w-full h-12 pl-10 pr-20 rounded-xl bg-white dark:bg-gray-900 border ${removeValidationError
                     ? 'border-red-500 dark:border-red-400 focus:ring-red-500'

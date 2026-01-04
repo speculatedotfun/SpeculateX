@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ExternalLink, User, ShoppingCart } from 'lucide-react';
+import { useNicknames, getDisplayName } from '@/lib/hooks/useNicknames';
 
 interface Trade {
     id: string; // txHash
@@ -19,6 +20,8 @@ interface LiveTradeFeedProps {
 }
 
 export function LiveTradeFeed({ transactions }: LiveTradeFeedProps) {
+    const { nicknames } = useNicknames();
+    
     // Process transactions to match our interface
     const processedTrades = transactions.slice(0, 50).map((tx: any) => {
         // Fallback for different transaction data structures
@@ -49,7 +52,8 @@ export function LiveTradeFeed({ transactions }: LiveTradeFeedProps) {
             </div>
 
             {/* Column Headers */}
-            <div className="grid grid-cols-4 px-4 py-2 text-gray-400 opacity-60 text-[10px] font-bold uppercase bg-gray-50/30 dark:bg-white/5 border-b border-gray-100 dark:border-white/5">
+            <div className="grid grid-cols-5 px-4 py-2 text-gray-400 opacity-60 text-[10px] font-bold uppercase bg-gray-50/30 dark:bg-white/5 border-b border-gray-100 dark:border-white/5">
+                <div>User</div>
                 <div>Price</div>
                 <div className="text-right">Amount</div>
                 <div className="text-right">Time</div>
@@ -66,8 +70,11 @@ export function LiveTradeFeed({ transactions }: LiveTradeFeedProps) {
                                 initial={{ opacity: 0, x: -20, height: 0 }}
                                 animate={{ opacity: 1, x: 0, height: 'auto' }}
                                 exit={{ opacity: 0, x: 20, height: 0 }}
-                                className="grid grid-cols-4 px-4 py-2.5 text-xs font-mono border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors items-center"
+                                className="grid grid-cols-5 px-4 py-2.5 text-xs border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors items-center"
                             >
+                                <div className={`text-gray-700 dark:text-gray-300 ${nicknames[trade.user?.toLowerCase()] ? 'font-medium' : 'font-mono'}`}>
+                                    {trade.user ? getDisplayName(trade.user, nicknames) : '-'}
+                                </div>
                                 <div className={`font-bold ${trade.side === 'Yes'
                                     ? trade.realAction.includes('Buy') ? 'text-green-600 dark:text-green-400' : 'text-red-500'
                                     : trade.realAction.includes('Buy') ? 'text-green-600 dark:text-green-400' : 'text-red-500'
@@ -77,10 +84,10 @@ export function LiveTradeFeed({ transactions }: LiveTradeFeedProps) {
                                     </span>
                                     {trade.price}
                                 </div>
-                                <div className="text-right text-gray-700 dark:text-gray-300">
+                                <div className="text-right text-gray-700 dark:text-gray-300 font-mono">
                                     ${trade.amount}
                                 </div>
-                                <div className="text-right text-gray-400">
+                                <div className="text-right text-gray-400 font-mono">
                                     {getTimeAgo(trade.timestamp)}
                                 </div>
                                 <div className="flex justify-end">

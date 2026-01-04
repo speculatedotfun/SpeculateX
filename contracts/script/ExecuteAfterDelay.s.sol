@@ -60,6 +60,7 @@ contract ExecuteAfterDelay is Script {
 
         // 2) Facet wiring – must match deploy.sol order exactly
         nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "createMarket(string,string,string,string,string,uint256,uint256,address,bytes32,uint256,uint8)", marketFacetAddr);
+        nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "createScheduledMarket(string,string,string,string,string,uint256,uint256,uint256,address,bytes32,uint256,uint8)", marketFacetAddr);
         nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "getMarketState(uint256)", marketFacetAddr);
         nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "getMarketResolution(uint256)", marketFacetAddr);
         nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "getMarketQuestion(uint256)", marketFacetAddr);

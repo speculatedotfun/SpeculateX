@@ -20,7 +20,6 @@ import { MarketHeader } from '@/components/market/MarketHeader';
 import { Skeleton } from '@/components/ui';
 import { PriceDisplay } from '@/components/market/PriceDisplay';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { LmsrPriceDepth } from '@/components/market/LmsrPriceDepth';
 import { LiveTradeFeed } from '@/components/market/LiveTradeFeed';
 
 // Lib
@@ -747,14 +746,6 @@ export default function MarketDetailPage() {
 
                   {/* Market Data Tools */}
                   <div className="grid grid-cols-1 gap-6">
-                    <div className="h-[400px]">
-                      <LmsrPriceDepth
-                        qYes={marketData.marketState?.qYes ?? 0n}
-                        qNo={marketData.marketState?.qNo ?? 0n}
-                        b={marketData.marketState?.b ?? 0n}
-                        currentPrice={marketData.currentPrices.yes}
-                      />
-                    </div>
                     <div className="h-[300px]">
                       <LiveTradeFeed transactions={transactions} />
                     </div>

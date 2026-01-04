@@ -23,8 +23,10 @@ import { Pagination } from '@/components/ui/Pagination';
 // NEW IMPORTS
 import { StatsBanner } from '@/components/market/StatsBanner';
 import { MarketCard, MarketCardData } from '@/components/market/MarketCard';
+import { FeaturedMarketCard } from '@/components/market/FeaturedMarketCard';
+import { Filter, ArrowUpDown, Flame, Clock } from 'lucide-react';
 
-const STATUS_FILTERS = ['Active', 'Scheduled', 'Expired', 'Resolved', 'Cancelled'] as const;
+const STATUS_FILTERS = ['Active', 'Expired', 'Resolved', 'Cancelled'] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 export default function MarketsPage() {
@@ -39,10 +41,11 @@ export default function MarketsPage() {
     }
   }, [address]);
   const [marketCount, setMarketCount] = useState<number | null>(null);
-  const [markets, setMarkets] = useState<MarketCardData[]>([]); // Use imported type
+  const [markets, setMarkets] = useState<MarketCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeStatusTab, setActiveStatusTab] = useState<StatusFilter>('Active');
+  const [sortBy, setSortBy] = useState<'volume' | 'newest' | 'ending'>('volume');
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 12;
@@ -191,18 +194,36 @@ export default function MarketsPage() {
   };
 
   const filteredMarkets = useMemo(() => {
-    return markets.filter(market => {
+    let result = markets.filter(market => {
+      // Always filter out scheduled markets - users should not see them
+      if (market.status === 'SCHEDULED') return false;
+      
       if (searchTerm && !market.question.toLowerCase().includes(searchTerm.toLowerCase())) return false;
       if (activeStatusTab) {
         if (activeStatusTab === 'Active' && market.status !== 'LIVE TRADING') return false;
-        if (activeStatusTab === 'Scheduled' && market.status !== 'SCHEDULED') return false;
         if (activeStatusTab === 'Expired' && market.status !== 'EXPIRED') return false;
         if (activeStatusTab === 'Resolved' && market.status !== 'RESOLVED') return false;
         if (activeStatusTab === 'Cancelled' && market.status !== 'CANCELLED') return false;
       }
       return true;
     });
-  }, [markets, searchTerm, activeStatusTab]);
+
+    // Sorting
+    return result.sort((a, b) => {
+      if (sortBy === 'volume') return b.volume - a.volume;
+      if (sortBy === 'newest') return Number(b.id) - Number(a.id); // Assuming higher ID is newer
+      if (sortBy === 'ending') return Number(a.expiryTimestamp) - Number(b.expiryTimestamp);
+      return 0;
+    });
+  }, [markets, searchTerm, activeStatusTab, sortBy]);
+
+  // Identify Featured Market (Highest Volume Active Market)
+  const featuredMarket = useMemo(() => {
+    if (markets.length === 0) return null;
+    const activeMarkets = markets.filter(m => m.status === 'LIVE TRADING');
+    if (activeMarkets.length === 0) return null;
+    return activeMarkets.reduce((prev, current) => (prev.volume > current.volume) ? prev : current);
+  }, [markets]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -322,13 +343,34 @@ export default function MarketsPage() {
         />
 
         {/* Controls Section */}
+        {/* --- LIVE FEATURED MARKET --- */}
+        {!loading && featuredMarket && !searchTerm && activeStatusTab === 'Active' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-12"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Flame className="w-5 h-5 text-orange-500 fill-orange-500 animate-pulse" />
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Featured Market</h2>
+            </div>
+            <FeaturedMarketCard
+              market={featuredMarket}
+              getMarketLogo={getMarketLogo}
+              formatNumber={formatNumber}
+              prefersReducedMotion={prefersReducedMotion}
+            />
+          </motion.div>
+        )}
+
+        {/* --- CONTROLS BAR --- */}
         <motion.div
           initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
           className="sticky top-24 z-30 mb-8 w-full"
         >
-          <div className="bg-white/80 dark:bg-[#131722]/90 backdrop-blur-2xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl p-1.5 shadow-2xl shadow-black/5 flex flex-col md:flex-row gap-2">
+          <div className="bg-white/80 dark:bg-[#131722]/90 backdrop-blur-2xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl p-2 shadow-2xl shadow-black/5 flex flex-col md:flex-row gap-3">
 
             {/* Search Bar */}
             <div className="relative flex-1 group bg-gray-50/50 dark:bg-black/20 rounded-xl transition-colors hover:bg-gray-100/50 dark:hover:bg-black/40">
@@ -344,26 +386,46 @@ export default function MarketsPage() {
               />
             </div>
 
-            {/* Divider on Desktop */}
-            <div className="hidden md:block w-px bg-gray-200 dark:bg-gray-800 my-2" />
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar md:overflow-visible">
+              {/* Divider */}
+              <div className="hidden md:block w-px h-8 bg-gray-200 dark:bg-gray-700 mx-1" />
 
-            {/* Tabs */}
-            <div className="flex items-center p-0.5 gap-1 overflow-x-auto no-scrollbar md:pr-2">
-              {STATUS_FILTERS.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveStatusTab(tab)}
-                  className={`
-                      relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 whitespace-nowrap flex-shrink-0
+              {/* Status Filters (Pills) */}
+              <div className="flex items-center bg-gray-100/50 dark:bg-black/20 p-1 rounded-xl">
+                {STATUS_FILTERS.map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveStatusTab(tab)}
+                    className={`
+                      px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap
                       ${activeStatusTab === tab
-                      ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/25'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5'
-                    }
+                        ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                      }
                     `}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
+              {/* Divider */}
+              <div className="hidden md:block w-px h-8 bg-gray-200 dark:bg-gray-700 mx-1" />
+
+              {/* Sort Dropdown (Simple implementation) */}
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="appearance-none pl-9 pr-8 py-2.5 bg-gray-100/50 dark:bg-black/20 hover:bg-gray-100 dark:hover:bg-black/40 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer border border-transparent focus:border-teal-500/50 transition-colors"
                 >
-                  {tab}
-                </button>
-              ))}
+                  <option value="volume">Highest Volume</option>
+                  <option value="newest">Newest Listed</option>
+                  <option value="ending">Ending Soon</option>
+                </select>
+                <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+              </div>
+
             </div>
           </div>
         </motion.div>
