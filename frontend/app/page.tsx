@@ -14,10 +14,95 @@ import { formatUnits } from 'viem';
 import { useQuery } from '@tanstack/react-query';
 import { fetchSubgraph } from '@/lib/subgraphClient';
 import { getAssetLogo } from '@/lib/marketUtils';
-import Header from '@/components/Header';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import NetworkSelector from '@/components/NetworkSelector';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { ArrowRight, ShieldCheck, TrendingUp, Activity, Users, Zap, Flame, Clock } from 'lucide-react';
 import { Counter } from '@/components/Counter';
 import { LandingMarketCard } from '@/components/LandingMarketCard';
+
+interface FeaturedMarketData {
+  id: number;
+  question: string;
+  priceYes: number;
+  priceNo: number;
+  logo: string;
+  isActive: boolean;
+  isDemo?: boolean;
+}
+
+function CustomConnectButton() {
+  return (
+    <ConnectButton.Custom>
+      {({
+        account,
+        chain,
+        openAccountModal,
+        openConnectModal,
+        openChainModal,
+        authenticationStatus,
+        mounted,
+      }) => {
+        const ready = mounted && authenticationStatus !== 'loading';
+        const connected =
+          ready &&
+          account &&
+          chain &&
+          (!authenticationStatus || authenticationStatus === 'authenticated');
+
+        return (
+          <div
+            {...(!ready && {
+              'aria-hidden': true,
+              style: {
+                opacity: 0,
+                pointerEvents: 'none',
+                userSelect: 'none',
+              },
+            })}
+          >
+            {(() => {
+              if (!connected) {
+                return (
+                  <button
+                    onClick={openConnectModal}
+                    type="button"
+                    className="font-bold text-sm bg-white dark:bg-white/10 text-gray-900 dark:text-white px-5 py-2.5 rounded-full shadow-lg shadow-black/5 hover:bg-gray-50 dark:hover:bg-white/20 hover:scale-105 active:scale-95 transition-all duration-200 border border-gray-200 dark:border-white/10 backdrop-blur-md"
+                  >
+                    Connect Wallet
+                  </button>
+                );
+              }
+
+              if (chain.unsupported) {
+                return (
+                  <button
+                    onClick={openChainModal}
+                    type="button"
+                    className="font-bold text-sm bg-red-500 text-white px-5 py-2.5 rounded-full shadow-lg shadow-red-500/30 hover:bg-red-600 active:scale-95 transition-all duration-200"
+                  >
+                    Wrong Network
+                  </button>
+                );
+              }
+
+              return (
+                <button
+                  onClick={openAccountModal}
+                  type="button"
+                  className="flex items-center gap-2 font-bold text-sm bg-white dark:bg-white/10 text-gray-900 dark:text-white px-4 py-2 rounded-full shadow-lg shadow-black/5 hover:bg-gray-50 dark:hover:bg-white/20 active:scale-95 transition-all duration-200 border border-gray-200 dark:border-white/10 backdrop-blur-md"
+                >
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  {account.displayName}
+                </button>
+              );
+            })()}
+          </div>
+        );
+      }}
+    </ConnectButton.Custom>
+  );
+}
 
 export default function Home() {
   const [marketCount, setMarketCount] = useState<number>(0);
@@ -220,7 +305,39 @@ export default function Home() {
         <motion.div style={{ x: moveXReverse, y: moveY }} className="absolute -bottom-[10%] left-[20%] -z-10 h-[600px] w-[600px] rounded-full bg-blue-500/20 blur-[130px] animate-blob animation-delay-4000" />
       </div>
 
-      <Header />
+      {/* Floating Header */}
+      <header className="sticky top-0 left-0 right-0 z-50 p-6 pointer-events-none">
+        <div className="max-w-[1400px] mx-auto flex items-center justify-between">
+          {/* Logo */}
+          <Link href="/" className="pointer-events-auto group relative z-20">
+            <div className="relative w-[140px] sm:w-[160px] h-10 transition-transform duration-300 group-hover:scale-105">
+              <Image
+                src="/Whitelogo.png"
+                alt="SpeculateX Logo"
+                fill
+                sizes="(max-width: 640px) 140px, 160px"
+                priority
+                className="object-contain object-left dark:hidden"
+              />
+              <Image
+                src="/darklogo.png"
+                alt="SpeculateX Logo"
+                fill
+                sizes="(max-width: 640px) 140px, 160px"
+                priority
+                className="object-contain object-left hidden dark:block"
+              />
+            </div>
+          </Link>
+
+          {/* Right Actions */}
+          <div className="flex items-center gap-3 pointer-events-auto">
+            <NetworkSelector />
+            <ThemeToggle />
+            <CustomConnectButton />
+          </div>
+        </div>
+      </header>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center justify-center relative z-10 w-full pt-24 min-h-screen">
