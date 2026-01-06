@@ -8,7 +8,7 @@ import '@/lib/bigint-serializer';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion, useSpring, useTransform, useMotionValue } from 'framer-motion';
+import { motion, useSpring, useTransform, useMotionValue, AnimatePresence } from 'framer-motion';
 import { getMarketCount, getMarket, getMarketState, getSpotPriceYesE6, getMarketResolution } from '@/lib/hooks';
 import { formatUnits } from 'viem';
 import { useQuery } from '@tanstack/react-query';
@@ -17,9 +17,13 @@ import { getAssetLogo } from '@/lib/marketUtils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import NetworkSelector from '@/components/NetworkSelector';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { ArrowRight, ShieldCheck, TrendingUp, Activity, Users, Zap, Flame, Clock } from 'lucide-react';
+import { ArrowRight, ShieldCheck, TrendingUp, Activity, Users, Zap, Flame, Clock, User, LogOut, Copy, Check, X } from 'lucide-react';
 import { Counter } from '@/components/Counter';
 import { LandingMarketCard } from '@/components/LandingMarketCard';
+import { useNicknames, getDisplayName } from '@/lib/hooks/useNicknames';
+import { useDisconnect } from 'wagmi';
+import { NicknameManager } from '@/components/NicknameManager';
+import { hapticFeedback } from '@/lib/haptics';
 
 interface FeaturedMarketData {
   id: number;
@@ -29,6 +33,181 @@ interface FeaturedMarketData {
   logo: string;
   isActive: boolean;
   isDemo?: boolean;
+}
+
+// --- Sub-component for account button with nickname support ---
+function HeaderAccountButton({ account, openAccountModal }: { account: any, openAccountModal: () => void }) {
+  const { nicknames } = useNicknames();
+  const { disconnect } = useDisconnect();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const displayName = account.address ? getDisplayName(account.address, nicknames) : account.displayName;
+  const hasNickname = account.address && nicknames[account.address.toLowerCase()];
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isModalOpen]);
+
+  const handleCopyAddress = () => {
+    if (account.address) {
+      navigator.clipboard.writeText(account.address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <>
+      <div className="flex items-center gap-3">
+        <div className="group relative rounded-full bg-gradient-to-r from-teal-400 to-cyan-400 p-[1px]">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            type="button"
+            className="relative flex items-center gap-3 rounded-full bg-white dark:bg-gray-900 px-1 py-1 pr-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+          >
+            {/* Avatar */}
+            <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-[#14B8A6] to-cyan-500 flex items-center justify-center text-white shadow-md">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
+              </svg>
+              {/* Online Dot */}
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-white dark:bg-gray-900 rounded-full flex items-center justify-center">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-start leading-none gap-0.5">
+              <span className="text-[10px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-cyan-500 uppercase tracking-wider">
+                {account.displayBalance ? account.displayBalance : 'Connected'}
+              </span>
+              <span className={`text-xs font-bold text-gray-900 dark:text-gray-100 ${hasNickname ? '' : 'font-mono'}`}>
+                {displayName}
+              </span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* Account Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
+            onClick={() => setIsModalOpen(false)}
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700"
+            >
+              <div className="p-6 space-y-4">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Account</h2>
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                  </button>
+                </div>
+
+                {/* Account Info */}
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                      Display Name
+                    </div>
+                    <div className={`text-base font-bold text-gray-900 dark:text-white ${hasNickname ? '' : 'font-mono'}`}>
+                      {displayName}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                      Address
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="font-mono text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 p-2 rounded-lg flex-1">
+                        {account.address}
+                      </div>
+                      <button
+                        onClick={handleCopyAddress}
+                        className="p-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                      >
+                        {copied ? (
+                          <Check className="w-4 h-4 text-emerald-500" />
+                        ) : (
+                          <Copy className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Balance */}
+                  {account.displayBalance && (
+                    <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-xl border border-teal-100 dark:border-teal-800">
+                      <div className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                        Balance
+                      </div>
+                      <div className="text-lg font-black text-teal-600 dark:text-teal-400">
+                        {account.displayBalance}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Nickname Section */}
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      Set Nickname
+                    </h3>
+                    <NicknameManager onClose={() => setIsModalOpen(false)} />
+                  </div>
+
+                  {/* Disconnect Button */}
+                  <button
+                    onClick={() => {
+                      disconnect();
+                      setIsModalOpen(false);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl font-bold transition-colors border border-red-200 dark:border-red-800"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Disconnect Wallet
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
 }
 
 function CustomConnectButton() {
@@ -65,9 +244,12 @@ function CustomConnectButton() {
               if (!connected) {
                 return (
                   <button
-                    onClick={openConnectModal}
+                    onClick={() => {
+                      hapticFeedback('medium');
+                      openConnectModal();
+                    }}
                     type="button"
-                    className="font-bold text-sm bg-white dark:bg-white/10 text-gray-900 dark:text-white px-5 py-2.5 rounded-full shadow-lg shadow-black/5 hover:bg-gray-50 dark:hover:bg-white/20 hover:scale-105 active:scale-95 transition-all duration-200 border border-gray-200 dark:border-white/10 backdrop-blur-md"
+                    className="group relative inline-flex items-center justify-center rounded-full bg-[#14B8A6] dark:bg-[#14B8A6] px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-[#14B8A6]/25 dark:shadow-[#14B8A6]/30 hover:bg-[#0D9488] dark:hover:bg-[#0D9488] hover:shadow-xl hover:shadow-[#14B8A6]/30 dark:hover:shadow-[#14B8A6]/40 transition-all duration-300 active:scale-95"
                   >
                     Connect Wallet
                   </button>
@@ -79,23 +261,14 @@ function CustomConnectButton() {
                   <button
                     onClick={openChainModal}
                     type="button"
-                    className="font-bold text-sm bg-red-500 text-white px-5 py-2.5 rounded-full shadow-lg shadow-red-500/30 hover:bg-red-600 active:scale-95 transition-all duration-200"
+                    className="inline-flex items-center justify-center rounded-full bg-red-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-600 hover:shadow-lg hover:shadow-red-500/25 transition-all active:scale-95"
                   >
                     Wrong Network
                   </button>
                 );
               }
 
-              return (
-                <button
-                  onClick={openAccountModal}
-                  type="button"
-                  className="flex items-center gap-2 font-bold text-sm bg-white dark:bg-white/10 text-gray-900 dark:text-white px-4 py-2 rounded-full shadow-lg shadow-black/5 hover:bg-gray-50 dark:hover:bg-white/20 active:scale-95 transition-all duration-200 border border-gray-200 dark:border-white/10 backdrop-blur-md"
-                >
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  {account.displayName}
-                </button>
-              );
+              return <HeaderAccountButton account={account} openAccountModal={openAccountModal} />;
             })()}
           </div>
         );
@@ -306,58 +479,60 @@ export default function Home() {
       </div>
 
       {/* Floating Header */}
-      <header className="sticky top-0 left-0 right-0 z-50 p-6 pointer-events-none">
-        <div className="max-w-[1400px] mx-auto flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="pointer-events-auto group relative z-20">
-            <div className="relative w-[140px] sm:w-[160px] h-10 transition-transform duration-300 group-hover:scale-105">
-              <Image
-                src="/Whitelogo.png"
-                alt="SpeculateX Logo"
-                fill
-                sizes="(max-width: 640px) 140px, 160px"
-                priority
-                className="object-contain object-left dark:hidden"
-              />
-              <Image
-                src="/darklogo.png"
-                alt="SpeculateX Logo"
-                fill
-                sizes="(max-width: 640px) 140px, 160px"
-                priority
-                className="object-contain object-left hidden dark:block"
-              />
-            </div>
-          </Link>
+      <header className="sticky top-0 left-0 right-0 z-50 pointer-events-none">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 sm:h-20">
+            {/* Logo */}
+            <Link href="/" className="pointer-events-auto group relative z-20 flex items-center flex-shrink-0">
+              <div className="relative w-[140px] sm:w-[200px] h-10 sm:h-10 transition-transform duration-300 group-hover:scale-105">
+                <Image
+                  src="/Whitelogo.png"
+                  alt="SpeculateX Logo"
+                  fill
+                  sizes="(max-width: 640px) 140px, 200px"
+                  priority
+                  className="object-contain object-left dark:hidden"
+                />
+                <Image
+                  src="/darklogo.png"
+                  alt="SpeculateX Logo"
+                  fill
+                  sizes="(max-width: 640px) 140px, 200px"
+                  priority
+                  className="object-contain object-left hidden dark:block"
+                />
+              </div>
+            </Link>
 
-          {/* Right Actions */}
-          <div className="flex items-center gap-3 pointer-events-auto">
-            <NetworkSelector />
-            <ThemeToggle />
-            <CustomConnectButton />
+            {/* Right Actions */}
+            <div className="flex items-center gap-3 pointer-events-auto">
+              <NetworkSelector />
+              <ThemeToggle />
+              <CustomConnectButton />
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center relative z-10 w-full pt-24 min-h-screen">
-        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center min-h-[calc(100vh-200px)]">
+      <main className="flex-1 flex flex-col items-center justify-center relative z-10 w-full min-h-[calc(100vh-80px)]">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
 
             {/* Left Column: Hero Text */}
-            <div className="lg:col-span-7 space-y-10 relative z-20">
+            <div className="lg:col-span-7 space-y-4 relative z-20">
               <motion.div
                 initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.1, duration: 0.5 }}
-                className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-teal-500/20 shadow-[0_0_30px_-10px_rgba(20,184,166,0.2)] cursor-default select-none group hover:border-teal-500/40 transition-colors"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-teal-500/20 shadow-[0_0_30px_-10px_rgba(20,184,166,0.2)] cursor-default select-none group hover:border-teal-500/40 transition-colors"
                 role="status"
               >
-                <div className="relative flex h-3 w-3">
+                <div className="relative flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-teal-500 shadow-[0_0_10px_rgba(20,184,166,0.6)]"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-teal-500 shadow-[0_0_10px_rgba(20,184,166,0.6)]"></span>
                 </div>
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-widest group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">Live on BNB Chain</span>
+                <span className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-widest group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">Live on BNB Chain</span>
               </motion.div>
 
               <motion.div
@@ -365,7 +540,7 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }}
               >
-                <h1 className="text-6xl sm:text-7xl lg:text-8xl xl:text-9xl font-black text-[#0f0a2e] dark:text-white leading-[0.9] tracking-tighter mb-8 relative">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-[#0f0a2e] dark:text-white leading-[0.9] tracking-tighter mb-6 relative">
                   Predict the <br />
                   <span className="relative inline-block">
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-500 via-cyan-500 to-purple-500 animate-gradient-x relative z-10">
@@ -377,7 +552,7 @@ export default function Home() {
                     </span>
                   </span>
                 </h1>
-                <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-400 max-w-2xl leading-relaxed font-medium">
+                <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 max-w-2xl leading-relaxed font-medium">
                   The <span className="text-gray-900 dark:text-white font-bold decoration-teal-500/50 underline decoration-4 underline-offset-4 decoration-skip-ink-none">next-gen</span> prediction market protocol. Infinite liquidity, instant settlement, and fully non-custodial.
                 </p>
               </motion.div>
@@ -386,23 +561,23 @@ export default function Home() {
                 initial={prefersReducedMotion ? false : { opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.8, ease: "easeOut" }}
-                className="flex flex-wrap items-center gap-6"
+                className="flex flex-wrap items-center gap-4"
               >
                 <Link
                   href="/markets"
-                  className="group relative px-12 py-6 rounded-full bg-[#0f0a2e] dark:bg-white text-white dark:text-[#0f0a2e] shadow-2xl shadow-teal-500/20 hover:shadow-teal-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all w-full sm:w-auto overflow-hidden ring-4 ring-transparent hover:ring-teal-500/20"
+                  className="group relative px-8 py-4 rounded-full bg-[#0f0a2e] dark:bg-white text-white dark:text-[#0f0a2e] shadow-2xl shadow-teal-500/20 hover:shadow-teal-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all w-full sm:w-auto overflow-hidden ring-4 ring-transparent hover:ring-teal-500/20"
                 >
                   <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />
-                  <div className="relative flex items-center justify-center gap-3 font-bold text-xl tracking-tight">
+                  <div className="relative flex items-center justify-center gap-2 font-bold text-base tracking-tight">
                     Start Trading
-                    <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" strokeWidth={3} />
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" strokeWidth={3} />
                   </div>
                 </Link>
 
                 {/* Optional secondary CTA or info */}
-                <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-white/40 dark:bg-white/5 border border-white/40 dark:border-white/10 backdrop-blur-sm">
-                  <ShieldCheck className="w-5 h-5 text-emerald-500" />
-                  <span className="text-sm font-bold text-gray-600 dark:text-gray-300">Audited & Secure</span>
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/40 dark:bg-white/5 border border-white/40 dark:border-white/10 backdrop-blur-sm">
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  <span className="text-xs font-bold text-gray-600 dark:text-gray-300">Audited & Secure</span>
                 </div>
               </motion.div>
 
@@ -411,24 +586,24 @@ export default function Home() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8 }}
-                className="pt-8 border-t border-gray-200 dark:border-white/10 max-w-2xl"
+                className="pt-6 border-t border-gray-200 dark:border-white/10 max-w-2xl"
               >
-                <div className="grid grid-cols-3 gap-8">
+                <div className="grid grid-cols-3 gap-6">
                   <div>
-                    <div className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-1">Total Volume</div>
-                    <div className="text-2xl font-black text-gray-900 dark:text-white font-mono">
+                    <div className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Total Volume</div>
+                    <div className="text-xl font-black text-gray-900 dark:text-white font-mono">
                       <Counter value={liquidityDisplay} />
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-1">Live Markets</div>
-                    <div className="text-2xl font-black text-gray-900 dark:text-white font-mono">
+                    <div className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Live Markets</div>
+                    <div className="text-xl font-black text-gray-900 dark:text-white font-mono">
                       <Counter value={stats.live.toString()} />
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-1">Total Traders</div>
-                    <div className="text-2xl font-black text-gray-900 dark:text-white font-mono">
+                    <div className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Total Traders</div>
+                    <div className="text-xl font-black text-gray-900 dark:text-white font-mono">
                       <Counter value={formatNumber(typeof traders === 'number' ? traders : Number(traders) || 0)} />
                     </div>
                   </div>
@@ -438,7 +613,7 @@ export default function Home() {
             </div>
 
             {/* Right Column: Visuals with Advanced Parallax & Tilt */}
-            <div className="lg:col-span-5 relative flex justify-center lg:justify-end h-[600px] items-center perspective-1000">
+            <div className="lg:col-span-5 relative flex justify-center lg:justify-end h-[500px] items-center perspective-1000">
               <motion.div
                 style={{
                   x: moveX,
@@ -471,13 +646,13 @@ export default function Home() {
       </main>
 
       {/* Footer / Powered By */}
-      <footer className="w-full py-8 text-center relative z-10 pointer-events-none">
-        <div className="inline-flex items-center gap-6 px-6 py-3 rounded-full bg-white/30 dark:bg-black/30 backdrop-blur-md border border-white/20 dark:border-white/5 pointer-events-auto hover:bg-white/40 transition-colors">
-          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Powered By</span>
-          <div className="flex items-center gap-4 opacity-70 grayscale hover:grayscale-0 transition-all duration-300">
-            <div className="h-5 w-5 bg-yellow-500 rounded-full" title="BNB Chain" />
-            <div className="h-5 w-5 bg-blue-500 rounded-full" title="Chainlink" />
-            <div className="h-5 w-5 bg-purple-500 rounded-full" title="The Graph" />
+      <footer className="w-full py-6 text-center relative z-10 pointer-events-none">
+        <div className="inline-flex items-center gap-4 px-4 py-2 rounded-full bg-white/30 dark:bg-black/30 backdrop-blur-md border border-white/20 dark:border-white/5 pointer-events-auto hover:bg-white/40 transition-colors">
+          <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Powered By</span>
+          <div className="flex items-center gap-3 opacity-70 grayscale hover:grayscale-0 transition-all duration-300">
+            <div className="h-4 w-4 bg-yellow-500 rounded-full" title="BNB Chain" />
+            <div className="h-4 w-4 bg-blue-500 rounded-full" title="Chainlink" />
+            <div className="h-4 w-4 bg-purple-500 rounded-full" title="The Graph" />
           </div>
         </div>
       </footer>

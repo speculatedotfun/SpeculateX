@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient } from 'wagmi';
 import { parseUnits, keccak256, stringToBytes } from 'viem';
 import { addresses, getCurrentNetwork, getNetwork, isDiamondNetwork } from '@/lib/contracts';
-import { getCoreAbi, usdcAbi } from '@/lib/abis';
+import { getCoreAbi, usdcAbi, chainlinkResolverAbiLegacy } from '@/lib/abis';
 import { canCreateMarkets } from '@/lib/hooks';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -159,6 +159,41 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
     checkMarketCreatorRole();
   }, [address]);
 
+  // Show market creation summary after page reload
+  useEffect(() => {
+    try {
+      const lastCreation = localStorage.getItem('lastMarketCreation');
+      if (lastCreation) {
+        const summary = JSON.parse(lastCreation);
+        console.log('📋 Last market creation summary:', summary);
+        
+        if (summary.marketCreated) {
+          let feedStatusMessage = '';
+          if (summary.feedRegistered === 'registered') {
+            feedStatusMessage = '✅ Feed registered in Chainlink resolver';
+          } else if (summary.feedRegistered === 'not_needed_diamond') {
+            feedStatusMessage = 'ℹ️ Diamond network - feed address stored in market (no resolver registration needed)';
+          } else if (summary.feedRegistered === 'not_needed') {
+            feedStatusMessage = 'ℹ️ Feed registration not needed';
+          } else {
+            feedStatusMessage = '⚠️ Feed registration failed - may need manual registration';
+          }
+          
+          pushToast({
+            title: '✅ Market Creation Complete',
+            description: `Market created successfully! ${feedStatusMessage}`,
+            type: 'success'
+          });
+          
+          // Clear the summary after showing
+          localStorage.removeItem('lastMarketCreation');
+        }
+      }
+    } catch (e) {
+      console.error('Error reading market creation summary:', e);
+    }
+  }, [pushToast]);
+
   useEffect(() => {
     if (isApprovalSuccess) {
       pushToast({ title: 'Approval Confirmed', description: 'USDC approved. You can now create the market.', type: 'success' });
@@ -167,6 +202,8 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
 
   useEffect(() => {
     if (isSuccess) {
+      // Note: handleSubmit now handles the full flow including feed registration
+      // This useEffect is kept for backward compatibility but reload is handled in handleSubmit
       triggerConfetti();
       pushToast({ title: 'Success', description: 'Market created successfully!', type: 'success' });
       setStep(1);
@@ -174,7 +211,7 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
       setResolutionDate('');
       setStartDate('');
       setIsScheduled(false);
-      setTimeout(() => window.location.reload(), 2000);
+      // Reload is now handled in handleSubmit after feed registration completes
     }
   }, [isSuccess, pushToast, triggerConfetti]);
 
@@ -247,7 +284,138 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
         });
       }
 
-      if (txHash) pushToast({ title: 'Transaction Submitted', description: 'Waiting for confirmation...', type: 'info' });
+      if (txHash) {
+        pushToast({ title: 'Transaction Submitted', description: 'Waiting for confirmation...', type: 'info' });
+        
+        // Wait for transaction confirmation
+        try {
+          const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+          console.log('✅ Market creation transaction confirmed:', receipt.transactionHash);
+          
+          // Register feed in legacy resolver (only if not using Diamond network)
+          const isDiamond = isDiamondNetwork(network);
+          console.log('🔍 Network type:', network, '| Is Diamond:', isDiamond, '| Resolver address:', addresses.chainlinkResolver);
+          
+          if (!isDiamond && addresses.chainlinkResolver) {
+            console.log('📝 Registering feed in Legacy resolver...', {
+              feedId: feedId,
+              feedAddress: feedAddress,
+              resolver: addresses.chainlinkResolver
+            });
+            
+            try {
+              pushToast({ 
+                title: 'Registering Feed', 
+                description: `Registering ${selectedAsset.symbol} feed in Chainlink resolver...`, 
+                type: 'info' 
+              });
+              
+              const feedTxHash = await writeContractAsync({
+                address: addresses.chainlinkResolver,
+                abi: chainlinkResolverAbiLegacy,
+                functionName: 'setGlobalFeed',
+                args: [feedId as `0x${string}`, feedAddress as `0x${string}`],
+              });
+              
+              console.log('📝 Feed registration transaction sent:', feedTxHash);
+              
+              // Wait for feed registration confirmation
+              await publicClient.waitForTransactionReceipt({ hash: feedTxHash });
+              
+              console.log('✅ Feed registered successfully!');
+              pushToast({ 
+                title: '✅ Feed Registered!', 
+                description: `${selectedAsset.symbol} feed (${feedAddress.slice(0, 10)}...) successfully registered in Chainlink resolver`, 
+                type: 'success' 
+              });
+            } catch (feedErr: any) {
+              console.error('❌ Failed to register feed:', feedErr);
+              pushToast({ 
+                title: '⚠️ Feed Registration Failed', 
+                description: `Market created but feed registration failed: ${feedErr.message || 'Unknown error'}. You may need to register it manually.`, 
+                type: 'warning' 
+              });
+            }
+          } else {
+            if (isDiamond) {
+              console.log('ℹ️ Diamond network detected - feed registration not needed (oracleAddress stored directly in market)');
+              console.log('📋 Feed Info:', {
+                feedId: feedId,
+                feedAddress: feedAddress,
+                note: 'Feed address is stored directly in market resolution config - no resolver registration needed'
+              });
+              pushToast({ 
+                title: '✅ Market Created (Diamond Network)', 
+                description: `Market created! Feed address (${feedAddress.slice(0, 10)}...) is stored directly in market. No resolver registration needed.`, 
+                type: 'success' 
+              });
+            } else if (!addresses.chainlinkResolver) {
+              console.warn('⚠️ No resolver address configured');
+              pushToast({ 
+                title: '⚠️ No Resolver', 
+                description: 'Chainlink resolver address not configured. Feed may need manual registration.', 
+                type: 'warning' 
+              });
+            }
+          }
+          
+          pushToast({ 
+            title: '✅ Success!', 
+            description: 'Market created successfully!', 
+            type: 'success' 
+          });
+          triggerConfetti();
+          
+          // Reset form
+          setStep(1);
+          setTargetPrice('');
+          setResolutionDate('');
+          setStartDate('');
+          setIsScheduled(false);
+          
+          // Save logs to localStorage before reload so user can see them
+          const feedStatus = !isDiamond && addresses.chainlinkResolver ? 'registered' : isDiamond ? 'not_needed_diamond' : 'failed';
+          const logSummary = {
+            timestamp: new Date().toISOString(),
+            marketCreated: true,
+            feedRegistered: feedStatus,
+            network: network,
+            isDiamond: isDiamond,
+            feedId: feedId,
+            feedAddress: feedAddress
+          };
+          localStorage.setItem('lastMarketCreation', JSON.stringify(logSummary));
+          console.log('📋 Market creation summary saved:', logSummary);
+          
+          // Show final summary toast
+          const summaryMessage = isDiamond 
+            ? `✅ Market created! Feed address stored in market (Diamond network - no resolver registration needed)`
+            : feedStatus === 'registered'
+            ? `✅ Market created & feed registered in Chainlink resolver!`
+            : `✅ Market created! Feed registration: ${feedStatus}`;
+          
+          pushToast({
+            title: '📋 Summary',
+            description: summaryMessage,
+            type: 'success'
+          });
+          
+          // Reload page after a delay to show all toasts
+          console.log('⏳ Page will reload in 5 seconds to show the new market...');
+          console.log('💡 Check the toasts above for feed registration status!');
+          setTimeout(() => {
+            console.log('🔄 Reloading page now...');
+            window.location.reload();
+          }, 5000);
+        } catch (waitErr: any) {
+          console.error('❌ Error waiting for transaction:', waitErr);
+          pushToast({ 
+            title: 'Transaction Pending', 
+            description: 'Market creation transaction is pending. Feed registration will be skipped.', 
+            type: 'warning' 
+          });
+        }
+      }
     } catch (err: any) {
       console.error(err);
       pushToast({ title: 'Error', description: err?.message || 'Failed to create market.', type: 'error' });

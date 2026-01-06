@@ -42,7 +42,7 @@ export function LandingMarketCard({ market, loading }: LandingMarketCardProps) {
     }
 
     return (
-        <div className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-2xl rounded-[32px] p-8 relative group overflow-hidden transition-all duration-500 shadow-2xl border border-white/20 dark:border-white/5 hover:border-teal-500/30 w-full">
+        <div className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-2xl rounded-[32px] p-6 relative group overflow-hidden transition-all duration-500 shadow-2xl border border-white/20 dark:border-white/5 hover:border-teal-500/30 w-full">
             {/* Shine Effect */}
             <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             <div className="absolute -inset-1 bg-gradient-to-r from-teal-500 to-purple-500 opacity-0 group-hover:opacity-10 transition-opacity blur-2xl duration-700" />

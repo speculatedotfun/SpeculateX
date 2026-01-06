@@ -31,7 +31,7 @@ export function FeaturedMarketCard({ market, prefersReducedMotion = false, getMa
                 >
                     <div className="grid lg:grid-cols-12 gap-0">
                         {/* Left Content Section */}
-                        <div className="lg:col-span-7 p-8 sm:p-10 flex flex-col justify-between relative z-10">
+                        <div className="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between relative z-10">
 
                             <div className="space-y-6">
                                 <div className="flex items-center gap-3">

@@ -292,19 +292,19 @@ export default function MarketsPage() {
 
       <Header />
 
-      <main className="relative z-10 mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <main className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
         {/* Page Header Area */}
-        <div className="flex flex-col items-center text-center justify-center gap-6 mb-16 relative z-20">
+        <div className="flex flex-col items-center text-center justify-center gap-4 mb-12 relative z-20">
           <motion.div
             initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-teal-500/30 bg-teal-500/10 text-teal-600 dark:text-teal-400 text-xs font-bold uppercase tracking-widest backdrop-blur-md shadow-sm"
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-teal-500/30 bg-teal-500/10 text-teal-600 dark:text-teal-400 text-[10px] font-bold uppercase tracking-widest backdrop-blur-md shadow-sm"
           >
-            <span className="relative flex h-2 w-2">
+            <span className="relative flex h-1.5 w-1.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-teal-500"></span>
             </span>
             Live Markets
           </motion.div>
@@ -313,7 +313,7 @@ export default function MarketsPage() {
             initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-5xl sm:text-6xl lg:text-7xl font-black text-[#0f0a2e] dark:text-white tracking-tighter leading-[0.9]"
+            className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#0f0a2e] dark:text-white tracking-tighter leading-[0.9]"
           >
             Explore <br className="hidden sm:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-cyan-400 to-purple-500 animate-gradient-x">
@@ -325,7 +325,7 @@ export default function MarketsPage() {
             initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-gray-600 dark:text-gray-400 text-lg sm:text-xl max-w-2xl leading-relaxed font-medium"
+            className="text-gray-600 dark:text-gray-400 text-base sm:text-lg max-w-2xl leading-relaxed font-medium"
           >
             Trade on the outcome of real-world events with global liquidity.
           </motion.p>
@@ -348,11 +348,11 @@ export default function MarketsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-12"
+            className="mb-8"
           >
-            <div className="flex items-center gap-2 mb-4">
-              <Flame className="w-5 h-5 text-orange-500 fill-orange-500 animate-pulse" />
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Featured Market</h2>
+            <div className="flex items-center gap-2 mb-3">
+              <Flame className="w-4 h-4 text-orange-500 fill-orange-500 animate-pulse" />
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Featured Market</h2>
             </div>
             <FeaturedMarketCard
               market={featuredMarket}
@@ -368,18 +368,18 @@ export default function MarketsPage() {
           initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="mb-8 w-full"
+          className="mb-6 w-full"
         >
-          <div className="bg-white/80 dark:bg-[#131722]/90 backdrop-blur-2xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl p-2 shadow-2xl shadow-black/5 flex flex-col md:flex-row gap-3">
+          <div className="bg-white/80 dark:bg-[#131722]/90 backdrop-blur-2xl border border-gray-200/50 dark:border-gray-700/50 rounded-xl p-1.5 shadow-2xl shadow-black/5 flex flex-col md:flex-row gap-2">
 
             {/* Search Bar */}
-            <div className="relative flex-1 group bg-gray-50/50 dark:bg-black/20 rounded-xl transition-colors hover:bg-gray-100/50 dark:hover:bg-black/40">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <SearchIcon className="h-5 w-5 text-gray-400 group-focus-within:text-teal-500 transition-colors" />
+            <div className="relative flex-1 group bg-gray-50/50 dark:bg-black/20 rounded-lg transition-colors hover:bg-gray-100/50 dark:hover:bg-black/40">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <SearchIcon className="h-4 w-4 text-gray-400 group-focus-within:text-teal-500 transition-colors" />
               </div>
               <input
                 type="text"
-                className="block w-full h-12 pl-11 pr-4 rounded-xl bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:ring-0 sm:text-sm border-none transition-all font-medium"
+                className="block w-full h-10 pl-9 pr-3 rounded-lg bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:ring-0 sm:text-sm border-none transition-all font-medium"
                 placeholder="Search markets..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}

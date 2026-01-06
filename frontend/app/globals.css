@@ -13,7 +13,8 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 173 80% 40%; /* #14B8A6 Teal */
+    --primary: 173 80% 40%;
+    /* #14B8A6 Teal */
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -57,6 +58,12 @@
   * {
     @apply border-border;
   }
+
+  html {
+    font-size: 75%;
+    /* 12px base size - effective zoom out */
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -68,7 +75,7 @@
   .glass-card {
     @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border border-white/20 dark:border-gray-700/50 shadow-xl;
   }
-  
+
   .text-glow {
     text-shadow: 0 0 20px rgba(20, 184, 166, 0.5);
   }
@@ -79,31 +86,31 @@
 
   .mesh-gradient {
     background: radial-gradient(at 0% 0%, rgba(20, 184, 166, 0.15) 0px, transparent 50%),
-                radial-gradient(at 50% 0%, rgba(6, 182, 212, 0.15) 0px, transparent 50%),
-                radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
-                radial-gradient(at 50% 50%, rgba(139, 92, 246, 0.1) 0px, transparent 50%),
-                radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.15) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.15) 0px, transparent 50%);
+      radial-gradient(at 50% 0%, rgba(6, 182, 212, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+      radial-gradient(at 50% 50%, rgba(139, 92, 246, 0.1) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.15) 0px, transparent 50%);
   }
 
   .dark .mesh-gradient {
     background: radial-gradient(at 0% 0%, rgba(20, 184, 166, 0.08) 0px, transparent 50%),
-                radial-gradient(at 50% 0%, rgba(6, 182, 212, 0.08) 0px, transparent 50%),
-                radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.08) 0px, transparent 50%),
-                radial-gradient(at 50% 50%, rgba(139, 92, 246, 0.05) 0px, transparent 50%),
-                radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.08) 0px, transparent 50%);
+      radial-gradient(at 50% 0%, rgba(6, 182, 212, 0.08) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.08) 0px, transparent 50%),
+      radial-gradient(at 50% 50%, rgba(139, 92, 246, 0.05) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.08) 0px, transparent 50%);
   }
 
   .bg-grid {
     background-size: 40px 40px;
     background-image: linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
-                      linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+      linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
   }
 
   .dark .bg-grid {
     background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-                      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
   }
 }
 
@@ -137,7 +144,8 @@
 
 /* Selection Color */
 ::selection {
-  background-color: rgba(20, 184, 166, 0.2); /* Teal with opacity */
+  background-color: rgba(20, 184, 166, 0.2);
+  /* Teal with opacity */
   color: #0f766e;
 }
 
@@ -152,6 +160,7 @@
     opacity: 0;
     transform: translateY(-10px);
   }
+
   100% {
     opacity: 1;
     transform: none;
@@ -163,12 +172,16 @@
 }
 
 @keyframes blob {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translate(0, 0) scale(1);
   }
+
   33% {
     transform: translate(30px, -50px) scale(1.1);
   }
+
   66% {
     transform: translate(-20px, 20px) scale(0.9);
   }
@@ -190,6 +203,7 @@
   0% {
     transform: translateX(-100%) skewX(-15deg);
   }
+
   100% {
     transform: translateX(200%) skewX(-15deg);
   }
@@ -200,10 +214,13 @@
 }
 
 @keyframes gradient-x {
-  0%, 100% {
+
+  0%,
+  100% {
     background-size: 200% 200%;
     background-position: left center;
   }
+
   50% {
     background-size: 200% 200%;
     background-position: right center;

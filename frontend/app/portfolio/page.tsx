@@ -162,19 +162,19 @@ export default function PortfolioPage() {
 
       <Header />
 
-      <main className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 pb-32">
+      <main className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 pb-24">
 
         {/* Page Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <motion.div
             initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.5 }}
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 backdrop-blur-md text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4 shadow-sm">
-              <Wallet className="w-3 h-3 text-[#14B8A6]" /> Portfolio Overview
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 backdrop-blur-md text-[9px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3 shadow-sm">
+              <Wallet className="w-2.5 h-2.5 text-[#14B8A6]" /> Portfolio Overview
             </div>
-            <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-gray-900 to-gray-500 dark:from-white dark:to-gray-500 tracking-tighter mb-2">
+            <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-gray-900 to-gray-500 dark:from-white dark:to-gray-500 tracking-tighter mb-2">
               My Portfolio
             </h1>
           </motion.div>
@@ -228,47 +228,47 @@ export default function PortfolioPage() {
         </div>
 
         {/* Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-12">
 
           {/* Main Value Card */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="lg:col-span-2 bg-gradient-to-br from-[#14B8A6] to-[#0D9488] rounded-[40px] p-8 md:p-10 text-white relative overflow-hidden shadow-2xl shadow-[#14B8A6]/20 flex flex-col justify-between min-h-[300px]"
+            className="lg:col-span-2 bg-gradient-to-br from-[#14B8A6] to-[#0D9488] rounded-2xl p-6 md:p-7 text-white relative overflow-hidden shadow-2xl shadow-[#14B8A6]/20 flex flex-col justify-between min-h-[240px]"
           >
-            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-black/10 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
+            <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-white/10 rounded-full blur-3xl -mr-24 -mt-24 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-black/10 rounded-full blur-3xl -ml-16 -mb-16 pointer-events-none" />
 
             <div className="relative z-10">
-              <div className="flex items-start justify-between mb-8">
+              <div className="flex items-start justify-between mb-6">
                 <div>
-                  <h2 className="text-sm font-bold uppercase tracking-widest opacity-70 mb-1">Total Net Worth</h2>
-                  <div className="text-5xl md:text-7xl font-black tracking-tighter tabular-nums text-white">
+                  <h2 className="text-xs font-bold uppercase tracking-widest opacity-70 mb-1">Total Net Worth</h2>
+                  <div className="text-3xl md:text-4xl font-black tracking-tighter tabular-nums text-white">
                     {isLoading ? "..." : formatCurrency(totalValue + totalClaimed)}
                   </div>
                 </div>
-                <div className="bg-white/20 backdrop-blur-md p-3 rounded-2xl border border-white/10">
-                  <TrendingUp className="w-8 h-8 text-white" />
+                <div className="bg-white/20 backdrop-blur-md p-2.5 rounded-xl border border-white/10">
+                  <TrendingUp className="w-6 h-6 text-white" />
                 </div>
               </div>
             </div>
 
-            <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-black/10 rounded-2xl p-4 backdrop-blur-sm">
-                <div className="text-[10px] font-bold uppercase opacity-60 mb-1">Active Value</div>
-                <div className="text-xl font-bold">{formatCurrency(totalValue)}</div>
+            <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-black/10 rounded-xl p-3 backdrop-blur-sm">
+                <div className="text-[9px] font-bold uppercase opacity-60 mb-1">Active Value</div>
+                <div className="text-base font-bold">{formatCurrency(totalValue)}</div>
               </div>
-              <div className="bg-black/10 rounded-2xl p-4 backdrop-blur-sm">
-                <div className="text-[10px] font-bold uppercase opacity-60 mb-1">Realized Gains</div>
-                <div className="text-xl font-bold text-emerald-300">+{formatCurrency(totalClaimed)}</div>
+              <div className="bg-black/10 rounded-xl p-3 backdrop-blur-sm">
+                <div className="text-[9px] font-bold uppercase opacity-60 mb-1">Realized Gains</div>
+                <div className="text-base font-bold text-emerald-300">+{formatCurrency(totalClaimed)}</div>
               </div>
-              <div className="bg-black/10 rounded-2xl p-4 backdrop-blur-sm">
-                <div className="text-[10px] font-bold uppercase opacity-60 mb-1">Positions</div>
-                <div className="text-xl font-bold">{positions.length}</div>
+              <div className="bg-black/10 rounded-xl p-3 backdrop-blur-sm">
+                <div className="text-[9px] font-bold uppercase opacity-60 mb-1">Positions</div>
+                <div className="text-base font-bold">{positions.length}</div>
               </div>
-              <div className="bg-black/10 rounded-2xl p-4 backdrop-blur-sm">
-                <div className="text-[10px] font-bold uppercase opacity-60 mb-1">Win Rate</div>
-                <div className="text-xl font-bold">{resolvedPositionsCount > 0 ? Math.round((claimablePositions.length + claimedPositions.length) / resolvedPositionsCount * 100) : 0}%</div>
+              <div className="bg-black/10 rounded-xl p-3 backdrop-blur-sm">
+                <div className="text-[9px] font-bold uppercase opacity-60 mb-1">Win Rate</div>
+                <div className="text-base font-bold">{resolvedPositionsCount > 0 ? Math.round((claimablePositions.length + claimedPositions.length) / resolvedPositionsCount * 100) : 0}%</div>
               </div>
             </div>
           </motion.div>
@@ -278,19 +278,19 @@ export default function PortfolioPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1 }}
-            className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-[40px] p-8 flex flex-col items-center justify-center relative shadow-xl"
+            className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center relative shadow-xl"
           >
-            <h3 className="absolute top-8 left-8 text-sm font-bold text-gray-400 uppercase tracking-widest">Allocation</h3>
+            <h3 className="absolute top-6 left-6 text-xs font-bold text-gray-400 uppercase tracking-widest">Allocation</h3>
 
             {allocationData.length > 0 ? (
-              <div className="w-full h-[200px] mt-8 relative">
+              <div className="w-full h-[160px] mt-6 relative">
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsPie
                     data={allocationData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
+                    innerRadius={50}
+                    outerRadius={65}
                     paddingAngle={5}
                     dataKey="value"
                     stroke="none"
@@ -302,21 +302,21 @@ export default function PortfolioPage() {
                 </ResponsiveContainer>
                 {/* Centered Total */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none flex-col">
-                  <span className="text-xs font-bold text-gray-400 uppercase">Total</span>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">Total</span>
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center h-[200px] opacity-30 mt-8">
-                <PieChart className="w-16 h-16 mb-2" />
-                <div className="text-sm font-bold">No Data</div>
+              <div className="flex flex-col items-center justify-center h-[160px] opacity-30 mt-6">
+                <PieChart className="w-12 h-12 mb-2" />
+                <div className="text-xs font-bold">No Data</div>
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-x-8 gap-y-2 w-full mt-4">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2 w-full mt-3">
               {allocationData.map((d) => (
-                <div key={d.name} className="flex items-center justify-between text-sm">
+                <div key={d.name} className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: d.color }} />
                     <span className="font-medium text-gray-500 dark:text-gray-400">{d.name}</span>
                   </div>
                   <span className="font-bold text-gray-900 dark:text-white">{Math.round((d.value / (totalValue + totalClaimed)) * 100)}%</span>
@@ -330,26 +330,26 @@ export default function PortfolioPage() {
         {/* Tabs & Content */}
         <div className="min-h-[600px]">
           {/* Custom Tab Switcher */}
-          <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
             {(['positions', 'claims', 'history', 'faucet'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={cn(
-                  "px-6 py-3 rounded-2xl text-sm font-bold transition-all relative whitespace-nowrap border",
+                  "px-4 py-2 rounded-xl text-xs font-bold transition-all relative whitespace-nowrap border",
                   activeTab === tab
                     ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-transparent shadow-lg shadow-gray-900/20 dark:shadow-white/10"
                     : "bg-white/50 dark:bg-gray-900/50 text-gray-500 hover:text-gray-900 dark:hover:text-white border-transparent hover:bg-white dark:hover:bg-gray-800"
                 )}
               >
-                {tab === 'positions' && <PieChart className="w-4 h-4 inline-block mr-2 -mt-0.5" />}
-                {tab === 'history' && <History className="w-4 h-4 inline-block mr-2 -mt-0.5" />}
-                {tab === 'faucet' && <Wallet className="w-4 h-4 inline-block mr-2 -mt-0.5" />}
+                {tab === 'positions' && <PieChart className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />}
+                {tab === 'history' && <History className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />}
+                {tab === 'faucet' && <Wallet className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />}
 
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
 
                 {tab === 'claims' && claimablePositions.length > 0 && (
-                  <span className="ml-2 bg-emerald-500 text-white text-[10px] px-1.5 py-0.5 rounded-full shadow-sm">
+                  <span className="ml-1.5 bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded-full shadow-sm">
                     {claimablePositions.length}
                   </span>
                 )}
@@ -382,21 +382,21 @@ export default function PortfolioPage() {
                       {/* Active Section */}
                       {positions.filter(p => p.status === 'Active').length > 0 && (
                         <div>
-                          <h3 className="text-xl font-black text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-                            <span className="w-2 h-8 bg-blue-500 rounded-full" />
+                          <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                            <span className="w-1.5 h-6 bg-blue-500 rounded-full" />
                             Active Positions
                           </h3>
-                          <div className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl rounded-[40px] border border-white/20 dark:border-white/5 overflow-hidden">
+                          <div className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl rounded-2xl border border-white/20 dark:border-white/5 overflow-hidden">
                             <div className="overflow-x-auto">
                               <table className="w-full">
                                 <thead className="bg-gray-50/50 dark:bg-white/5 border-b border-gray-100 dark:border-white/5">
                                   <tr>
-                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Position</th>
-                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Avg</th>
-                                    <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Shares</th>
-                                    <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Value</th>
-                                    <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">P/L</th>
-                                    <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Action</th>
+                                    <th className="px-4 py-3 text-left text-[9px] font-bold text-gray-400 uppercase tracking-widest">Position</th>
+                                    <th className="px-4 py-3 text-left text-[9px] font-bold text-gray-400 uppercase tracking-widest">Avg</th>
+                                    <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Shares</th>
+                                    <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Value</th>
+                                    <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">P/L</th>
+                                    <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Action</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-white/5">
@@ -419,21 +419,21 @@ export default function PortfolioPage() {
                       {/* Resolved Section */}
                       {positions.filter(p => p.status === 'Resolved').length > 0 && (
                         <div>
-                          <h3 className="text-xl font-black text-gray-900 dark:text-white mb-6 mt-4 flex items-center gap-2">
-                            <span className="w-2 h-8 bg-purple-500 rounded-full" />
+                          <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4 mt-3 flex items-center gap-2">
+                            <span className="w-1.5 h-6 bg-purple-500 rounded-full" />
                             Resolved
                           </h3>
-                          <div className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl rounded-[40px] border border-white/20 dark:border-white/5 overflow-hidden opacity-90">
+                          <div className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl rounded-2xl border border-white/20 dark:border-white/5 overflow-hidden opacity-90">
                             <div className="overflow-x-auto">
                               <table className="w-full">
                                 <thead className="bg-gray-50/50 dark:bg-white/5 border-b border-gray-100 dark:border-white/5">
                                   <tr>
-                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Position</th>
-                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Avg</th>
-                                    <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Shares</th>
-                                    <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Value</th>
-                                    <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">P/L</th>
-                                    <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Action</th>
+                                    <th className="px-4 py-3 text-left text-[9px] font-bold text-gray-400 uppercase tracking-widest">Position</th>
+                                    <th className="px-4 py-3 text-left text-[9px] font-bold text-gray-400 uppercase tracking-widest">Avg</th>
+                                    <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Shares</th>
+                                    <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Value</th>
+                                    <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">P/L</th>
+                                    <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Action</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-white/5">
@@ -471,17 +471,17 @@ export default function PortfolioPage() {
                     <>
                       {/* Claimable */}
                       <div>
-                        <h3 className="text-xl font-black text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-                          <span className="w-2 h-8 bg-emerald-500 rounded-full" />
+                        <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                          <span className="w-1.5 h-6 bg-emerald-500 rounded-full" />
                           Unclaimed Winnings
                         </h3>
                         {claimablePositions.length === 0 ? (
-                          <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-md rounded-[32px] p-12 text-center border border-dashed border-gray-300 dark:border-gray-700">
-                            <Trophy className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                            <p className="text-lg font-medium text-gray-500 dark:text-gray-400">All winnings have been claimed.</p>
+                          <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-md rounded-2xl p-8 text-center border border-dashed border-gray-300 dark:border-gray-700">
+                            <Trophy className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                            <p className="text-base font-medium text-gray-500 dark:text-gray-400">All winnings have been claimed.</p>
                           </div>
                         ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                             {claimablePositions.map((position) => (
                               <PositionCard
                                 key={`claim-${position.marketId}-${position.side}`}
@@ -498,9 +498,9 @@ export default function PortfolioPage() {
 
                       {/* History of Claims */}
                       {claimedPositions.length > 0 && (
-                        <div className="border-t border-gray-200/50 dark:border-white/5 pt-12">
-                          <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6">Redeemed History</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 opacity-60 hover:opacity-100 transition-opacity">
+                        <div className="border-t border-gray-200/50 dark:border-white/5 pt-8">
+                          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Redeemed History</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 opacity-60 hover:opacity-100 transition-opacity">
                             {claimedPositions.map((position) => (
                               <PositionCard
                                 key={`claimed-${position.marketId}-${position.side}`}
@@ -536,23 +536,23 @@ export default function PortfolioPage() {
                       actionText="Start Trading"
                     />
                   ) : (
-                    <div className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl rounded-[40px] border border-white/20 dark:border-white/5 overflow-hidden">
+                    <div className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl rounded-2xl border border-white/20 dark:border-white/5 overflow-hidden">
                       <div className="overflow-x-auto">
                         <table className="w-full">
                           <thead className="bg-gray-50/50 dark:bg-white/5 border-b border-gray-100 dark:border-white/5">
                             <tr>
-                              <th className="px-8 py-6 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Type</th>
-                              <th className="px-8 py-6 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Market</th>
-                              <th className="px-8 py-6 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Amount</th>
-                              <th className="px-8 py-6 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Price</th>
-                              <th className="px-8 py-6 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total</th>
-                              <th className="px-8 py-6 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Time</th>
+                              <th className="px-4 py-3 text-left text-[9px] font-bold text-gray-400 uppercase tracking-widest">Type</th>
+                              <th className="px-4 py-3 text-left text-[9px] font-bold text-gray-400 uppercase tracking-widest">Market</th>
+                              <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Amount</th>
+                              <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Price</th>
+                              <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total</th>
+                              <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Time</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                             {trades.map((trade) => (
                               <tr key={trade.id} className="group hover:bg-white dark:hover:bg-white/5 transition-colors">
-                                <td className="px-8 py-5">
+                                <td className="px-4 py-3">
                                   <span className={cn(
                                     "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide",
                                     trade.action === 'buy'
@@ -563,15 +563,15 @@ export default function PortfolioPage() {
                                     {trade.action} {trade.side}
                                   </span>
                                 </td>
-                                <td className="px-8 py-5">
-                                  <Link href={`/markets/${trade.marketId}`} className="font-bold text-gray-900 dark:text-white hover:text-[#14B8A6] transition-colors line-clamp-1 max-w-[300px]">
+                                <td className="px-4 py-3">
+                                  <Link href={`/markets/${trade.marketId}`} className="font-bold text-gray-900 dark:text-white hover:text-[#14B8A6] transition-colors line-clamp-1 max-w-[300px] text-sm">
                                     {trade.question}
                                   </Link>
                                 </td>
-                                <td className="px-8 py-5 text-right font-medium tabular-nums">{formatNumber(trade.tokenAmount)}</td>
-                                <td className="px-8 py-5 text-right font-medium tabular-nums">{formatCurrency(trade.price)}</td>
-                                <td className="px-8 py-5 text-right font-black tabular-nums">{formatCurrency(trade.usdcAmount)}</td>
-                                <td className="px-8 py-5 text-right text-xs text-gray-400 font-mono">
+                                <td className="px-4 py-3 text-right font-medium tabular-nums text-sm">{formatNumber(trade.tokenAmount)}</td>
+                                <td className="px-4 py-3 text-right font-medium tabular-nums text-sm">{formatCurrency(trade.price)}</td>
+                                <td className="px-4 py-3 text-right font-black tabular-nums text-sm">{formatCurrency(trade.usdcAmount)}</td>
+                                <td className="px-4 py-3 text-right text-xs text-gray-400 font-mono">
                                   {new Date(trade.timestamp * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                 </td>
                               </tr>
@@ -730,7 +730,7 @@ function PositionRow({ position, trades = [], onClaimSuccess, isRedeemed = false
 
   return (
     <tr className="group hover:bg-white dark:hover:bg-white/5 transition-colors">
-      <td className="px-6 py-4">
+      <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <span className={cn(
             "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border",
@@ -748,7 +748,7 @@ function PositionRow({ position, trades = [], onClaimSuccess, isRedeemed = false
           </div>
         </div>
       </td>
-      <td className="px-6 py-4">
+      <td className="px-4 py-3">
         {!canRedeem && !showLost && !showClaimed && avgPurchasePrice > 0 ? (
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
@@ -758,7 +758,7 @@ function PositionRow({ position, trades = [], onClaimSuccess, isRedeemed = false
               <ArrowRight className="w-3 h-3 text-gray-400" />
             </div>
             <div className="flex flex-col">
-              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Now</span>
+              <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider">Now</span>
               <span className="text-xs font-mono font-bold text-gray-900 dark:text-white">
                 {(position.currentPrice * 100).toFixed(2)}¢
               </span>
@@ -766,35 +766,35 @@ function PositionRow({ position, trades = [], onClaimSuccess, isRedeemed = false
           </div>
         ) : (
           <div className="flex flex-col">
-            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Now</span>
+            <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider">Now</span>
             <span className="text-xs font-mono font-bold text-gray-900 dark:text-white">
               {(position.currentPrice * 100).toFixed(2)}¢
             </span>
           </div>
         )}
       </td>
-      <td className="px-6 py-4 text-right font-medium tabular-nums text-gray-900 dark:text-white">
+      <td className="px-4 py-3 text-right font-medium tabular-nums text-gray-900 dark:text-white">
         {formatNumber(position.balance)}
       </td>
-      <td className="px-6 py-4 text-right font-black tabular-nums text-gray-900 dark:text-white">
+      <td className="px-4 py-3 text-right font-black tabular-nums text-gray-900 dark:text-white">
         {formatCurrency(position.value)}
       </td>
-      <td className="px-6 py-4 text-right">
+      <td className="px-4 py-3 text-right">
         {!canRedeem && !showLost && !showClaimed && totalInvested > 0 ? (
           <div className={cn(
-            "text-sm font-bold tabular-nums",
+            "text-xs font-bold tabular-nums",
             isProfit ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
           )}>
             {isProfit ? '+' : ''}{formatCurrency(profitLoss)}
-            <div className="text-xs opacity-80">
+            <div className="text-[10px] opacity-80">
               ({isProfit ? '+' : ''}{profitLossPercent.toFixed(2)}%)
             </div>
           </div>
         ) : (
-          <span className="text-xs text-gray-400">-</span>
+          <span className="text-[10px] text-gray-400">-</span>
         )}
       </td>
-      <td className="px-6 py-4">
+      <td className="px-4 py-3">
         <div className="flex items-center justify-end gap-2">
           {canRedeem ? (
             <Button
@@ -942,7 +942,7 @@ function PositionCard({ position, trades = [], onClaimSuccess, isRedeemed = fals
 
   return (
     <div className={cn(
-      "relative rounded-[32px] p-6 flex flex-col justify-between transition-all duration-300 group overflow-hidden border backdrop-blur-xl",
+      "relative rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 group overflow-hidden border backdrop-blur-xl",
       canRedeem
         ? "bg-white dark:bg-gray-800 border-emerald-500/30 shadow-[0_10px_40px_rgba(16,185,129,0.15)] hover:shadow-[0_10px_40px_rgba(16,185,129,0.25)]"
         : "bg-white/60 dark:bg-gray-800/40 border-white/20 dark:border-white/5 hover:border-[#14B8A6]/30 hover:-translate-y-1 shadow-lg"
@@ -1015,7 +1015,7 @@ function PositionCard({ position, trades = [], onClaimSuccess, isRedeemed = fals
           <div>
             <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Value</div>
             <div className={cn(
-              "text-2xl font-black tracking-tight",
+              "text-xl font-black tracking-tight",
               canRedeem ? "text-emerald-600 dark:text-emerald-400" : "text-gray-900 dark:text-white"
             )}>
               {formatCurrency(position.value)}
