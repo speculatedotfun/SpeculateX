@@ -200,20 +200,8 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
     }
   }, [isApprovalSuccess, pushToast]);
 
-  useEffect(() => {
-    if (isSuccess) {
-      // Note: handleSubmit now handles the full flow including feed registration
-      // This useEffect is kept for backward compatibility but reload is handled in handleSubmit
-      triggerConfetti();
-      pushToast({ title: 'Success', description: 'Market created successfully!', type: 'success' });
-      setStep(1);
-      setTargetPrice('');
-      setResolutionDate('');
-      setStartDate('');
-      setIsScheduled(false);
-      // Reload is now handled in handleSubmit after feed registration completes
-    }
-  }, [isSuccess, pushToast, triggerConfetti]);
+  // Removed useEffect for isSuccess - handleSubmit now handles all success/error cases
+  // including checking receipt.status to ensure transaction actually succeeded
 
   const handleApprove = async () => {
     try {
@@ -292,6 +280,17 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
           const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
           console.log('✅ Market creation transaction confirmed:', receipt.transactionHash);
           
+          // Check if transaction actually succeeded
+          if (receipt.status === 'reverted') {
+            console.error('❌ Market creation transaction reverted');
+            pushToast({ 
+              title: '❌ Transaction Failed', 
+              description: 'Market creation transaction was reverted. Please check the console for details.', 
+              type: 'error' 
+            });
+            return;
+          }
+          
           // Register feed in legacy resolver (only if not using Diamond network)
           const isDiamond = isDiamondNetwork(network);
           console.log('🔍 Network type:', network, '| Is Diamond:', isDiamond, '| Resolver address:', addresses.chainlinkResolver);
@@ -320,7 +319,13 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
               console.log('📝 Feed registration transaction sent:', feedTxHash);
               
               // Wait for feed registration confirmation
-              await publicClient.waitForTransactionReceipt({ hash: feedTxHash });
+              const feedReceipt = await publicClient.waitForTransactionReceipt({ hash: feedTxHash });
+              
+              // Check if feed registration succeeded
+              if (feedReceipt.status === 'reverted') {
+                console.error('❌ Feed registration transaction reverted');
+                throw new Error('Feed registration transaction was reverted');
+              }
               
               console.log('✅ Feed registered successfully!');
               pushToast({ 

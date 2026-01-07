@@ -249,7 +249,7 @@ function CustomConnectButton() {
                       openConnectModal();
                     }}
                     type="button"
-                    className="group relative inline-flex items-center justify-center rounded-full bg-[#14B8A6] dark:bg-[#14B8A6] px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-[#14B8A6]/25 dark:shadow-[#14B8A6]/30 hover:bg-[#0D9488] dark:hover:bg-[#0D9488] hover:shadow-xl hover:shadow-[#14B8A6]/30 dark:hover:shadow-[#14B8A6]/40 transition-all duration-300 active:scale-95"
+                    className="group relative inline-flex items-center justify-center rounded-full bg-[#14B8A6] dark:bg-[#14B8A6] px-3 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-bold text-white shadow-lg shadow-[#14B8A6]/25 dark:shadow-[#14B8A6]/30 hover:bg-[#0D9488] dark:hover:bg-[#0D9488] hover:shadow-xl hover:shadow-[#14B8A6]/30 dark:hover:shadow-[#14B8A6]/40 transition-all duration-300 active:scale-95"
                   >
                     Connect Wallet
                   </button>
@@ -505,8 +505,10 @@ export default function Home() {
             </Link>
 
             {/* Right Actions */}
-            <div className="flex items-center gap-3 pointer-events-auto">
-              <NetworkSelector />
+            <div className="flex items-center gap-2 sm:gap-3 pointer-events-auto">
+              <div className="hidden sm:block">
+                <NetworkSelector />
+              </div>
               <ThemeToggle />
               <CustomConnectButton />
             </div>
@@ -515,12 +517,12 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center relative z-10 w-full min-h-[calc(100vh-80px)]">
+      <main className="flex-1 flex flex-col items-center justify-start pt-8 lg:justify-center lg:pt-0 relative z-10 w-full min-h-[calc(100vh-80px)]">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
 
             {/* Left Column: Hero Text */}
-            <div className="lg:col-span-7 space-y-4 relative z-20">
+            <div className="lg:col-span-7 space-y-2 sm:space-y-4 relative z-20">
               <motion.div
                 initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -540,7 +542,7 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }}
               >
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-[#0f0a2e] dark:text-white leading-[0.9] tracking-tighter mb-6 relative">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-[#0f0a2e] dark:text-white leading-[0.9] tracking-tighter mb-4 sm:mb-6 relative">
                   Predict the <br />
                   <span className="relative inline-block">
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-500 via-cyan-500 to-purple-500 animate-gradient-x relative z-10">
@@ -565,12 +567,12 @@ export default function Home() {
               >
                 <Link
                   href="/markets"
-                  className="group relative px-8 py-4 rounded-full bg-[#0f0a2e] dark:bg-white text-white dark:text-[#0f0a2e] shadow-2xl shadow-teal-500/20 hover:shadow-teal-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all w-full sm:w-auto overflow-hidden ring-4 ring-transparent hover:ring-teal-500/20"
+                  className="group relative px-10 py-5 rounded-full bg-[#0f0a2e] dark:bg-white text-white dark:text-[#0f0a2e] shadow-2xl shadow-teal-500/30 hover:shadow-teal-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all w-full sm:w-auto overflow-hidden ring-4 ring-transparent hover:ring-teal-500/30"
                 >
                   <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />
-                  <div className="relative flex items-center justify-center gap-2 font-bold text-base tracking-tight">
+                  <div className="relative flex items-center justify-center gap-3 font-bold text-lg tracking-tight">
                     Start Trading
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" strokeWidth={3} />
+                    <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" strokeWidth={3} />
                   </div>
                 </Link>
 
@@ -646,13 +648,32 @@ export default function Home() {
       </main>
 
       {/* Footer / Powered By */}
-      <footer className="w-full py-6 text-center relative z-10 pointer-events-none">
-        <div className="inline-flex items-center gap-4 px-4 py-2 rounded-full bg-white/30 dark:bg-black/30 backdrop-blur-md border border-white/20 dark:border-white/5 pointer-events-auto hover:bg-white/40 transition-colors">
-          <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Powered By</span>
-          <div className="flex items-center gap-3 opacity-70 grayscale hover:grayscale-0 transition-all duration-300">
-            <div className="h-4 w-4 bg-yellow-500 rounded-full" title="BNB Chain" />
-            <div className="h-4 w-4 bg-blue-500 rounded-full" title="Chainlink" />
-            <div className="h-4 w-4 bg-purple-500 rounded-full" title="The Graph" />
+      {/* Footer / Powered By */}
+      <footer className="w-full py-8 text-center relative z-10 pointer-events-none mt-20">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col items-center gap-8">
+
+          {/* Socials & Links - Pointer Events Auto to make them clickable */}
+          <div className="flex flex-wrap items-center justify-center gap-6 pointer-events-auto">
+            <a href="https://x.com/SpeculateX" target="_blank" rel="noopener noreferrer" className="p-3 rounded-full bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/10 transition-colors backdrop-blur-md text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white hover:scale-110 duration-200">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+            </a>
+            <a href="https://t.me/SpeculateX" target="_blank" rel="noopener noreferrer" className="p-3 rounded-full bg-white/40 dark:bg-white/5 hover:bg-blue-500/10 dark:hover:bg-blue-500/20 transition-colors backdrop-blur-md text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 hover:scale-110 duration-200">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" /></svg>
+            </a>
+            <div className="w-px h-6 bg-gray-300 dark:bg-white/10 mx-2"></div>
+            <Link href="/docs" className="text-sm font-semibold text-gray-500 hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400 transition-colors">Documentation</Link>
+            <Link href="/terms" className="text-sm font-semibold text-gray-500 hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400 transition-colors">Terms</Link>
+            <Link href="/risk-disclosure" className="text-sm font-semibold text-gray-500 hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400 transition-colors">Risks</Link>
+          </div>
+
+          {/* Powered By Badge */}
+          <div className="inline-flex items-center gap-4 px-4 py-2 rounded-full bg-white/30 dark:bg-black/30 backdrop-blur-md border border-white/20 dark:border-white/5 pointer-events-auto hover:bg-white/40 transition-colors">
+            <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Powered By</span>
+            <div className="flex items-center gap-3 opacity-70 grayscale hover:grayscale-0 transition-all duration-300">
+              <div className="h-4 w-4 bg-yellow-500 rounded-full" title="BNB Chain" />
+              <div className="h-4 w-4 bg-blue-500 rounded-full" title="Chainlink" />
+              <div className="h-4 w-4 bg-purple-500 rounded-full" title="The Graph" />
+            </div>
           </div>
         </div>
       </footer>

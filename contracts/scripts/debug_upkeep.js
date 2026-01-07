@@ -5,7 +5,7 @@ const RPC_URL = "https://data-seed-prebsc-1-s1.binance.org:8545/";
 const provider = new ethers.JsonRpcProvider(RPC_URL);
 
 // Contract Addresses (from CONTRACT_ADDRESSES.md)
-const RESOLVER_ADDRESS = "0x1a6A072f31d08a24ABBC98016b3b2DeE4e7384f3";
+const RESOLVER_ADDRESS = "0x4A08A4764C6926c1a1d0C946E96808C13961c901";
 // const CORE_ADDRESS = "0x769706b79F3AfCb2D2aaa658D4444f68E6A03489";
 
 // Minimal ABI for Resolver

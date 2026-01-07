@@ -42,12 +42,12 @@ export function LandingMarketCard({ market, loading }: LandingMarketCardProps) {
     }
 
     return (
-        <div className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-2xl rounded-[32px] p-6 relative group overflow-hidden transition-all duration-500 shadow-2xl border border-white/20 dark:border-white/5 hover:border-teal-500/30 w-full">
+        <div className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-2xl rounded-[32px] p-4 sm:p-6 relative group overflow-hidden transition-all duration-500 shadow-2xl border border-white/20 dark:border-white/5 hover:border-teal-500/30 w-full">
             {/* Shine Effect */}
             <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             <div className="absolute -inset-1 bg-gradient-to-r from-teal-500 to-purple-500 opacity-0 group-hover:opacity-10 transition-opacity blur-2xl duration-700" />
 
-            <div className="flex items-center justify-between mb-8 relative z-10">
+            <div className="flex items-center justify-between mb-4 sm:mb-8 relative z-10">
                 <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-2">
                     <span className="w-2 h-2 bg-teal-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(20,184,166,0.5)]"></span>
                     {market.isDemo ? "Demo Market" : "Trending Now"}
@@ -62,11 +62,11 @@ export function LandingMarketCard({ market, loading }: LandingMarketCardProps) {
             </div>
 
             <Link href={market.isDemo ? "/markets" : `/markets/${market.id}`} className="block relative z-10">
-                <h3 className="font-black text-2xl lg:text-3xl text-gray-900 dark:text-white leading-[1.1] mb-8 line-clamp-3 group-hover:text-teal-500 transition-colors duration-300">
+                <h3 className="font-black text-lg sm:text-2xl lg:text-3xl text-gray-900 dark:text-white leading-[1.1] mb-4 sm:mb-8 line-clamp-3 group-hover:text-teal-500 transition-colors duration-300">
                     {market.question}
                 </h3>
 
-                <div className="relative pt-6 border-t border-gray-100 dark:border-white/5">
+                <div className="relative pt-4 sm:pt-6 border-t border-gray-100 dark:border-white/5">
                     <div className="absolute -top-3 left-0 right-0 flex justify-center">
                         <span className="bg-white dark:bg-[#0f1219] px-3 py-0.5 rounded-full text-[10px] font-bold text-gray-400 border border-gray-100 dark:border-gray-800 uppercase tracking-widest shadow-sm">Current Odds</span>
                     </div>
@@ -86,7 +86,7 @@ export function LandingMarketCard({ market, loading }: LandingMarketCardProps) {
             </Link>
 
             {/* Quick Features Row */}
-            <div className="mt-8 pt-8 border-t border-gray-100 dark:border-gray-800 flex flex-col gap-4">
+            <div className="mt-4 sm:mt-8 pt-4 sm:pt-8 border-t border-gray-100 dark:border-gray-800 flex flex-col gap-4">
                 <div className="flex items-center justify-between text-xs text-gray-400 font-medium">
                     <div className="flex items-center gap-2">
                         <Globe className="w-3 h-3" />

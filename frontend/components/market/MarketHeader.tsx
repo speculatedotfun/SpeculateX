@@ -2,7 +2,8 @@
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { Activity, TrendingUp, Calendar, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { Activity, TrendingUp, Calendar, ChevronDown, ChevronUp, Info, HelpCircle } from 'lucide-react';
+import { ResolutionInfoModal } from './ResolutionInfoModal';
 
 interface MarketHeaderProps {
   market: any;
@@ -35,6 +36,7 @@ export function MarketHeader({
   onLogoError,
 }: MarketHeaderProps) {
   const [showRules, setShowRules] = useState(false);
+  const [showResolutionModal, setShowResolutionModal] = useState(false);
 
   const yesPercent = Math.round(yesPrice * 100);
   const noPercent = 100 - yesPercent;
@@ -146,8 +148,54 @@ export function MarketHeader({
                 <Calendar className="w-3.5 h-3.5 text-purple-500" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-gray-600 dark:text-gray-400">End Date</span>
               </div>
-              <div className="text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tight leading-none truncate">
-                {new Date(Number(expiryTimestamp) * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+              <div className="flex items-center gap-2">
+                <div className="text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tight leading-none truncate">
+                  {new Date(Number(expiryTimestamp) * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                </div>
+                {resolution?.oracleType === 1 && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowResolutionModal(true)}
+                      onMouseEnter={(e) => {
+                        const tooltip = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (tooltip) tooltip.classList.remove('hidden');
+                      }}
+                      onMouseLeave={(e) => {
+                        const tooltip = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (tooltip) tooltip.classList.add('hidden');
+                      }}
+                      onTouchStart={(e) => {
+                        const tooltip = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (tooltip) {
+                          tooltip.classList.toggle('hidden');
+                          // Close on outside tap
+                          setTimeout(() => {
+                            const closeTooltip = (event: TouchEvent | MouseEvent) => {
+                              if (!tooltip.contains(event.target as Node) && !e.currentTarget.contains(event.target as Node)) {
+                                tooltip.classList.add('hidden');
+                                document.removeEventListener('touchstart', closeTooltip);
+                                document.removeEventListener('click', closeTooltip);
+                              }
+                            };
+                            document.addEventListener('touchstart', closeTooltip, { once: true });
+                            document.addEventListener('click', closeTooltip, { once: true });
+                          }, 0);
+                        }
+                      }}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 text-[10px] font-bold uppercase tracking-widest text-teal-700 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-900/30 transition-colors"
+                    >
+                      <HelpCircle className="w-3 h-3" />
+                      Oracle Resolve
+                    </button>
+                    {/* Tooltip */}
+                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden md:group-hover:block z-20 w-64 p-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg pointer-events-none">
+                      <p className="leading-relaxed">
+                        This market resolves automatically via Chainlink: the first price update after expiry (within 5 min). If no timely update, we use a 5-min TWAP when possible, otherwise the first available update.
+                      </p>
+                      <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="text-[10px] text-gray-400 font-bold uppercase mt-1">
                 {new Date(Number(expiryTimestamp) * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
@@ -218,10 +266,20 @@ export function MarketHeader({
                 exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden"
               >
-                <div className="px-6 pb-4 text-sm text-gray-600 dark:text-gray-400 leading-relaxed font-medium">
-                  {resolution?.oracleType === 0 ? 'This market is resolved manually by the platform administrators.' : ''}
-                  {resolution?.oracleType === 1 ? 'This market resolves automatically based on Chainlink oracle data at the expiration time.' : ''}
-                  {!resolution && 'Standard resolution rules apply.'}
+                <div className="px-6 pb-4 space-y-3">
+                  <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed font-medium">
+                    {resolution?.oracleType === 0 ? 'This market is resolved manually by the platform administrators.' : ''}
+                    {resolution?.oracleType === 1 ? 'This market resolves automatically based on Chainlink oracle data at the expiration time.' : ''}
+                    {!resolution && 'Standard resolution rules apply.'}
+                  </div>
+                  {resolution?.oracleType === 1 && (
+                    <button
+                      onClick={() => setShowResolutionModal(true)}
+                      className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 underline"
+                    >
+                      How resolution works →
+                    </button>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -229,6 +287,15 @@ export function MarketHeader({
         </div>
 
       </div>
+
+      {/* Resolution Info Modal */}
+      {resolution?.oracleType === 1 && (
+        <ResolutionInfoModal
+          isOpen={showResolutionModal}
+          onClose={() => setShowResolutionModal(false)}
+          expiryTimestamp={expiryTimestamp}
+        />
+      )}
     </motion.div>
   );
 }

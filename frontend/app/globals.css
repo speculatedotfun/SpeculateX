@@ -60,8 +60,15 @@
   }
 
   html {
-    font-size: 75%;
-    /* 12px base size - effective zoom out */
+    font-size: 100%;
+    /* Mobile default */
+  }
+
+  @media (min-width: 1024px) {
+    html {
+      font-size: 75%;
+      /* Desktop zoom-out */
+    }
   }
 
   body {

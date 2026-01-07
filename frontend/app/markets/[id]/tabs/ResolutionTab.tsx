@@ -3,6 +3,7 @@ import { formatUnits, keccak256, stringToBytes } from 'viem';
 import { CheckCircle2, Scale, Calendar, Rss, Clock, AlertTriangle, Play, Divide, Flag, Activity, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AdminMarketActions } from '@/components/market/AdminMarketActions';
+import { useResolutionMethod } from '@/lib/hooks/useResolutionMethod';
 
 interface ResolutionTabProps {
   resolution: any;
@@ -11,6 +12,9 @@ interface ResolutionTabProps {
 }
 
 export function ResolutionTab({ resolution, marketId, marketStatus }: ResolutionTabProps) {
+  const isResolved = Boolean(resolution?.isResolved);
+  const resolutionMetadata = useResolutionMethod(marketId || 0, isResolved);
+
   if (!resolution || !resolution.expiryTimestamp) {
     return (
       <motion.div
@@ -51,7 +55,6 @@ export function ResolutionTab({ resolution, marketId, marketStatus }: Resolution
   const now = Math.floor(Date.now() / 1000);
   const isStarted = now >= startTime;
   const isExpired = now >= expiryTime;
-  const isResolved = Boolean(resolution.isResolved);
 
   return (
     <div className="space-y-8">
@@ -150,6 +153,14 @@ export function ResolutionTab({ resolution, marketId, marketStatus }: Resolution
               icon={<Calendar className="w-3.5 h-3.5" />}
               index={1}
             />
+            {isResolved && resolutionMetadata.method && (
+              <DetailItem
+                label="Resolved by"
+                value={getResolutionMethodLabel(resolutionMetadata.method, resolutionMetadata.twapWindowStart, resolutionMetadata.twapWindowEnd)}
+                icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                index={2}
+              />
+            )}
           </div>
         </div>
 
@@ -202,6 +213,28 @@ export function ResolutionTab({ resolution, marketId, marketStatus }: Resolution
       </div>
     </div>
   );
+}
+
+function getResolutionMethodLabel(
+  method: 'FIRST_AFTER' | 'TWAP_5M' | 'FIRST_AFTER_LATE' | null,
+  twapWindowStart: number | null,
+  twapWindowEnd: number | null
+): string {
+  if (method === 'TWAP_5M') {
+    if (twapWindowStart && twapWindowEnd) {
+      const start = new Date(twapWindowStart * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+      const end = new Date(twapWindowEnd * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+      return `Chainlink TWAP (5m) ${start}–${end}`;
+    }
+    return 'Chainlink TWAP (5m)';
+  }
+  if (method === 'FIRST_AFTER_LATE') {
+    return 'Chainlink first update (late)';
+  }
+  if (method === 'FIRST_AFTER') {
+    return 'Chainlink first update after expiry';
+  }
+  return 'Unknown';
 }
 
 function DetailItem({ label, value, icon, index }: { label: string, value: string, icon: any, index: number }) {

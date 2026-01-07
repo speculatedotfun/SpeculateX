@@ -104,19 +104,19 @@ export function MarketCard({ market, prefersReducedMotion = false, getMarketLogo
                 <div className="flex-1 p-3 flex flex-col relative z-10">
 
                     {/* Top Section: Logo & Status */}
-                    <div className="flex justify-between items-start mb-3">
+                    <div className="flex justify-between items-start mb-2 sm:mb-3">
                         <div className="relative">
-                            <div className="w-12 h-12 rounded-xl bg-white dark:bg-[#151c32] border border-gray-100 dark:border-gray-700/50 flex items-center justify-center shrink-0 shadow-sm group-hover/card:scale-110 transition-transform duration-500 z-10 relative">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white dark:bg-[#151c32] border border-gray-100 dark:border-gray-700/50 flex items-center justify-center shrink-0 shadow-sm group-hover/card:scale-110 transition-transform duration-500 z-10 relative">
                                 {market.question ? (
                                     <Image
                                         src={getMarketLogo(market.question)}
                                         alt="Logo"
                                         width={30}
                                         height={30}
-                                        className="object-contain"
+                                        className="object-contain w-6 h-6 sm:w-[30px] sm:h-[30px]"
                                         unoptimized
                                     />
-                                ) : <div className="text-xl">📈</div>}
+                                ) : <div className="text-lg sm:text-xl">📈</div>}
                             </div>
                             {/* Icon Glow */}
                             <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full opacity-0 group-hover/card:opacity-100 transition-opacity duration-500" />
@@ -124,29 +124,29 @@ export function MarketCard({ market, prefersReducedMotion = false, getMarketLogo
 
                         <div className="flex items-center gap-2">
                             {market.status === 'SCHEDULED' && (
-                                <div className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center gap-1.5 shadow-sm">
+                                <div className="px-2 sm:px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center gap-1.5 shadow-sm">
                                     <span className="relative flex h-1.5 w-1.5">
                                         <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span>
                                     </span>
-                                    <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Scheduled</span>
+                                    <span className="text-[9px] sm:text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Scheduled</span>
                                 </div>
                             )}
                             {market.status === 'LIVE TRADING' && (
-                                <div className="px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 flex items-center gap-1.5 shadow-sm backdrop-blur-md">
+                                <div className="px-2 sm:px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 flex items-center gap-1.5 shadow-sm backdrop-blur-md">
                                     <span className="relative flex h-1.5 w-1.5">
                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
                                         <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-teal-500"></span>
                                     </span>
-                                    <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wide">Live</span>
+                                    <span className="text-[9px] sm:text-[10px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wide">Live</span>
                                 </div>
                             )}
                             {(market.status === 'EXPIRED' || market.status === 'RESOLVED' || market.status === 'CANCELLED') && (
-                                <div className={`px-3 py-1 rounded-full border flex items-center gap-1.5 shadow-sm ${market.status === 'RESOLVED'
+                                <div className={`px-2 sm:px-3 py-1 rounded-full border flex items-center gap-1.5 shadow-sm ${market.status === 'RESOLVED'
                                     ? 'bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400'
                                     : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400'
                                     }`}>
                                     {market.status === 'RESOLVED' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                                    <span className="text-[10px] font-bold uppercase tracking-wide">
+                                    <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wide">
                                         {market.status === 'RESOLVED' ? 'Resolved' : market.status === 'CANCELLED' ? 'Cancelled' : 'Expired'}
                                     </span>
                                 </div>
@@ -155,7 +155,7 @@ export function MarketCard({ market, prefersReducedMotion = false, getMarketLogo
                     </div>
 
                     {/* Question */}
-                    <h3 className="font-bold text-base text-gray-900 dark:text-white leading-snug line-clamp-2 mb-3 group-hover/card:text-teal-500 transition-colors">
+                    <h3 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white leading-snug line-clamp-2 mb-2 sm:mb-3 group-hover/card:text-teal-500 transition-colors">
                         {market.question}
                     </h3>
 
@@ -179,7 +179,7 @@ export function MarketCard({ market, prefersReducedMotion = false, getMarketLogo
                                 <span className="text-[9px] font-bold text-emerald-600/70 dark:text-emerald-400/70 uppercase mb-1">Yes</span>
                                 <PriceDisplay
                                     price={market.yesPrice}
-                                    priceClassName="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tighter"
+                                    priceClassName="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tighter"
                                 />
                             </div>
                             <div className="bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/10 dark:border-rose-500/20 rounded-xl p-3 flex flex-col items-center justify-center group-hover/card:border-rose-500/30 transition-colors relative overflow-hidden">
@@ -187,7 +187,7 @@ export function MarketCard({ market, prefersReducedMotion = false, getMarketLogo
                                 <span className="text-[9px] font-bold text-rose-600/70 dark:text-rose-400/70 uppercase mb-1">No</span>
                                 <PriceDisplay
                                     price={market.noPrice}
-                                    priceClassName="text-lg font-black text-rose-600 dark:text-rose-400 font-mono tracking-tighter"
+                                    priceClassName="text-base sm:text-lg font-black text-rose-600 dark:text-rose-400 font-mono tracking-tighter"
                                 />
                             </div>
                         </div>

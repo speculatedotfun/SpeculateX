@@ -31,7 +31,7 @@ export function FeaturedMarketCard({ market, prefersReducedMotion = false, getMa
                 >
                     <div className="grid lg:grid-cols-12 gap-0">
                         {/* Left Content Section */}
-                        <div className="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between relative z-10">
+                        <div className="lg:col-span-7 p-4 sm:p-8 flex flex-col justify-between relative z-10">
 
                             <div className="space-y-6">
                                 <div className="flex items-center gap-3">
@@ -52,30 +52,30 @@ export function FeaturedMarketCard({ market, prefersReducedMotion = false, getMa
 
                                 <div className="flex items-start gap-4">
                                     <div className="relative shrink-0">
-                                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white dark:bg-[#1c2339] shadow-lg border border-gray-100 dark:border-gray-700 p-3 flex items-center justify-center">
+                                        <div className="w-12 h-12 sm:w-20 sm:h-20 rounded-2xl bg-white dark:bg-[#1c2339] shadow-lg border border-gray-100 dark:border-gray-700 p-2 sm:p-3 flex items-center justify-center">
                                             {market.question ? (
                                                 <Image
                                                     src={getMarketLogo(market.question)}
                                                     alt="Logo"
                                                     width={48}
                                                     height={48}
-                                                    className="object-contain"
+                                                    className="object-contain w-8 h-8 sm:w-12 sm:h-12"
                                                     unoptimized
                                                 />
-                                            ) : <div className="text-3xl">🔥</div>}
+                                            ) : <div className="text-2xl sm:text-3xl">🔥</div>}
                                         </div>
                                     </div>
                                     <div>
-                                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 dark:text-white leading-tight mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-teal-400 group-hover:to-blue-500 transition-all duration-300">
+                                        <h2 className="text-xl sm:text-3xl md:text-4xl font-black text-gray-900 dark:text-white leading-tight mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-teal-400 group-hover:to-blue-500 transition-all duration-300 line-clamp-2">
                                             {market.question}
                                         </h2>
-                                        <div className="flex items-center gap-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                                        <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                                             <div className="flex items-center gap-1.5">
-                                                <Activity className="w-4 h-4" />
+                                                <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                 <span>${formatNumber(market.volume)} Volume</span>
                                             </div>
                                             <div className="flex items-center gap-1.5">
-                                                <Clock className="w-4 h-4" />
+                                                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                                 <span>Ends {new Date(Number(market.expiryTimestamp) * 1000).toLocaleDateString()}</span>
                                             </div>
                                         </div>
@@ -83,16 +83,16 @@ export function FeaturedMarketCard({ market, prefersReducedMotion = false, getMa
                                 </div>
                             </div>
 
-                            <div className="mt-8 pt-8 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-4 items-center justify-between">
-                                <div className="flex items-center gap-8">
+                            <div className="mt-4 pt-4 sm:mt-8 sm:pt-8 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-4 items-center justify-between">
+                                <div className="flex items-center gap-4 sm:gap-8">
                                     <div>
-                                        <p className="text-xs font-bold text-emerald-600/70 dark:text-emerald-400/70 uppercase mb-1">Yes Price</p>
-                                        <PriceDisplay price={market.yesPrice} priceClassName="text-4xl font-black text-emerald-500 dark:text-emerald-400 tracking-tighter" />
+                                        <p className="text-[10px] sm:text-xs font-bold text-emerald-600/70 dark:text-emerald-400/70 uppercase mb-1">Yes Price</p>
+                                        <PriceDisplay price={market.yesPrice} priceClassName="text-2xl sm:text-4xl font-black text-emerald-500 dark:text-emerald-400 tracking-tighter" />
                                     </div>
-                                    <div className="w-px h-10 bg-gray-200 dark:bg-gray-700"></div>
+                                    <div className="w-px h-8 sm:h-10 bg-gray-200 dark:bg-gray-700"></div>
                                     <div>
-                                        <p className="text-xs font-bold text-rose-600/70 dark:text-rose-400/70 uppercase mb-1">No Price</p>
-                                        <PriceDisplay price={market.noPrice} priceClassName="text-4xl font-black text-rose-500 dark:text-rose-400 tracking-tighter" />
+                                        <p className="text-[10px] sm:text-xs font-bold text-rose-600/70 dark:text-rose-400/70 uppercase mb-1">No Price</p>
+                                        <PriceDisplay price={market.noPrice} priceClassName="text-2xl sm:text-4xl font-black text-rose-500 dark:text-rose-400 tracking-tighter" />
                                     </div>
                                 </div>
 
