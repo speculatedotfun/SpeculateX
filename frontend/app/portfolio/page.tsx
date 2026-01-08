@@ -7,31 +7,15 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount } from 'wagmi';
 import { formatUnits } from 'viem';
-import {
-  Wallet,
-  TrendingUp,
-  History,
-  ArrowUpRight,
-  ArrowDownRight,
-  CheckCircle2,
-  Clock,
-  AlertCircle,
-  Trophy,
-  Check,
-  X,
-  RefreshCw,
-  Search,
-  PieChart,
-  Sparkles,
-  ArrowRight,
-  User
-} from 'lucide-react';
+
+import { Wallet, TrendingUp, History, ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertCircle, Trophy, Check, X, RefreshCw, Search, PieChart, Sparkles, ArrowRight, User } from 'lucide-react';
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 
 import Header from '@/components/Header';
 import { Button } from '@/components/ui';
 import MintUsdcForm from '@/components/MintUsdcForm';
 import { useUserPortfolio, type PortfolioPosition, type PortfolioTrade } from '@/lib/hooks/useUserPortfolio';
+import { useNicknames, getDisplayName } from '@/lib/hooks/useNicknames';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useConfetti } from '@/lib/ConfettiContext';
 import { coreAbi, positionTokenAbi } from '@/lib/abis';
@@ -61,7 +45,8 @@ const formatNumber = (value: number) => {
 type PortfolioTab = 'positions' | 'history' | 'claims' | 'faucet';
 
 export default function PortfolioPage() {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
+  const { nicknames } = useNicknames();
   const { data, isLoading, refetch, isRefetching } = useUserPortfolio();
   const [activeTab, setActiveTab] = useState<PortfolioTab>('positions');
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
@@ -191,7 +176,9 @@ export default function PortfolioPage() {
               </div>
               <div className="flex flex-col items-start leading-none">
                 <span className="text-[9px] font-bold uppercase opacity-80 mb-0.5">Profile</span>
-                <span className="text-sm font-black">Set Nickname</span>
+                <span className={cn("text-sm font-black", address && nicknames[address.toLowerCase()] ? "text-teal-600 dark:text-teal-400" : "")}>
+                  {address ? getDisplayName(address, nicknames) : 'Set Nickname'}
+                </span>
               </div>
             </motion.button>
 
@@ -285,19 +272,21 @@ export default function PortfolioPage() {
             {allocationData.length > 0 ? (
               <div className="w-full h-[160px] mt-6 relative">
                 <ResponsiveContainer width="100%" height="100%">
-                  <RechartsPie
-                    data={allocationData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={65}
-                    paddingAngle={5}
-                    dataKey="value"
-                    stroke="none"
-                  >
-                    {allocationData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
+                  <RechartsPie>
+                    <Pie
+                      data={allocationData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={65}
+                      paddingAngle={5}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {allocationData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
                   </RechartsPie>
                 </ResponsiveContainer>
                 {/* Centered Total */}

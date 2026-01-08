@@ -34,13 +34,7 @@ export default function MarketsPage() {
   console.log('[DEBUG] Rendering Markets page');
   const searchParams = useSearchParams();
   const { address } = useAccount();
-  const [isAdmin, setIsAdmin] = useState(false);
 
-  useEffect(() => {
-    if (address) {
-      checkIsAdmin(address).then(setIsAdmin);
-    }
-  }, [address]);
   // Optimized Data Fetching
   const { data: marketsRaw = [], isLoading: isLoadingMarkets } = useMarketsListOptimized();
 

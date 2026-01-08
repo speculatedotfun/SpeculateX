@@ -15,26 +15,42 @@ interface NicknameMap {
 export function useNicknames() {
   const [nicknames, setNicknames] = useState<NicknameMap>({});
 
-  // Load nicknames from localStorage on mount
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setNicknames(JSON.parse(stored));
-      }
-    } catch (error) {
-      console.error('Failed to load nicknames:', error);
-    }
-  }, []);
-
-  // Save nicknames to localStorage
+  // Save nicknames to localStorage and dispatch event
   const saveNicknames = useCallback((newNicknames: NicknameMap) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newNicknames));
       setNicknames(newNicknames);
+      // Dispatch custom event to sync other hook instances
+      window.dispatchEvent(new Event('nickname-update'));
     } catch (error) {
       console.error('Failed to save nicknames:', error);
     }
+  }, []);
+
+  // Sync state on mount and when events fire
+  useEffect(() => {
+    const loadNicknames = () => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          setNicknames(JSON.parse(stored));
+        }
+      } catch (error) {
+        console.error('Failed to load nicknames:', error);
+      }
+    };
+
+    loadNicknames();
+
+    // Listen for updates from other components
+    window.addEventListener('nickname-update', loadNicknames);
+    // Listen for updates from other tabs
+    window.addEventListener('storage', loadNicknames);
+
+    return () => {
+      window.removeEventListener('nickname-update', loadNicknames);
+      window.removeEventListener('storage', loadNicknames);
+    };
   }, []);
 
   // Set nickname for an address

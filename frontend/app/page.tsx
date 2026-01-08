@@ -9,7 +9,8 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, useSpring, useTransform, useMotionValue, AnimatePresence } from 'framer-motion';
-import { getMarketCount, getMarket, getMarketState, getSpotPriceYesE6, getMarketResolution } from '@/lib/hooks';
+import { getMarketCount } from '@/lib/hooks';
+import { useMarketsListOptimized } from '@/lib/hooks/useMarketsListOptimized'; // NEW
 import { formatUnits } from 'viem';
 import { useQuery } from '@tanstack/react-query';
 import { fetchSubgraph } from '@/lib/subgraphClient';
@@ -278,16 +279,6 @@ function CustomConnectButton() {
 }
 
 export default function Home() {
-  const [marketCount, setMarketCount] = useState<number>(0);
-  const [stats, setStats] = useState({
-    liquidity: 0,
-    live: 0,
-    resolved: 0,
-    expired: 0,
-  });
-  const [featuredMarket, setFeaturedMarket] = useState<FeaturedMarketData | null>(null);
-  const [loadingFeaturedMarket, setLoadingFeaturedMarket] = useState(true);
-  const [loadingStats, setLoadingStats] = useState(true);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   // Parallax Logic
@@ -322,113 +313,70 @@ export default function Home() {
     return () => mediaQuery.removeEventListener('change', handler);
   }, []);
 
-  const setDemoMarket = useCallback(() => {
-    setFeaturedMarket({
-      id: 0,
-      question: "Will Bitcoin hit $100k by 2025?",
-      priceYes: 0.65,
-      priceNo: 0.35,
-      logo: "/logos/BTC_ethereum.png",
-      isActive: true,
-      isDemo: true
-    });
-    setLoadingFeaturedMarket(false);
-  }, []);
+  // Data Fetching
+  const { data: markets = [], isPending: loadingMarkets } = useMarketsListOptimized();
 
-  const loadData = useCallback(async () => {
-    try {
-      const countBn = await getMarketCount();
-      const count = Number(countBn);
-      setMarketCount(count);
-
-      if (count === 0) {
-        setStats({ liquidity: 0, live: 0, resolved: 0, expired: 0 });
-        setLoadingStats(false);
-        setDemoMarket();
-        return;
-      }
-
-      let liquidity = 0;
-      let live = 0;
-      let resolved = 0;
-      let expired = 0;
-      let foundFeatured = false;
-
-      const limit = Math.min(Number(count), 20);
-
-      for (let i = 1; i <= limit; i++) {
-        const marketId = BigInt(i);
-        try {
-          const [market, state, resolution] = await Promise.all([
-            getMarket(marketId),
-            getMarketState(marketId),
-            getMarketResolution(marketId).catch(() => null),
-          ]);
-          if (market.exists) {
-            liquidity += Number(formatUnits(state.vault, 6));
-
-            const now = Math.floor(Date.now() / 1000);
-            const startTime = resolution?.startTime || 0n;
-            // Check if market is actually live (started)
-            const isStarted = startTime === 0n || Number(startTime) <= now;
-
-            // Contract enum: MarketStatus { Active=0, Resolved=1, Cancelled=2 }
-            if (market.status === 0 && isStarted) {
-              live += 1;
-            } else if (market.status === 1) {
-              resolved += 1;
-            } else if (market.status === 2) {
-              // Cancelled
-              expired += 1;
-            } else {
-              // Scheduled (not started yet)
-              expired += 1;
-            }
-
-            if (!foundFeatured && market.status === 0 && isStarted && (!resolution || !resolution.isResolved)) {
-              try {
-                const priceYesE6 = await getSpotPriceYesE6(marketId);
-                const priceYes = Number(priceYesE6) / 1e6;
-                const priceNo = Math.max(0, Math.min(1, 1 - priceYes));
-
-                setFeaturedMarket({
-                  id: i,
-                  question: market.question || 'Market',
-                  priceYes: Math.max(0, Math.min(1, priceYes)),
-                  priceNo: Math.max(0, Math.min(1, priceNo)),
-                  logo: getAssetLogo(market.question),
-                  isActive: true,
-                });
-                foundFeatured = true;
-              } catch (error) {
-                console.error(`Error fetching prices for market ${i}:`, error);
-              }
-            }
-          }
-        } catch (error) {
-          console.error(`Error loading market ${i}:`, error);
-        }
-      }
-
-      setStats({ liquidity, live, resolved, expired });
-      setLoadingStats(false);
-
-      if (!foundFeatured) {
-        setDemoMarket();
-      } else {
-        setLoadingFeaturedMarket(false);
-      }
-
-    } catch (error) {
-      console.error('Error loading data:', error);
-      setLoadingStats(false);
-      setDemoMarket();
+  // Derived Stats & Featured Market
+  const { stats, featuredMarket, loadingStats, loadingFeaturedMarket } = useMemo(() => {
+    if (loadingMarkets) {
+      return {
+        stats: { liquidity: 0, live: 0, resolved: 0, expired: 0 },
+        featuredMarket: null,
+        loadingStats: true,
+        loadingFeaturedMarket: true
+      };
     }
-  }, [setDemoMarket]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+    let liquidity = 0;
+    let live = 0;
+    let resolved = 0;
+    let expired = 0;
+    let featured: FeaturedMarketData | null = null;
+
+    for (const market of markets) {
+      // Accumulate Vol/Liq
+      // Note: market.volume is derived from vault/liquidity in the hook
+      liquidity += Number(market.totalPairsUSDC || 0n) / 1e6; // Assuming totalPairsUSDC is bigint from hook
+
+      // Status Counts
+      if (market.status === 'LIVE TRADING') live++;
+      else if (market.status === 'RESOLVED') resolved++;
+      else if (market.status === 'EXPIRED') expired++;
+
+      // Select Featured: First LIVE market we find (Newest)
+      if (!featured && market.status === 'LIVE TRADING') {
+        const logo = getAssetLogo(market.question);
+        featured = {
+          id: market.id,
+          question: market.question,
+          priceYes: market.yesPrice,
+          priceNo: market.noPrice,
+          logo: logo,
+          isActive: true
+        };
+      }
+    }
+
+    // Fallback if no live market found
+    if (!featured) {
+      featured = {
+        id: 0,
+        question: "Will Bitcoin hit $100k by 2025?",
+        priceYes: 0.65,
+        priceNo: 0.35,
+        logo: "/logos/BTC_ethereum.png",
+        isActive: true,
+        isDemo: true
+      };
+    }
+
+    return {
+      stats: { liquidity, live, resolved, expired },
+      featuredMarket: featured,
+      loadingStats: false,
+      loadingFeaturedMarket: false
+    };
+  }, [markets, loadingMarkets]);
 
   const { data: traders = 0 } = useQuery({
     queryKey: ['uniqueTraders-home'],

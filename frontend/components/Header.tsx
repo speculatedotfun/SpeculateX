@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAccount, useDisconnect } from 'wagmi';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { isAdmin as checkIsAdmin } from '@/lib/hooks';
+import { isAdmin as checkIsAdmin } from '@/lib/accessControl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import NetworkSelector from '@/components/NetworkSelector';

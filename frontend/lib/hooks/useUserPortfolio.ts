@@ -172,7 +172,8 @@ export function useUserPortfolio() {
         const calls = chunk.flatMap(id => [
           { address: addresses.core, abi: coreAbi, functionName: 'markets', args: [BigInt(id)] },
           { address: addresses.core, abi: coreAbi, functionName: 'getMarketResolution', args: [BigInt(id)] },
-          { address: addresses.core, abi: coreAbi, functionName: 'getMarketState', args: [BigInt(id)] }
+          { address: addresses.core, abi: coreAbi, functionName: 'getMarketState', args: [BigInt(id)] },
+          { address: addresses.core, abi: coreAbi, functionName: 'spotPriceYesE6', args: [BigInt(id)] } // Explicit price fetch
         ]);
 
         const results = await readContracts(config, {
@@ -181,17 +182,26 @@ export function useUserPortfolio() {
         });
 
         chunk.forEach((id, index) => {
-          const marketRes = results[index * 3];
-          const resolutionRes = results[index * 3 + 1];
-          const stateRes = results[index * 3 + 2];
+          const marketRes = results[index * 4];
+          const resolutionRes = results[index * 4 + 1];
+          const stateRes = results[index * 4 + 2];
+          const priceRes = results[index * 4 + 3];
 
           if (marketRes.status === 'success' && resolutionRes.status === 'success') {
             let price = 0.5;
-            // Attempt to get price from state (pYesE6 is index 4 in tuple)
-            if (stateRes.status === 'success' && Array.isArray(stateRes.result)) {
-              const pYesE6 = stateRes.result[4];
-              if (pYesE6 !== undefined) {
-                price = Number(pYesE6) / 1e6;
+
+            // Priority: Explicit price call -> State tuple (legacy) -> Default
+            if (priceRes.status === 'success') {
+              price = Number(priceRes.result) / 1e6;
+            } else if (stateRes.status === 'success' && Array.isArray(stateRes.result)) {
+              // Fallback for legacy contracts
+              // Check if it looks like the old struct (length 5+)
+              // In Diamond, length might be different or indices shifted
+              if (stateRes.result.length === 5) {
+                const pYesE6 = stateRes.result[4];
+                if (pYesE6 !== undefined) {
+                  price = Number(pYesE6) / 1e6;
+                }
               }
             }
 

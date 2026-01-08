@@ -60,7 +60,8 @@ export function useMarketsListOptimized() {
                 const calls = chunk.flatMap(id => [
                     { address: addresses.core, abi: coreAbi, functionName: 'getMarketState', args: [BigInt(id)] },
                     { address: addresses.core, abi: coreAbi, functionName: 'getMarketResolution', args: [BigInt(id)] },
-                    { address: addresses.core, abi: coreAbi, functionName: 'markets', args: [BigInt(id)] } // Metadata like vault address, etc.
+                    { address: addresses.core, abi: coreAbi, functionName: 'markets', args: [BigInt(id)] }, // Metadata like vault address, etc.
+                    { address: addresses.core, abi: coreAbi, functionName: 'spotPriceYesE6', args: [BigInt(id)] } // Explicit price fetch for Diamond contracts
                 ]);
 
                 const results = await readContracts(config, {
@@ -69,15 +70,17 @@ export function useMarketsListOptimized() {
                 });
 
                 chunk.forEach((id, index) => {
-                    const stateRes = results[index * 3];
-                    const resolutionRes = results[index * 3 + 1];
-                    const metaRes = results[index * 3 + 2];
+                    const stateRes = results[index * 4];
+                    const resolutionRes = results[index * 4 + 1];
+                    const metaRes = results[index * 4 + 2];
+                    const priceRes = results[index * 4 + 3];
 
                     if (stateRes.status === 'success' && resolutionRes.status === 'success' && metaRes.status === 'success') {
                         marketDataMap.set(id, {
                             state: stateRes.result,
                             resolution: resolutionRes.result,
-                            metadata: metaRes.result
+                            metadata: metaRes.result,
+                            priceE6: priceRes.status === 'success' ? priceRes.result : undefined
                         });
                     }
                 });
@@ -93,7 +96,7 @@ export function useMarketsListOptimized() {
                 const chainData = marketDataMap.get(id);
                 if (!chainData) continue; // Skip if chain fetch failed
 
-                const { state, resolution, metadata } = chainData;
+                const { state, resolution, metadata, priceE6 } = chainData;
 
                 // Parse Chain Data
                 // state: tuple(active, resolutionTime, resolved, paused, pYesE6, uniqueTraders, vault, volume) ... depends on struct
@@ -125,11 +128,23 @@ export function useMarketsListOptimized() {
                 else if (isExpired) status = 'EXPIRED';
 
                 // Price Logic
-                // pYesE6 is index 4 in state tuple usually? Or property pYes. 
-                // Let's safe check keys.
+                // Use explicit priceE6 from separate call first (for Diamond contracts)
+                // Fallback to state parsing for legacy contracts
                 let pYesE6 = 500000n; // default 0.5
-                if ((state as any).pYes !== undefined) pYesE6 = (state as any).pYes;
-                else if (Array.isArray(state) && state[4] !== undefined) pYesE6 = state[4];
+
+                if (priceE6 !== undefined) {
+                    pYesE6 = BigInt(priceE6 as any);
+                } else if ((state as any).pYes !== undefined) {
+                    pYesE6 = (state as any).pYes;
+                } else if (Array.isArray(state) && state[4] !== undefined) {
+                    // CAUTION: In Diamond ABI, index 4 is status. 
+                    // But we only fallback here if priceE6 failed, implying non-diamond or error?
+                    // Safer to default to 50/50 if explicit price call failed and we can't confirm state shape
+                    // But for legacy checks:
+                    if (state.length < 6) { // Heuristic: Legacy usually has 5 items
+                        pYesE6 = state[4];
+                    }
+                }
 
                 // formatted price
                 let yesPrice = Number(pYesE6) / 1e6;
@@ -141,10 +156,13 @@ export function useMarketsListOptimized() {
                     else { yesPrice = 0; noPrice = 1; }
                 }
 
-                // Vault / Volume
-                // state.vault might be the collateral token balance (liquidity)
-                // previous code: `const totalPairs = Number(formatUnits(state.vault, 6));`
-                const vaultVal = (state as any).vault || 0n;
+                // Vault / Volume / Liquidity
+                // Use metadata (markets struct) for reliable vault value
+                // struct: yes, no, qYes, qNo, bE18, usdcVault ...
+                const metaVault = (metadata as any).usdcVault;
+                const metaVaultArr = Array.isArray(metadata) ? metadata[5] : undefined;
+                const vaultVal = typeof metaVault === 'bigint' ? metaVault : (typeof metaVaultArr === 'bigint' ? metaVaultArr : 0n);
+
                 const totalPairs = Number(formatUnits(vaultVal, 6));
 
                 // History for Sparkline

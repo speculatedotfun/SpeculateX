@@ -98,7 +98,7 @@ export function LandingMarketCard({ market, loading }: LandingMarketCardProps) {
                     </div>
                 </div>
 
-                <Link href="/markets" className="w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-bold text-sm flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
+                <Link href={market.isDemo ? "/markets" : `/markets/${market.id}`} className="w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-bold text-sm flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
                     Trade Now <ArrowRight className="w-4 h-4" />
                 </Link>
             </div>

@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import { getAddresses, getCurrentNetwork, getNetwork } from '@/lib/contracts';
 import { getCoreAbi, getChainlinkResolverAbi } from '@/lib/abis';
-import { isAdmin as checkIsAdmin } from '@/lib/hooks';
+import { isAdmin as checkIsAdmin } from '@/lib/accessControl';
 import { keccak256, stringToBytes, encodeAbiParameters, decodeErrorResult } from 'viem';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
-import { 
-  AlertTriangle, Loader2, Zap, X, Clock, Shield, 
+import {
+  AlertTriangle, Loader2, Zap, X, Clock, Shield,
   ChevronDown, ChevronUp, Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -60,20 +60,20 @@ export function AdminMarketActions({
 
   const handleResolveMarket = async () => {
     if (!publicClient || !addresses.chainlinkResolver || oracleType !== 1 || !oracleAddress) {
-      pushToast({ 
-        title: 'Error', 
-        description: 'Market must use Chainlink oracle to resolve automatically', 
-        type: 'error' 
+      pushToast({
+        title: 'Error',
+        description: 'Market must use Chainlink oracle to resolve automatically',
+        type: 'error'
       });
       return;
     }
 
     const now = Math.floor(Date.now() / 1000);
     if (Number(expiryTimestamp) > now) {
-      pushToast({ 
-        title: 'Error', 
-        description: 'Market has not expired yet', 
-        type: 'error' 
+      pushToast({
+        title: 'Error',
+        description: 'Market has not expired yet',
+        type: 'error'
       });
       return;
     }
@@ -92,12 +92,16 @@ export function AdminMarketActions({
 
       // Find first round after expiry
       const aggregatorAbi = [
-        { type: 'function', name: 'latestRoundData', inputs: [], outputs: [
-          {name:'roundId',type:'uint80'},{name:'answer',type:'int256'},{name:'startedAt',type:'uint256'},{name:'updatedAt',type:'uint256'},{name:'answeredInRound',type:'uint80'}
-        ], stateMutability: 'view' },
-        { type: 'function', name: 'getRoundData', inputs: [{name:'_roundId',type:'uint80'}], outputs: [
-          {name:'roundId',type:'uint80'},{name:'answer',type:'int256'},{name:'startedAt',type:'uint256'},{name:'updatedAt',type:'uint256'},{name:'answeredInRound',type:'uint80'}
-        ], stateMutability: 'view' }
+        {
+          type: 'function', name: 'latestRoundData', inputs: [], outputs: [
+            { name: 'roundId', type: 'uint80' }, { name: 'answer', type: 'int256' }, { name: 'startedAt', type: 'uint256' }, { name: 'updatedAt', type: 'uint256' }, { name: 'answeredInRound', type: 'uint80' }
+          ], stateMutability: 'view'
+        },
+        {
+          type: 'function', name: 'getRoundData', inputs: [{ name: '_roundId', type: 'uint80' }], outputs: [
+            { name: 'roundId', type: 'uint80' }, { name: 'answer', type: 'int256' }, { name: 'startedAt', type: 'uint256' }, { name: 'updatedAt', type: 'uint256' }, { name: 'answeredInRound', type: 'uint80' }
+          ], stateMutability: 'view'
+        }
       ] as const;
 
       const latest: any = await publicClient.readContract({
@@ -130,7 +134,7 @@ export function AdminMarketActions({
       let found = false;
       for (let i = 0; i < 50; i++) {
         const { phase, aggregatorRound } = parseRoundId(targetRoundId);
-        
+
         // Check if we're at a phase boundary - cannot go back further
         if (aggregatorRound === 0) {
           throw new Error("Cannot resolve at phase boundary. Market may need manual resolution.");
@@ -138,7 +142,7 @@ export function AdminMarketActions({
 
         // Construct previous round ID in the same phase
         const prevRoundId = constructRoundId(phase, aggregatorRound - 1);
-        
+
         try {
           const prev: any = await publicClient.readContract({
             address: oracleAddr as `0x${string}`,
@@ -146,11 +150,11 @@ export function AdminMarketActions({
             functionName: 'getRoundData',
             args: [prevRoundId],
           });
-          
+
           const prevUpdatedAt = prev[3];
           const prevRoundUpdatedAtNum = Number(prevUpdatedAt);
           const expiryNum = Number(expiry);
-          
+
           console.log(`Checking round ${i}:`, {
             targetRoundId: targetRoundId.toString(),
             prevRoundId: prevRoundId.toString(),
@@ -158,7 +162,7 @@ export function AdminMarketActions({
             expiry: expiryNum,
             isBeforeExpiry: prevRoundUpdatedAtNum < expiryNum,
           });
-          
+
           if (prevUpdatedAt < expiry) {
             found = true;
             // Verify the target round is after expiry
@@ -175,11 +179,11 @@ export function AdminMarketActions({
               expiry: expiryNum,
               isAfterExpiry: targetUpdatedAt >= expiryNum,
             });
-            
+
             if (targetUpdatedAt < expiryNum) {
               throw new Error(`Selected round (${targetRoundId.toString()}) updatedAt (${targetUpdatedAt}) is before expiry (${expiryNum}). This should not happen.`);
             }
-            
+
             break; // targetRoundId is the first one after expiry
           }
           targetRoundId = prevRoundId;
@@ -198,7 +202,7 @@ export function AdminMarketActions({
 
       // Resolve
       pushToast({ title: 'Resolving Market', description: `Executing resolve with round ${targetRoundId.toString()}...`, type: 'info' });
-      
+
       const hash = await writeContractAsync({
         address: addresses.chainlinkResolver,
         abi: resolverAbi,
@@ -209,12 +213,12 @@ export function AdminMarketActions({
       if (hash && publicClient) {
         try {
           const receipt = await publicClient.waitForTransactionReceipt({ hash });
-          
+
           // Check if transaction failed
           if (receipt.status === 'reverted') {
             throw new Error('Transaction reverted. Check the transaction on block explorer for details.');
           }
-          
+
           pushToast({ title: 'Success', description: `Market #${marketId} resolved successfully!`, type: 'success' });
           // Refresh page data
           window.location.reload();
@@ -225,10 +229,10 @@ export function AdminMarketActions({
       }
     } catch (e: any) {
       console.error('Error resolving market:', e);
-      
+
       // Try to extract more detailed error information
       let errorMessage = e.message || 'Failed to resolve market';
-      
+
       // Try to decode error from transaction if available
       if (e.data || e.cause?.data) {
         try {
@@ -239,7 +243,7 @@ export function AdminMarketActions({
               data: errorData,
             });
             errorMessage = `Contract Error: ${decoded.errorName}`;
-            
+
             // Map specific errors to user-friendly messages
             const errorMap: Record<string, string> = {
               'PhaseBoundaryRound': 'Cannot resolve at phase boundary. The market may need manual resolution.',
@@ -253,7 +257,7 @@ export function AdminMarketActions({
               'NotChainlinkMarket': 'Market does not use Chainlink oracle.',
               'FeedMissing': 'Oracle feed address is not set.',
             };
-            
+
             if (errorMap[decoded.errorName]) {
               errorMessage = errorMap[decoded.errorName];
             }
@@ -263,7 +267,7 @@ export function AdminMarketActions({
           console.error('Failed to decode error:', decodeError);
         }
       }
-      
+
       // Check for common error patterns in message
       if (errorMessage.includes('PhaseBoundaryRound') || errorMessage.includes('phase boundary')) {
         errorMessage = 'Cannot resolve at phase boundary. The market may need manual resolution.';
@@ -282,7 +286,7 @@ export function AdminMarketActions({
       } else if (errorMessage.includes('revert') || errorMessage.includes('execution reverted')) {
         errorMessage = 'Transaction reverted. Check the transaction on block explorer for the specific error reason.';
       }
-      
+
       pushToast({ title: 'Error', description: errorMessage, type: 'error' });
     } finally {
       setResolving(false);
@@ -295,7 +299,7 @@ export function AdminMarketActions({
     try {
       setCancelling(true);
       const data = encodeAbiParameters([{ type: 'uint256' }], [BigInt(marketId)]);
-      
+
       const opId = await writeContractAsync({
         address: addresses.core,
         abi: coreAbi,
@@ -305,10 +309,10 @@ export function AdminMarketActions({
 
       if (opId) {
         await publicClient.waitForTransactionReceipt({ hash: opId });
-        pushToast({ 
-          title: 'Success', 
-          description: 'Market cancellation scheduled. Execute after timelock expires.', 
-          type: 'success' 
+        pushToast({
+          title: 'Success',
+          description: 'Market cancellation scheduled. Execute after timelock expires.',
+          type: 'success'
         });
       }
     } catch (e: any) {
@@ -352,7 +356,7 @@ export function AdminMarketActions({
           <ChevronDown className="w-4 h-4 text-gray-400" />
         )}
       </button>
-      
+
       <AnimatePresence>
         {expanded && (
           <motion.div
@@ -382,7 +386,7 @@ export function AdminMarketActions({
                   )}
                 </Button>
               )}
-              
+
               {canCancel && (
                 <div className="space-y-2">
                   <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 text-xs text-yellow-800 dark:text-yellow-200">
