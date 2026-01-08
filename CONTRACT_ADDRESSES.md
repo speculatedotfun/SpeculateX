@@ -11,7 +11,7 @@
 | Contract | Address | BscScan |
 |----------|---------|---------|
 | **SpeculateCoreRouter** | `0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365` | [View](https://bscscan.com/address/0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365) |
-| **ChainlinkResolver** | `0x47650b66e83bf8AE1F8538F270b5F07fc3c83db9` | [View](https://bscscan.com/address/0x47650b66e83bf8AE1F8538F270b5F07fc3c83db9) |
+| **ChainlinkResolver** | `0xe11c1Dc5768858732d4a255A3baE579860780AE2` | [View](https://bscscan.com/address/0xe11c1Dc5768858732d4a255A3baE579860780AE2) |
 | **Treasury** | `0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651` | [View](https://bscscan.com/address/0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651) |
 | **Admin** | `0x29D67d1Ad683A76b2750f74B40b6e79d715C933c` | [View](https://bscscan.com/address/0x29D67d1Ad683A76b2750f74B40b6e79d715C933c) |
 
@@ -47,7 +47,7 @@
 | Contract | Address | BscScan |
 |----------|---------|---------|
 | **SpeculateCoreRouter** | `0x769706b79F3AfCb2D2aaa658D4444f68E6A03489` | [View](https://testnet.bscscan.com/address/0x769706b79F3AfCb2D2aaa658D4444f68E6A03489) |
-| **ChainlinkResolver** | `0x4A08A4764C6926c1a1d0C946E96808C13961c901` | [View](https://testnet.bscscan.com/address/0x4A08A4764C6926c1a1d0C946E96808C13961c901) |
+| **ChainlinkResolver** | `0xc0887840d92908d1110d096428e7B5728458Bdee` | [View](https://testnet.bscscan.com/address/0xc0887840d92908d1110d096428e7B5728458Bdee) |
 | **Treasury** | `0x03BDBFc8A9c237eB81C5c3F5dD4c566F79E9CfE7` | [View](https://testnet.bscscan.com/address/0x03BDBFc8A9c237eB81C5c3F5dD4c566F79E9CfE7) |
 | **Admin** | `0x29D67d1Ad683A76b2750f74B40b6e79d715C933c` | [View](https://testnet.bscscan.com/address/0x29D67d1Ad683A76b2750f74B40b6e79d715C933c) |
 
@@ -79,7 +79,7 @@
 
 ### Mainnet
 - ✅ **SpeculateCoreRouter**: `0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365` (Diamond Architecture - Full Security Audit)
-- ✅ **ChainlinkResolver**: `0x47650b66e83bf8AE1F8538F270b5F07fc3c83db9` (Auto-Resolve Policy: SLA + TWAP Fallback - Verified)
+- ✅ **ChainlinkResolver**: `0xe11c1Dc5768858732d4a255A3baE579860780AE2` (✅ Verified - Bulletproof `performUpkeep`)
 - ✅ **Treasury**: `0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651` (With withdrawal limits)
 - ✅ **USDC**: `0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d` (BSC USDC)
 - ✅ **Facets**: see table above (All security fixes deployed)
@@ -87,7 +87,7 @@
 
 ### Testnet
 - ✅ **SpeculateCoreRouter**: `0x769706b79F3AfCb2D2aaa658D4444f68E6A03489` (Diamond - All Audit Fixes)
-- ✅ **ChainlinkResolver**: `0x4A08A4764C6926c1a1d0C946E96808C13961c901` (Latest Update: Auto-Resolve Policy with SLA + TWAP Fallback - Verified)
+- ✅ **ChainlinkResolver**: `0x5E4Bf042933B9f8ec0789F97Df8179558960b412` (✅ Verified: Bulletproof `performUpkeep` supports 32/64/96+ bytes payloads)
 - ✅ **Treasury**: `0x03BDBFc8A9c237eB81C5c3F5dD4c566F79E9CfE7` (With MAX_SINGLE_LARGE_WITHDRAW cap)
 - ✅ **MockUSDC**: `0x3A84EDDD1A1C4bE4aEfB157476a82002bdD005D4` (MockUSDC with Faucet)
 - ✅ **Facets**: see table above (All with security hardening)
@@ -103,7 +103,7 @@
 # כתובות Mainnet
 USDC_ADDRESS=0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d
 SPECULATE_CORE_ADDRESS=0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365
-CHAINLINK_RESOLVER_ADDRESS=0x47650b66e83bf8AE1F8538F270b5F07fc3c83db9
+CHAINLINK_RESOLVER_ADDRESS=0xe11c1Dc5768858732d4a255A3baE579860780AE2
 TREASURY_ADDRESS=0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651
 
 # כתובות Testnet
@@ -133,4 +133,4 @@ TREASURY_ADDRESS=0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651
 
 ---
 
-**עדכון אחרון**: January 2, 2026 (Latest Deployment - createScheduledMarket + 24h Timelock on Mainnet)
+**עדכון אחרון**: January 8, 2026 (Latest Deployment - createScheduledMarket + Bulletproof ChainlinkResolver)

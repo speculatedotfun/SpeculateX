@@ -46,7 +46,7 @@ export function TradePreview({
   if (!amount || parseFloat(amount) <= 0) return null;
 
   const isBuy = tradeMode === 'buy';
-  const priceImpact = ((newPrice - currentPrice) / currentPrice) * 100;
+  const priceImpact = currentPrice > 0 ? ((newPrice - currentPrice) / currentPrice) * 100 : 0;
   const isPriceIncrease = newPrice > currentPrice;
 
   return (
@@ -69,8 +69,8 @@ export function TradePreview({
             Price Impact
           </div>
           <div className={`font-mono font-bold text-base sm:text-lg flex items-center gap-1 justify-end sm:justify-center ${Math.abs(priceImpact) > 5 ? 'text-amber-600 dark:text-amber-400' :
-              Math.abs(priceImpact) > 2 ? 'text-orange-600 dark:text-orange-400' :
-                'text-gray-600 dark:text-gray-300'
+            Math.abs(priceImpact) > 2 ? 'text-orange-600 dark:text-orange-400' :
+              'text-gray-600 dark:text-gray-300'
             }`}>
             {isPriceIncrease ? <TrendingUp className="w-4 h-4" aria-hidden="true" /> : <TrendingDown className="w-4 h-4" aria-hidden="true" />}
             {priceImpact > 0 ? '+' : ''}{priceImpact.toFixed(2)}%

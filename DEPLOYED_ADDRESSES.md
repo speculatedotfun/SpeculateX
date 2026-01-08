@@ -11,7 +11,7 @@
 | Contract | Address | BscScan | Status |
 |----------|---------|---------|--------|
 | **SpeculateCoreRouter** | `0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365` | [View](https://bscscan.com/address/0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365) | ✅ Deployed |
-| **ChainlinkResolver** | `0x47650b66e83bf8AE1F8538F270b5F07fc3c83db9` | [View](https://bscscan.com/address/0x47650b66e83bf8AE1F8538F270b5F07fc3c83db9) | ✅ Deployed & Verified |
+| **ChainlinkResolver** | `0xe11c1Dc5768858732d4a255A3baE579860780AE2` | [View](https://bscscan.com/address/0xe11c1Dc5768858732d4a255A3baE579860780AE2) | ✅ Deployed & Verified |
 | **Treasury** | `0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651` | [View](https://bscscan.com/address/0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651) | ✅ Deployed |
 | **Admin** | `0x29D67d1Ad683A76b2750f74B40b6e79d715C933c` | [View](https://bscscan.com/address/0x29D67d1Ad683A76b2750f74B40b6e79d715C933c) | ✅ Admin |
 
@@ -83,7 +83,7 @@
 # Mainnet Addresses
 USDC_ADDRESS=0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d
 SPECULATE_CORE_ADDRESS=0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365
-CHAINLINK_RESOLVER_ADDRESS=0x47650b66e83bf8AE1F8538F270b5F07fc3c83db9
+CHAINLINK_RESOLVER_ADDRESS=0xe11c1Dc5768858732d4a255A3baE579860780AE2
 TREASURY_ADDRESS=0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651
 
 # Testnet Addresses

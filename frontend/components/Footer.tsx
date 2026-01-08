@@ -41,7 +41,7 @@ export default function Footer() {
               </div>
             </Link>
             <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-xs">
-              The next generation decentralized prediction market protocol. Trade on your beliefs with infinite liquidity and transparent outcomes.
+              A permissionless, on-chain prediction market on BNB Chain.
             </p>
           </div>
 

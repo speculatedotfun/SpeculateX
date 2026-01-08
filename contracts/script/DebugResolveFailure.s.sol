@@ -6,6 +6,23 @@ import {ChainlinkResolver} from "../src/ChainlinkResolver.sol";
 import {AggregatorV3Interface} from "../src/interfaces/AggregatorV3Interface.sol";
 import {SpeculateCoreRouter} from "../src/SpeculateCoreRouter.sol";
 
+// Interface for getMarketResolution (must be declared at file scope, not inside a contract)
+interface ICoreResolutionView_DebugResolveFailure {
+    enum OracleType { None, ChainlinkFeed }
+    struct ResolutionConfig {
+        uint256 expiryTimestamp;
+        OracleType oracleType;
+        address oracleAddress;
+        bytes32 priceFeedId;
+        uint256 targetValue;
+        uint8 comparison;
+        bool yesWins;
+        bool isResolved;
+        uint8 oracleDecimals;
+    }
+    function getMarketResolution(uint256 id) external view returns (ResolutionConfig memory);
+}
+
 /// @notice Debug a specific failed resolve transaction by checking all conditions
 /// Usage: forge script script/DebugResolveFailure.s.sol:DebugResolveFailure --rpc-url $BSC_TESTNET_RPC -vvv
 contract DebugResolveFailure is Script {
@@ -15,23 +32,6 @@ contract DebugResolveFailure is Script {
     uint256 constant MARKET_ID = 4;
     uint80 constant ROUND_ID = 0x20000000000bdd8; // Phase 2, aggregator round 48598
     
-    // Interface for getMarketResolution
-    interface ICoreResolutionView {
-        enum OracleType { None, ChainlinkFeed }
-        struct ResolutionConfig {
-            uint256 expiryTimestamp;
-            OracleType oracleType;
-            address oracleAddress;
-            bytes32 priceFeedId;
-            uint256 targetValue;
-            uint8 comparison;
-            bool yesWins;
-            bool isResolved;
-            uint8 oracleDecimals;
-        }
-        function getMarketResolution(uint256 id) external view returns (ResolutionConfig memory);
-    }
-    
     function run() external view {
         console2.log("=== Debugging Failed Resolve Transaction ===\n");
         console2.log("Transaction Hash: 0xfa1d78e7b8c8ad07a5badd00d29524273e2496c7d9b2b56e608c3dd9ea9e6799");
@@ -40,7 +40,8 @@ contract DebugResolveFailure is Script {
         console2.log("");
         
         ChainlinkResolver resolver = ChainlinkResolver(RESOLVER);
-        SpeculateCoreRouter core = SpeculateCoreRouter(payable(CORE));
+        // Use a minimal interface view for resolution config (Router type may not expose this selector directly)
+        ICoreResolutionView_DebugResolveFailure coreView = ICoreResolutionView_DebugResolveFailure(CORE);
         
         // Check 1: Is resolver paused?
         bool paused = resolver.paused();
@@ -66,8 +67,8 @@ contract DebugResolveFailure is Script {
         
         // Check 3: Get market resolution config
         console2.log("=== Check 3: Market Resolution Config ===");
-        ICoreResolutionView.ResolutionConfig memory r;
-        try core.getMarketResolution(MARKET_ID) returns (ICoreResolutionView.ResolutionConfig memory config) {
+        ICoreResolutionView_DebugResolveFailure.ResolutionConfig memory r;
+        try coreView.getMarketResolution(MARKET_ID) returns (ICoreResolutionView_DebugResolveFailure.ResolutionConfig memory config) {
             r = config;
             console2.log("Expiry Timestamp:", r.expiryTimestamp);
             console2.log("Oracle Type:", uint8(r.oracleType));
@@ -76,7 +77,7 @@ contract DebugResolveFailure is Script {
             console2.log("Is Resolved:", r.isResolved);
             console2.log("");
             
-            if (r.oracleType != ICoreResolutionView.OracleType.ChainlinkFeed) {
+            if (r.oracleType != ICoreResolutionView_DebugResolveFailure.OracleType.ChainlinkFeed) {
                 console2.log("ERROR: Not a Chainlink market! This will cause NotChainlinkMarket error.");
                 return;
             }

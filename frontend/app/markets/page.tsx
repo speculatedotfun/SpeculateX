@@ -315,9 +315,9 @@ export default function MarketsPage() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#0f0a2e] dark:text-white tracking-tighter leading-[0.9]"
           >
-            Explore <br className="hidden sm:block" />
+            Be The <br className="hidden sm:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-cyan-400 to-purple-500 animate-gradient-x">
-              Opportunities.
+              Market.
             </span>
           </motion.h1>
 

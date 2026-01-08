@@ -1,16 +1,16 @@
 # ChainlinkResolver Verification Instructions
 
 ## Contract Details
-- **Address**: `0x4A08A4764C6926c1a1d0C946E96808C13961c901`
+- **Address**: `0x5E4Bf042933B9f8ec0789F97Df8179558960b412`
 - **Network**: BSC Testnet (Chain ID: 97)
-- **BscScan**: https://testnet.bscscan.com/address/0x4A08A4764C6926c1a1d0C946E96808C13961c901
+- **BscScan**: https://testnet.bscscan.com/address/0x5E4Bf042933B9f8ec0789F97Df8179558960b412
 
 ## Manual Verification on BscScan
 
 Since automated verification is failing (bytecode mismatch), follow these steps:
 
 ### Step 1: Go to Verification Page
-1. Visit: https://testnet.bscscan.com/address/0x4A08A4764C6926c1a1d0C946E96808C13961c901#code
+1. Visit: https://testnet.bscscan.com/address/0x5E4Bf042933B9f8ec0789F97Df8179558960b412#code
 2. Click "Verify and Publish"
 
 ### Step 2: Select Verification Method

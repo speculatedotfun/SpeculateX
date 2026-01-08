@@ -27,7 +27,7 @@ contract CheckMainnetTimelock is Script {
         console.log("");
         console.log("  cd contracts");
         console.log("  $env:CORE_ROUTER=\"0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365\"");
-        console.log("  $env:RESOLVER=\"0x47650b66e83bf8AE1F8538F270b5F07fc3c83db9\"");
+        console.log("  $env:RESOLVER=\"0xe11c1Dc5768858732d4a255A3baE579860780AE2\"");
         console.log("  $env:MARKET_FACET=\"0x8aE4e9fAA34aFA70cf7D01239f1fB87b1ea303e7\"");
         console.log("  $env:TRADING_FACET=\"0x55390A0AAc12b1FD765969e3B5A9Ee51894E8830\"");
         console.log("  $env:LIQUIDITY_FACET=\"0x5A5350E102C3224024901ad9379Baf9af4FBAb87\"");

@@ -11,6 +11,7 @@ import MintUsdcForm from '@/components/MintUsdcForm';
 import AdminManager from '@/components/AdminManager';
 import USDCMinterManager from '@/components/USDCMinterManager';
 import AdminOperationsManager from '@/components/AdminOperationsManager';
+import ManualResolveMarkets from '@/components/admin/ManualResolveMarkets';
 import Header from '@/components/Header';
 import { getMarketCount, getMarket, getMarketState, getLpResidualPot, isAdmin as checkIsAdmin } from '@/lib/hooks';
 import { formatUnits } from 'viem';
@@ -321,9 +322,23 @@ export default function AdminPage() {
             <AdminOperationsManager />
           </motion.div>
 
-          {/* Permissions (Span 6) */}
+          {/* Manual Resolve (Span 6) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+            className="md:col-span-6 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 shadow-sm dark:shadow-none transition-colors"
+          >
+            <div className="flex items-center gap-3 mb-8">
+              <div className="p-3 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-2xl text-emerald-500 dark:text-emerald-400">
+                <Zap className="w-6 h-6" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Manual Market Resolution</h2>
+            </div>
+            <ManualResolveMarkets />
+          </motion.div>
+
+          {/* Permissions (Span 6) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
             className="md:col-span-6 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 shadow-sm dark:shadow-none transition-colors"
           >
             <div className="flex items-center gap-3 mb-8">
@@ -337,7 +352,7 @@ export default function AdminPage() {
 
           {/* System Ledger (Span 12) */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
             className="md:col-span-12 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 shadow-sm dark:shadow-none transition-colors"
           >
             <div className="flex items-center justify-between mb-8">

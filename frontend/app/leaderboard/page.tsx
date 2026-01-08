@@ -125,7 +125,7 @@ export default function LeaderboardPage() {
                         transition={{ delay: 0.1 }}
                         className="text-base text-gray-500 dark:text-gray-400 max-w-2xl mx-auto font-light leading-relaxed"
                     >
-                        Compete with the top traders. Prove your skill. <span className="text-[#14B8A6] font-medium">Claim your throne.</span>
+                        A live ranking of market participants.
                     </motion.p>
                 </div>
 
@@ -134,7 +134,7 @@ export default function LeaderboardPage() {
                     initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-12"
+                    className="flex flex-wrap justify-center gap-3 mb-12 max-w-4xl mx-auto"
                 >
                     <StatCard
                         title="Active Traders"
@@ -145,12 +145,12 @@ export default function LeaderboardPage() {
                         borderColor="border-blue-500/10"
                     />
                     <StatCard
-                        title="Total Volume"
-                        value={formatCurrency(users.reduce((acc, u) => acc + u.totalVolume, 0))}
-                        icon={TrendingUp}
-                        color="text-[#14B8A6]"
-                        bgColor="bg-[#14B8A6]/10"
-                        borderColor="border-[#14B8A6]/10"
+                        title="Total Points"
+                        value={formatNumber(users.reduce((acc, u) => acc + u.points, 0))}
+                        icon={Zap}
+                        color="text-amber-500"
+                        bgColor="bg-amber-500/10"
+                        borderColor="border-amber-500/10"
                     />
                     <StatCard
                         title="Total Trades"
@@ -159,14 +159,6 @@ export default function LeaderboardPage() {
                         color="text-purple-500"
                         bgColor="bg-purple-500/10"
                         borderColor="border-purple-500/10"
-                    />
-                    <StatCard
-                        title="Points Cap"
-                        value={formatNumber(users.reduce((acc, u) => acc + u.points, 0))}
-                        icon={Zap}
-                        color="text-amber-500"
-                        bgColor="bg-amber-500/10"
-                        borderColor="border-amber-500/10"
                     />
                 </motion.div>
 
@@ -178,24 +170,24 @@ export default function LeaderboardPage() {
                         {top3.length > 0 && !search && (
                             <div className="relative mb-12">
                                 <div className="absolute inset-0 bg-gradient-to-b from-[#14B8A6]/5 to-transparent blur-3xl -z-10 rounded-full" />
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 items-end max-w-7xl mx-auto">
+                                <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-end justify-center max-w-5xl mx-auto px-4">
                                     {/* 2nd Place */}
                                     {top3[1] && (
-                                        <div className="order-2 md:order-1">
+                                        <div className="order-2 md:order-1 w-full md:w-64">
                                             <PodiumCard user={top3[1]} place={2} prefersReducedMotion={prefersReducedMotion} nicknames={nicknames} />
                                         </div>
                                     )}
 
                                     {/* 1st Place */}
                                     {top3[0] && (
-                                        <div className="order-1 md:order-2 -mt-8 z-20">
+                                        <div className="order-1 md:order-2 -mt-8 z-20 w-full md:w-64">
                                             <PodiumCard user={top3[0]} place={1} prefersReducedMotion={prefersReducedMotion} nicknames={nicknames} />
                                         </div>
                                     )}
 
                                     {/* 3rd Place */}
                                     {top3[2] && (
-                                        <div className="order-3 md:order-3">
+                                        <div className="order-3 md:order-3 w-full md:w-64">
                                             <PodiumCard user={top3[2]} place={3} prefersReducedMotion={prefersReducedMotion} nicknames={nicknames} />
                                         </div>
                                     )}
@@ -252,7 +244,7 @@ export default function LeaderboardPage() {
                                             <th className="px-4 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest w-16">Rank</th>
                                             <th className="px-4 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest">Trader</th>
                                             <th className="px-4 py-3 text-center text-[9px] font-black text-gray-400 uppercase tracking-widest hidden md:table-cell">Activity</th>
-                                            <th className="px-4 py-3 text-right text-[9px] font-black text-gray-400 uppercase tracking-widest">Volume/Score</th>
+                                            <th className="px-4 py-3 text-right text-[9px] font-black text-gray-400 uppercase tracking-widest">Points</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100 dark:divide-white/5">
@@ -303,9 +295,6 @@ export default function LeaderboardPage() {
                             </div>
                             <div className="flex items-center gap-2">
                                 <Sparkline data={generateActivityData(currentUserStats.address)} color={currentUserStats.rank <= 3 ? '#EAB308' : '#14B8A6'} width={50} height={18} />
-                                <div className="px-2 py-1 bg-white/10 dark:bg-black/10 rounded-md text-[10px] font-bold">
-                                    {formatCurrency(currentUserStats.totalVolume)} Vol
-                                </div>
                             </div>
                         </div>
                     </motion.div>
@@ -318,7 +307,7 @@ export default function LeaderboardPage() {
 
 function StatCard({ title, value, icon: Icon, color, bgColor, borderColor }: any) {
     return (
-        <div className={`bg-white/60 dark:bg-gray-800/40 backdrop-blur-xl rounded-xl p-4 border ${borderColor ? borderColor : 'border-gray-100'} shadow-sm flex flex-col items-start gap-3 hover:scale-[1.02] transition-transform`}>
+        <div className={`bg-white/60 dark:bg-gray-800/40 backdrop-blur-xl rounded-xl p-4 border ${borderColor ? borderColor : 'border-gray-100'} shadow-sm flex flex-col items-start gap-3 hover:scale-[1.02] transition-transform w-full sm:w-56`}>
             <div className={`p-2 rounded-lg ${bgColor} ${color}`}>
                 <Icon className="w-4 h-4" />
             </div>
@@ -386,15 +375,9 @@ function PodiumCard({ user, place, prefersReducedMotion = false, nicknames = {} 
                     {label}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 w-full text-center border-t border-gray-200/50 dark:border-white/5 pt-3">
-                    <div>
-                        <div className="text-[8px] font-bold uppercase text-gray-400 tracking-wider mb-1">Score</div>
-                        <div className={cn("text-base font-black", textClass)}>{formatNumber(user.points)}</div>
-                    </div>
-                    <div>
-                        <div className="text-[8px] font-bold uppercase text-gray-400 tracking-wider mb-1">Volume</div>
-                        <div className="text-sm font-bold dark:text-gray-300">{formatNumber(user.totalVolume)}</div>
-                    </div>
+                <div className="w-full text-center border-t border-gray-200/50 dark:border-white/5 pt-3">
+                    <div className="text-[8px] font-bold uppercase text-gray-400 tracking-wider mb-1">Points</div>
+                    <div className={cn("text-base font-black", textClass)}>{formatNumber(user.points)}</div>
                 </div>
             </div>
         </motion.div>
@@ -437,7 +420,6 @@ function LeaderboardRow({ user, isCurrentUser, nicknames = {} }: { user: Leaderb
             <td className="px-4 py-3 whitespace-nowrap text-right">
                 <div className="flex flex-col items-end gap-1">
                     <span className="text-xs font-black text-gray-900 dark:text-white">{formatNumber(user.points)} PTS</span>
-                    <span className="text-[9px] font-medium text-gray-400 font-mono">${formatNumber(user.totalVolume)} Vol</span>
                 </div>
             </td>
         </tr>

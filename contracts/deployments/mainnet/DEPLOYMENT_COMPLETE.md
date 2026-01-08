@@ -16,7 +16,7 @@
 |----------|---------|--------------|
 | **Treasury** | `0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651` | ✅ Verified |
 | **CoreRouter** ⭐ | `0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365` | ✅ Verified |
-| **ChainlinkResolver** | `0x47650b66e83bf8AE1F8538F270b5F07fc3c83db9` | ✅ Verified |
+| **ChainlinkResolver** | `0xe11c1Dc5768858732d4a255A3baE579860780AE2` | ✅ Verified |
 | **MarketFacet** | `0x8aE4e9fAA34aFA70cf7D01239f1fB87b1ea303e7` | ✅ Verified |
 | **TradingFacet** | `0x55390A0AAc12b1FD765969e3B5A9Ee51894E8830` | ✅ Verified |
 | **LiquidityFacet** | `0x5A5350E102C3224024901ad9379Baf9af4FBAb87` | ✅ Verified |
@@ -30,7 +30,7 @@
 
 - [Treasury](https://bscscan.com/address/0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651#code)
 - [CoreRouter](https://bscscan.com/address/0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365#code) ⭐
-- [ChainlinkResolver](https://bscscan.com/address/0x47650b66e83bf8AE1F8538F270b5F07fc3c83db9#code)
+- [ChainlinkResolver](https://bscscan.com/address/0xe11c1Dc5768858732d4a255A3baE579860780AE2#code)
 - [MarketFacet](https://bscscan.com/address/0x8aE4e9fAA34aFA70cf7D01239f1fB87b1ea303e7#code)
 - [TradingFacet](https://bscscan.com/address/0x55390A0AAc12b1FD765969e3B5A9Ee51894E8830#code)
 - [LiquidityFacet](https://bscscan.com/address/0x5A5350E102C3224024901ad9379Baf9af4FBAb87#code)
@@ -82,7 +82,7 @@ Update your frontend environment variables:
 ```env
 NEXT_PUBLIC_MAINNET_CORE=0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365
 NEXT_PUBLIC_MAINNET_TREASURY=0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651
-NEXT_PUBLIC_MAINNET_RESOLVER=0x47650b66e83bf8AE1F8538F270b5F07fc3c83db9
+NEXT_PUBLIC_MAINNET_RESOLVER=0xe11c1Dc5768858732d4a255A3baE579860780AE2
 NEXT_PUBLIC_MAINNET_USDC=0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d
 NEXT_PUBLIC_MAINNET_FACET_MARKET=0x8aE4e9fAA34aFA70cf7D01239f1fB87b1ea303e7
 NEXT_PUBLIC_MAINNET_FACET_TRADING=0x55390A0AAc12b1FD765969e3B5A9Ee51894E8830

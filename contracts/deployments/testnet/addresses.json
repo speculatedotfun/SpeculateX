@@ -1,13 +1,13 @@
 {
   "chainId": 97,
   "network": "BSC Testnet",
-  "deploymentDate": "2026-01-02",
+  "deploymentDate": "2026-01-08",
   "deployer": "0x29D67d1Ad683A76b2750f74B40b6e79d715C933c",
   "admin": "0x29D67d1Ad683A76b2750f74B40b6e79d715C933c",
   "contracts": {
     "Treasury": "0x03BDBFc8A9c237eB81C5c3F5dD4c566F79E9CfE7",
     "CoreRouter": "0x769706b79F3AfCb2D2aaa658D4444f68E6A03489",
-    "ChainlinkResolver": "0x4A08A4764C6926c1a1d0C946E96808C13961c901",
+    "ChainlinkResolver": "0x5E4Bf042933B9f8ec0789F97Df8179558960b412",
     "MarketFacet": "0x858D0Bb450b208Ee5841FFC5f49cf0Fcc6Fc5cb3",
     "TradingFacet": "0xCc960988f0ea3B407DCE9886E1c43619F93F99B0",
     "LiquidityFacet": "0x47650b66e83bf8AE1F8538F270b5F07fc3c83db9",
@@ -32,7 +32,7 @@
   "bscscanLinks": {
     "Treasury": "https://testnet.bscscan.com/address/0x03BDBFc8A9c237eB81C5c3F5dD4c566F79E9CfE7",
     "CoreRouter": "https://testnet.bscscan.com/address/0x769706b79F3AfCb2D2aaa658D4444f68E6A03489",
-    "ChainlinkResolver": "https://testnet.bscscan.com/address/0x4A08A4764C6926c1a1d0C946E96808C13961c901",
+    "ChainlinkResolver": "https://testnet.bscscan.com/address/0x5E4Bf042933B9f8ec0789F97Df8179558960b412",
     "MarketFacet": "https://testnet.bscscan.com/address/0x858D0Bb450b208Ee5841FFC5f49cf0Fcc6Fc5cb3",
     "TradingFacet": "https://testnet.bscscan.com/address/0xCc960988f0ea3B407DCE9886E1c43619F93F99B0",
     "LiquidityFacet": "https://testnet.bscscan.com/address/0x47650b66e83bf8AE1F8538F270b5F07fc3c83db9",

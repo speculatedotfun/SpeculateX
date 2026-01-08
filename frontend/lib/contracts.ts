@@ -18,7 +18,7 @@ const MAINNET_ADDRESSES = {
   usdc: (process.env.NEXT_PUBLIC_MAINNET_USDC ??
     '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d') as `0x${string}`, // Real USDC on BSC (use this, not MockUSDC)
   chainlinkResolver: (process.env.NEXT_PUBLIC_MAINNET_RESOLVER ??
-    '0x47650b66e83bf8AE1F8538F270b5F07fc3c83db9') as `0x${string}`,
+    '0xe11c1Dc5768858732d4a255A3baE579860780AE2') as `0x${string}`,
   treasury: (process.env.NEXT_PUBLIC_MAINNET_TREASURY ??
     '0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651') as `0x${string}`,
   admin: (process.env.NEXT_PUBLIC_MAINNET_ADMIN ??
@@ -53,7 +53,7 @@ const TESTNET_ADDRESSES = {
   usdc: (process.env.NEXT_PUBLIC_TESTNET_USDC ??
     '0x3A84EDDD1A1C4bE4aEfB157476a82002bdD005D4') as `0x${string}`, // MockUSDC with faucet
     chainlinkResolver: (process.env.NEXT_PUBLIC_TESTNET_RESOLVER ??
-      '0x4A08A4764C6926c1a1d0C946E96808C13961c901') as `0x${string}`,
+      '0x5E4Bf042933B9f8ec0789F97Df8179558960b412') as `0x${string}`,
   treasury: (process.env.NEXT_PUBLIC_TESTNET_TREASURY ??
     '0x03BDBFc8A9c237eB81C5c3F5dD4c566F79E9CfE7') as `0x${string}`,
   admin: (process.env.NEXT_PUBLIC_TESTNET_ADMIN ??
@@ -113,6 +113,12 @@ export function getChainId(): number {
 }
 
 export const chainId = getChainId();
+
+// Get ChainlinkResolver address for current network
+export function getChainlinkResolver(): `0x${string}` {
+  const addresses = getAddresses();
+  return addresses.chainlinkResolver;
+}
 
 // Export network getter/setter
 export function getNetwork(): Network {
