@@ -62,6 +62,7 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable, Automati
     event MarketResolved(uint256 indexed marketId, address indexed feed, uint256 price, uint256 updatedAt);
     event MarketResolvedTwap(uint256 indexed marketId, address indexed feed, uint256 twapPrice, uint256 windowStart, uint256 windowEnd);
     event MarketResolvedLate(uint256 indexed marketId, address indexed feed, uint256 updatedAt);
+    event UpkeepPayload(uint256 len, uint256 w0);
 
     error ZeroAddress();
     error BadValue();
@@ -262,8 +263,39 @@ contract ChainlinkResolver is AccessControl, ReentrancyGuard, Pausable, Automati
     }
 
     function performUpkeep(bytes calldata performData) external override {
-        if (performData.length != 32) revert BadValue();
-        uint256 marketId = abi.decode(performData, (uint256));
+        if (performData.length < 32) revert BadValue();
+
+        uint256 w0;
+        assembly { w0 := calldataload(performData.offset) }
+
+        uint256 marketId;
+
+        // Case A: abi.encode(uint256) => 32 bytes
+        if (performData.length == 32) {
+            marketId = w0;
+
+        // Case B: abi.encode(uint256,uint256) => 64 bytes (your current case)
+        // Note: No check for w0 != 32 to avoid breaking when marketId == 32
+        } else if (performData.length == 64) {
+            marketId = w0;
+
+        // Case C: wrapped bytes => abi.encode(bytes) where inner is 32 bytes:
+        // layout: [0]=0x20 (offset), [1]=0x20 (len), [2]=marketId
+        } else if (performData.length >= 96 && w0 == 32) {
+            uint256 w1;
+            assembly { w1 := calldataload(add(performData.offset, 32)) }
+            if (w1 != 32) revert BadValue();
+
+            assembly { marketId := calldataload(add(performData.offset, 64)) }
+
+        } else {
+            revert BadValue();
+        }
+
+        // Emit event for debugging (see what Keeper actually sends)
+        // Note: If resolveAuto reverts, this event won't appear in logs
+        emit UpkeepPayload(performData.length, w0);
+
         resolveAuto(marketId);
     }
 
