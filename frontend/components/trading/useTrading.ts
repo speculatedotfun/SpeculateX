@@ -33,6 +33,7 @@ interface UseTradingProps {
     usdcAllowanceValue?: bigint;
     refetchAll: () => Promise<void>;
     setAmount: (amount: string) => void;
+    onTradeSuccess?: (trade: any) => void; // NEW
 }
 
 export function useTrading({
@@ -54,6 +55,7 @@ export function useTrading({
     usdcAllowanceValue,
     refetchAll,
     setAmount,
+    onTradeSuccess, // NEW
 }: UseTradingProps) {
     const { address } = useAccount();
     const { writeContractAsync } = useWriteContract();
@@ -151,6 +153,10 @@ export function useTrading({
             setPendingTrade(true);
             setBusyLabel(tradeMode === 'buy' ? 'Preparing buy…' : 'Preparing sell…');
 
+            let txHash: `0x${string}` | undefined;
+            let simulation: any;
+            let estimatedPrice = '0.00';
+
             if (tradeMode === 'buy') {
                 if (address) {
                     await ensureAllowance({
@@ -174,13 +180,18 @@ export function useTrading({
                     return;
                 }
 
-                const simulation = simulateBuyChunk(amountBigInt, qYes, qNo, bE18, feeTreasuryBps, feeVaultBps, feeLpBps, side === 'yes');
+                simulation = simulateBuyChunk(amountBigInt, qYes, qNo, bE18, feeTreasuryBps, feeVaultBps, feeLpBps, side === 'yes');
                 if (!simulation) throw new Error('Simulation failed');
                 const minOut = simulation.minOut > 0n ? simulation.minOut : 1n;
                 const deadline = BigInt(Math.floor(Date.now() / 1000)) + TRADE_DEADLINE_SECONDS;
 
+                // Calculate Price: USDC / Shares
+                const usdcVal = Number(formatUnits(amountBigInt, 6));
+                const sharesVal = Number(formatUnits(minOut, 18));
+                if (sharesVal > 0) estimatedPrice = (usdcVal / sharesVal).toFixed(2);
+
                 setBusyLabel('Submitting buy…');
-                const txHash = await writeContractAsync({
+                txHash = await writeContractAsync({
                     address: addresses.core,
                     abi: coreAbiForNetwork,
                     functionName: 'buy',
@@ -201,8 +212,13 @@ export function useTrading({
                 const minUsdcOut = expectedUsdcOut > slippageGuard ? expectedUsdcOut - slippageGuard : expectedUsdcOut;
                 const deadline = BigInt(Math.floor(Date.now() / 1000)) + TRADE_DEADLINE_SECONDS;
 
+                // Calculate Price: USDC / Shares
+                const usdcVal = Number(formatUnits(expectedUsdcOut, 6));
+                const sharesVal = Number(formatUnits(tokensIn, 18));
+                if (sharesVal > 0) estimatedPrice = (usdcVal / sharesVal).toFixed(2);
+
                 setBusyLabel('Submitting sell…');
-                const txHash = await writeContractAsync({
+                txHash = await writeContractAsync({
                     address: addresses.core,
                     abi: coreAbiForNetwork,
                     functionName: 'sell',
@@ -218,6 +234,20 @@ export function useTrading({
             triggerConfetti();
             showToastMsg('Success', 'Trade executed successfully', 'success');
             setAmount('');
+
+            // Optimistic Update
+            if (onTradeSuccess && txHash) {
+                onTradeSuccess({
+                    id: txHash + '-' + (tradeMode === 'buy' ? (side === 'yes' ? 'BuyYes' : 'BuyNo') : (side === 'yes' ? 'SellYes' : 'SellNo')),
+                    type: tradeMode === 'buy' ? (side === 'yes' ? 'BuyYes' : 'BuyNo') : (side === 'yes' ? 'SellYes' : 'SellNo'),
+                    user: address?.toLowerCase() || '',
+                    amount: amount,
+                    output: '0',
+                    price: estimatedPrice,
+                    timestamp: Math.floor(Date.now() / 1000),
+                    txHash: txHash
+                });
+            }
         } catch (error) {
             console.error(error);
             showErrorToast(error, 'Trade failed');

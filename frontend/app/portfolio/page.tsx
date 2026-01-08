@@ -115,10 +115,10 @@ export default function PortfolioPage() {
 
   // Chart Data
   const allocationData = [
-    { name: 'Active', value: positions.filter(p => p.status === 'Active').reduce((acc, p) => acc + p.value, 0), color: '#3B82F6' },
-    { name: 'Winnings', value: claimablePositions.reduce((acc, p) => acc + p.value, 0), color: '#10B981' },
-    { name: 'Claimed', value: totalClaimed, color: '#F59E0B' },
-  ].filter(d => d.value > 0);
+    { name: 'Active', value: positions.filter(p => p.status === 'Active').reduce((acc, p) => acc + (p.value || 0), 0), color: '#3B82F6' },
+    { name: 'Winnings', value: claimablePositions.reduce((acc, p) => acc + (p.value || 0), 0), color: '#10B981' },
+    { name: 'Claimed', value: totalClaimed || 0, color: '#F59E0B' },
+  ].filter(d => d.value > 0.01); // Filter out dust/zero values
 
   if (!isConnected) {
     return (
@@ -655,16 +655,9 @@ function PositionRow({ position, trades = [], onClaimSuccess, isRedeemed = false
   const [isClaiming, setIsClaiming] = useState(false);
   const [isSelling, setIsSelling] = useState(false);
 
-  const { data: resolutionData } = useReadContract({
-    address: addresses.core,
-    abi: coreAbi,
-    functionName: 'getMarketResolution',
-    args: [BigInt(position.marketId)],
-    query: { enabled: position.status === 'Resolved' || position.marketResolved },
-  }) as any;
-
-  const actualIsResolved = resolutionData?.isResolved ?? position.marketResolved ?? (position.status === 'Resolved');
-  const actualYesWins = resolutionData?.yesWins ?? position.yesWins;
+  // Resolution data is now pre-fetched by the portfolio hook
+  const actualIsResolved = position.marketResolved || position.status === 'Resolved';
+  const actualYesWins = position.yesWins;
   const actualIsWinner = actualIsResolved && (
     (actualYesWins === true && position.side === 'YES') ||
     (actualYesWins === false && position.side === 'NO')
@@ -678,9 +671,9 @@ function PositionRow({ position, trades = [], onClaimSuccess, isRedeemed = false
   const showLost = position.status === 'Resolved' && !isWinner;
 
   // Calculate average purchase price
-  const positionTrades = trades.filter(t => 
-    t.marketId === position.marketId && 
-    t.side === position.side && 
+  const positionTrades = trades.filter(t =>
+    t.marketId === position.marketId &&
+    t.side === position.side &&
     t.action === 'buy'
   );
 
@@ -898,9 +891,9 @@ function PositionCard({ position, trades = [], onClaimSuccess, isRedeemed = fals
   const showLost = position.status === 'Resolved' && !isWinner;
 
   // Calculate average purchase price from trades
-  const positionTrades = trades.filter(t => 
-    t.marketId === position.marketId && 
-    t.side === position.side && 
+  const positionTrades = trades.filter(t =>
+    t.marketId === position.marketId &&
+    t.side === position.side &&
     t.action === 'buy'
   );
 

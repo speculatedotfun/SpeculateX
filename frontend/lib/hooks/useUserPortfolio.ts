@@ -3,10 +3,10 @@ import { useAccount } from 'wagmi';
 import { fetchSubgraph } from '@/lib/subgraphClient';
 import { formatUnits } from 'viem';
 import { getMarketState, getSpotPriceYesE6, getMarket, getMarketCount, getMarketResolution } from '@/lib/hooks';
-import { readContract } from 'wagmi/actions';
+import { readContracts } from 'wagmi/actions';
 import { config } from '@/lib/wagmi';
 import { addresses } from '@/lib/contracts';
-import { positionTokenAbi } from '@/lib/abis';
+import { positionTokenAbi, coreAbi } from '@/lib/abis';
 
 export interface PortfolioPosition {
   marketId: number;
@@ -44,17 +44,27 @@ export interface PortfolioRedemption {
   yesWins: boolean | null;
 }
 
+// Helper for chunking
+function chunkArray<T>(array: T[], size: number): T[][] {
+  const result: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    result.push(array.slice(i, i + size));
+  }
+  return result;
+}
+
 export function useUserPortfolio() {
   const { address } = useAccount();
   const userId = address?.toLowerCase();
 
   return useQuery({
-    queryKey: ['userPortfolio', userId],
+    queryKey: ['userPortfolioOptimized', userId],
     enabled: !!userId && !!address,
     queryFn: async () => {
       if (!userId || !address) throw new Error('No user');
       const userAddress = address as `0x${string}`;
 
+      // 1. Fetch Subgraph Data
       const data = await fetchSubgraph<{
         user: {
           balances: Array<{
@@ -142,61 +152,117 @@ export function useUserPortfolio() {
       const tradesRaw = data.user?.trades || [];
       const redemptionsRaw = data.user?.redemptions || [];
 
-      // Get all markets to check for positions not in subgraph
+      // 2. Identify Markets to Check
       const marketCount = await getMarketCount();
-      const allMarketIds = Array.from({ length: Number(marketCount) }, (_, i) => i + 1);
+      const maxMarketId = Number(marketCount);
 
-      // Create a set of market IDs we already have from subgraph
-      const subgraphMarketIds = new Set(balancesRaw.map(b => Number(b.market.id)));
+      const subgraphMarketIds = balancesRaw.map(b => Number(b.market.id));
+      const recentMarketIds = Array.from({ length: Math.min(20, maxMarketId) }, (_, i) => maxMarketId - i);
 
-      // Check all markets on-chain for user positions
-      const onChainPositions: PortfolioPosition[] = [];
-      const checkedMarkets = new Set<number>();
+      const relevantMarketIds = Array.from(new Set([...subgraphMarketIds, ...recentMarketIds]))
+        .filter(id => id > 0)
+        .sort((a, b) => b - a);
 
-      // First, verify and enhance subgraph positions with on-chain data
-      const verifiedPositions = await Promise.all(
-        balancesRaw.map(async (b) => {
-          const marketId = Number(b.market.id);
-          checkedMarkets.add(marketId);
+      // 3. Batch 1: Get Market Metadata, Resolution, and Price State
+      // Chunking to avoid RPC limits
+      const chunks = chunkArray(relevantMarketIds, 10);
+      const marketInfoMap = new Map<number, { market: any, resolution: any, priceYes: number }>();
 
-          try {
-            // Get on-chain market data
-            const market = await getMarket(BigInt(marketId));
-            const resolution = await getMarketResolution(BigInt(marketId));
+      for (const chunk of chunks) {
+        const calls = chunk.flatMap(id => [
+          { address: addresses.core, abi: coreAbi, functionName: 'markets', args: [BigInt(id)] },
+          { address: addresses.core, abi: coreAbi, functionName: 'getMarketResolution', args: [BigInt(id)] },
+          { address: addresses.core, abi: coreAbi, functionName: 'getMarketState', args: [BigInt(id)] }
+        ]);
 
-            if (!market.exists) return null;
+        const results = await readContracts(config, {
+          contracts: calls,
+          allowFailure: true
+        });
 
-            const side = b.side === 'yes' ? 'YES' : 'NO';
-            const tokenAddress = side === 'YES' ? market.yes : market.no;
+        chunk.forEach((id, index) => {
+          const marketRes = results[index * 3];
+          const resolutionRes = results[index * 3 + 1];
+          const stateRes = results[index * 3 + 2];
 
-            // Get actual on-chain balance
-            let onChainBalance = 0n;
-            try {
-              onChainBalance = await readContract(config, {
-                address: tokenAddress as `0x${string}`,
-                abi: positionTokenAbi,
-                functionName: 'balanceOf',
-                args: [userAddress],
-              }) as bigint;
-            } catch (e) {
-              console.error(`Failed to get balance for market ${marketId}`, e);
-              onChainBalance = BigInt(b.tokenBalance);
+          if (marketRes.status === 'success' && resolutionRes.status === 'success') {
+            let price = 0.5;
+            // Attempt to get price from state (pYesE6 is index 4 in tuple)
+            if (stateRes.status === 'success' && Array.isArray(stateRes.result)) {
+              const pYesE6 = stateRes.result[4];
+              if (pYesE6 !== undefined) {
+                price = Number(pYesE6) / 1e6;
+              }
             }
 
-            const balance = Number(formatUnits(onChainBalance, 18));
+            marketInfoMap.set(id, {
+              market: marketRes.result,
+              resolution: resolutionRes.result,
+              priceYes: price
+            });
+          }
+        });
+      }
 
-            // Use on-chain resolution data (more reliable)
+      // 4. Batch 2: Get Balances
+      const balanceCalls: any[] = [];
+      const balanceLookup: { id: number, side: 'yes' | 'no' }[] = [];
+
+      relevantMarketIds.forEach(id => {
+        const info = marketInfoMap.get(id);
+        if (!info) return;
+        const { market } = info;
+        // The markets function returns a struct/tuple. Assuming wagmi returns an array or object.
+        // We handle both cases to be safe.
+        const m = market as any;
+        // Array index 0 is yes, 1 is no. Object keys are yes, no.
+        const yesAddr = m.yes || (Array.isArray(m) ? m[0] : undefined);
+        const noAddr = m.no || (Array.isArray(m) ? m[1] : undefined);
+
+        if (yesAddr) {
+          balanceCalls.push({ address: yesAddr, abi: positionTokenAbi, functionName: 'balanceOf', args: [userAddress] });
+          balanceLookup.push({ id, side: 'yes' });
+        }
+        if (noAddr) {
+          balanceCalls.push({ address: noAddr, abi: positionTokenAbi, functionName: 'balanceOf', args: [userAddress] });
+          balanceLookup.push({ id, side: 'no' });
+        }
+      });
+
+      // Chunk balance calls too
+      const balanceChunks = chunkArray(balanceCalls, 20);
+      const balanceResults: any[] = [];
+
+      for (const chunk of balanceChunks) {
+        const res = await readContracts(config, { contracts: chunk, allowFailure: true });
+        balanceResults.push(...res);
+      }
+
+      // 5. Construct Final Positions List
+      const positions: PortfolioPosition[] = [];
+
+      // Map back results
+      balanceResults.forEach((res, idx) => {
+        const { id, side } = balanceLookup[idx];
+        const bal = res.status === 'success' ? Number(formatUnits(res.result as bigint, 18)) : 0;
+
+        if (bal > 0.000001) {
+          const info = marketInfoMap.get(id);
+          if (info) {
+            const { market, resolution, priceYes } = info;
             const isResolved = resolution.isResolved;
             const yesWins = resolution.yesWins;
 
             let currentPrice = 0;
             let won = false;
 
+            const sideUpper = side === 'yes' ? 'YES' : 'NO';
+
             if (isResolved) {
-              if (yesWins === true && side === 'YES') {
+              if (yesWins === true && sideUpper === 'YES') {
                 currentPrice = 1;
                 won = true;
-              } else if (yesWins === false && side === 'NO') {
+              } else if (yesWins === false && sideUpper === 'NO') {
                 currentPrice = 1;
                 won = true;
               } else {
@@ -204,150 +270,33 @@ export function useUserPortfolio() {
                 won = false;
               }
             } else {
-              try {
-                const priceYesE6 = await getSpotPriceYesE6(BigInt(marketId));
-                const pYes = Number(priceYesE6) / 1e6;
-                currentPrice = side === 'YES' ? pYes : (1 - pYes);
-              } catch (e) {
-                console.error(`Failed to fetch price for market ${marketId}`, e);
-                currentPrice = 0;
-              }
+              currentPrice = sideUpper === 'YES' ? priceYes : (1 - priceYes);
             }
 
-            return {
-              marketId,
-              question: market.question || b.market.question,
-              side,
-              balance,
+            const question = balancesRaw.find(b => Number(b.market.id) === id)?.market.question
+              ?? redemptionsRaw.find(r => Number(r.market.id) === id)?.market.question
+              ?? `Market #${id}`;
+
+            positions.push({
+              marketId: id,
+              question,
+              side: sideUpper,
+              balance: bal,
               currentPrice,
-              value: balance * currentPrice,
+              value: bal * currentPrice,
               status: isResolved ? 'Resolved' : 'Active',
               marketResolved: isResolved,
               yesWins: yesWins ?? undefined,
               won
-            };
-          } catch (e) {
-            console.error(`Error processing market ${marketId}:`, e);
-            // Fallback to subgraph data
-            const balance = Number(formatUnits(BigInt(b.tokenBalance), 18));
-            const side = b.side === 'yes' ? 'YES' : 'NO';
-            let currentPrice = 0;
-            let won = false;
-
-            if (b.market.isResolved) {
-              if (b.market.yesWins === true && side === 'YES') {
-                currentPrice = 1;
-                won = true;
-              } else if (b.market.yesWins === false && side === 'NO') {
-                currentPrice = 1;
-                won = true;
-              } else {
-                currentPrice = 0;
-                won = false;
-              }
-            }
-
-            return {
-              marketId,
-              question: b.market.question,
-              side,
-              balance,
-              currentPrice,
-              value: balance * currentPrice,
-              status: b.market.isResolved ? 'Resolved' : 'Active',
-              marketResolved: b.market.isResolved,
-              yesWins: b.market.yesWins ?? undefined,
-              won
-            };
+            });
           }
-        })
-      );
-
-      // Filter out nulls and positions with 0 balance
-      const positions = (verifiedPositions.filter(p => p !== null) as PortfolioPosition[])
-        .filter((p: PortfolioPosition) => p.balance > 0.000001);
-
-      // Check additional markets that might not be in subgraph yet
-      // Limit to checking last 20 markets to avoid too many calls
-      const marketsToCheck = allMarketIds
-        .filter(id => !checkedMarkets.has(id))
-        .slice(-20);
-
-      for (const marketId of marketsToCheck) {
-        try {
-          const market = await getMarket(BigInt(marketId));
-          if (!market.exists) continue;
-
-          const resolution = await getMarketResolution(BigInt(marketId));
-          const isResolved = resolution.isResolved;
-
-          // Check both YES and NO token balances
-          for (const side of ['YES', 'NO'] as const) {
-            const tokenAddress = side === 'YES' ? market.yes : market.no;
-            try {
-              const balance = await readContract(config, {
-                address: tokenAddress as `0x${string}`,
-                abi: positionTokenAbi,
-                functionName: 'balanceOf',
-                args: [userAddress],
-              }) as bigint;
-
-              const balanceNum = Number(formatUnits(balance, 18));
-              if (balanceNum > 0.000001) {
-                // Found a position not in subgraph!
-                const yesWins = resolution.yesWins;
-                let currentPrice = 0;
-                let won = false;
-
-                if (isResolved) {
-                  if (yesWins === true && side === 'YES') {
-                    currentPrice = 1;
-                    won = true;
-                  } else if (yesWins === false && side === 'NO') {
-                    currentPrice = 1;
-                    won = true;
-                  } else {
-                    currentPrice = 0;
-                    won = false;
-                  }
-                } else {
-                  try {
-                    const priceYesE6 = await getSpotPriceYesE6(BigInt(marketId));
-                    const pYes = Number(priceYesE6) / 1e6;
-                    currentPrice = side === 'YES' ? pYes : (1 - pYes);
-                  } catch (e) {
-                    currentPrice = 0;
-                  }
-                }
-
-                positions.push({
-                  marketId,
-                  question: market.question,
-                  side,
-                  balance: balanceNum,
-                  currentPrice,
-                  value: balanceNum * currentPrice,
-                  status: isResolved ? 'Resolved' : 'Active',
-                  marketResolved: isResolved,
-                  yesWins: yesWins ?? undefined,
-                  won
-                });
-              }
-            } catch (e) {
-              // Skip if can't read balance
-              continue;
-            }
-          }
-        } catch (e) {
-          // Skip if can't read market
-          continue;
         }
-      }
+      });
 
       positions.sort((a, b) => b.value - a.value);
 
-      // Process trades
-      const trades: PortfolioTrade[] = tradesRaw.map((t) => ({
+      // 6. Process Trades
+      const formattedTrades: PortfolioTrade[] = tradesRaw.map((t) => ({
         id: t.id,
         marketId: Number(t.market.id),
         question: t.market.question,
@@ -360,8 +309,8 @@ export function useUserPortfolio() {
         txHash: t.txHash,
       }));
 
-      // Process redemptions from subgraph
-      let redemptions: PortfolioRedemption[] = redemptionsRaw.map((r) => ({
+      // 7. Process Redemptions
+      let formattedRedemptions: PortfolioRedemption[] = redemptionsRaw.map((r) => ({
         id: r.id,
         marketId: Number(r.market.id),
         question: r.market.question,
@@ -371,32 +320,13 @@ export function useUserPortfolio() {
         yesWins: r.market.yesWins ?? null,
       }));
 
-      // Reuse marketCount from above
-      const maxMarketId = Number(marketCount);
+      formattedRedemptions = formattedRedemptions.filter(r => r.marketId > 0 && r.marketId <= maxMarketId);
 
-      // Filter out redemptions from markets that don't exist on current Core contract
-      redemptions = redemptions.filter(r =>
-        r.marketId > 0 && r.marketId <= maxMarketId
-      );
-
-      // Merge with local redemptions (optimistic updates)
       try {
         if (typeof window !== 'undefined' && address) {
-          // Key local storage by user address to prevent seeing other users' data
           const storageKey = `userRedemptions_${address.toLowerCase()}`;
-          const legacyKey = 'userRedemptions';
-
-          // Migrate legacy data if exists (one-time cleanup)
-          const legacyData = localStorage.getItem(legacyKey);
-          if (legacyData) {
-            // We can't safely migrate because we don't know who owned it.
-            // Safest to just delete it to prevent data leak between accounts.
-            localStorage.removeItem(legacyKey);
-          }
-
           const localRedemptionsRaw = JSON.parse(localStorage.getItem(storageKey) || '[]');
-          const subgraphTxHashes = new Set(redemptions.map(r => r.txHash.toLowerCase()));
-
+          const subgraphTxHashes = new Set(formattedRedemptions.map(r => r.txHash.toLowerCase()));
           const localRedemptions = localRedemptionsRaw
             .filter((r: any) => {
               const notInSubgraph = !subgraphTxHashes.has(r.txHash?.toLowerCase() || '');
@@ -412,19 +342,18 @@ export function useUserPortfolio() {
               txHash: r.txHash,
               yesWins: r.yesWins
             }));
-
           if (localRedemptions.length > 0) {
-            redemptions.unshift(...localRedemptions);
-            redemptions.sort((a, b) => b.timestamp - a.timestamp);
+            formattedRedemptions.unshift(...localRedemptions);
+            formattedRedemptions.sort((a, b) => b.timestamp - a.timestamp);
           }
         }
       } catch (e) {
         console.warn('Failed to load local redemptions', e);
       }
 
-      return { positions, trades, redemptions };
+      return { positions, trades: formattedTrades, redemptions: formattedRedemptions };
     },
-    refetchInterval: 30000, // Refresh every 30 seconds
-    staleTime: 10000, // Consider data stale after 10 seconds
+    refetchInterval: 30000,
+    staleTime: 10000,
   });
 }

@@ -27,12 +27,25 @@ export const toTransactionRow = (trade: SnapshotTrade): TransactionRow | null =>
 
   const action = trade.action === 'sell' ? 'sell' : 'buy';
   const side = trade.side === 'no' ? 'no' : 'yes';
-  const tokenDelta = trade.tokenDelta ?? '0';
-  const usdcDelta = trade.usdcDelta ?? '0';
+
+  const tokenDeltaBI = BigInt(trade.tokenDelta || '0');
+  const usdcDeltaBI = BigInt(trade.usdcDelta || '0');
+  const absToken = tokenDeltaBI < 0n ? -tokenDeltaBI : tokenDeltaBI;
+  const absUsdc = usdcDeltaBI < 0n ? -usdcDeltaBI : usdcDeltaBI;
+
   const amount =
-    action === 'buy' ? absString(usdcDelta) : absString(tokenDelta);
+    action === 'buy'
+      ? formatUnits(absUsdc, 6)
+      : formatUnits(absToken, 18);
+
   const output =
-    action === 'buy' ? absString(tokenDelta) : absString(usdcDelta);
+    action === 'buy'
+      ? formatUnits(absToken, 18)
+      : formatUnits(absUsdc, 6);
+
+  // Formatting for display (2 decimals) handled in UI, but here we provide "raw" human readable float string.
+  // Actually the UI calls parseFloat().toFixed(2). So returning "59.0" is fine.
+
   const price =
     Number.isFinite(Number(trade.priceE6))
       ? (Number(trade.priceE6) / 1e6).toString()

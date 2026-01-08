@@ -11,7 +11,7 @@ import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SearchIcon } from 'lucide-react';
 import Header from '@/components/Header';
-import { getMarketCount, getMarket, getPriceYes, getMarketResolution, getMarketState, isAdmin as checkIsAdmin } from '@/lib/hooks';
+import { getMarketCount } from '@/lib/hooks';
 import { formatUnits } from 'viem';
 import { useQuery } from '@tanstack/react-query';
 import { fetchSubgraph } from '@/lib/subgraphClient';
@@ -25,6 +25,7 @@ import { StatsBanner } from '@/components/market/StatsBanner';
 import { MarketCard, MarketCardData } from '@/components/market/MarketCard';
 import { FeaturedMarketCard } from '@/components/market/FeaturedMarketCard';
 import { Filter, ArrowUpDown, Flame, Clock } from 'lucide-react';
+import { useMarketsListOptimized } from '@/lib/hooks/useMarketsListOptimized'; // NEW HOOK
 
 const STATUS_FILTERS = ['Active', 'Expired', 'Resolved', 'Cancelled'] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
@@ -40,9 +41,16 @@ export default function MarketsPage() {
       checkIsAdmin(address).then(setIsAdmin);
     }
   }, [address]);
-  const [marketCount, setMarketCount] = useState<number | null>(null);
-  const [markets, setMarkets] = useState<MarketCardData[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Optimized Data Fetching
+  const { data: marketsRaw = [], isLoading: isLoadingMarkets } = useMarketsListOptimized();
+
+  // Aligning with existing state names
+  const markets = marketsRaw;
+  const loading = isLoadingMarkets;
+
+  // Derive stats (Total Markets count comes from array length now)
+  // const [marketCount, setMarketCount] ... removed
+
   const [searchTerm, setSearchTerm] = useState('');
   const [activeStatusTab, setActiveStatusTab] = useState<StatusFilter>('Active');
   const [sortBy, setSortBy] = useState<'volume' | 'newest' | 'ending'>('volume');
@@ -60,144 +68,14 @@ export default function MarketsPage() {
     return () => mediaQuery.removeEventListener('change', handler);
   }, []);
 
-  useEffect(() => {
-    loadMarkets();
-    const interval = setInterval(loadMarkets, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  // Removed old loadMarkets and useEffect
 
-  // --- Data Loading Logic ---
-  const loadMarkets = async () => {
-    try {
-      const count = await getMarketCount();
-      const countNum = Number(count);
-      setMarketCount(countNum);
-
-      // Fetch recent trades from subgraph for sparklines
-      let historyMap: Record<string, number[]> = {};
-      try {
-        const historyData = await fetchSubgraph<{ markets: { id: string, trades: { priceE6: string }[] }[] }>(
-          `query MarketHistory {
-            markets(first: 100) {
-              id
-              trades(orderBy: timestamp, orderDirection: desc, first: 10) {
-                priceE6
-              }
-            }
-          }`
-        );
-        historyData.markets.forEach(m => {
-          historyMap[m.id] = m.trades.map(t => Number(t.priceE6) / 1e6).reverse();
-        });
-      } catch (e) {
-        console.error('Failed to fetch sparkline data', e);
-      }
-
-      const marketIds = Array.from({ length: countNum }, (_, i) => i + 1);
-
-      const marketPromises = marketIds.map(async (i) => {
-        try {
-          const [market, priceYes, resolution, state] = await Promise.all([
-            getMarket(BigInt(i)),
-            getPriceYes(BigInt(i)),
-            getMarketResolution(BigInt(i)),
-            getMarketState(BigInt(i)),
-          ]);
-
-          if (!market.exists) return null;
-
-          const now = Math.floor(Date.now() / 1000);
-          const expiryTimestamp = resolution.expiryTimestamp ? (typeof resolution.expiryTimestamp === 'bigint' ? resolution.expiryTimestamp : BigInt(resolution.expiryTimestamp)) : 0n;
-          const startTime = resolution.startTime ? (typeof resolution.startTime === 'bigint' ? resolution.startTime : BigInt(resolution.startTime)) : 0n;
-          const isExpired = expiryTimestamp > 0n && Number(expiryTimestamp) < now;
-          const isScheduled = startTime > 0n && Number(startTime) > now;
-
-          const marketStatusNum = state?.status !== undefined ? Number(state.status) : (typeof market.status === 'number' ? market.status : Number(market?.status ?? 0));
-
-          let status: 'LIVE TRADING' | 'SCHEDULED' | 'EXPIRED' | 'RESOLVED' | 'CANCELLED' = 'LIVE TRADING';
-          if (marketStatusNum === 2) {
-            status = 'CANCELLED';
-          } else if (resolution.isResolved) {
-            status = 'RESOLVED';
-          } else if (isScheduled) {
-            status = 'SCHEDULED';
-          } else if (isExpired) {
-            status = 'EXPIRED';
-          }
-
-          const totalPairs = Number(formatUnits(state.vault, 6));
-          let yesPriceNum = parseFloat(priceYes);
-          let yesPriceClean = Number.isFinite(yesPriceNum) ? yesPriceNum : 0;
-          let noPriceClean = Number.isFinite(yesPriceNum) ? Math.max(0, 1 - yesPriceNum) : 0;
-          let yesPercent = Math.round(yesPriceClean * 100);
-          let noPercent = 100 - yesPercent;
-
-          if (resolution.isResolved) {
-            if (resolution.yesWins) {
-              yesPriceClean = 1; noPriceClean = 0; yesPercent = 100; noPercent = 0;
-            } else {
-              yesPriceClean = 0; noPriceClean = 1; yesPercent = 0; noPercent = 100;
-            }
-          }
-
-          return {
-            id: i as number,
-            question: typeof market.question === 'string' ? market.question : String(market.question ?? 'Untitled Market'),
-            yesPrice: yesPriceClean,
-            noPrice: noPriceClean,
-            volume: totalPairs,
-            yesPercent,
-            noPercent,
-            status,
-            totalPairsUSDC: (() => {
-              const vault = state.vault;
-              if (typeof vault === 'bigint') return vault;
-              if (typeof vault === 'number') return BigInt(Math.floor(vault));
-              if (typeof vault === 'string') return BigInt(vault);
-              return 0n;
-            })(),
-            expiryTimestamp: (() => {
-              const ts = resolution.expiryTimestamp;
-              if (!ts) return 0n;
-              if (typeof ts === 'bigint') return ts;
-              if (typeof ts === 'number') return BigInt(Math.floor(ts));
-              if (typeof ts === 'string') return BigInt(ts);
-              return 0n;
-            })(),
-            startTime: (() => {
-              const st = resolution.startTime;
-              if (!st) return 0n;
-              if (typeof st === 'bigint') return st;
-              if (typeof st === 'number') return BigInt(Math.floor(st));
-              if (typeof st === 'string') return BigInt(st);
-              return 0n;
-            })(),
-            oracleType: resolution.oracleType || 0,
-            isResolved: resolution.isResolved || false,
-            yesWins: resolution.yesWins,
-            isCancelled: marketStatusNum === 2,
-            priceHistory: historyMap[i.toString()] || [yesPriceClean, yesPriceClean],
-          } as MarketCardData;
-        } catch (error) {
-          console.error(`Error loading market ${i}:`, error);
-          return null;
-        }
-      });
-
-      const marketResults = await Promise.all(marketPromises);
-      setMarkets(marketResults.filter((market): market is MarketCardData => market !== null));
-    } catch (error) {
-      console.error('Error loading markets:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filteredMarkets = useMemo(() => {
     let result = markets.filter(market => {
       // Always filter out scheduled markets - users should not see them
       if (market.status === 'SCHEDULED') return false;
-      
+
       if (searchTerm && !market.question.toLowerCase().includes(searchTerm.toLowerCase())) return false;
       if (activeStatusTab) {
         if (activeStatusTab === 'Active' && market.status !== 'LIVE TRADING') return false;

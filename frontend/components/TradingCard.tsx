@@ -41,9 +41,10 @@ import { useRedeem } from './trading/useRedeem';
 
 interface TradingCardProps {
   marketId: number;
+  onTradeSuccess?: (trade: any) => void;
 }
 
-export default function TradingCard({ marketId }: TradingCardProps) {
+export default function TradingCard({ marketId, onTradeSuccess }: TradingCardProps) {
   const { address, isConnected } = useAccount();
   const marketIdBI = useMemo(() => BigInt(marketId), [marketId]);
 
@@ -137,10 +138,12 @@ export default function TradingCard({ marketId }: TradingCardProps) {
     bE18,
     feeTreasuryBps,
     feeVaultBps,
+    feeVaultBps, // duplicate key issue check? corrected in replacement
     feeLpBps,
     usdcAllowanceValue,
     refetchAll,
     setAmount,
+    onTradeSuccess, // NEW
   });
 
   // --- Preview Hook ---
@@ -167,8 +170,8 @@ export default function TradingCard({ marketId }: TradingCardProps) {
     feeLpBps,
     totalFeeBps,
     getActualBasePrice: () => {
-      const pYes = Number(qYes) / (Number(qYes) + Number(qNo));
-      return isNaN(pYes) ? 0.5 : pYes;
+      const priceE18 = spotPriceYesE18(qYes, qNo, bE18);
+      return parseFloat(formatUnits(priceE18, 18));
     }
   });
 

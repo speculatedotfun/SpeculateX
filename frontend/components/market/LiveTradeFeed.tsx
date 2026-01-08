@@ -21,7 +21,7 @@ interface LiveTradeFeedProps {
 
 export function LiveTradeFeed({ transactions }: LiveTradeFeedProps) {
     const { nicknames } = useNicknames();
-    
+
     // Process transactions to match our interface
     const processedTrades = transactions.slice(0, 50).map((tx: any) => {
         // Fallback for different transaction data structures
@@ -30,7 +30,7 @@ export function LiveTradeFeed({ transactions }: LiveTradeFeedProps) {
         const isYes = typeStr.includes('Yes') || tx.side === 'Yes' || tx.outcome === 1;
 
         return {
-            id: tx.txHash || tx.id,
+            id: tx.id || tx.txHash,
             type: isBuy ? 'Buy' : 'Sell',
             realAction: isBuy ? 'Buy' : 'Sell',
             side: isYes ? 'Yes' : 'No',
@@ -76,13 +76,15 @@ export function LiveTradeFeed({ transactions }: LiveTradeFeedProps) {
                                     {trade.user ? getDisplayName(trade.user, nicknames) : '-'}
                                 </div>
                                 <div className={`font-bold ${trade.side === 'Yes'
-                                    ? trade.realAction.includes('Buy') ? 'text-green-600 dark:text-green-400' : 'text-red-500'
-                                    : trade.realAction.includes('Buy') ? 'text-green-600 dark:text-green-400' : 'text-red-500'
+                                    ? trade.realAction === 'Buy' ? 'text-green-600 dark:text-green-400' : 'text-red-500'
+                                    : trade.realAction === 'Buy' ? 'text-green-600 dark:text-green-400' : 'text-red-500'
                                     }`}>
-                                    <span className="opacity-70 mr-1 text-[10px] uppercase font-sans text-gray-400">
-                                        {trade.realAction === 'Buy' ? 'Buy' : trade.realAction === 'Sell' ? 'Sell' : 'Liq'}
+                                    <span className="opacity-70 mr-2 text-[10px] uppercase font-sans text-gray-400 block group-hover:text-gray-500 transition-colors">
+                                        {trade.realAction === 'Buy' ? 'Buy' : trade.realAction === 'Sell' ? 'Sell' : 'Liq'} {trade.side}
                                     </span>
-                                    {trade.price}
+                                    <span className="text-sm">
+                                        ${trade.price}
+                                    </span>
                                 </div>
                                 <div className="text-right text-gray-700 dark:text-gray-300 font-mono">
                                     ${trade.amount}

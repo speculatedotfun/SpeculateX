@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MarketInfo, MarketResolution } from '@/lib/types';
 import { formatUnits, decodeEventLog } from 'viem';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Clock, AlertTriangle, CheckCircle2, Loader2, Share2, Check, TrendingUp } from 'lucide-react';
 
 // Components
@@ -47,6 +47,7 @@ import { TransactionsTab } from './tabs/TransactionsTab';
 import { ResolutionTab } from './tabs/ResolutionTab';
 import { AdminMarketActions } from '@/components/market/AdminMarketActions';
 import { TopHoldersCard } from './components/TopHoldersCard';
+import { toTransactionRow } from '@/lib/marketTransformers';
 
 const SNAPSHOT_TRADE_LIMIT = 200;
 const SNAPSHOT_HOLDER_LIMIT = 20;
@@ -263,6 +264,7 @@ export default function MarketDetailPage() {
 
   const {
     transactions,
+    mergeTransactionRows
   } = useMarketTransactions(marketIdNum, snapshotData);
 
   const {
@@ -275,7 +277,23 @@ export default function MarketDetailPage() {
     setError('');
   }, [marketId]);
 
-  // Load market metadata
+  // Optimized Metadata Loading (Subgraph -> RPC Fallback)
+  const { data: subgraphMarket } = useQuery({
+    queryKey: ['marketMetadata', marketId],
+    enabled: isMarketIdValid,
+    queryFn: async () => {
+      try {
+        const data = await fetchSubgraph<{ market: { id: string, question: string, createdAt: string } }>(
+          `query MarketMeta($id: ID!) { market(id: $id) { id, question, createdAt } }`,
+          { id: marketId }
+        );
+        return data.market;
+      } catch (e) { return null; }
+    },
+    staleTime: 1000 * 60 * 60, // 1 hour (static data)
+  });
+
+  // Load market metadata (RPC Fallback / Resolution status)
   useEffect(() => {
     const loadMarketMetadata = async () => {
       if (!isMarketIdValid) return;
@@ -283,18 +301,42 @@ export default function MarketDetailPage() {
       try {
         const marketIdBigInt = BigInt(marketIdNum);
 
-        const onchainData = await getMarket(marketIdBigInt);
+        // Optimization: utilize subgraph data if available for instant render
+        if (subgraphMarket) {
+          setMarket({
+            ...subgraphMarket,
+            id: BigInt(subgraphMarket.id),
+            createdAt: BigInt(subgraphMarket.createdAt),
+            // fill other fields with defaults until RPC confirms if needed, or if we trust subgraph completely for display
+            // We still need 'yes'/'no' token addresses from RPC or subgraph. Subgraph has them, let's assume we might need RPC for critical addresses if not in query above.
+            // For now, let's do a "lighter" RPC call or just keep the existing logic but use subgraph for immediate Question display.
+          } as any);
+        }
+
+        // We still fetch RPC to get Token Addresses (yes/no) and Resolution status (critical)
+        // Ideally we'd add addresses to subgraph query to avoid this RPC completely for metadata.
+        // Let's do that in next step if this is still slow. 
+        // For now, parallelize:
+
+        const [onchainData, resolutionData] = await Promise.all([
+          getMarket(marketIdBigInt),
+          getMarketResolution(marketIdBigInt)
+        ]);
 
         if (!onchainData.yes || onchainData.yes === '0x0000000000000000000000000000000000000000') {
           setError('Market does not exist');
           return;
         }
 
-        const marketWithCreatedAt = onchainData as unknown as MarketInfo;
-        setMarket(marketWithCreatedAt);
+        // Merge Subgraph Question with Chain Data (prefer Subgraph for text if chain failed to decode)
+        const marketWithCreatedAt = {
+          ...onchainData,
+          question: subgraphMarket?.question || onchainData.question,
+        } as unknown as MarketInfo;
 
-        const resolutionData = await getMarketResolution(marketIdBigInt);
+        setMarket(marketWithCreatedAt);
         setResolution(resolutionData);
+
       } catch (err) {
         console.error('Error loading market metadata:', err);
         setError('Failed to load market');
@@ -302,7 +344,7 @@ export default function MarketDetailPage() {
     };
 
     loadMarketMetadata();
-  }, [isMarketIdValid, marketIdNum]);
+  }, [isMarketIdValid, marketIdNum, subgraphMarket]);
 
   // Watch for MarketCreated events
   useEffect(() => {
@@ -362,13 +404,26 @@ export default function MarketDetailPage() {
       {
         onData: payload => {
           if (disposed) return;
-          processSnapshotData(payload.market ?? null);
+          const marketData = payload.market ?? null;
+          processSnapshotData(marketData);
+
+          // NEW: Update live feed from BOTH lists (Asc and Desc) to catch all updates safely.
+          // Deduplication handled in mergeTransactionRows.
+          const newTrades = [
+            ...(marketData?.tradesDesc ?? []),
+            ...(marketData?.tradesAsc ?? [])
+          ];
+
+          if (newTrades.length > 0) {
+            const rows = newTrades.map(toTransactionRow).filter(t => t !== null);
+            mergeTransactionRows(rows);
+          }
         },
         onError: error => console.error('[MarketDetail] Live subscription error', error),
       },
     );
     return () => { disposed = true; unsubscribe(); };
-  }, [subscriptionPayload, processSnapshotData]);
+  }, [subscriptionPayload, processSnapshotData, mergeTransactionRows /* Added dep */]);
 
   useEffect(() => {
     if (snapshotData) processSnapshotData(snapshotData);
@@ -741,7 +796,10 @@ export default function MarketDetailPage() {
               {isMarketIdValid && market && (
                 <>
                   <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-[32px] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] dark:shadow-black/30 border border-white/20 dark:border-gray-700/50 overflow-hidden relative z-20">
-                    <TradingCard marketId={marketIdNum} />
+                    <TradingCard
+                      marketId={marketIdNum}
+                      onTradeSuccess={(trade) => mergeTransactionRows([trade])}
+                    />
                   </div>
 
                   {/* Market Data Tools */}
