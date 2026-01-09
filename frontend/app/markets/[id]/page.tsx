@@ -21,6 +21,7 @@ import { Skeleton } from '@/components/ui';
 import { PriceDisplay } from '@/components/market/PriceDisplay';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { LiveTradeFeed } from '@/components/market/LiveTradeFeed';
+import { ReferencePriceChart } from '@/components/market/ReferencePriceChart';
 
 // Lib
 import { getMarket, getSpotPriceYesE6, getMarketResolution, getMarketState } from '@/lib/hooks';
@@ -39,6 +40,7 @@ import { subscribeToSubgraph } from '@/lib/subgraphClient';
 import { useMarketPriceHistory } from '@/lib/hooks/useMarketPriceHistory';
 import { useMarketTransactions } from '@/lib/hooks/useMarketTransactions';
 import { useMarketHolders } from '@/lib/hooks/useMarketHolders';
+import { detectCryptoSymbol } from '@/lib/hooks/useCryptoPrice';
 
 // Tabs
 import { PositionTab } from './tabs/PositionTab';
@@ -205,6 +207,7 @@ export default function MarketDetailPage() {
   const [activeTab, setActiveTab] = useState<'Position' | 'Comments' | 'Transactions' | 'Resolution'>(isConnected ? 'Position' : 'Resolution');
   const [holderTab, setHolderTab] = useState<'yes' | 'no'>('yes');
   const [chartSide, setChartSide] = useState<'yes' | 'no'>('yes');
+  const [chartPanel, setChartPanel] = useState<'market' | 'asset'>('market');
   const [timeRange, setTimeRange] = useState<SnapshotTimeRange>('ALL');
   const [yesBalance, setYesBalance] = useState<string>('0');
   const [noBalance, setNoBalance] = useState<string>('0');
@@ -511,6 +514,15 @@ export default function MarketDetailPage() {
 
   const totalVolumeDisplay = totalVolume.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
+  const assetInfo = useMemo(() => detectCryptoSymbol(String(market?.question || '')), [market?.question]);
+  const hasAssetReference = Boolean(assetInfo.symbol);
+
+  useEffect(() => {
+    if (!hasAssetReference && chartPanel === 'asset') {
+      setChartPanel('market');
+    }
+  }, [hasAssetReference, chartPanel]);
+
   if (marketData.isLoading || !market || !resolution) {
     return <MarketDetailSkeleton />;
   }
@@ -558,10 +570,10 @@ export default function MarketDetailPage() {
 
       <Header />
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
 
         {/* Back Link & Share Button */}
-        <motion.div initial={prefersReducedMotion ? false : { x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="mb-6 flex items-center justify-between">
+        <motion.div initial={prefersReducedMotion ? false : { x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="mb-4 flex items-center justify-between">
           <Link
             href="/markets"
             className="inline-flex items-center text-gray-500 hover:text-[#14B8A6] dark:text-gray-400 dark:hover:text-[#14B8A6] font-bold text-sm transition-colors group"
@@ -607,96 +619,138 @@ export default function MarketDetailPage() {
           onLogoError={() => setLogoSrc('/logos/default.png')}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-3">
 
           {/* --- Left Column: Chart & Tabs (8 cols) --- */}
-          <div className="lg:col-span-8 space-y-8">
+          <div className="lg:col-span-8 space-y-6">
 
             {/* Chart Card */}
             <motion.div
               initial={prefersReducedMotion ? false : { y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: prefersReducedMotion ? 0 : 0.2 }}
-              className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-[32px] p-6 sm:p-8 shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-white/20 dark:border-gray-700/50"
+              className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-[28px] p-5 sm:p-6 shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-white/20 dark:border-gray-700/50"
             >
               {/* Chart Controls Header */}
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-8 gap-6">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 gap-4">
                 <div>
-                  <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                    Current Price
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${chartSide === 'yes' ? 'bg-[#14B8A6]/10 text-[#14B8A6]' : 'bg-red-500/10 text-red-500'}`}>
-                      {chartSide.toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="flex items-baseline gap-4 flex-wrap">
-                    <PriceDisplay
-                      price={chartSide === 'yes' ? marketData.currentPrices.yes : marketData.currentPrices.no}
-                      priceClassName="text-5xl sm:text-6xl font-black tracking-tighter text-gray-900 dark:text-white"
-                      showInCents={true}
-                    />
-                    <div className={`flex items-center font-bold text-lg ${chanceChangePercent >= 0 ? 'text-[#14B8A6]' : 'text-red-500'}`}>
-                      {chanceChangePercent >= 0 ? '↑' : '↓'} {Math.abs(chanceChangePercent).toFixed(2)}%
-                      <span className="text-gray-400 dark:text-gray-500 text-xs font-medium ml-2 uppercase tracking-wide">past {timeRange}</span>
+                  {chartPanel === 'market' ? (
+                    <>
+                      <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                        Current Price
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${chartSide === 'yes' ? 'bg-[#14B8A6]/10 text-[#14B8A6]' : 'bg-red-500/10 text-red-500'}`}>
+                          {chartSide.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex items-baseline gap-4 flex-wrap">
+                        <PriceDisplay
+                          price={chartSide === 'yes' ? marketData.currentPrices.yes : marketData.currentPrices.no}
+                          priceClassName="text-4xl sm:text-5xl font-black tracking-tighter text-gray-900 dark:text-white"
+                          showInCents={true}
+                        />
+                        <div className={`flex items-center font-bold text-base ${chanceChangePercent >= 0 ? 'text-[#14B8A6]' : 'text-red-500'}`}>
+                          {chanceChangePercent >= 0 ? '↑' : '↓'} {Math.abs(chanceChangePercent).toFixed(2)}%
+                          <span className="text-gray-400 dark:text-gray-500 text-xs font-medium ml-2 uppercase tracking-wide">past {timeRange}</span>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                      Reference Asset
                     </div>
-                  </div>
+                  )}
                 </div>
 
-                {/* Outcome Toggle */}
-                <div className="bg-gray-100 dark:bg-gray-700/50 p-1.5 rounded-2xl flex w-full sm:w-auto overflow-hidden">
-                  <button
-                    onClick={() => setChartSide('yes')}
-                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${chartSide === 'yes'
-                      ? 'bg-white dark:bg-gray-600 text-[#14B8A6] shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                      }`}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    onClick={() => setChartSide('no')}
-                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${chartSide === 'no'
-                      ? 'bg-white dark:bg-gray-600 text-red-500 shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                      }`}
-                  >
-                    No
-                  </button>
+                <div className="flex flex-col gap-3 w-full sm:w-auto">
+                  {/* Market / Asset toggle */}
+                  <div className="bg-gray-100 dark:bg-gray-700/50 p-1.5 rounded-2xl flex w-full sm:w-auto overflow-hidden">
+                    <button
+                      onClick={() => setChartPanel('market')}
+                      className={`flex-1 sm:flex-none px-4 py-2 rounded-xl text-sm font-bold transition-all ${chartPanel === 'market'
+                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                    >
+                      Market
+                    </button>
+                    <button
+                      onClick={() => hasAssetReference && setChartPanel('asset')}
+                      disabled={!hasAssetReference}
+                      className={`flex-1 sm:flex-none px-4 py-2 rounded-xl text-sm font-bold transition-all ${chartPanel === 'asset'
+                        ? 'bg-white dark:bg-gray-600 text-amber-600 dark:text-amber-400 shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        } ${!hasAssetReference ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      title={!hasAssetReference ? 'No reference asset detected from question' : undefined}
+                    >
+                      Asset
+                    </button>
+                  </div>
+
+                  {/* Outcome Toggle (Market-only) */}
+                  {chartPanel === 'market' && (
+                    <div className="bg-gray-100 dark:bg-gray-700/50 p-1.5 rounded-2xl flex w-full sm:w-auto overflow-hidden">
+                      <button
+                        onClick={() => setChartSide('yes')}
+                        className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${chartSide === 'yes'
+                          ? 'bg-white dark:bg-gray-600 text-[#14B8A6] shadow-sm'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                          }`}
+                      >
+                        Yes
+                      </button>
+                      <button
+                        onClick={() => setChartSide('no')}
+                        className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${chartSide === 'no'
+                          ? 'bg-white dark:bg-gray-600 text-red-500 shadow-sm'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                          }`}
+                      >
+                        No
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Chart Visual */}
-              <div className="h-[350px] w-full mb-8 relative">
-                {/* */}
-                {snapshotLoading && sortedChartData.length === 0 ? (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <Loader2 className="w-8 h-8 text-[#14B8A6] animate-spin" />
-                      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Loading Data</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="w-full h-full">
-                    <PriceChart
-                      data={resolvedChartData}
-                      selectedSide={chartSide}
-                      marketId={marketIdNum}
-                      useCentralizedData={true}
-                    />
-                    {isChartRefreshing && (
-                      <div className="absolute top-2 right-2 px-3 py-1 bg-[#14B8A6]/10 backdrop-blur-md rounded-full border border-[#14B8A6]/20 flex items-center gap-2">
-                        <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#14B8A6] opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-[#14B8A6]"></span>
-                        </span>
-                        <span className="text-[10px] font-bold text-[#14B8A6] uppercase tracking-wider">Live</span>
+              {chartPanel === 'market' ? (
+                <div className="h-[320px] w-full mb-4 relative overflow-hidden">
+                  {/* */}
+                  {snapshotLoading && sortedChartData.length === 0 ? (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <Loader2 className="w-8 h-8 text-[#14B8A6] animate-spin" />
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Loading Data</span>
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-full">
+                      <PriceChart
+                        data={resolvedChartData}
+                        selectedSide={chartSide}
+                        marketId={marketIdNum}
+                        useCentralizedData={true}
+                      />
+                      {isChartRefreshing && (
+                        <div className="absolute top-2 right-2 px-3 py-1 bg-[#14B8A6]/10 backdrop-blur-md rounded-full border border-[#14B8A6]/20 flex items-center gap-2">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#14B8A6] opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#14B8A6]"></span>
+                          </span>
+                          <span className="text-[10px] font-bold text-[#14B8A6] uppercase tracking-wider">Live</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="mb-2">
+                  <ReferencePriceChart marketQuestion={String(market?.question || '')} variant="embedded" />
+                </div>
+              )}
 
               {/* Time Range Selector */}
-              <div className="flex items-center justify-start border-t border-gray-100 dark:border-gray-700/50 pt-6 gap-2 overflow-x-auto">
+              <div className="flex items-center justify-start border-t border-gray-100 dark:border-gray-700/50 pt-4 gap-2 overflow-x-auto relative z-20">
                 {(['1D', '1W', '1M', 'ALL'] as const).map((range) => (
                   <button
                     key={range}
@@ -717,14 +771,14 @@ export default function MarketDetailPage() {
               initial={prefersReducedMotion ? false : { y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: prefersReducedMotion ? 0 : 0.3 }}
-              className="bg-white dark:bg-gray-800 rounded-[32px] shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-gray-100 dark:border-gray-700 overflow-hidden"
+              className="bg-white dark:bg-gray-800 rounded-[28px] shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-gray-100 dark:border-gray-700 overflow-hidden"
             >
               <div className="flex border-b border-gray-100 dark:border-gray-700 overflow-x-auto scrollbar-hide p-2 bg-gray-50/50 dark:bg-gray-900/20">
                 {(['Position', 'Comments', 'Transactions', 'Resolution'] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`flex-1 px-6 py-3 text-sm font-bold whitespace-nowrap transition-all relative rounded-2xl ${activeTab === tab
+                    className={`flex-1 px-4 py-2.5 text-sm font-bold whitespace-nowrap transition-all relative rounded-2xl ${activeTab === tab
                       ? 'text-[#14B8A6]'
                       : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                       }`}
@@ -741,7 +795,7 @@ export default function MarketDetailPage() {
                 ))}
               </div>
 
-              <div className="p-6 sm:p-8 bg-gray-50/50 dark:bg-gray-900/50 min-h-[400px]">
+              <div className="p-5 sm:p-6 bg-gray-50/50 dark:bg-gray-900/50 min-h-[320px]">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeTab}
@@ -783,7 +837,7 @@ export default function MarketDetailPage() {
           </div>
 
           {/* --- Right Column: Trading & Stats (4 cols) --- */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="lg:col-span-4 space-y-4">
 
             {/* Trading Card (Desktop Sticky) - ID for Mobile Scroll */}
             <motion.div
@@ -791,11 +845,11 @@ export default function MarketDetailPage() {
               initial={prefersReducedMotion ? false : { y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: prefersReducedMotion ? 0 : 0.4 }}
-              className="sticky top-24 space-y-6"
+              className="sticky top-24 space-y-4"
             >
               {isMarketIdValid && market && (
                 <>
-                  <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-[32px] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] dark:shadow-black/30 border border-white/20 dark:border-gray-700/50 overflow-hidden relative z-20">
+                  <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-[28px] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] dark:shadow-black/30 border border-white/20 dark:border-gray-700/50 overflow-hidden relative z-20">
                     <TradingCard
                       marketId={marketIdNum}
                       onTradeSuccess={(trade) => mergeTransactionRows([trade])}
@@ -803,8 +857,8 @@ export default function MarketDetailPage() {
                   </div>
 
                   {/* Market Data Tools */}
-                  <div className="grid grid-cols-1 gap-6">
-                    <div className="h-[300px]">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="h-[240px]">
                       <LiveTradeFeed transactions={transactions} />
                     </div>
                   </div>

@@ -439,9 +439,12 @@ export function useMarketPriceHistory(
         // If significant price difference and current price is "fresh"
         // Note: We don't know exact timestamp of currentPrices, assuming "now"
         // This is a heuristic to fix visual desync
-        if (Math.abs(lastPoint.priceYes - priceYes) > 0.01) {
-          // Only if last point is somewhat old (e.g. > 10s ago) or it's a resolution/sync issue
-          const now = Math.floor(Date.now() / 1000);
+        // If significant price difference OR ample time has passed (creating a flat line to now)
+        // This ensures the chart always looks "connected" to the present
+        const now = Math.floor(Date.now() / 1000);
+        const timeGap = now - lastPoint.timestamp;
+
+        if (Math.abs(lastPoint.priceYes - priceYes) > 0.001 || timeGap > 60) {
           if (now > lastPoint.timestamp) {
             combined.push({
               timestamp: now,

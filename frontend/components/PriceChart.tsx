@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback, useState, useMemo, memo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { IChartApi, ISeriesApi, LineData, Time } from 'lightweight-charts';
 import type { PricePoint } from '@/lib/priceHistory/types';
 import { useTheme } from '@/lib/theme';
@@ -14,7 +14,7 @@ interface PriceChartProps {
   useCentralizedData?: boolean;
 }
 
-export const PriceChart = memo(function PriceChart({ data, selectedSide, height = 340 }: PriceChartProps) {
+export const PriceChart = memo(function PriceChart({ data, selectedSide, height = 350 }: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const yesSeriesRef = useRef<ISeriesApi<'Area'> | null>(null);
@@ -29,6 +29,30 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
   const [chartError, setChartError] = useState<string | null>(null);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+
+  // Enhanced color palette
+  const colors = useMemo(() => ({
+    yes: {
+      line: '#10B981', // Emerald 500
+      lineGlow: '#34D399',
+      areaTop: isDark ? 'rgba(16, 185, 129, 0.35)' : 'rgba(16, 185, 129, 0.25)',
+      areaBottom: 'rgba(16, 185, 129, 0.0)',
+      areaTopFaded: isDark ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.05)',
+      marker: '#10B981',
+    },
+    no: {
+      line: '#F43F5E', // Rose 500
+      lineGlow: '#FB7185',
+      areaTop: isDark ? 'rgba(244, 63, 94, 0.35)' : 'rgba(244, 63, 94, 0.25)',
+      areaBottom: 'rgba(244, 63, 94, 0.0)',
+      areaTopFaded: isDark ? 'rgba(244, 63, 94, 0.08)' : 'rgba(244, 63, 94, 0.05)',
+      marker: '#F43F5E',
+    },
+    grid: isDark ? 'rgba(51, 65, 85, 0.5)' : 'rgba(226, 232, 240, 0.8)',
+    text: isDark ? '#94A3B8' : '#64748B',
+    crosshair: isDark ? 'rgba(148, 163, 184, 0.4)' : 'rgba(100, 116, 139, 0.4)',
+    crosshairLabel: isDark ? '#0F172A' : '#1E293B',
+  }), [isDark]);
 
   const processDataWithBreaks = useCallback((rawData: PricePoint[]) => {
     if (!rawData.length) return { yesData: [], noData: [] };
@@ -97,36 +121,40 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
         if (!containerRef.current) return;
 
         const chart = createChart(containerRef.current, {
-          width: containerRef.current.clientWidth || 600, // Fallback to a reasonable width if 0
+          width: containerRef.current.clientWidth || 600,
           height,
           layout: {
             background: { type: ColorType.Solid, color: 'transparent' },
-            textColor: isDark ? '#94a3b8' : '#64748b',
+            textColor: colors.text,
             fontSize: 11,
-            fontFamily: "'Geist', 'Inter', sans-serif",
+            fontFamily: "'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif",
           },
           grid: {
             vertLines: { visible: false },
-            horzLines: { color: isDark ? '#334155' : '#f1f5f9', style: LineStyle.Solid, visible: true },
+            horzLines: {
+              color: colors.grid,
+              style: LineStyle.Solid,
+              visible: true,
+            },
           },
           crosshair: {
             mode: CrosshairMode.Normal,
             vertLine: {
               width: 1,
-              color: isDark ? '#64748b' : '#94a3b8',
+              color: colors.crosshair,
               style: LineStyle.Dashed,
-              labelBackgroundColor: isDark ? '#0f172a' : '#1e293b',
+              labelBackgroundColor: colors.crosshairLabel,
             },
             horzLine: {
               width: 1,
-              color: isDark ? '#64748b' : '#94a3b8',
+              color: colors.crosshair,
               style: LineStyle.Dashed,
-              labelBackgroundColor: isDark ? '#0f172a' : '#1e293b',
+              labelBackgroundColor: colors.crosshairLabel,
             },
           },
           rightPriceScale: {
             borderColor: 'transparent',
-            scaleMargins: { top: 0.2, bottom: 0.1 },
+            scaleMargins: { top: 0.15, bottom: 0.1 },
             borderVisible: false,
             entireTextOnly: true,
             ticksVisible: false,
@@ -138,10 +166,10 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
             borderVisible: false,
             fixLeftEdge: true,
             fixRightEdge: true,
-            minBarSpacing: 10,
+            minBarSpacing: 8,
           },
           localization: {
-            priceFormatter: (price: number) => `${(price * 100).toFixed(1)}¢`,
+            priceFormatter: (price: number) => `${(price * 100).toFixed(0)}¢`,
             timeFormatter: (timestamp: number) => {
               return new Date(timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             },
@@ -151,35 +179,33 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
         });
 
         const yesSeries = chart.addSeries(AreaSeries, {
-          lineColor: '#22c55e',
-          topColor: 'rgba(34, 197, 94, 0.4)',
-          bottomColor: 'rgba(34, 197, 94, 0.0)',
+          lineColor: colors.yes.line,
+          topColor: colors.yes.areaTop,
+          bottomColor: colors.yes.areaBottom,
           lineWidth: 3,
           lineType: LineType.Curved,
-          priceLineVisible: true,
-          priceLineWidth: 1,
-          priceLineColor: '#22c55e',
+          priceLineVisible: false,
           lastValueVisible: true,
           crosshairMarkerVisible: true,
           crosshairMarkerBorderColor: '#ffffff',
-          crosshairMarkerBackgroundColor: '#22c55e',
-          crosshairMarkerRadius: 5,
+          crosshairMarkerBackgroundColor: colors.yes.marker,
+          crosshairMarkerRadius: 6,
+          crosshairMarkerBorderWidth: 2,
         } as any);
 
         const noSeries = chart.addSeries(AreaSeries, {
-          lineColor: '#ef4444',
-          topColor: 'rgba(239, 68, 68, 0.4)',
-          bottomColor: 'rgba(239, 68, 68, 0.0)',
+          lineColor: colors.no.line,
+          topColor: colors.no.areaTop,
+          bottomColor: colors.no.areaBottom,
           lineWidth: 3,
           lineType: LineType.Curved,
-          priceLineVisible: true,
-          priceLineWidth: 1,
-          priceLineColor: '#ef4444',
+          priceLineVisible: false,
           lastValueVisible: true,
           crosshairMarkerVisible: true,
           crosshairMarkerBorderColor: '#ffffff',
-          crosshairMarkerBackgroundColor: '#ef4444',
-          crosshairMarkerRadius: 5,
+          crosshairMarkerBackgroundColor: colors.no.marker,
+          crosshairMarkerRadius: 6,
+          crosshairMarkerBorderWidth: 2,
         } as any);
 
         chartRef.current = chart;
@@ -187,7 +213,6 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
         noSeriesRef.current = noSeries as any;
         setIsChartReady(true);
 
-        // If we already have data, update the chart immediately
         if (data.length > 0) {
           const { yesData, noData } = processDataWithBreaks(data);
           yesSeries.setData(yesData as any);
@@ -228,7 +253,7 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
       chartRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [height, isDark, processDataWithBreaks]);
+  }, [height, isDark, colors, processDataWithBreaks]);
 
   const updateChartData = useCallback(() => {
     if (!yesSeriesRef.current || !noSeriesRef.current) return;
@@ -244,21 +269,21 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
     try {
       yesSeriesRef.current.applyOptions({
         lineWidth: selectedSide === 'yes' ? 3 : 2,
-        topColor: selectedSide === 'yes' ? 'rgba(34, 197, 94, 0.4)' : 'rgba(34, 197, 94, 0.05)',
-        bottomColor: selectedSide === 'yes' ? 'rgba(34, 197, 94, 0.0)' : 'rgba(34, 197, 94, 0.0)',
-        lineColor: selectedSide === 'yes' ? '#22c55e' : '#22c55e40',
+        topColor: selectedSide === 'yes' ? colors.yes.areaTop : colors.yes.areaTopFaded,
+        bottomColor: colors.yes.areaBottom,
+        lineColor: selectedSide === 'yes' ? colors.yes.line : `${colors.yes.line}50`,
       } as any);
 
       noSeriesRef.current.applyOptions({
         lineWidth: selectedSide === 'no' ? 3 : 2,
-        topColor: selectedSide === 'no' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(239, 68, 68, 0.05)',
-        bottomColor: selectedSide === 'no' ? 'rgba(239, 68, 68, 0.0)' : 'rgba(239, 68, 68, 0.0)',
-        lineColor: selectedSide === 'no' ? '#ef4444' : '#ef444440',
+        topColor: selectedSide === 'no' ? colors.no.areaTop : colors.no.areaTopFaded,
+        bottomColor: colors.no.areaBottom,
+        lineColor: selectedSide === 'no' ? colors.no.line : `${colors.no.line}50`,
       } as any);
     } catch (e) {
       console.warn('Styling update failed', e);
     }
-  }, [selectedSide]);
+  }, [selectedSide, colors]);
 
   useEffect(() => {
     if (data.length > 0 && isChartReady) updateChartData();
@@ -270,74 +295,132 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
 
   if (chartError) {
     return (
-      <div className="relative w-full h-full flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6" role="alert" aria-live="polite">
-        <svg className="w-12 h-12 text-red-500 dark:text-red-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-        <div className="text-center">
-          <p className="text-red-600 dark:text-red-400 font-semibold text-sm mb-1">Unable to load chart</p>
-          <p className="text-gray-500 dark:text-gray-400 text-xs">Please try refreshing the page</p>
+      <div className="relative w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-8" role="alert" aria-live="polite">
+        <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-4">
+          <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
         </div>
+        <p className="text-red-600 dark:text-red-400 font-bold text-sm mb-1">Unable to load chart</p>
+        <p className="text-gray-500 dark:text-gray-400 text-xs">Please try refreshing the page</p>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full h-full" style={{ minHeight: height }} data-testid="price-chart" role="img" aria-label={`Price chart showing ${selectedSide === 'yes' ? 'YES' : 'NO'} outcome price over time`}>
+    <div
+      className="relative w-full h-full"
+      style={{ minHeight: height }}
+      data-testid="price-chart"
+      role="img"
+      aria-label={`Price chart showing ${selectedSide === 'yes' ? 'YES' : 'NO'} outcome price over time`}
+    >
+      {/* Chart Container */}
       <div ref={containerRef} className="w-full h-full" aria-hidden={showLoadingOverlay} />
 
-      {showLoadingOverlay && (
-        <div className="absolute inset-0 bg-gray-50 dark:bg-gray-800 rounded-xl z-10 overflow-hidden" role="status" aria-live="polite" aria-label="Loading chart data">
-          {/* Skeleton Loader */}
-          <div className="w-full h-full p-4 space-y-3">
-            {/* Y-axis labels skeleton */}
-            <div className="flex justify-between items-start h-8">
-              <div className="w-12 h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-              <div className="w-16 h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+      {/* Loading Overlay */}
+      <AnimatePresence>
+        {showLoadingOverlay && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-gradient-to-br from-gray-50/95 via-white/90 to-gray-50/95 dark:from-gray-900/95 dark:via-gray-800/90 dark:to-gray-900/95 backdrop-blur-sm rounded-2xl z-10 overflow-hidden"
+            role="status"
+            aria-live="polite"
+            aria-label="Loading chart data"
+          >
+            {/* Animated Background Pattern */}
+            <div className="absolute inset-0 opacity-30">
+              <div className="absolute top-0 left-1/4 w-64 h-64 bg-emerald-500/20 rounded-full blur-3xl animate-pulse" />
+              <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-rose-500/20 rounded-full blur-3xl animate-pulse animation-delay-500" />
             </div>
 
-            {/* Chart bars skeleton */}
-            <div className="flex items-end justify-between h-48 gap-1 sm:gap-2">
-              {[...Array(12)].map((_, i) => {
-                const heights = [60, 75, 55, 80, 70, 65, 85, 60, 75, 70, 80, 65];
-                return (
-                  <motion.div
-                    key={i}
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: `${heights[i]}%`, opacity: 1 }}
-                    transition={{ delay: i * 0.05, duration: 0.3 }}
-                    className="flex-1 bg-gradient-to-t from-gray-300 dark:from-gray-600 to-gray-200 dark:to-gray-700 rounded-t"
-                    style={{ maxWidth: '40px' }}
-                  />
-                );
-              })}
-            </div>
-
-            {/* X-axis labels skeleton */}
-            <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="w-12 h-2.5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-              ))}
-            </div>
-
-            {/* Loading text */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl px-4 py-3 shadow-lg border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-3">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="w-5 h-5 border-2 border-[#14B8A6] border-t-transparent rounded-full"
-                    aria-hidden="true"
-                  />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Loading chart data...</span>
+            {/* Skeleton Chart */}
+            <div className="relative w-full h-full p-6 flex flex-col">
+              {/* Y-axis skeleton */}
+              <div className="flex justify-between items-start mb-4">
+                <div className="space-y-8">
+                  {[...Array(4)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 0.5, x: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      className="w-8 h-2 bg-gray-200 dark:bg-gray-700 rounded-full"
+                    />
+                  ))}
                 </div>
               </div>
+
+              {/* Wave Animation */}
+              <div className="flex-1 flex items-end px-4">
+                <svg className="w-full h-32" viewBox="0 0 400 100" preserveAspectRatio="none">
+                  <motion.path
+                    d="M0,50 Q50,20 100,50 T200,50 T300,50 T400,50"
+                    fill="none"
+                    stroke="url(#gradient)"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 0.3 }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                  <defs>
+                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#10B981" />
+                      <stop offset="100%" stopColor="#F43F5E" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+
+              {/* X-axis skeleton */}
+              <div className="flex justify-between items-center pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
+                {[...Array(5)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 0.5, y: 0 }}
+                    transition={{ delay: 0.5 + i * 0.1 }}
+                    className="w-10 h-2 bg-gray-200 dark:bg-gray-700 rounded-full"
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-          <span className="sr-only">Loading price chart</span>
-        </div>
-      )}
+
+            {/* Loading Badge */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="absolute inset-0 flex items-center justify-center"
+            >
+              <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl px-6 py-4 shadow-2xl shadow-black/10 border border-gray-200/50 dark:border-gray-700/50">
+                <div className="flex items-center gap-4">
+                  {/* Animated Loader */}
+                  <div className="relative w-10 h-10">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                      className="absolute inset-0 border-3 border-emerald-500/30 border-t-emerald-500 rounded-full"
+                    />
+                    <motion.div
+                      animate={{ rotate: -360 }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                      className="absolute inset-1 border-2 border-rose-500/30 border-b-rose-500 rounded-full"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">Loading Chart</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Fetching market data...</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 });

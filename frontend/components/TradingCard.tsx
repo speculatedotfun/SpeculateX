@@ -138,7 +138,6 @@ export default function TradingCard({ marketId, onTradeSuccess }: TradingCardPro
     bE18,
     feeTreasuryBps,
     feeVaultBps,
-    feeVaultBps, // duplicate key issue check? corrected in replacement
     feeLpBps,
     usdcAllowanceValue,
     refetchAll,
@@ -219,7 +218,7 @@ export default function TradingCard({ marketId, onTradeSuccess }: TradingCardPro
       />
 
       {isLoading ? (
-        <div className="p-6 space-y-6 bg-white/60 dark:bg-gray-900/40 backdrop-blur-2xl border border-white/20 dark:border-white/5 rounded-[28px] shadow-sm">
+        <div className="p-5 space-y-5 bg-white/60 dark:bg-gray-900/40 backdrop-blur-2xl border border-white/20 dark:border-white/5 rounded-[24px] shadow-sm">
           <Skeleton className="h-12 w-full rounded-2xl bg-gray-200 dark:bg-gray-800" />
           <div className="grid grid-cols-2 gap-3">
             <Skeleton className="h-24 rounded-2xl bg-gray-200 dark:bg-gray-800" />
@@ -229,12 +228,12 @@ export default function TradingCard({ marketId, onTradeSuccess }: TradingCardPro
           <Skeleton className="h-14 w-full rounded-2xl bg-gray-200 dark:bg-gray-800" />
         </div>
       ) : (
-        <div className="p-1 space-y-6 bg-white/60 dark:bg-gray-900/40 backdrop-blur-2xl border border-white/20 dark:border-white/5 rounded-[28px] shadow-sm dark:shadow-none" data-testid="trading-card" role="main" aria-label="Trading interface">
+        <div className="p-1 space-y-5 bg-white/60 dark:bg-gray-900/40 backdrop-blur-2xl border border-white/20 dark:border-white/5 rounded-[24px] shadow-sm dark:shadow-none" data-testid="trading-card" role="main" aria-label="Trading interface">
           {!isTradeable && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 p-4 flex gap-3 items-start"
+              className="rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 p-3 flex gap-3 items-start"
               role="alert"
               aria-live="polite"
             >
