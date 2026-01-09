@@ -23,8 +23,14 @@ export async function isAdmin(address: `0x${string}`): Promise<boolean> {
         return adminRoleCache.get(normalized)!;
     }
 
+    // Check against configured admin address first (fast path)
+    const addresses = getAddresses();
+    if (addresses.admin && normalized === addresses.admin.toLowerCase()) {
+        adminRoleCache.set(normalized, true);
+        return true;
+    }
+
     try {
-        const addresses = getAddresses();
         const publicClient = getClientForCurrentNetwork();
         const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000';
         const hasAdminRole = await publicClient.readContract({

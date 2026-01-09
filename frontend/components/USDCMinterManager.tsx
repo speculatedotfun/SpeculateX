@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import { getAddresses } from '@/lib/contracts';
 import { usdcAbi } from '@/lib/abis';
-import { isAdmin as checkIsAdmin } from '@/lib/hooks';
+import { isAdmin as checkIsAdmin } from '@/lib/accessControl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';

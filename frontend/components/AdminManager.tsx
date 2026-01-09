@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient } from 'wagmi';
 import { getAddresses, getCurrentNetwork, getNetwork } from '@/lib/contracts';
 import { getCoreAbi, getChainlinkResolverAbi } from '@/lib/abis';
-import { isAdmin as checkIsAdmin } from '@/lib/hooks';
+import { isAdmin as checkIsAdmin } from '@/lib/accessControl';
 import { keccak256, stringToBytes, decodeErrorResult } from 'viem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

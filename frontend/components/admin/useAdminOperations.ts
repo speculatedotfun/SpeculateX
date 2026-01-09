@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAccount, useWriteContract, usePublicClient } from 'wagmi';
 import { getAddresses, getCurrentNetwork } from '@/lib/contracts';
 import { getCoreAbi } from '@/lib/abis';
-import { isAdmin as checkIsAdmin } from '@/lib/hooks';
+import { isAdmin as checkIsAdmin } from '@/lib/accessControl';
 import { keccak256, stringToBytes, encodeAbiParameters } from 'viem';
 import { useToast } from '@/components/ui/toast';
 
