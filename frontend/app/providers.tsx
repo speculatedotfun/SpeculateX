@@ -9,6 +9,13 @@ import { ConfettiProvider } from '@/lib/ConfettiContext';
 
 // Dynamic import to avoid chunking issues
 import dynamic from 'next/dynamic';
+import { useReferral } from '@/lib/hooks/useReferral';
+
+// Helper component to run the hook inside the context
+function ReferralListener() {
+  useReferral();
+  return null;
+}
 
 const RainbowKitProvider = dynamic(
   () => import('@rainbow-me/rainbowkit').then((mod) => mod.RainbowKitProvider),
@@ -45,7 +52,7 @@ function getQueryClient() {
         },
       });
     }
-    
+
     // Check if we need to clear cache (Core address changed)
     try {
       const shouldClear = sessionStorage.getItem('clearReactQueryCache');
@@ -58,7 +65,7 @@ function getQueryClient() {
     } catch (e) {
       // Ignore if sessionStorage not available
     }
-    
+
     return globalQueryClient;
   }
 }
@@ -72,7 +79,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <QueryClientProvider client={queryClient}>
           <RainbowKitProvider>
             <ConfettiProvider>
-              <ToastHost>{children}</ToastHost>
+              <ToastHost>
+                <ReferralListener />
+                {children}
+              </ToastHost>
             </ConfettiProvider>
           </RainbowKitProvider>
         </QueryClientProvider>

@@ -1,0 +1,11 @@
+[
+  {
+    "timestamp": 1768065107880,
+    "referrer": "0x29D67d1Ad683A76b2750f74B40b6e79d715C933c",
+    "user": "0x29D67d1Ad683A76b2750f74B40b6e79d715C933c",
+    "txHash": "0xe7f42bffaa0beffb079f76d9be14553fa759282a9884367b541c74d03745aa37",
+    "marketId": 4,
+    "amount": "50",
+    "type": "BuyYes"
+  }
+]

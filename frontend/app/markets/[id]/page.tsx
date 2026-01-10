@@ -15,6 +15,7 @@ import { ArrowLeft, Clock, AlertTriangle, CheckCircle2, Loader2, Share2, Check, 
 // Components
 import Header from '@/components/Header';
 import TradingCard from '@/components/TradingCard';
+import { ReferralCopyButton } from '@/components/ReferralCopyButton';
 import { PriceChart } from '@/components/PriceChart';
 import { MarketHeader } from '@/components/market/MarketHeader';
 import { Skeleton } from '@/components/ui';
@@ -600,6 +601,9 @@ export default function MarketDetailPage() {
               </>
             )}
           </button>
+          <div className="ml-2">
+            <ReferralCopyButton />
+          </div>
         </motion.div>
 
         {/* Market Header - Now contains the 3D Stats Banner inside */}

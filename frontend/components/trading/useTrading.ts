@@ -237,6 +237,26 @@ export function useTrading({
 
             // Optimistic Update
             if (onTradeSuccess && txHash) {
+                // Check for referrer
+                const referrer = localStorage.getItem('speculate_referrer');
+                if (referrer) {
+                    console.log(`[Referral] 🔗 Found attributes: ${referrer}`);
+
+                    // Dispatch to backend (fire and forget)
+                    fetch('/api/referrals', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            referrer,
+                            user: address,
+                            txHash,
+                            marketId,
+                            amount: amount,
+                            type: tradeMode === 'buy' ? (side === 'yes' ? 'BuyYes' : 'BuyNo') : (side === 'yes' ? 'SellYes' : 'SellNo')
+                        })
+                    }).catch(err => console.error('[Referral] Failed to log:', err));
+                }
+
                 onTradeSuccess({
                     id: txHash + '-' + (tradeMode === 'buy' ? (side === 'yes' ? 'BuyYes' : 'BuyNo') : (side === 'yes' ? 'SellYes' : 'SellNo')),
                     type: tradeMode === 'buy' ? (side === 'yes' ? 'BuyYes' : 'BuyNo') : (side === 'yes' ? 'SellYes' : 'SellNo'),
@@ -245,7 +265,8 @@ export function useTrading({
                     output: '0',
                     price: estimatedPrice,
                     timestamp: Math.floor(Date.now() / 1000),
-                    txHash: txHash
+                    txHash: txHash,
+                    referrer
                 });
             }
         } catch (error) {

@@ -8,10 +8,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount } from 'wagmi';
 import { formatUnits } from 'viem';
 
-import { Wallet, TrendingUp, History, ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertCircle, Trophy, Check, X, RefreshCw, Search, PieChart, Sparkles, ArrowRight, User } from 'lucide-react';
+import { Wallet, TrendingUp, History, ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertCircle, Trophy, Check, X, RefreshCw, Search, PieChart, Sparkles, ArrowRight, User, Users, Copy, ExternalLink, Share2, PiggyBank, AlertTriangle, Info } from 'lucide-react';
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 
 import Header from '@/components/Header';
+import { ReferralCopyButton } from '@/components/ReferralCopyButton';
 import { Button } from '@/components/ui';
 import MintUsdcForm from '@/components/MintUsdcForm';
 import { useUserPortfolio, type PortfolioPosition, type PortfolioTrade } from '@/lib/hooks/useUserPortfolio';
@@ -48,7 +49,23 @@ export default function PortfolioPage() {
   const { isConnected, address, chain } = useAccount();
   const { nicknames } = useNicknames();
   const { data, isLoading, refetch, isRefetching } = useUserPortfolio();
-  const [activeTab, setActiveTab] = useState<PortfolioTab>('positions');
+  const [activeTab, setActiveTab] = useState<PortfolioTab | 'referrals'>('positions');
+  const [referralData, setReferralData] = useState<any[]>([]);
+  const [loadingReferrals, setLoadingReferrals] = useState(false);
+
+  // Fetch referrals when tab is active
+  useEffect(() => {
+    if (activeTab === 'referrals' && address) {
+      setLoadingReferrals(true);
+      fetch(`/api/referrals?referrer=${address}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setReferralData(data);
+        })
+        .catch(err => console.error(err))
+        .finally(() => setLoadingReferrals(false));
+    }
+  }, [activeTab, address]);
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [isNicknameModalOpen, setIsNicknameModalOpen] = useState(false);
@@ -301,6 +318,9 @@ export default function PortfolioPage() {
               </div>
             )}
 
+
+
+
             <div className="grid grid-cols-2 gap-x-6 gap-y-3 w-full mt-4">
               {allocationData.map((d) => (
                 <div key={d.name} className="flex items-center justify-between text-xs">
@@ -320,7 +340,7 @@ export default function PortfolioPage() {
         <div className="min-h-[600px]">
           {/* Custom Tab Switcher */}
           <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
-            {['positions', 'claims', 'history', 'faucet']
+            {['positions', 'claims', 'history', 'referrals', 'faucet']
               .filter(tab => {
                 // Hide faucet on mainnet (Chain ID 56)
                 if (tab === 'faucet' && chain?.id === 56) return false;
@@ -598,6 +618,92 @@ export default function PortfolioPage() {
                       <p className="text-sm text-gray-500 text-center mb-8">Mint USDC to start trading on the testnet.</p>
                       <MintUsdcForm />
                     </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Referrals Tab */}
+              {activeTab === 'referrals' && (
+                <motion.div
+                  key="referrals"
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-6"
+                >
+                  {/* Referral Header Card */}
+                  <div className="p-6 rounded-3xl bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent border border-purple-500/20 backdrop-blur-xl relative overflow-hidden">
+                    <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+                          <Users className="w-5 h-5 text-purple-500" />
+                          Referral Program
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Share your link and earn rewards from every trade made by your referrals.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right hidden md:block">
+                          <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Referrals</div>
+                          <div className="text-2xl font-black text-gray-900 dark:text-white">{referralData.length}</div>
+                        </div>
+                        <ReferralCopyButton />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Referrals Table */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-separate border-spacing-y-3">
+                      <thead>
+                        <tr className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                          <th className="px-4 pb-2">Date</th>
+                          <th className="px-4 pb-2">User</th>
+                          <th className="px-4 pb-2 text-right">Volume</th>
+                          <th className="px-4 pb-2 text-center">TX</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {loadingReferrals ? (
+                          <tr><td colSpan={4} className="text-center py-8 text-gray-400">Loading referrals...</td></tr>
+                        ) : referralData.length === 0 ? (
+                          <tr><td colSpan={4} className="text-center py-8 text-gray-400">No referrals yet. Share your link to get started!</td></tr>
+                        ) : (
+                          referralData.map((row: any, i: number) => (
+                            <motion.tr
+                              key={i}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: i * 0.05 }}
+                              className="group relative"
+                            >
+                              <td className="px-4 py-3 bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-l-2xl group-hover:bg-white/60 dark:group-hover:bg-gray-800/60 transition-colors whitespace-nowrap font-mono text-xs text-gray-500">
+                                {new Date(row.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </td>
+                              <td className="px-4 py-3 bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border-y border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60 transition-colors">
+                                <span className="font-mono text-xs bg-gray-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-300">
+                                  {row.user.slice(0, 6)}...{row.user.slice(-4)}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border-y border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60 transition-colors text-right font-bold text-gray-900 dark:text-white tabular-nums">
+                                {Number(row.amount).toLocaleString('en-US')} USDC
+                              </td>
+                              <td className="px-4 py-3 bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-r-2xl group-hover:bg-white/60 dark:group-hover:bg-gray-800/60 transition-colors text-center">
+                                <a
+                                  href={`https://testnet.bscscan.com/tx/${row.txHash}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                              </td>
+                            </motion.tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </motion.div>
               )}

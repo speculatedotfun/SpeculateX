@@ -307,6 +307,29 @@ export default function AdminPage() {
               </div>
               <USDCMinterManager />
             </motion.div>
+
+            {/* Referral Logs Link */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+              className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 relative overflow-hidden shadow-sm dark:shadow-none transition-colors group cursor-pointer"
+              onClick={() => window.location.href = '/admin/referrals'}
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-purple-500/20 transition-colors" />
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-purple-500/10 dark:bg-purple-500/20 rounded-2xl text-purple-500 dark:text-purple-400">
+                    <Users className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Referrals</h2>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">View tracking logs</p>
+                  </div>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                  <Database className="w-4 h-4" />
+                </div>
+              </div>
+            </motion.div>
           </div>
 
           {/* System Operations (Full Width) */}
