@@ -5,7 +5,6 @@ import { useAccount, useWriteContract, usePublicClient } from 'wagmi';
 import { getAddresses, getCurrentNetwork } from '@/lib/contracts';
 import { getCoreAbi } from '@/lib/abis';
 import { useToast } from '@/components/ui/toast';
-import { useConfetti } from '@/lib/ConfettiContext';
 import { waitForReceipt } from '@/lib/tradingUtils';
 
 interface UseRedeemProps {
@@ -20,7 +19,6 @@ export function useRedeem({
     const { writeContractAsync } = useWriteContract();
     const publicClient = usePublicClient();
     const { pushToast } = useToast();
-    const { trigger: triggerConfetti } = useConfetti();
 
     const [isRedeeming, setIsRedeeming] = useState(false);
 
@@ -48,14 +46,13 @@ export function useRedeem({
             });
             await waitForReceipt(publicClient, tx);
             await refetchAll();
-            triggerConfetti();
             showToast('Success', 'Redeemed successfully', 'success');
         } catch (e) {
             showErrorToast(e, 'Redeem failed');
         } finally {
             setIsRedeeming(false);
         }
-    }, [marketIdBI, writeContractAsync, publicClient, refetchAll, showToast, showErrorToast, addresses.core, coreAbiForNetwork, triggerConfetti]);
+    }, [marketIdBI, writeContractAsync, publicClient, refetchAll, showToast, showErrorToast, addresses.core, coreAbiForNetwork]);
 
     return {
         isRedeeming,

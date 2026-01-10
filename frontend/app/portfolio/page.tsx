@@ -18,7 +18,6 @@ import MintUsdcForm from '@/components/MintUsdcForm';
 import { useUserPortfolio, type PortfolioPosition, type PortfolioTrade } from '@/lib/hooks/useUserPortfolio';
 import { useNicknames, getDisplayName } from '@/lib/hooks/useNicknames';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { useConfetti } from '@/lib/ConfettiContext';
 import { coreAbi, positionTokenAbi } from '@/lib/abis';
 import { addresses } from '@/lib/contracts';
 import { useWriteContract, usePublicClient, useReadContract } from 'wagmi';
@@ -755,7 +754,6 @@ export default function PortfolioPage() {
 function PositionRow({ position, trades = [], onClaimSuccess, isRedeemed = false }: { position: PortfolioPosition, trades?: PortfolioTrade[], onClaimSuccess: () => void, isRedeemed?: boolean }) {
   const { writeContractAsync, isPending } = useWriteContract();
   const publicClient = usePublicClient();
-  const { trigger: triggerConfetti } = useConfetti();
   const [isClaiming, setIsClaiming] = useState(false);
   const [isSelling, setIsSelling] = useState(false);
 
@@ -811,7 +809,6 @@ function PositionRow({ position, trades = [], onClaimSuccess, isRedeemed = false
       });
       if (publicClient) {
         await publicClient.waitForTransactionReceipt({ hash });
-        triggerConfetti();
         onClaimSuccess();
       }
     } catch (err: any) {
@@ -936,10 +933,8 @@ function LoadingState({ prefersReducedMotion = false }: { prefersReducedMotion?:
 }
 
 function PositionCard({ position, trades = [], onClaimSuccess, isRedeemed = false, prefersReducedMotion = false }: { position: PortfolioPosition, trades?: PortfolioTrade[], onClaimSuccess: () => void, isRedeemed?: boolean, prefersReducedMotion?: boolean }) {
-  const { address } = useAccount();
   const { writeContractAsync, isPending } = useWriteContract();
   const publicClient = usePublicClient();
-  const { trigger: triggerConfetti } = useConfetti();
   const [isClaiming, setIsClaiming] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -973,7 +968,6 @@ function PositionCard({ position, trades = [], onClaimSuccess, isRedeemed = fals
       });
       if (publicClient) {
         await publicClient.waitForTransactionReceipt({ hash });
-        triggerConfetti();
         onClaimSuccess();
       }
     } catch (err: any) {

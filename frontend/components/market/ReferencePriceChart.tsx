@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { createChart, ColorType, LineStyle, AreaSeries, LineSeries, type Time } from 'lightweight-charts';
+import { createChart, ColorType, LineStyle, BaselineSeries, type Time } from 'lightweight-charts';
 import { useCryptoPrice, type CryptoTimeRange } from '@/lib/hooks/useCryptoPrice';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, ExternalLink, Zap } from 'lucide-react';
@@ -29,6 +29,8 @@ export function ReferencePriceChart({
     const [isChartReady, setIsChartReady] = useState(false);
 
     // Initial Chart Setup
+    const priceLineRef = useRef<any>(null);
+
     useEffect(() => {
         if (!chartContainerRef.current) return;
 
@@ -47,6 +49,9 @@ export function ReferencePriceChart({
                 background: { type: ColorType.Solid, color: 'transparent' },
                 textColor: 'rgba(156, 163, 175, 0.8)',
                 fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+            },
+            localization: {
+                locale: 'en-US',
             },
             width: chartContainerRef.current.clientWidth || 300,
             height: 180,
@@ -81,32 +86,21 @@ export function ReferencePriceChart({
             handleScale: { mouseWheel: false, pinch: false },
         });
 
-        // Use AreaSeries for a filled gradient look
-        const newSeries = chart.addSeries(AreaSeries, {
-            lineColor: '#F59E0B',
+        const newSeries = chart.addSeries(BaselineSeries, {
             lineWidth: 2,
-            topColor: 'rgba(245, 158, 11, 0.4)',
-            bottomColor: 'rgba(245, 158, 11, 0.0)',
+            baseValue: { type: 'price', price: targetPrice || 0 },
+            topLineColor: 'rgba(16, 185, 129, 1)',
+            topFillColor1: 'rgba(16, 185, 129, 0.4)',
+            topFillColor2: 'rgba(16, 185, 129, 0.05)',
+            bottomLineColor: 'rgba(244, 63, 94, 1)',
+            bottomFillColor1: 'rgba(244, 63, 94, 0.05)',
+            bottomFillColor2: 'rgba(244, 63, 94, 0.4)',
             crosshairMarkerVisible: true,
-            crosshairMarkerRadius: 6,
-            crosshairMarkerBackgroundColor: '#F59E0B',
-            crosshairMarkerBorderColor: '#ffffff',
-            crosshairMarkerBorderWidth: 2,
             lastValueVisible: false,
             priceLineVisible: false,
         });
 
-        // Dedicated dashed line series for target/strike level (more reliably visible than createPriceLine on area)
-        const targetSeries = chart.addSeries(LineSeries, {
-            color: 'rgba(16, 185, 129, 0.9)',
-            lineWidth: 2,
-            lineStyle: LineStyle.Dashed,
-            crosshairMarkerVisible: false,
-            lastValueVisible: false,
-            priceLineVisible: false,
-        });
-
-        chartRef.current = { chart, series: newSeries, targetSeries };
+        chartRef.current = { chart, series: newSeries };
         setIsChartReady(true);
 
         const resizeObserver = new ResizeObserver(() => handleResize());
@@ -120,29 +114,48 @@ export function ReferencePriceChart({
         };
     }, []);
 
-    // Target (strike) line series
+    // Price Line & Adaptive Colors Effect
     useEffect(() => {
-        if (!isChartReady) return;
-        const targetSeries = chartRef.current?.targetSeries;
-        if (!targetSeries) return;
+        if (!isChartReady || !chartRef.current) return;
+        const { series } = chartRef.current;
 
-        // hide if invalid
-        if (!targetPrice || !Number.isFinite(targetPrice) || targetPrice <= 0) {
-            try { targetSeries.setData([]); } catch { /* ignore */ }
-            return;
+        // Remove old price line if exists
+        if (priceLineRef.current) {
+            series.removePriceLine(priceLineRef.current);
+            priceLineRef.current = null;
         }
 
-        const lineColor =
-            targetDirection === 'below'
-                ? 'rgba(244, 63, 94, 0.9)'
-                : 'rgba(16, 185, 129, 0.9)';
+        if (!targetPrice || !Number.isFinite(targetPrice) || targetPrice <= 0) return;
 
-        try {
-            targetSeries.applyOptions({ color: lineColor });
-        } catch { /* ignore */ }
+        const isAbove = targetDirection === 'above';
+        const winColor = 'rgba(16, 185, 129'; // emerald-500
+        const loseColor = 'rgba(244, 63, 94'; // rose-500
+
+        // Update Price Line
+        priceLineRef.current = series.createPriceLine({
+            price: targetPrice,
+            color: isAbove ? `${winColor}, 0.9)` : `${loseColor}, 0.9)`,
+            lineWidth: 2,
+            lineStyle: LineStyle.Dashed,
+            axisLabelVisible: true,
+            title: '',
+        });
+
+        // Update Series Baseline and Colors
+        // For BaselineSeries, top side is above baseValue, bottom side is below baseValue.
+        series.applyOptions({
+            baseValue: { type: 'price', price: targetPrice },
+            topLineColor: isAbove ? `${winColor}, 1)` : `${loseColor}, 1)`,
+            topFillColor1: isAbove ? `${winColor}, 0.3)` : `${loseColor}, 0.3)`,
+            topFillColor2: isAbove ? `${winColor}, 0.05)` : `${loseColor}, 0.05)`,
+            bottomLineColor: isAbove ? `${loseColor}, 1)` : `${winColor}, 1)`,
+            bottomFillColor1: isAbove ? `${loseColor}, 0.05)` : `${winColor}, 0.05)`,
+            bottomFillColor2: isAbove ? `${loseColor}, 0.3)` : `${winColor}, 0.3)`,
+        });
+
     }, [isChartReady, targetPrice, targetDirection]);
 
-    // Update Data
+    // Update Data (Main trend)
     useEffect(() => {
         if (chartRef.current && data.length > 0) {
             try {
@@ -158,25 +171,6 @@ export function ReferencePriceChart({
 
                 chartRef.current.series.setData(deduped);
 
-                // Update target line points (two points = horizontal line)
-                const targetSeries = chartRef.current?.targetSeries;
-                if (
-                    targetSeries &&
-                    targetPrice &&
-                    Number.isFinite(targetPrice) &&
-                    targetPrice > 0 &&
-                    deduped.length >= 2
-                ) {
-                    const first = deduped[0].time as Time;
-                    const last = deduped[deduped.length - 1].time as Time;
-                    targetSeries.setData([
-                        { time: first, value: targetPrice },
-                        { time: last, value: targetPrice },
-                    ]);
-                } else if (targetSeries) {
-                    try { targetSeries.setData([]); } catch { /* ignore */ }
-                }
-
                 requestAnimationFrame(() => {
                     if (chartRef.current?.chart) {
                         chartRef.current.chart.timeScale().fitContent();
@@ -186,7 +180,7 @@ export function ReferencePriceChart({
                 console.error("Chart data error", e);
             }
         }
-    }, [data, targetPrice]);
+    }, [data]);
 
     if (!symbol) {
         if (variant === 'embedded') {
@@ -236,8 +230,8 @@ export function ReferencePriceChart({
                             {priceChange24h !== null && (
                                 <div
                                     className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-xs ${isPositive
-                                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                                            : 'bg-red-500/10 text-red-600 dark:text-red-400'
+                                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                        : 'bg-red-500/10 text-red-600 dark:text-red-400'
                                         }`}
                                 >
                                     {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
@@ -249,8 +243,8 @@ export function ReferencePriceChart({
                             {formattedTarget && (
                                 <div
                                     className={`flex items-center gap-2 px-2.5 py-1 rounded-full font-bold text-xs border ${targetDirection === 'below'
-                                            ? 'bg-red-500/5 text-red-600 dark:text-red-400 border-red-500/20'
-                                            : 'bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                        ? 'bg-red-500/5 text-red-600 dark:text-red-400 border-red-500/20'
+                                        : 'bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
                                         }`}
                                     aria-label={`Target price ${formattedTarget}`}
                                 >
@@ -330,8 +324,8 @@ export function ReferencePriceChart({
                                         initial={{ opacity: 0, scale: 0.9 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-sm ${isPositive
-                                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                                                : 'bg-red-500/10 text-red-600 dark:text-red-400'
+                                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                            : 'bg-red-500/10 text-red-600 dark:text-red-400'
                                             }`}
                                     >
                                         {isPositive ? (

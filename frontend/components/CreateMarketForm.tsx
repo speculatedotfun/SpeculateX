@@ -15,7 +15,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
-import { useConfetti } from '@/lib/ConfettiContext';
 import { cn } from '@/lib/utils';
 
 interface CreateMarketFormProps {
@@ -29,7 +28,6 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const { pushToast } = useToast();
-  const { trigger: triggerConfetti } = useConfetti();
   const network = getNetwork();
 
   // --- Wizard State ---
@@ -370,7 +368,6 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
             description: 'Market created successfully!',
             type: 'success'
           });
-          triggerConfetti();
 
           // Reset form
           setStep(1);

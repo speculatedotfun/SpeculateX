@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { config } from '@/lib/wagmi';
 import { ToastHost } from '@/components/ui/toast';
 import { ThemeProvider } from '@/lib/theme';
-import { ConfettiProvider } from '@/lib/ConfettiContext';
+
 
 // Dynamic import to avoid chunking issues
 import dynamic from 'next/dynamic';
@@ -78,12 +78,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
           <RainbowKitProvider>
-            <ConfettiProvider>
-              <ToastHost>
-                <ReferralListener />
-                {children}
-              </ToastHost>
-            </ConfettiProvider>
+            <ToastHost>
+              <ReferralListener />
+              {children}
+            </ToastHost>
           </RainbowKitProvider>
         </QueryClientProvider>
       </WagmiProvider>

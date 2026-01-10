@@ -6,7 +6,6 @@ import { parseUnits, formatUnits } from 'viem';
 import { getAddresses, getCurrentNetwork } from '@/lib/contracts';
 import { getCoreAbi, usdcAbi } from '@/lib/abis';
 import { useToast } from '@/components/ui/toast';
-import { useConfetti } from '@/lib/ConfettiContext';
 import { waitForReceipt, sleep, ensureAllowance } from '@/lib/tradingUtils';
 import { simulateBuyChunk, costFunction } from '@/lib/lmsrMath';
 
@@ -61,7 +60,7 @@ export function useTrading({
     const { writeContractAsync } = useWriteContract();
     const publicClient = usePublicClient();
     const { pushToast } = useToast();
-    const { trigger: triggerConfetti } = useConfetti();
+
 
     const [pendingTrade, setPendingTrade] = useState(false);
     const [busyLabel, setBusyLabel] = useState('');
@@ -126,7 +125,7 @@ export function useTrading({
             setPendingTrade(true);
             setBusyLabel('Executing split order…');
             await executeSplitBuy(pendingSplitAmount);
-            triggerConfetti();
+            await executeSplitBuy(pendingSplitAmount);
             showToastMsg('Success', 'Split order executed successfully', 'success');
             setAmount('');
             setPendingSplitAmount(0n);
@@ -138,7 +137,7 @@ export function useTrading({
             setBusyLabel('');
             setShowSplitConfirm(false);
         }
-    }, [pendingSplitAmount, executeSplitBuy, showToastMsg, showErrorToast, triggerConfetti, setAmount]);
+    }, [pendingSplitAmount, executeSplitBuy, showToastMsg, showErrorToast, setAmount]);
 
     const handleTrade = useCallback(async () => {
         if (!amount || parseFloat(amount) <= 0) return;
@@ -231,7 +230,6 @@ export function useTrading({
 
             setBusyLabel('Finalizing…');
             await refetchAll();
-            triggerConfetti();
             showToastMsg('Success', 'Trade executed successfully', 'success');
             setAmount('');
 
@@ -276,7 +274,7 @@ export function useTrading({
             setPendingTrade(false);
             setBusyLabel('');
         }
-    }, [amount, amountBigInt, isTradeable, tradeMode, address, publicClient, writeContractAsync, usdcAllowanceValue, maxJumpE6, refetchAll, showToastMsg, showErrorToast, bE18, feeLpBps, feeTreasuryBps, feeVaultBps, marketIdBI, qNo, qYes, side, tradeDisabledReason, addresses.core, addresses.usdc, coreAbiForNetwork, isTestnetNetwork, triggerConfetti, setAmount]);
+    }, [amount, amountBigInt, isTradeable, tradeMode, address, publicClient, writeContractAsync, usdcAllowanceValue, maxJumpE6, refetchAll, showToastMsg, showErrorToast, bE18, feeLpBps, feeTreasuryBps, feeVaultBps, marketIdBI, qNo, qYes, side, tradeDisabledReason, addresses.core, addresses.usdc, coreAbiForNetwork, isTestnetNetwork, setAmount]);
 
     return {
         pendingTrade,
