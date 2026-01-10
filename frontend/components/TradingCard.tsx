@@ -228,7 +228,7 @@ export default function TradingCard({ marketId, onTradeSuccess }: TradingCardPro
           <Skeleton className="h-14 w-full rounded-2xl bg-gray-200 dark:bg-gray-800" />
         </div>
       ) : (
-        <div className="p-1 space-y-5 bg-white/60 dark:bg-gray-900/40 backdrop-blur-2xl border border-white/20 dark:border-white/5 rounded-[24px] shadow-sm dark:shadow-none" data-testid="trading-card" role="main" aria-label="Trading interface">
+        <div className="p-3 space-y-3 bg-transparent" data-testid="trading-card" role="main" aria-label="Trading interface">
           {!isTradeable && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}

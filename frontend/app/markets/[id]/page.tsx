@@ -204,7 +204,7 @@ export default function MarketDetailPage() {
   const marketData = useMarketData(marketIdNum);
 
   // UI state
-  const [activeTab, setActiveTab] = useState<'Position' | 'Comments' | 'Transactions' | 'Resolution'>(isConnected ? 'Position' : 'Resolution');
+  const [activeTab, setActiveTab] = useState<'About' | 'Chat'>('About');
   const [holderTab, setHolderTab] = useState<'yes' | 'no'>('yes');
   const [chartSide, setChartSide] = useState<'yes' | 'no'>('yes');
   const [chartPanel, setChartPanel] = useState<'market' | 'asset'>('market');
@@ -558,7 +558,7 @@ export default function MarketDetailPage() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-x-hidden font-sans pb-24 md:pb-0">
+    <div className="min-h-screen relative overflow-hidden font-sans pb-24 md:pb-0">
 
       {/* Background Gradient */}
       <div className="fixed inset-0 pointer-events-none -z-10">
@@ -621,91 +621,86 @@ export default function MarketDetailPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-3">
 
-          {/* --- Left Column: Chart & Tabs (8 cols) --- */}
-          <div className="lg:col-span-8 space-y-6">
+          {/* --- Left Column: Chart & Tabs (7 cols) --- */}
+          <div className="lg:col-span-7 space-y-6">
 
             {/* Chart Card */}
             <motion.div
               initial={prefersReducedMotion ? false : { y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: prefersReducedMotion ? 0 : 0.2 }}
-              className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-[28px] p-5 sm:p-6 shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-white/20 dark:border-gray-700/50"
+              className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl p-4 sm:p-5 shadow-lg shadow-gray-200/30 dark:shadow-black/30 border border-gray-100 dark:border-gray-800"
             >
               {/* Chart Controls Header */}
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
+                {/* Left: Price Display */}
                 <div>
                   {chartPanel === 'market' ? (
-                    <>
-                      <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                        Current Price
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${chartSide === 'yes' ? 'bg-[#14B8A6]/10 text-[#14B8A6]' : 'bg-red-500/10 text-red-500'}`}>
-                          {chartSide.toUpperCase()}
-                        </span>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-3 h-3 rounded-full ${chartSide === 'yes' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                        <span className="text-xs font-bold text-gray-400 uppercase">{chartSide}</span>
                       </div>
-                      <div className="flex items-baseline gap-4 flex-wrap">
-                        <PriceDisplay
-                          price={chartSide === 'yes' ? marketData.currentPrices.yes : marketData.currentPrices.no}
-                          priceClassName="text-4xl sm:text-5xl font-black tracking-tighter text-gray-900 dark:text-white"
-                          showInCents={true}
-                        />
-                        <div className={`flex items-center font-bold text-base ${chanceChangePercent >= 0 ? 'text-[#14B8A6]' : 'text-red-500'}`}>
-                          {chanceChangePercent >= 0 ? '↑' : '↓'} {Math.abs(chanceChangePercent).toFixed(2)}%
-                          <span className="text-gray-400 dark:text-gray-500 text-xs font-medium ml-2 uppercase tracking-wide">past {timeRange}</span>
-                        </div>
+                      <PriceDisplay
+                        price={chartSide === 'yes' ? marketData.currentPrices.yes : marketData.currentPrices.no}
+                        priceClassName="text-3xl font-black tracking-tight text-gray-900 dark:text-white"
+                        showInCents={true}
+                      />
+                      <div className={`flex items-center text-sm font-bold ${chanceChangePercent >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                        {chanceChangePercent >= 0 ? '↑' : '↓'} {Math.abs(chanceChangePercent).toFixed(1)}%
                       </div>
-                    </>
-                  ) : (
-                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                      Reference Asset
                     </div>
+                  ) : (
+                    <span className="text-sm font-bold text-amber-600 dark:text-amber-400">Reference Asset</span>
                   )}
                 </div>
 
-                <div className="flex flex-col gap-3 w-full sm:w-auto">
-                  {/* Market / Asset toggle */}
-                  <div className="bg-gray-100 dark:bg-gray-700/50 p-1.5 rounded-2xl flex w-full sm:w-auto overflow-hidden">
-                    <button
-                      onClick={() => setChartPanel('market')}
-                      className={`flex-1 sm:flex-none px-4 py-2 rounded-xl text-sm font-bold transition-all ${chartPanel === 'market'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                        }`}
-                    >
-                      Market
-                    </button>
-                    <button
-                      onClick={() => hasAssetReference && setChartPanel('asset')}
-                      disabled={!hasAssetReference}
-                      className={`flex-1 sm:flex-none px-4 py-2 rounded-xl text-sm font-bold transition-all ${chartPanel === 'asset'
-                        ? 'bg-white dark:bg-gray-600 text-amber-600 dark:text-amber-400 shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                        } ${!hasAssetReference ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      title={!hasAssetReference ? 'No reference asset detected from question' : undefined}
-                    >
-                      Asset
-                    </button>
-                  </div>
-
-                  {/* Outcome Toggle (Market-only) */}
+                {/* Right: Controls */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Yes/No Toggle */}
                   {chartPanel === 'market' && (
-                    <div className="bg-gray-100 dark:bg-gray-700/50 p-1.5 rounded-2xl flex w-full sm:w-auto overflow-hidden">
+                    <div className="flex items-center bg-gray-100 dark:bg-gray-700/50 rounded-xl p-0.5">
                       <button
                         onClick={() => setChartSide('yes')}
-                        className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${chartSide === 'yes'
-                          ? 'bg-white dark:bg-gray-600 text-[#14B8A6] shadow-sm'
-                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${chartSide === 'yes'
+                          ? 'bg-white dark:bg-gray-600 text-emerald-600 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
                           }`}
                       >
                         Yes
                       </button>
                       <button
                         onClick={() => setChartSide('no')}
-                        className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${chartSide === 'no'
-                          ? 'bg-white dark:bg-gray-600 text-red-500 shadow-sm'
-                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${chartSide === 'no'
+                          ? 'bg-white dark:bg-gray-600 text-rose-500 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
                           }`}
                       >
                         No
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Market/Asset Toggle */}
+                  {hasAssetReference && (
+                    <div className="flex items-center bg-gray-100 dark:bg-gray-700/50 rounded-xl p-0.5">
+                      <button
+                        onClick={() => setChartPanel('market')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${chartPanel === 'market'
+                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                          }`}
+                      >
+                        Market
+                      </button>
+                      <button
+                        onClick={() => setChartPanel('asset')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${chartPanel === 'asset'
+                          ? 'bg-white dark:bg-gray-600 text-amber-600 dark:text-amber-400 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                          }`}
+                      >
+                        Asset
                       </button>
                     </div>
                   )}
@@ -714,7 +709,7 @@ export default function MarketDetailPage() {
 
               {/* Chart Visual */}
               {chartPanel === 'market' ? (
-                <div className="h-[320px] w-full mb-4 relative overflow-hidden">
+                <div className="h-[220px] w-full mb-3 relative overflow-hidden">
                   {/* */}
                   {snapshotLoading && sortedChartData.length === 0 ? (
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -730,6 +725,7 @@ export default function MarketDetailPage() {
                         selectedSide={chartSide}
                         marketId={marketIdNum}
                         useCentralizedData={true}
+                        height={220}
                       />
                       {isChartRefreshing && (
                         <div className="absolute top-2 right-2 px-3 py-1 bg-[#14B8A6]/10 backdrop-blur-md rounded-full border border-[#14B8A6]/20 flex items-center gap-2">
@@ -771,10 +767,10 @@ export default function MarketDetailPage() {
               initial={prefersReducedMotion ? false : { y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: prefersReducedMotion ? 0 : 0.3 }}
-              className="bg-white dark:bg-gray-800 rounded-[28px] shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-gray-100 dark:border-gray-700 overflow-hidden"
+              className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl shadow-lg shadow-gray-200/30 dark:shadow-black/30 border border-gray-100 dark:border-gray-800 overflow-hidden"
             >
               <div className="flex border-b border-gray-100 dark:border-gray-700 overflow-x-auto scrollbar-hide p-2 bg-gray-50/50 dark:bg-gray-900/20">
-                {(['Position', 'Comments', 'Transactions', 'Resolution'] as const).map((tab) => (
+                {(['About', 'Chat'] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
@@ -795,7 +791,7 @@ export default function MarketDetailPage() {
                 ))}
               </div>
 
-              <div className="p-5 sm:p-6 bg-gray-50/50 dark:bg-gray-900/50 min-h-[320px]">
+              <div className="p-4 sm:p-5 bg-gray-50/50 dark:bg-gray-900/50 min-h-[240px]">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeTab}
@@ -804,8 +800,8 @@ export default function MarketDetailPage() {
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.2 }}
                   >
-                    {/* Position Tab */}
-                    {activeTab === 'Position' && (
+                    {/* About Tab - Position + Rules */}
+                    {activeTab === 'About' && (
                       <div className="space-y-6">
                         <PositionTab
                           isConnected={isConnected}
@@ -816,28 +812,34 @@ export default function MarketDetailPage() {
                           priceYes={marketData.currentPrices.yes}
                           priceNo={marketData.currentPrices.no}
                         />
+
+                        {/* Rules Section */}
+                        <div className="mt-6 p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+                          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                              <AlertTriangle className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                            </span>
+                            Resolution Rules
+                          </h3>
+                          <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                            {resolution?.oracleType === 0 && 'This market is resolved manually by the platform administrators.'}
+                            {resolution?.oracleType === 1 && 'This market resolves automatically based on Chainlink oracle data at the expiration time.'}
+                            {!resolution && 'Standard resolution rules apply.'}
+                          </div>
+                        </div>
                       </div>
                     )}
 
-                    {activeTab === 'Comments' && <CommentsTab marketId={marketId} isConnected={isConnected} address={address} />}
-
-                    {activeTab === 'Transactions' && <TransactionsTab transactions={transactions} loading={snapshotLoading && transactions.length === 0} />}
-
-                    {activeTab === 'Resolution' && (
-                      <ResolutionTab
-                        resolution={resolution}
-                        marketId={marketIdNum}
-                        marketStatus={marketStatus === 0 ? 'active' : marketStatus === 1 ? 'resolved' : 'cancelled'}
-                      />
-                    )}
+                    {/* Chat Tab - Comments */}
+                    {activeTab === 'Chat' && <CommentsTab marketId={marketId} isConnected={isConnected} address={address} />}
                   </motion.div>
                 </AnimatePresence>
               </div>
             </motion.div>
           </div>
 
-          {/* --- Right Column: Trading & Stats (4 cols) --- */}
-          <div className="lg:col-span-4 space-y-4">
+          {/* --- Right Column: Trading & Stats (5 cols) --- */}
+          <div className="lg:col-span-5 space-y-4">
 
             {/* Trading Card (Desktop Sticky) - ID for Mobile Scroll */}
             <motion.div
@@ -845,22 +847,21 @@ export default function MarketDetailPage() {
               initial={prefersReducedMotion ? false : { y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: prefersReducedMotion ? 0 : 0.4 }}
-              className="sticky top-24 space-y-4"
+              className="sticky top-20 space-y-3"
             >
               {isMarketIdValid && market && (
                 <>
-                  <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-[28px] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] dark:shadow-black/30 border border-white/20 dark:border-gray-700/50 overflow-hidden relative z-20">
+                  <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl shadow-lg shadow-gray-200/30 dark:shadow-black/30 border border-gray-100 dark:border-gray-800 overflow-hidden">
                     <TradingCard
                       marketId={marketIdNum}
                       onTradeSuccess={(trade) => mergeTransactionRows([trade])}
                     />
                   </div>
 
-                  {/* Market Data Tools */}
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="h-[240px]">
-                      <LiveTradeFeed transactions={transactions} />
-                    </div>
+
+                  {/* Live Trades */}
+                  <div className="h-[200px]">
+                    <LiveTradeFeed transactions={transactions} />
                   </div>
 
                   {!marketIsActive && (
@@ -909,6 +910,6 @@ export default function MarketDetailPage() {
         </button>
       </motion.div>
 
-    </div>
+    </div >
   );
 }

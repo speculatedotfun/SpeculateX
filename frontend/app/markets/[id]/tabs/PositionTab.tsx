@@ -48,11 +48,11 @@ export function PositionTab({
     const isBuy = tx.type.startsWith('Buy');
     const isYes = tx.type.endsWith('Yes');
 
-    // In our transformer: 
-    // If Buy: amount = USDC (6 dec), output = Tokens (18 dec)
-    // If Sell: amount = Tokens (18 dec), output = USDC (6 dec)
-    const usdc = isBuy ? parseFloat(tx.amount) / 1e6 : parseFloat(tx.output) / 1e6;
-    const shares = isBuy ? parseFloat(tx.output) / 1e18 : parseFloat(tx.amount) / 1e18;
+    // The transformer already converts to human-readable values:
+    // amount = USDC for buys, tokens for sells (already human-readable)
+    // output = tokens for buys, USDC for sells (already human-readable)
+    const usdc = isBuy ? parseFloat(tx.amount) : parseFloat(tx.output);
+    const shares = isBuy ? parseFloat(tx.output) : parseFloat(tx.amount);
 
     if (isYes) {
       if (isBuy) {
@@ -75,10 +75,12 @@ export function PositionTab({
     }
   }
 
+  // avgPrice is in dollars (e.g., 0.50 means 50 cents)
   const yesAvgPrice = yesSharesOwned > 0 ? yesCostBasis / yesSharesOwned : 0;
   const noAvgPrice = noSharesOwned > 0 ? noCostBasis / noSharesOwned : 0;
 
   // Final P&L calculation based on CURRENT reported balances
+  // priceYes and priceNo are between 0 and 1 (e.g., 0.49 = 49 cents)
   const yesProfit = hasYes ? (priceYes - yesAvgPrice) * yesShares : 0;
   const noProfit = hasNo ? (priceNo - noAvgPrice) * noShares : 0;
   const totalProfit = yesProfit + noProfit;
@@ -91,7 +93,7 @@ export function PositionTab({
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="flex flex-col items-center justify-center py-16 text-center"
+        className="flex flex-col items-center justify-center py-8 text-center"
         role="status"
         aria-label="Wallet not connected"
       >
@@ -184,19 +186,24 @@ function PositionCard({ type, balance, price, avgPrice, profit }: { type: 'yes' 
             </span>
             {type.toUpperCase()} POSITION
           </div>
-          <div className="flex items-baseline gap-1">
+          <div className="flex items-baseline gap-2 mb-1">
             <span className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
-              {shares.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+              ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <span className="text-xs font-bold text-gray-400 uppercase">Shares</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <span className="font-bold">{shares.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+            <span className="text-xs uppercase">shares</span>
+            <span className="text-gray-300 dark:text-gray-600">•</span>
+            <span className="font-medium">{(price * 100).toFixed(1)}¢ each</span>
           </div>
         </div>
         <div className={`px-3 py-1.5 rounded-xl text-sm font-black border flex items-center gap-1.5 ${isYes
           ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-100 dark:border-green-800/50'
           : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-100 dark:border-red-800/50'
           }`}>
-          <span className="opacity-50 text-[10px]">NOW</span>
-          ${(price * 100).toFixed(1)}¢
+          <span className="opacity-50 text-[10px]">PRICE</span>
+          {(price * 100).toFixed(1)}¢
         </div>
       </div>
 
@@ -204,18 +211,18 @@ function PositionCard({ type, balance, price, avgPrice, profit }: { type: 'yes' 
         <div>
           <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Avg. Price</div>
           <div className="text-lg font-black text-gray-900 dark:text-white">
-            ${(avgPrice * 100).toFixed(1)}¢
+            {(avgPrice * 100).toFixed(1)}¢
           </div>
         </div>
         <div className="text-right">
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Unrealized ROI</div>
+          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Unrealized P&L</div>
           <div className={`text-lg font-black flex flex-col items-end justify-center ${profit >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
             <div className="flex items-center gap-1">
               {profit >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-              {profit >= 0 ? '+' : '-'}{Math.abs(profitPct).toFixed(1)}%
+              {profit >= 0 ? '+' : ''}{profitPct.toFixed(1)}%
             </div>
             <div className="text-[10px] font-bold opacity-60">
-              {profit >= 0 ? '+' : '-'}${Math.abs(profit).toFixed(2)}
+              {profit >= 0 ? '+' : ''}${profit.toFixed(2)}
             </div>
           </div>
         </div>
@@ -228,10 +235,10 @@ function PositionCard({ type, balance, price, avgPrice, profit }: { type: 'yes' 
           </div>
           <div className="text-right">
             <div className="text-sm font-black text-gray-900 dark:text-white">
-              ${shares.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              ${shares.toFixed(2)}
             </div>
             <div className="text-[10px] font-bold text-emerald-500">
-              +${(shares - (avgPrice * shares)).toFixed(2)} ({((1 - avgPrice) / (avgPrice || 1) * 100).toFixed(0)}%)
+              +${(shares - value).toFixed(2)} profit
             </div>
           </div>
         </div>

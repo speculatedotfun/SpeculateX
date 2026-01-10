@@ -167,7 +167,7 @@ export default function MarketsPage() {
       <main className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
         {/* Page Header Area */}
-        <div className="flex flex-col items-center text-center justify-center gap-4 mb-12 relative z-20">
+        <div className="flex flex-col items-center text-center justify-center gap-3 mb-8 relative z-20">
           <motion.div
             initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -185,10 +185,10 @@ export default function MarketsPage() {
             initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#0f0a2e] dark:text-white tracking-tighter leading-[0.9]"
+            className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black text-[#0f0a2e] dark:text-white tracking-tighter"
           >
-            Be The <br className="hidden sm:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-cyan-400 to-purple-500 animate-gradient-x">
+            Be The{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-cyan-400 to-purple-500">
               Market.
             </span>
           </motion.h1>
@@ -220,7 +220,7 @@ export default function MarketsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
+            className="mb-6"
           >
             <div className="flex items-center gap-2 mb-3">
               <Flame className="w-4 h-4 text-orange-500 fill-orange-500 animate-pulse" />
@@ -312,7 +312,7 @@ export default function MarketsPage() {
         {/* Market Cards Grid */}
         <AnimatePresence mode="popLayout">
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" role="status" aria-label="Loading markets">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" role="status" aria-label="Loading markets">
               {[1, 2, 3, 4, 5, 6].map(i => (
                 <motion.div
                   key={i}
@@ -320,7 +320,7 @@ export default function MarketsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: prefersReducedMotion ? 0 : i * 0.1 }}
                 >
-                  <Skeleton className="h-[380px] rounded-[32px] bg-gray-200 dark:bg-gray-800" />
+                  <Skeleton className="h-[240px] rounded-xl bg-gray-200 dark:bg-gray-800" />
                 </motion.div>
               ))}
             </div>
@@ -328,7 +328,7 @@ export default function MarketsPage() {
             <motion.div
               initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col items-center justify-center py-20 px-4 text-center bg-white/40 dark:bg-gray-800/40 rounded-[32px] border border-dashed border-gray-300 dark:border-gray-700 backdrop-blur-sm"
+              className="flex flex-col items-center justify-center py-16 px-4 text-center bg-white/40 dark:bg-gray-800/40 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 backdrop-blur-sm"
             >
               <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700/50 rounded-full flex items-center justify-center mb-4 text-3xl shadow-inner">🔍</div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No markets found</h3>
@@ -341,7 +341,7 @@ export default function MarketsPage() {
               </button>
             </motion.div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {paginatedMarkets.map((market, index) => (
                 <motion.div
                   key={market.id}
