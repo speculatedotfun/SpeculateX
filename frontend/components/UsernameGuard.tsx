@@ -79,8 +79,17 @@ export function UsernameGuard({ children }: { children: React.ReactNode }) {
         }
     }, [address, inputUsername, pushToast, registerUsername]);
 
-    // If not connected or still checking, just show the app (or a loader)
-    if (!isConnected || isLoading) {
+    // While checking, show a blank screen or a centered loader to prevent "flashing" the app
+    if (isConnected && isLoading) {
+        return (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#FAF9FF] dark:bg-[#0B1121]">
+                <Loader2 className="w-8 h-8 animate-spin text-[#14B8A6]" />
+            </div>
+        );
+    }
+
+    // If not connected, just show the app (RainbowKit handles wallet login)
+    if (!isConnected) {
         return <>{children}</>;
     }
 
