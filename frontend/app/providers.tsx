@@ -10,6 +10,7 @@ import { ThemeProvider } from '@/lib/theme';
 // Dynamic import to avoid chunking issues
 import dynamic from 'next/dynamic';
 import { useReferral } from '@/lib/hooks/useReferral';
+import { UsernameGuard } from '@/components/UsernameGuard';
 
 // Helper component to run the hook inside the context
 function ReferralListener() {
@@ -80,7 +81,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <RainbowKitProvider>
             <ToastHost>
               <ReferralListener />
-              {children}
+              <UsernameGuard>
+                {children}
+              </UsernameGuard>
             </ToastHost>
           </RainbowKitProvider>
         </QueryClientProvider>

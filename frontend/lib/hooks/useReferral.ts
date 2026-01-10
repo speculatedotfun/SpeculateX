@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { isAddress } from 'viem';
 
@@ -8,19 +8,46 @@ const STORAGE_KEY = 'speculate_referrer';
 
 export function useReferral() {
     const searchParams = useSearchParams();
+    const [isLookingUp, setIsLookingUp] = useState(false);
 
     useEffect(() => {
-        const refParam = searchParams?.get('ref');
+        const handleRefParam = async () => {
+            const refParam = searchParams?.get('ref');
+            if (!refParam) return;
 
-        // If a valid referral code is present, save it
-        if (refParam && isAddress(refParam)) {
-            // Don't overwrite if it's the same (avoid unnecessary writes)
-            const currentRef = localStorage.getItem(STORAGE_KEY);
-            if (currentRef !== refParam) {
-                localStorage.setItem(STORAGE_KEY, refParam);
-                console.log('[Referral] Captured referrer:', refParam);
+            // If it's already a valid address, save directly
+            if (isAddress(refParam)) {
+                const currentRef = localStorage.getItem(STORAGE_KEY);
+                if (currentRef !== refParam) {
+                    localStorage.setItem(STORAGE_KEY, refParam);
+                    console.log('[Referral] Captured referrer address:', refParam);
+                }
+                return;
             }
-        }
+
+            // Otherwise, it might be a username - look it up
+            setIsLookingUp(true);
+            try {
+                const res = await fetch(`/api/usernames?username=${encodeURIComponent(refParam)}`);
+                const data = await res.json();
+
+                if (data.found && data.address) {
+                    const currentRef = localStorage.getItem(STORAGE_KEY);
+                    if (currentRef !== data.address) {
+                        localStorage.setItem(STORAGE_KEY, data.address);
+                        console.log('[Referral] Captured referrer via username:', refParam, '->', data.address);
+                    }
+                } else {
+                    console.warn('[Referral] Username not found:', refParam);
+                }
+            } catch (e) {
+                console.error('[Referral] Failed to lookup username:', e);
+            } finally {
+                setIsLookingUp(false);
+            }
+        };
+
+        handleRefParam();
     }, [searchParams]);
 
     // Helper to get the current referrer (safe for hydration)
@@ -29,5 +56,20 @@ export function useReferral() {
         return localStorage.getItem(STORAGE_KEY);
     };
 
-    return { getReferrer };
+    // Bulk fetch referral data for multiple addresses
+    const fetchReferralsBulk = async (addresses: string[]) => {
+        if (!addresses.length) return {};
+        try {
+            const res = await fetch(`/api/referrals?referrers=${addresses.join(',')}`);
+            const data = await res.json();
+            if (data.success) {
+                return data.data; // Map of address -> ReferralRecord[]
+            }
+        } catch (e) {
+            console.error('[Referral] Bulk fetch failed:', e);
+        }
+        return {};
+    };
+
+    return { getReferrer, isLookingUp, fetchReferralsBulk };
 }

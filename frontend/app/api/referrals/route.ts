@@ -45,10 +45,33 @@ function writeData(data: ReferralRecord[]) {
     }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const referrer = searchParams.get('referrer')?.toLowerCase();
+    const referrers = searchParams.get('referrers')?.toLowerCase();
+
     const data = readData();
+
+    // Bulk lookup by referrers
+    if (referrers) {
+        const referrerList = referrers.split(',').map(a => a.trim());
+        const results: Record<string, ReferralRecord[]> = {};
+
+        referrerList.forEach(addr => {
+            results[addr] = data.filter(r => r.referrer.toLowerCase() === addr);
+        });
+
+        return NextResponse.json({ success: true, data: results });
+    }
+
+    // Filter by single referrer if provided
+    let filteredData = data;
+    if (referrer) {
+        filteredData = data.filter(r => r.referrer.toLowerCase() === referrer);
+    }
+
     // Sort by newest first
-    const sortedData = data.sort((a, b) => b.timestamp - a.timestamp);
+    const sortedData = filteredData.sort((a, b) => b.timestamp - a.timestamp);
     return NextResponse.json(sortedData);
 }
 
