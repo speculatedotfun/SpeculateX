@@ -645,11 +645,9 @@ export default function MarketDetailPage() {
                         <span className={`w-3 h-3 rounded-full ${chartSide === 'yes' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                         <span className="text-xs font-bold text-gray-400 uppercase">{chartSide}</span>
                       </div>
-                      <PriceDisplay
-                        price={chartSide === 'yes' ? marketData.currentPrices.yes : marketData.currentPrices.no}
-                        priceClassName="text-3xl font-black tracking-tight text-gray-900 dark:text-white"
-                        showInCents={true}
-                      />
+                      <span className="text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+                        {Math.round((chartSide === 'yes' ? marketData.currentPrices.yes : marketData.currentPrices.no) * 100)}%
+                      </span>
                       <div className={`flex items-center text-sm font-bold ${chanceChangePercent >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                         {chanceChangePercent >= 0 ? '↑' : '↓'} {Math.abs(chanceChangePercent).toFixed(1)}%
                       </div>

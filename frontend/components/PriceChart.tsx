@@ -116,7 +116,7 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
           moduleRef.current = ((mod as unknown as { default?: unknown }).default ?? mod) as typeof import('lightweight-charts');
         }
 
-        const { createChart, ColorType, CrosshairMode, LineStyle, AreaSeries, LineType } = moduleRef.current;
+        const { createChart, ColorType, CrosshairMode, LineStyle, BaselineSeries, LineType } = moduleRef.current;
 
         if (!containerRef.current) return;
 
@@ -154,7 +154,7 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
           },
           rightPriceScale: {
             borderColor: 'transparent',
-            scaleMargins: { top: 0.15, bottom: 0.1 },
+            scaleMargins: { top: 0.1, bottom: 0.1 },
             borderVisible: false,
             entireTextOnly: true,
             ticksVisible: false,
@@ -169,54 +169,50 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
             minBarSpacing: 8,
           },
           localization: {
-            priceFormatter: (price: number) => `${(price * 100).toFixed(0)}¢`,
+            locale: 'en-US',
+            priceFormatter: (price: number) => `${Math.round(price * 100)}%`,
             timeFormatter: (timestamp: number) => {
-              return new Date(timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              return new Date(timestamp * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             },
           },
           handleScroll: { mouseWheel: false, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
           handleScale: { axisPressedMouseMove: true, mouseWheel: false, pinch: true },
         });
 
-        const yesSeries = chart.addSeries(AreaSeries, {
-          lineColor: colors.yes.line,
-          topColor: colors.yes.areaTop,
-          bottomColor: colors.yes.areaBottom,
-          lineWidth: 3,
-          lineType: LineType.Curved,
+        // Single BaselineSeries with 50% baseline
+        const mainSeries = chart.addSeries(BaselineSeries, {
+          baseValue: { type: 'price', price: 0.5 },
+          topLineColor: 'rgba(16, 185, 129, 1)', // emerald-500
+          topFillColor1: 'rgba(16, 185, 129, 0.4)',
+          topFillColor2: 'rgba(16, 185, 129, 0.05)',
+          bottomLineColor: 'rgba(244, 63, 94, 1)', // rose-500
+          bottomFillColor1: 'rgba(244, 63, 94, 0.05)',
+          bottomFillColor2: 'rgba(244, 63, 94, 0.4)',
+          lineWidth: 2,
           priceLineVisible: false,
           lastValueVisible: true,
           crosshairMarkerVisible: true,
-          crosshairMarkerBorderColor: '#ffffff',
-          crosshairMarkerBackgroundColor: colors.yes.marker,
           crosshairMarkerRadius: 6,
-          crosshairMarkerBorderWidth: 2,
-        } as any);
+        });
 
-        const noSeries = chart.addSeries(AreaSeries, {
-          lineColor: colors.no.line,
-          topColor: colors.no.areaTop,
-          bottomColor: colors.no.areaBottom,
-          lineWidth: 3,
-          lineType: LineType.Curved,
-          priceLineVisible: false,
-          lastValueVisible: true,
-          crosshairMarkerVisible: true,
-          crosshairMarkerBorderColor: '#ffffff',
-          crosshairMarkerBackgroundColor: colors.no.marker,
-          crosshairMarkerRadius: 6,
-          crosshairMarkerBorderWidth: 2,
-        } as any);
+        // Add 50% reference line
+        mainSeries.createPriceLine({
+          price: 0.5,
+          color: 'rgba(156, 163, 175, 0.5)',
+          lineWidth: 1,
+          lineStyle: LineStyle.Dashed,
+          axisLabelVisible: true,
+          title: '',
+        });
 
         chartRef.current = chart;
-        yesSeriesRef.current = yesSeries as any;
-        noSeriesRef.current = noSeries as any;
+        yesSeriesRef.current = mainSeries as any;
+        noSeriesRef.current = mainSeries as any; // Share same series (No is 1 - Yes)
         setIsChartReady(true);
 
         if (data.length > 0) {
-          const { yesData, noData } = processDataWithBreaks(data);
-          yesSeries.setData(yesData as any);
-          noSeries.setData(noData as any);
+          const { yesData } = processDataWithBreaks(data);
+          mainSeries.setData(yesData as any);
           setTimeout(() => {
             if (!disposed && chartRef.current) {
               chartRef.current.timeScale().fitContent();
@@ -256,42 +252,17 @@ export const PriceChart = memo(function PriceChart({ data, selectedSide, height 
   }, [height, isDark, colors, processDataWithBreaks]);
 
   const updateChartData = useCallback(() => {
-    if (!yesSeriesRef.current || !noSeriesRef.current) return;
-    const { yesData, noData } = processedData;
+    if (!yesSeriesRef.current) return;
+    const { yesData } = processedData;
     yesSeriesRef.current.setData(yesData);
-    noSeriesRef.current.setData(noData);
     setTimeout(() => { chartRef.current?.timeScale().fitContent(); }, 50);
   }, [processedData]);
 
-  const updateSeriesStyling = useCallback(() => {
-    if (!yesSeriesRef.current || !noSeriesRef.current) return;
-
-    try {
-      yesSeriesRef.current.applyOptions({
-        lineWidth: selectedSide === 'yes' ? 3 : 2,
-        topColor: selectedSide === 'yes' ? colors.yes.areaTop : colors.yes.areaTopFaded,
-        bottomColor: colors.yes.areaBottom,
-        lineColor: selectedSide === 'yes' ? colors.yes.line : `${colors.yes.line}50`,
-      } as any);
-
-      noSeriesRef.current.applyOptions({
-        lineWidth: selectedSide === 'no' ? 3 : 2,
-        topColor: selectedSide === 'no' ? colors.no.areaTop : colors.no.areaTopFaded,
-        bottomColor: colors.no.areaBottom,
-        lineColor: selectedSide === 'no' ? colors.no.line : `${colors.no.line}50`,
-      } as any);
-    } catch (e) {
-      console.warn('Styling update failed', e);
-    }
-  }, [selectedSide, colors]);
+  // No per-side styling needed anymore since we use a single BaselineSeries
 
   useEffect(() => {
     if (data.length > 0 && isChartReady) updateChartData();
   }, [data, updateChartData, isChartReady]);
-
-  useEffect(() => {
-    updateSeriesStyling();
-  }, [selectedSide, updateSeriesStyling]);
 
   if (chartError) {
     return (
