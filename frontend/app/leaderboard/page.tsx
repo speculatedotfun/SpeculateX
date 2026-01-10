@@ -134,31 +134,25 @@ export default function LeaderboardPage() {
                     initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="flex flex-wrap justify-center gap-3 mb-12 max-w-4xl mx-auto"
+                    className="flex flex-wrap justify-center gap-4 mb-12 max-w-4xl mx-auto"
                 >
                     <StatCard
                         title="Active Traders"
                         value={users.length.toString()}
                         icon={Users}
                         color="text-blue-500"
-                        bgColor="bg-blue-500/10"
-                        borderColor="border-blue-500/10"
                     />
                     <StatCard
                         title="Total Points"
                         value={formatNumber(users.reduce((acc, u) => acc + u.points, 0))}
                         icon={Zap}
                         color="text-amber-500"
-                        bgColor="bg-amber-500/10"
-                        borderColor="border-amber-500/10"
                     />
                     <StatCard
                         title="Total Trades"
                         value={formatNumber(users.reduce((acc, u) => acc + u.totalTrades, 0))}
                         icon={Activity}
                         color="text-purple-500"
-                        bgColor="bg-purple-500/10"
-                        borderColor="border-purple-500/10"
                     />
                 </motion.div>
 
@@ -168,9 +162,9 @@ export default function LeaderboardPage() {
                     <>
                         {/* Top 3 Podium */}
                         {top3.length > 0 && !search && (
-                            <div className="relative mb-12">
-                                <div className="absolute inset-0 bg-gradient-to-b from-[#14B8A6]/5 to-transparent blur-3xl -z-10 rounded-full" />
-                                <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-end justify-center max-w-5xl mx-auto px-4">
+                            <div className="relative mb-16">
+                                <div className="absolute inset-0 bg-gradient-to-b from-teal-500/10 to-transparent blur-3xl -z-10 rounded-full opacity-50" />
+                                <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-end justify-center max-w-5xl mx-auto px-4">
                                     {/* 2nd Place */}
                                     {top3[1] && (
                                         <div className="order-2 md:order-1 w-full md:w-64">
@@ -180,7 +174,7 @@ export default function LeaderboardPage() {
 
                                     {/* 1st Place */}
                                     {top3[0] && (
-                                        <div className="order-1 md:order-2 -mt-8 z-20 w-full md:w-64">
+                                        <div className="order-1 md:order-2 -mt-12 z-20 w-full md:w-72">
                                             <PodiumCard user={top3[0]} place={1} prefersReducedMotion={prefersReducedMotion} nicknames={nicknames} />
                                         </div>
                                     )}
@@ -196,31 +190,31 @@ export default function LeaderboardPage() {
                         )}
 
                         {/* Controls Bar */}
-                        <div className="sticky top-20 z-30 mb-6 max-w-7xl mx-auto">
-                            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl p-1.5 rounded-xl border border-gray-200 dark:border-white/10 shadow-lg flex flex-col md:flex-row gap-2 items-center justify-between">
+                        <div className="sticky top-20 z-30 mb-8 max-w-7xl mx-auto">
+                            <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl p-2 rounded-2xl border border-white/20 dark:border-white/10 shadow-xl flex flex-col md:flex-row gap-3 items-center justify-between">
 
                                 {/* Search */}
                                 <div className="relative flex-1 w-full md:max-w-md group">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 group-focus-within:text-[#14B8A6] transition-colors" />
+                                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-teal-500 transition-colors" />
                                     <Input
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
                                         placeholder="Search by address..."
-                                        className="pl-9 h-9 bg-transparent border-transparent focus:bg-white dark:focus:bg-gray-800 rounded-lg transition-all text-sm"
+                                        className="pl-10 h-10 bg-white/50 dark:bg-black/20 border-transparent focus:bg-white dark:focus:bg-black/40 rounded-xl transition-all text-sm shadow-inner"
                                     />
                                 </div>
 
                                 {/* Filters */}
-                                <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-lg w-full md:w-auto">
+                                <div className="flex bg-gray-100/50 dark:bg-white/5 p-1 rounded-xl w-full md:w-auto">
                                     {['all', '24h', '7d'].map((t) => (
                                         <button
                                             key={t}
                                             onClick={() => setTimeRange(t as any)}
                                             className={cn(
-                                                "flex-1 md:flex-none px-4 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all",
+                                                "flex-1 md:flex-none px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all",
                                                 timeRange === t
-                                                    ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm"
-                                                    : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                                                    ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm ring-1 ring-black/5"
+                                                    : "text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-white/50"
                                             )}
                                         >
                                             {t === 'all' ? 'All Time' : t.toUpperCase()}
@@ -235,31 +229,31 @@ export default function LeaderboardPage() {
                             initial={prefersReducedMotion ? false : { opacity: 0, y: 40 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.3 }}
-                            className="max-w-7xl mx-auto bg-white/70 dark:bg-gray-800/40 backdrop-blur-xl rounded-2xl border border-white/20 dark:border-white/5 shadow-2xl overflow-hidden"
+                            className="max-w-7xl mx-auto"
                         >
                             <div className="overflow-x-auto">
-                                <table className="w-full">
+                                <table className="w-full border-separate border-spacing-y-2">
                                     <thead>
-                                        <tr className="border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
-                                            <th className="px-4 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest w-16">Rank</th>
-                                            <th className="px-4 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest">Trader</th>
-                                            <th className="px-4 py-3 text-center text-[9px] font-black text-gray-400 uppercase tracking-widest hidden md:table-cell">Activity</th>
-                                            <th className="px-4 py-3 text-right text-[9px] font-black text-gray-400 uppercase tracking-widest">Points</th>
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest w-20 pl-8">Rank</th>
+                                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Trader</th>
+                                            <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest hidden md:table-cell">Activity</th>
+                                            <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest pr-8">Points</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                                    <tbody className="space-y-2">
                                         {/* Always display all filtered users to confirm data visibility if total count is low */}
                                         {filteredUsers.map((user) => (
                                             <LeaderboardRow key={user.address} user={user} isCurrentUser={user.address.toLowerCase() === userAddress?.toLowerCase()} nicknames={nicknames} />
                                         ))}
                                         {filteredUsers.length === 0 && (
                                             <tr>
-                                                <td colSpan={4} className="px-6 py-16 text-center">
-                                                    <div className="flex flex-col items-center gap-3 opacity-50">
-                                                        <div className="p-3 bg-gray-100 dark:bg-white/5 rounded-full">
-                                                            <Search className="w-6 h-6" />
+                                                <td colSpan={4} className="px-6 py-20 text-center">
+                                                    <div className="flex flex-col items-center gap-4 opacity-40">
+                                                        <div className="p-4 bg-gray-100 dark:bg-white/5 rounded-full">
+                                                            <Search className="w-8 h-8" />
                                                         </div>
-                                                        <p className="text-base font-medium">No traders found matching "{search}"</p>
+                                                        <p className="text-lg font-medium">No traders found</p>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -279,22 +273,22 @@ export default function LeaderboardPage() {
                         initial={{ y: 100 }}
                         animate={{ y: 0 }}
                         exit={{ y: 100 }}
-                        className="fixed bottom-4 inset-x-0 mx-auto max-w-xl px-4 z-50 pointer-events-none"
+                        className="fixed bottom-6 inset-x-0 mx-auto max-w-xl px-4 z-50 pointer-events-none"
                     >
-                        <div className="bg-gray-900/90 dark:bg-white/90 backdrop-blur-xl text-white dark:text-gray-900 p-3 rounded-xl shadow-2xl flex items-center justify-between pointer-events-auto border border-white/10 dark:border-gray-900/10">
-                            <div className="flex items-center gap-3">
+                        <div className="bg-gray-900/90 dark:bg-white/90 backdrop-blur-xl text-white dark:text-gray-900 p-4 rounded-2xl shadow-2xl flex items-center justify-between pointer-events-auto border border-white/10 dark:border-gray-900/10 hover:scale-[1.02] transition-transform">
+                            <div className="flex items-center gap-4">
                                 <div className="flex flex-col">
                                     <span className="text-[9px] font-bold uppercase opacity-60 tracking-wider">Your Rank</span>
-                                    <div className="text-lg font-black leading-none">#{currentUserStats.rank}</div>
+                                    <div className="text-xl font-black leading-none">#{currentUserStats.rank}</div>
                                 </div>
-                                <div className="h-6 w-px bg-white/20 dark:bg-black/10" />
+                                <div className="h-8 w-px bg-white/20 dark:bg-black/10" />
                                 <div className="flex flex-col">
                                     <span className="text-[9px] font-bold uppercase opacity-60 tracking-wider">Points</span>
-                                    <div className="text-sm font-bold leading-none">{formatNumber(currentUserStats.points)}</div>
+                                    <div className="text-base font-bold leading-none">{formatNumber(currentUserStats.points)}</div>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
-                                <Sparkline data={generateActivityData(currentUserStats.address)} color={currentUserStats.rank <= 3 ? '#EAB308' : '#14B8A6'} width={50} height={18} />
+                                <Sparkline data={generateActivityData(currentUserStats.address)} color={currentUserStats.rank <= 3 ? '#EAB308' : '#14B8A6'} width={60} height={24} />
                             </div>
                         </div>
                     </motion.div>
@@ -305,15 +299,15 @@ export default function LeaderboardPage() {
     );
 }
 
-function StatCard({ title, value, icon: Icon, color, bgColor, borderColor }: any) {
+function StatCard({ title, value, icon: Icon, color }: any) {
     return (
-        <div className={`bg-white/60 dark:bg-gray-800/40 backdrop-blur-xl rounded-xl p-4 border ${borderColor ? borderColor : 'border-gray-100'} shadow-sm flex flex-col items-start gap-3 hover:scale-[1.02] transition-transform w-full sm:w-56`}>
-            <div className={`p-2 rounded-lg ${bgColor} ${color}`}>
-                <Icon className="w-4 h-4" />
+        <div className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl rounded-2xl p-5 border border-white/20 dark:border-white/5 shadow-lg flex flex-col items-start gap-4 hover:scale-[1.02] transition-transform w-full sm:w-56 group">
+            <div className={cn("p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 group-hover:bg-white dark:group-hover:bg-white/10 transition-colors", color)}>
+                <Icon className="w-5 h-5" />
             </div>
             <div>
-                <div className="text-xl font-black text-gray-900 dark:text-white tracking-tight mb-1">{value}</div>
-                <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{title}</div>
+                <div className="text-2xl font-black text-gray-900 dark:text-white tracking-tight mb-1">{value}</div>
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{title}</div>
             </div>
         </div>
     );
@@ -324,33 +318,33 @@ function PodiumCard({ user, place, prefersReducedMotion = false, nicknames = {} 
     const isSecond = place === 2;
     const isThird = place === 3;
 
-    let bgClass = '';
     let borderClass = '';
     let textClass = '';
     let shadowClass = '';
     let icon = <Award className="w-8 h-8" />;
     let label = 'Bronze';
+    let gradient = '';
 
     if (isFirst) {
-        bgClass = 'bg-gradient-to-b from-yellow-500/10 to-yellow-500/5 dark:from-yellow-400/10 dark:to-yellow-400/5';
-        borderClass = 'border-yellow-500/20';
+        borderClass = 'border-yellow-500/30 dark:border-yellow-400/30';
         textClass = 'text-yellow-600 dark:text-yellow-400';
-        shadowClass = 'shadow-yellow-500/10';
-        icon = <Crown className="w-7 h-7" />;
+        shadowClass = 'shadow-yellow-500/20';
+        icon = <Crown className="w-8 h-8" />;
         label = 'Champion';
+        gradient = 'from-yellow-500/20 via-yellow-500/5 to-transparent';
     } else if (isSecond) {
-        bgClass = 'bg-gradient-to-b from-slate-400/10 to-slate-400/5';
-        borderClass = 'border-slate-400/20';
+        borderClass = 'border-slate-400/30';
         textClass = 'text-slate-600 dark:text-slate-300';
-        shadowClass = 'shadow-slate-400/10';
-        icon = <Medal className="w-6 h-6" />;
+        shadowClass = 'shadow-slate-400/20';
+        icon = <Medal className="w-7 h-7" />;
         label = 'Silver';
+        gradient = 'from-slate-400/20 via-slate-400/5 to-transparent';
     } else {
-        bgClass = 'bg-gradient-to-b from-orange-400/10 to-orange-400/5';
-        borderClass = 'border-orange-400/20';
+        borderClass = 'border-orange-400/30';
         textClass = 'text-orange-600 dark:text-orange-400';
-        shadowClass = 'shadow-orange-400/10';
-        icon = <Medal className="w-6 h-6" />;
+        shadowClass = 'shadow-orange-400/20';
+        icon = <Medal className="w-7 h-7" />;
+        gradient = 'from-orange-400/20 via-orange-400/5 to-transparent';
     }
 
     return (
@@ -358,26 +352,29 @@ function PodiumCard({ user, place, prefersReducedMotion = false, nicknames = {} 
             initial={prefersReducedMotion ? false : { y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             className={cn(
-                "relative rounded-2xl p-5 flex flex-col items-center border backdrop-blur-xl shadow-xl transition-all hover:-translate-y-1 duration-300",
-                bgClass, borderClass, shadowClass
+                "relative rounded-[32px] p-6 flex flex-col items-center border backdrop-blur-2xl shadow-2xl transition-all hover:-translate-y-2 duration-300 bg-white/60 dark:bg-gray-900/40 overflow-hidden",
+                borderClass, shadowClass
             )}
         >
-            <div className={cn("absolute -top-6 mb-3 p-2.5 rounded-full bg-white dark:bg-gray-900 shadow-lg border", borderClass, textClass)}>
+            {/* Glow Effect */}
+            <div className={cn("absolute inset-0 bg-gradient-to-b opacity-50 pointer-events-none", gradient)} />
+
+            <div className={cn("absolute -top-6 mb-4 p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border relative z-10", borderClass, textClass)}>
                 {icon}
             </div>
 
-            <div className="mt-6 text-center">
-                <div className="font-bold text-sm mb-1 dark:text-white flex items-center justify-center gap-1">
+            <div className="mt-8 text-center relative z-10 w-full">
+                <div className="font-bold text-lg mb-1 dark:text-white flex items-center justify-center gap-1.5 truncate px-2">
                     {getDisplayName(user.address, nicknames)}
                 </div>
 
-                <div className={cn("text-[9px] font-black uppercase tracking-widest mb-4", textClass)}>
+                <div className={cn("text-[10px] font-black uppercase tracking-widest mb-6", textClass)}>
                     {label}
                 </div>
 
-                <div className="w-full text-center border-t border-gray-200/50 dark:border-white/5 pt-3">
-                    <div className="text-[8px] font-bold uppercase text-gray-400 tracking-wider mb-1">Points</div>
-                    <div className={cn("text-base font-black", textClass)}>{formatNumber(user.points)}</div>
+                <div className="w-full text-center border-t border-gray-200/50 dark:border-white/5 pt-4">
+                    <div className="text-[9px] font-bold uppercase text-gray-400 tracking-wider mb-1">Points</div>
+                    <div className={cn("text-2xl font-black tracking-tight", textClass)}>{formatNumber(user.points)}</div>
                 </div>
             </div>
         </motion.div>
@@ -386,40 +383,59 @@ function PodiumCard({ user, place, prefersReducedMotion = false, nicknames = {} 
 
 function LeaderboardRow({ user, isCurrentUser, nicknames = {} }: { user: LeaderboardUser, isCurrentUser: boolean, nicknames?: Record<string, string> }) {
     return (
-        <tr className={cn(
-            "group transition-colors",
-            isCurrentUser ? "bg-[#14B8A6]/5" : "hover:bg-gray-50 dark:hover:bg-white/5"
-        )}>
-            <td className="px-4 py-3 whitespace-nowrap">
+        <tr className="group transition-transform hover:scale-[1.005]">
+            <td className={cn(
+                "px-6 py-4 rounded-l-2xl border-y border-l transition-colors backdrop-blur-md",
+                isCurrentUser
+                    ? "bg-teal-50/50 dark:bg-teal-900/10 border-teal-200 dark:border-teal-800"
+                    : "bg-white/40 dark:bg-gray-800/40 border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60"
+            )}>
                 <div className={cn(
-                    "w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs",
-                    user.rank <= 3 ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900" : "text-gray-500"
+                    "w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shadow-sm",
+                    user.rank <= 3
+                        ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
+                        : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400"
                 )}>
                     {user.rank}
                 </div>
             </td>
-            <td className="px-4 py-3 whitespace-nowrap">
+            <td className={cn(
+                "px-6 py-4 border-y transition-colors backdrop-blur-md",
+                isCurrentUser
+                    ? "bg-teal-50/50 dark:bg-teal-900/10 border-teal-200 dark:border-teal-800"
+                    : "bg-white/40 dark:bg-gray-800/40 border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60"
+            )}>
                 <div className="flex items-center gap-3">
                     <div>
-                        <div className="font-bold text-xs text-gray-900 dark:text-white flex items-center gap-2">
+                        <div className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
                             <span className={nicknames[user.address.toLowerCase()] ? '' : 'font-mono'}>
                                 {getDisplayName(user.address, nicknames)}
                             </span>
-                            {isCurrentUser && <span className="px-1.5 py-0.5 rounded bg-[#14B8A6] text-white text-[8px] font-bold uppercase">You</span>}
-                            {user.rank <= 10 && <Crown className="w-2.5 h-2.5 text-amber-500 fill-amber-500" />}
+                            {isCurrentUser && <span className="px-1.5 py-0.5 rounded-md bg-teal-500 text-white text-[9px] font-black uppercase shadow-sm">You</span>}
                         </div>
-                        <div className="text-[9px] font-semibold text-gray-400">{user.totalTrades} Trades</div>
+                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">{user.totalTrades} Trades</div>
                     </div>
                 </div>
             </td>
-            <td className="px-4 py-3 whitespace-nowrap hidden md:table-cell">
-                <div className="flex justify-center opacity-50 group-hover:opacity-100 transition-opacity">
-                    <Sparkline data={generateActivityData(user.address)} color={user.rank <= 3 ? '#EAB308' : '#14B8A6'} width={60} height={20} />
+            <td className={cn(
+                "px-6 py-4 border-y transition-colors backdrop-blur-md hidden md:table-cell",
+                isCurrentUser
+                    ? "bg-teal-50/50 dark:bg-teal-900/10 border-teal-200 dark:border-teal-800"
+                    : "bg-white/40 dark:bg-gray-800/40 border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60"
+            )}>
+                <div className="flex justify-center opacity-40 group-hover:opacity-100 transition-opacity">
+                    <Sparkline data={generateActivityData(user.address)} color={user.rank <= 3 ? '#EAB308' : '#14B8A6'} width={80} height={24} />
                 </div>
             </td>
-            <td className="px-4 py-3 whitespace-nowrap text-right">
-                <div className="flex flex-col items-end gap-1">
-                    <span className="text-xs font-black text-gray-900 dark:text-white">{formatNumber(user.points)} PTS</span>
+            <td className={cn(
+                "px-6 py-4 rounded-r-2xl border-y border-r transition-colors backdrop-blur-md text-right",
+                isCurrentUser
+                    ? "bg-teal-50/50 dark:bg-teal-900/10 border-teal-200 dark:border-teal-800"
+                    : "bg-white/40 dark:bg-gray-800/40 border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60"
+            )}>
+                <div className="flex flex-col items-end gap-0.5">
+                    <span className="text-sm font-black text-gray-900 dark:text-white">{formatNumber(user.points)}</span>
+                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Points</span>
                 </div>
             </td>
         </tr>

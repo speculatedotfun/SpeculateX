@@ -66,7 +66,7 @@ export function FeaturedMarketCard({ market, prefersReducedMotion = false, getMa
                                     </span>
                                     <span className="flex items-center gap-1">
                                         <Clock className="w-3 h-3" />
-                                        Ends {new Date(Number(market.expiryTimestamp) * 1000).toLocaleDateString()}
+                                        Ends {new Date(Number(market.expiryTimestamp) * 1000).toLocaleDateString('en-US')}
                                     </span>
                                 </div>
                             </div>

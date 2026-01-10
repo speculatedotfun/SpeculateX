@@ -124,10 +124,10 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
     // Note: Residual is automatically finalized when market is resolved
     // This function is kept for backwards compatibility but does nothing
     // The residual is already finalized in _finalizeMarket() when resolveMarketWithPrice() is called
-    pushToast({ 
-      title: 'Info', 
-      description: 'Residual is automatically finalized when market is resolved. No action needed.', 
-      type: 'info' 
+    pushToast({
+      title: 'Info',
+      description: 'Residual is automatically finalized when market is resolved. No action needed.',
+      type: 'info'
     });
   };
 
@@ -294,7 +294,7 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
                     <td className="p-4">
                       <div className="flex flex-col items-end">
                         <span className="text-[10px] text-gray-400 font-bold uppercase">
-                          {Number(market.startTime) > 0 ? `Start: ${new Date(Number(market.startTime) * 1000).toLocaleDateString()}` : 'Immediate'}
+                          {Number(market.startTime) > 0 ? `Start: ${new Date(Number(market.startTime) * 1000).toLocaleDateString('en-US')}` : 'Immediate'}
                         </span>
                         <span className="text-[10px] text-gray-500 font-mono">
                           {market.status === 'scheduled' ? `Trading begins ${new Date(Number(market.startTime) * 1000).toLocaleTimeString()}` : ''}

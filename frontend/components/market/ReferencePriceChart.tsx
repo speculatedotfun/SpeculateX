@@ -1,20 +1,32 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { createChart, ColorType, LineStyle, AreaSeries } from 'lightweight-charts';
-import { useCryptoPrice } from '@/lib/hooks/useCryptoPrice';
+import { useEffect, useRef, useState } from 'react';
+import { createChart, ColorType, LineStyle, AreaSeries, LineSeries, type Time } from 'lightweight-charts';
+import { useCryptoPrice, type CryptoTimeRange } from '@/lib/hooks/useCryptoPrice';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, ExternalLink, Zap } from 'lucide-react';
 
 interface ReferenceChartProps {
     marketQuestion: string;
     variant?: 'card' | 'embedded';
+    timeRange?: CryptoTimeRange;
+    targetPrice?: number | null;
+    targetLabel?: string;
+    targetDirection?: 'above' | 'below' | null;
 }
 
-export function ReferencePriceChart({ marketQuestion, variant = 'card' }: ReferenceChartProps) {
-    const { symbol, baseToken, data, currentPrice, priceChange24h, isLoading } = useCryptoPrice(marketQuestion);
+export function ReferencePriceChart({
+    marketQuestion,
+    variant = 'card',
+    timeRange = '1W',
+    targetPrice = null,
+    targetLabel,
+    targetDirection = null,
+}: ReferenceChartProps) {
+    const { symbol, baseToken, data, currentPrice, priceChange24h, isLoading } = useCryptoPrice(marketQuestion, timeRange);
     const chartContainerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<any>(null);
+    const [isChartReady, setIsChartReady] = useState(false);
 
     // Initial Chart Setup
     useEffect(() => {
@@ -84,7 +96,18 @@ export function ReferencePriceChart({ marketQuestion, variant = 'card' }: Refere
             priceLineVisible: false,
         });
 
-        chartRef.current = { chart, series: newSeries };
+        // Dedicated dashed line series for target/strike level (more reliably visible than createPriceLine on area)
+        const targetSeries = chart.addSeries(LineSeries, {
+            color: 'rgba(16, 185, 129, 0.9)',
+            lineWidth: 2,
+            lineStyle: LineStyle.Dashed,
+            crosshairMarkerVisible: false,
+            lastValueVisible: false,
+            priceLineVisible: false,
+        });
+
+        chartRef.current = { chart, series: newSeries, targetSeries };
+        setIsChartReady(true);
 
         const resizeObserver = new ResizeObserver(() => handleResize());
         resizeObserver.observe(chartContainerRef.current);
@@ -93,8 +116,31 @@ export function ReferencePriceChart({ marketQuestion, variant = 'card' }: Refere
             resizeObserver.disconnect();
             chart.remove();
             chartRef.current = null;
+            setIsChartReady(false);
         };
     }, []);
+
+    // Target (strike) line series
+    useEffect(() => {
+        if (!isChartReady) return;
+        const targetSeries = chartRef.current?.targetSeries;
+        if (!targetSeries) return;
+
+        // hide if invalid
+        if (!targetPrice || !Number.isFinite(targetPrice) || targetPrice <= 0) {
+            try { targetSeries.setData([]); } catch { /* ignore */ }
+            return;
+        }
+
+        const lineColor =
+            targetDirection === 'below'
+                ? 'rgba(244, 63, 94, 0.9)'
+                : 'rgba(16, 185, 129, 0.9)';
+
+        try {
+            targetSeries.applyOptions({ color: lineColor });
+        } catch { /* ignore */ }
+    }, [isChartReady, targetPrice, targetDirection]);
 
     // Update Data
     useEffect(() => {
@@ -112,6 +158,25 @@ export function ReferencePriceChart({ marketQuestion, variant = 'card' }: Refere
 
                 chartRef.current.series.setData(deduped);
 
+                // Update target line points (two points = horizontal line)
+                const targetSeries = chartRef.current?.targetSeries;
+                if (
+                    targetSeries &&
+                    targetPrice &&
+                    Number.isFinite(targetPrice) &&
+                    targetPrice > 0 &&
+                    deduped.length >= 2
+                ) {
+                    const first = deduped[0].time as Time;
+                    const last = deduped[deduped.length - 1].time as Time;
+                    targetSeries.setData([
+                        { time: first, value: targetPrice },
+                        { time: last, value: targetPrice },
+                    ]);
+                } else if (targetSeries) {
+                    try { targetSeries.setData([]); } catch { /* ignore */ }
+                }
+
                 requestAnimationFrame(() => {
                     if (chartRef.current?.chart) {
                         chartRef.current.chart.timeScale().fitContent();
@@ -121,7 +186,7 @@ export function ReferencePriceChart({ marketQuestion, variant = 'card' }: Refere
                 console.error("Chart data error", e);
             }
         }
-    }, [data]);
+    }, [data, targetPrice]);
 
     if (!symbol) {
         if (variant === 'embedded') {
@@ -139,6 +204,17 @@ export function ReferencePriceChart({ marketQuestion, variant = 'card' }: Refere
         minimumFractionDigits: 2,
         maximumFractionDigits: currentPrice < 1 ? 6 : 2
     });
+
+    const formattedTarget = targetPrice && Number.isFinite(targetPrice)
+        ? `$${targetPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+        : null;
+
+    const targetPrefix =
+        targetDirection === 'below'
+            ? 'Target (Below)'
+            : targetDirection === 'above'
+                ? 'Target (Above)'
+                : 'Target';
 
     if (variant === 'embedded') {
         return (
@@ -167,6 +243,19 @@ export function ReferencePriceChart({ marketQuestion, variant = 'card' }: Refere
                                     {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                                     <span>{isPositive ? '+' : ''}{priceChange24h.toFixed(2)}%</span>
                                     <span className="opacity-60">24h</span>
+                                </div>
+                            )}
+
+                            {formattedTarget && (
+                                <div
+                                    className={`flex items-center gap-2 px-2.5 py-1 rounded-full font-bold text-xs border ${targetDirection === 'below'
+                                            ? 'bg-red-500/5 text-red-600 dark:text-red-400 border-red-500/20'
+                                            : 'bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                        }`}
+                                    aria-label={`Target price ${formattedTarget}`}
+                                >
+                                    <span className="opacity-70">{targetPrefix}</span>
+                                    <span className="font-mono">{formattedTarget}</span>
                                 </div>
                             )}
                         </div>

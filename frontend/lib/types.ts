@@ -37,4 +37,5 @@ export interface MarketResolution {
     yesWins: boolean;
     isResolved: boolean;
     startTime: bigint;
+    oracleDecimals?: number;
 }

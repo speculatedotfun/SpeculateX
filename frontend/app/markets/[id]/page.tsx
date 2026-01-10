@@ -34,7 +34,7 @@ import {
   type SnapshotTimeRange,
   getSecondsForRange,
 } from '@/lib/useMarketSnapshot';
-import { subscribeToSubgraph } from '@/lib/subgraphClient';
+import { fetchSubgraph, subscribeToSubgraph } from '@/lib/subgraphClient';
 
 // Custom Hooks
 import { useMarketPriceHistory } from '@/lib/hooks/useMarketPriceHistory';
@@ -204,7 +204,7 @@ export default function MarketDetailPage() {
   const marketData = useMarketData(marketIdNum);
 
   // UI state
-  const [activeTab, setActiveTab] = useState<'About' | 'Chat'>('About');
+  const [activeTab, setActiveTab] = useState<'About' | 'Chat' | 'Resolution'>('About');
   const [holderTab, setHolderTab] = useState<'yes' | 'no'>('yes');
   const [chartSide, setChartSide] = useState<'yes' | 'no'>('yes');
   const [chartPanel, setChartPanel] = useState<'market' | 'asset'>('market');
@@ -704,6 +704,23 @@ export default function MarketDetailPage() {
                       </button>
                     </div>
                   )}
+
+                  {/* Range Toggle */}
+                  <div className="flex items-center bg-gray-100 dark:bg-gray-700/50 rounded-xl p-0.5">
+                    {(['1D', '1W', '1M', 'ALL'] as const).map((range) => (
+                      <button
+                        key={range}
+                        onClick={() => setTimeRange(range)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${timeRange === range
+                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                          }`}
+                        aria-label={`Set chart range to ${range}`}
+                      >
+                        {range}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -741,25 +758,38 @@ export default function MarketDetailPage() {
                 </div>
               ) : (
                 <div className="mb-2">
-                  <ReferencePriceChart marketQuestion={String(market?.question || '')} variant="embedded" />
+                  <ReferencePriceChart
+                    marketQuestion={String(market?.question || '')}
+                    variant="embedded"
+                    timeRange={timeRange}
+                    targetPrice={(() => {
+                      try {
+                        if (!resolution?.targetValue) return null;
+                        const targetValue = typeof resolution.targetValue === 'bigint'
+                          ? resolution.targetValue
+                          : BigInt(resolution.targetValue);
+                        const decimalsRaw = resolution?.oracleDecimals;
+                        const decimalsPrimary = Number.isFinite(Number(decimalsRaw)) && Number(decimalsRaw) > 0 ? Number(decimalsRaw) : 8;
+
+                        const numPrimary = Number(formatUnits(targetValue, decimalsPrimary));
+                        if (Number.isFinite(numPrimary) && numPrimary > 0 && numPrimary < 1e9) {
+                          return numPrimary;
+                        }
+
+                        // Fallback: many deployments store targetValue in 18-decimals (WAD) even if oracleDecimals=8
+                        const num18 = Number(formatUnits(targetValue, 18));
+                        return Number.isFinite(num18) && num18 > 0 ? num18 : null;
+                      } catch {
+                        return null;
+                      }
+                    })()}
+                    targetDirection={resolution?.comparison === 1 ? 'below' : 'above'}
+                    targetLabel={resolution?.comparison === 1 ? 'Target (Below)' : 'Target (Above)'}
+                  />
                 </div>
               )}
 
-              {/* Time Range Selector */}
-              <div className="flex items-center justify-start border-t border-gray-100 dark:border-gray-700/50 pt-4 gap-2 overflow-x-auto relative z-20">
-                {(['1D', '1W', '1M', 'ALL'] as const).map((range) => (
-                  <button
-                    key={range}
-                    onClick={() => setTimeRange(range)}
-                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap hover:scale-105 active:scale-95 ${timeRange === range
-                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                      }`}
-                  >
-                    {range}
-                  </button>
-                ))}
-              </div>
+              {/* Time Range Selector (moved into the header controls for tighter UX) */}
             </motion.div>
 
             {/* Tabs Section */}
@@ -770,7 +800,7 @@ export default function MarketDetailPage() {
               className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl shadow-lg shadow-gray-200/30 dark:shadow-black/30 border border-gray-100 dark:border-gray-800 overflow-hidden"
             >
               <div className="flex border-b border-gray-100 dark:border-gray-700 overflow-x-auto scrollbar-hide p-2 bg-gray-50/50 dark:bg-gray-900/20">
-                {(['About', 'Chat'] as const).map((tab) => (
+                {(['About', 'Resolution', 'Chat'] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
@@ -832,6 +862,15 @@ export default function MarketDetailPage() {
 
                     {/* Chat Tab - Comments */}
                     {activeTab === 'Chat' && <CommentsTab marketId={marketId} isConnected={isConnected} address={address} />}
+
+                    {/* Resolution Tab */}
+                    {activeTab === 'Resolution' && (
+                      <ResolutionTab
+                        resolution={resolution}
+                        marketId={marketIdNum}
+                        marketStatus={marketStatus === 0 ? 'active' : marketStatus === 1 ? 'resolved' : 'cancelled'}
+                      />
+                    )}
                   </motion.div>
                 </AnimatePresence>
               </div>

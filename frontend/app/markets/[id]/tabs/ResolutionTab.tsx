@@ -127,7 +127,20 @@ export function ResolutionTab({ resolution, marketId, marketStatus }: Resolution
                     <>
                       Resolves <span className="font-black text-[#14B8A6]">YES</span> if price is {resolution.comparison === 0 ? 'above' : resolution.comparison === 1 ? 'below' : 'equal to'}
                       <span className="font-black text-gray-900 dark:text-white mx-1">
-                        ${Number(formatUnits(resolution.targetValue, 18)).toLocaleString()}
+                        {(() => {
+                          try {
+                            const decimalsRaw = resolution?.oracleDecimals;
+                            const decimalsPrimary = Number.isFinite(Number(decimalsRaw)) && Number(decimalsRaw) > 0 ? Number(decimalsRaw) : 8;
+                            const primary = Number(formatUnits(resolution.targetValue, decimalsPrimary));
+                            const val = (Number.isFinite(primary) && primary > 0 && primary < 1e9)
+                              ? primary
+                              : Number(formatUnits(resolution.targetValue, 18));
+                            if (!Number.isFinite(val) || val <= 0) return '$—';
+                            return `$${val.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+                          } catch {
+                            return '$—';
+                          }
+                        })()}
                       </span> at expiry.
                     </>
                   )}
@@ -149,7 +162,7 @@ export function ResolutionTab({ resolution, marketId, marketStatus }: Resolution
             />
             <DetailItem
               label="Expiry"
-              value={new Date(expiryTime * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+              value={new Date(expiryTime * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               icon={<Calendar className="w-3.5 h-3.5" />}
               index={1}
             />
@@ -222,8 +235,8 @@ function getResolutionMethodLabel(
 ): string {
   if (method === 'TWAP_5M') {
     if (twapWindowStart && twapWindowEnd) {
-      const start = new Date(twapWindowStart * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-      const end = new Date(twapWindowEnd * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+      const start = new Date(twapWindowStart * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      const end = new Date(twapWindowEnd * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
       return `Chainlink TWAP (5m) ${start}–${end}`;
     }
     return 'Chainlink TWAP (5m)';
@@ -279,7 +292,7 @@ function TimelineItem({ icon: Icon, title, date, description, isCompleted, isAct
         {date && (
           <div className="text-xs font-mono text-gray-400 flex items-center gap-1.5">
             <Clock className="w-3 h-3" />
-            {new Date(date * 1000).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            {new Date(date * 1000).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </div>
         )}
       </div>

@@ -159,7 +159,7 @@ export function MarketHeader({
                 <Calendar className="w-3.5 h-3.5" />
                 <span className="text-xs font-bold uppercase">Ends</span>
                 <span className="text-sm font-black text-gray-700 dark:text-gray-200">
-                  {new Date(Number(expiryTimestamp) * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  {new Date(Number(expiryTimestamp) * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </span>
               </div>
             </div>

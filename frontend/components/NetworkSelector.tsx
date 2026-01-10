@@ -49,7 +49,7 @@ export default function NetworkSelector() {
     }
 
     const targetChainId = network === 'mainnet' ? MAINNET_CHAIN_ID : TESTNET_CHAIN_ID;
-    
+
     // Switch chain if wallet is connected
     if (chain && chain.id !== targetChainId && switchChain) {
       switchChain({ chainId: targetChainId });
@@ -64,7 +64,7 @@ export default function NetworkSelector() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-[#14B8A6] dark:hover:border-[#14B8A6] transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-[#14B8A6] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+        className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200/50 dark:border-gray-700/50 bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-800 hover:border-teal-500/30 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 backdrop-blur-md"
         type="button"
         aria-label="Select network"
         aria-expanded={isOpen}
@@ -74,11 +74,10 @@ export default function NetworkSelector() {
         <div className="relative">
           <Globe className="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" />
           <span
-            className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ring-2 ring-white dark:ring-gray-800 ${
-              currentNetwork === 'mainnet'
+            className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ring-2 ring-white dark:ring-gray-800 ${currentNetwork === 'mainnet'
                 ? 'bg-green-500 shadow-lg shadow-green-500/50'
                 : 'bg-yellow-500 shadow-lg shadow-yellow-500/50'
-            }`}
+              }`}
             aria-hidden="true"
           />
         </div>
@@ -109,9 +108,8 @@ export default function NetworkSelector() {
             >
               <button
                 onClick={() => handleNetworkChange('testnet')}
-                className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between transition-colors focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-700 ${
-                  currentNetwork === 'testnet' ? 'bg-[#14B8A6]/5 dark:bg-[#14B8A6]/10 text-[#14B8A6]' : 'text-gray-900 dark:text-white'
-                }`}
+                className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between transition-colors focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-700 ${currentNetwork === 'testnet' ? 'bg-[#14B8A6]/5 dark:bg-[#14B8A6]/10 text-[#14B8A6]' : 'text-gray-900 dark:text-white'
+                  }`}
                 type="button"
                 role="menuitem"
                 aria-current={currentNetwork === 'testnet' ? 'true' : undefined}
@@ -133,9 +131,8 @@ export default function NetworkSelector() {
               <div className="h-px bg-gray-100 dark:bg-gray-700" role="separator" />
               <button
                 onClick={() => handleNetworkChange('mainnet')}
-                className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between transition-colors focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-700 ${
-                  currentNetwork === 'mainnet' ? 'bg-[#14B8A6]/5 dark:bg-[#14B8A6]/10 text-[#14B8A6]' : 'text-gray-900 dark:text-white'
-                }`}
+                className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between transition-colors focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-700 ${currentNetwork === 'mainnet' ? 'bg-[#14B8A6]/5 dark:bg-[#14B8A6]/10 text-[#14B8A6]' : 'text-gray-900 dark:text-white'
+                  }`}
                 type="button"
                 role="menuitem"
                 aria-current={currentNetwork === 'mainnet' ? 'true' : undefined}

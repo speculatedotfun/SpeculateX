@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient } from 'wagmi';
 import { parseUnits, keccak256, stringToBytes } from 'viem';
+import Image from 'next/image';
 import { addresses, getCurrentNetwork, getNetwork, isDiamondNetwork } from '@/lib/contracts';
 import { getCoreAbi, usdcAbi, chainlinkResolverAbiLegacy } from '@/lib/abis';
 import { canCreateMarkets } from '@/lib/accessControl';
@@ -503,8 +504,19 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
                         : 'border-black/5 dark:border-white/5 bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/10 hover:border-teal-500/30'
                         }`}
                     >
-                      <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${asset.color || 'from-gray-700 to-gray-900'} flex items-center justify-center text-3xl shadow-lg mb-4 group-hover:scale-110 transition-transform text-white ring-1 ring-black/5`}>
-                        {asset.icon}
+                      <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${asset.color || 'from-gray-700 to-gray-900'} flex items-center justify-center shadow-lg mb-4 group-hover:scale-110 transition-transform text-white ring-1 ring-black/5 overflow-hidden`}>
+                        {asset.logoSrc ? (
+                          <Image
+                            src={asset.logoSrc}
+                            alt={`${asset.symbol} logo`}
+                            width={40}
+                            height={40}
+                            className="object-contain"
+                            unoptimized
+                          />
+                        ) : (
+                          <span className="text-3xl">{asset.icon}</span>
+                        )}
                       </div>
                       <span className={`text-lg font-bold transition-colors ${isSelected ? 'text-teal-600 dark:text-teal-400' : 'text-gray-700 dark:text-gray-200'}`}>{asset.name}</span>
                       <span className="text-sm text-gray-400 dark:text-gray-500 font-mono">{asset.symbol}</span>
@@ -677,8 +689,19 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
                 <div className="absolute inset-0 bg-grid-slate-900/[0.04] dark:bg-grid-white/[0.04] pointer-events-none -z-10" />
 
                 <div className="relative z-10">
-                  <div className={`w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br ${selectedAsset.color} flex items-center justify-center text-5xl mb-6 shadow-2xl border-4 border-white dark:border-gray-800 text-white`}>
-                    {selectedAsset.icon}
+                  <div className={`w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br ${selectedAsset.color} flex items-center justify-center mb-6 shadow-2xl border-4 border-white dark:border-gray-800 text-white overflow-hidden`}>
+                    {selectedAsset.logoSrc ? (
+                      <Image
+                        src={selectedAsset.logoSrc}
+                        alt={`${selectedAsset.symbol} logo`}
+                        width={64}
+                        height={64}
+                        className="object-contain"
+                        unoptimized
+                      />
+                    ) : (
+                      <span className="text-5xl">{selectedAsset.icon}</span>
+                    )}
                   </div>
 
                   <h3 className="text-3xl font-black text-gray-900 dark:text-white mb-4 leading-tight tracking-tight">
@@ -692,7 +715,7 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
                     </div>
                     <div className="px-4 py-2 rounded-xl bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 flex flex-col items-center">
                       <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Resolution</span>
-                      <span className="font-mono font-bold text-gray-900 dark:text-white text-lg">{new Date(resolutionDate).toLocaleDateString()}</span>
+                      <span className="font-mono font-bold text-gray-900 dark:text-white text-lg">{new Date(resolutionDate).toLocaleDateString('en-US')}</span>
                     </div>
                   </div>
 

@@ -26,6 +26,14 @@ export const getAssetLogo = (question?: string): string => {
   if (/\batom\b|\bcosmos\b/.test(q)) return '/logos/ATOM_ethereum.png';
   if (/\bdai\b/.test(q)) return '/logos/DAI_ethereum.png';
   if (/\busdt\b|\btether\b/.test(q)) return '/logos/USDT_ethereum.png';
+  if (/\blink\b|\bchainlink\b/.test(q)) return '/logos/chainlink.png';
+  if (/\bdoge\b|\bdogecoin\b/.test(q)) return '/logos/DOGE_ethereum.png';
+  if (/\bmatic\b|\bpolygon\b/.test(q)) return '/logos/MATIC_ethereum.png';
+  if (/\bdot\b|\bpolkadot\b/.test(q)) return '/logos/DOT_ethereum.png';
+  if (/\bltc\b|\blitecoin\b/.test(q)) return '/logos/LTC_ethereum.png';
+  if (/\buni\b|\buniswap\b/.test(q)) return '/logos/UNI_ethereum.png';
+  if (/\bavax\b|\bavalanche\b/.test(q)) return '/logos/AVAX_ethereum.png';
+  if (/\bfil\b|\bfilecoin\b/.test(q)) return '/logos/FIL_ethereum.png';
   return '/logos/default.png';
 };
 

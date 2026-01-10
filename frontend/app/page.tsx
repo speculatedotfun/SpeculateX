@@ -172,7 +172,7 @@ function CustomConnectButton() {
                   <button
                     onClick={() => { hapticFeedback('medium'); openConnectModal(); }}
                     type="button"
-                    className="group relative inline-flex items-center justify-center rounded-full bg-[#14B8A6] px-3 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-bold text-white shadow-lg shadow-[#14B8A6]/25 hover:bg-[#0D9488] hover:shadow-xl transition-all duration-300 active:scale-95"
+                    className="group relative inline-flex items-center justify-center rounded-xl bg-white/50 dark:bg-gray-800/50 px-3 py-2.5 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-black text-teal-600 dark:text-teal-400 border border-teal-500/20 hover:border-teal-500/50 hover:bg-white/80 dark:hover:bg-gray-800 shadow-sm hover:shadow-md transition-all duration-300 active:scale-95 backdrop-blur-md"
                   >
                     Connect Wallet
                   </button>
@@ -297,7 +297,7 @@ export default function Home() {
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 left-0 right-0 z-50 pointer-events-none">
+      <header className="sticky top-0 left-0 right-0 z-50 pointer-events-none bg-white/60 dark:bg-gray-950/60 backdrop-blur-xl border-b border-white/20 dark:border-white/5">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
             <Link href="/" className="pointer-events-auto group relative z-20 flex items-center flex-shrink-0">

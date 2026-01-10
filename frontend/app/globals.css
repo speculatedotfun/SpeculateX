@@ -247,3 +247,8 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+.mask-linear-fade {
+  mask-image: linear-gradient(to right, transparent, black 1rem, black calc(100% - 1rem), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 1rem, black calc(100% - 1rem), transparent);
+}

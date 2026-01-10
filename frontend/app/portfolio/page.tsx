@@ -45,7 +45,7 @@ const formatNumber = (value: number) => {
 type PortfolioTab = 'positions' | 'history' | 'claims' | 'faucet';
 
 export default function PortfolioPage() {
-  const { isConnected, address } = useAccount();
+  const { isConnected, address, chain } = useAccount();
   const { nicknames } = useNicknames();
   const { data, isLoading, refetch, isRefetching } = useUserPortfolio();
   const [activeTab, setActiveTab] = useState<PortfolioTab>('positions');
@@ -164,19 +164,19 @@ export default function PortfolioPage() {
             </h1>
           </motion.div>
 
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
             <motion.button
               onClick={() => setIsNicknameModalOpen(true)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="group relative overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 pl-4 pr-5 py-3 rounded-2xl flex items-center gap-3 shadow-sm hover:shadow-md transition-all"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="group relative overflow-hidden bg-white/50 dark:bg-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 text-gray-700 dark:text-gray-300 pl-3 pr-4 h-10 rounded-xl flex items-center gap-2 shadow-sm hover:shadow-md hover:bg-white dark:hover:bg-gray-800 transition-all backdrop-blur-md"
             >
-              <div className="flex items-center justify-center w-8 h-8 bg-teal-100 dark:bg-teal-900/20 rounded-xl">
-                <User className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+              <div className="flex items-center justify-center w-6 h-6 bg-teal-100 dark:bg-teal-900/20 rounded-lg">
+                <User className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
               </div>
-              <div className="flex flex-col items-start leading-none">
-                <span className="text-[9px] font-bold uppercase opacity-80 mb-0.5">Profile</span>
-                <span className={cn("text-sm font-black", address && nicknames[address.toLowerCase()] ? "text-teal-600 dark:text-teal-400" : "")}>
+              <div className="flex flex-col items-start leading-none gap-0.5">
+                <span className="text-[8px] font-bold uppercase opacity-60">Profile</span>
+                <span className={cn("text-xs font-black", address && nicknames[address.toLowerCase()] ? "text-teal-600 dark:text-teal-400" : "")}>
                   {address ? getDisplayName(address, nicknames) : 'Set Nickname'}
                 </span>
               </div>
@@ -185,17 +185,17 @@ export default function PortfolioPage() {
             {claimablePositions.length > 0 && (
               <motion.button
                 onClick={() => setActiveTab('claims')}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="group relative overflow-hidden bg-gradient-to-r from-emerald-500 to-teal-500 text-white pl-4 pr-5 py-3 rounded-2xl flex items-center gap-3 shadow-lg shadow-emerald-500/20"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="group relative overflow-hidden bg-gradient-to-r from-emerald-500 to-teal-500 text-white pl-3 pr-4 h-10 rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-500/20"
               >
                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                <div className="flex items-center justify-center w-8 h-8 bg-white/20 rounded-xl backdrop-blur-md">
-                  <Trophy className="w-4 h-4 text-white" />
+                <div className="flex items-center justify-center w-6 h-6 bg-white/20 rounded-lg backdrop-blur-md">
+                  <Trophy className="w-3.5 h-3.5 text-white" />
                 </div>
-                <div className="flex flex-col items-start leading-none relative z-10">
-                  <span className="text-[9px] font-bold uppercase opacity-80 mb-0.5">Ready to Claim</span>
-                  <span className="text-sm font-black">{claimablePositions.length} Wins Available</span>
+                <div className="flex flex-col items-start leading-none relative z-10 gap-0.5">
+                  <span className="text-[8px] font-bold uppercase opacity-80">Ready</span>
+                  <span className="text-xs font-black">{claimablePositions.length} Wins</span>
                 </div>
               </motion.button>
             )}
@@ -207,55 +207,55 @@ export default function PortfolioPage() {
                 setIsManualRefreshing(false);
               }}
               disabled={isRefetching || isManualRefreshing}
-              className="w-12 h-12 flex items-center justify-center bg-white/50 dark:bg-gray-800/50 border border-gray-200 dark:border-white/10 rounded-2xl hover:bg-white dark:hover:bg-gray-800 transition-all disabled:opacity-50 backdrop-blur-xl"
+              className="w-10 h-10 flex items-center justify-center bg-white/50 dark:bg-gray-800/50 border border-gray-200/50 dark:border-white/10 rounded-xl hover:bg-white dark:hover:bg-gray-800 transition-all disabled:opacity-50 backdrop-blur-xl shadow-sm hover:shadow-md group"
             >
-              <RefreshCw className={`w-5 h-5 text-gray-500 ${(isRefetching || isManualRefreshing) ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 text-gray-500 group-hover:text-teal-500 transition-colors ${(isRefetching || isManualRefreshing) ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
 
         {/* Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+
 
           {/* Main Value Card */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="lg:col-span-2 bg-gradient-to-br from-[#14B8A6] to-[#0D9488] rounded-2xl p-6 md:p-7 text-white relative overflow-hidden shadow-2xl shadow-[#14B8A6]/20 flex flex-col justify-between min-h-[240px]"
+            className="lg:col-span-2 bg-white/60 dark:bg-gray-900/40 backdrop-blur-2xl border border-white/20 dark:border-white/5 rounded-[32px] p-8 shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[240px]"
           >
-            <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-white/10 rounded-full blur-3xl -mr-24 -mt-24 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-[200px] h-[200px] bg-black/10 rounded-full blur-3xl -ml-16 -mb-16 pointer-events-none" />
+            <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-teal-500/5 rounded-full blur-3xl -mr-24 -mt-24 pointer-events-none" />
 
             <div className="relative z-10">
-              <div className="flex items-start justify-between mb-6">
+              <div className="flex items-start justify-between mb-8">
                 <div>
-                  <h2 className="text-xs font-bold uppercase tracking-widest opacity-70 mb-1">Total Net Worth</h2>
-                  <div className="text-3xl md:text-4xl font-black tracking-tighter tabular-nums text-white">
+                  <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Total Net Worth</h2>
+                  <div className="text-4xl md:text-5xl font-black tracking-tighter tabular-nums text-gray-900 dark:text-white">
                     {isLoading ? "..." : formatCurrency(totalValue + totalClaimed)}
                   </div>
                 </div>
-                <div className="bg-white/20 backdrop-blur-md p-2.5 rounded-xl border border-white/10">
-                  <TrendingUp className="w-6 h-6 text-white" />
+                <div className="bg-teal-50 dark:bg-teal-900/20 p-3 rounded-2xl border border-teal-100 dark:border-teal-800/30">
+                  <TrendingUp className="w-6 h-6 text-teal-600 dark:text-teal-400" />
                 </div>
               </div>
             </div>
 
-            <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="bg-black/10 rounded-xl p-3 backdrop-blur-sm">
-                <div className="text-[9px] font-bold uppercase opacity-60 mb-1">Active Value</div>
-                <div className="text-base font-bold">{formatCurrency(totalValue)}</div>
+            <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-gray-50/50 dark:bg-white/5 rounded-2xl p-4 border border-gray-100 dark:border-white/5">
+                <div className="text-[9px] font-bold uppercase text-gray-400 mb-1">Active Value</div>
+                <div className="text-base font-bold text-gray-900 dark:text-white">{formatCurrency(totalValue)}</div>
               </div>
-              <div className="bg-black/10 rounded-xl p-3 backdrop-blur-sm">
-                <div className="text-[9px] font-bold uppercase opacity-60 mb-1">Realized Gains</div>
-                <div className="text-base font-bold text-emerald-300">+{formatCurrency(totalClaimed)}</div>
+              <div className="bg-gray-50/50 dark:bg-white/5 rounded-2xl p-4 border border-gray-100 dark:border-white/5">
+                <div className="text-[9px] font-bold uppercase text-gray-400 mb-1">Realized Gains</div>
+                <div className="text-base font-bold text-emerald-600 dark:text-emerald-400">+{formatCurrency(totalClaimed)}</div>
               </div>
-              <div className="bg-black/10 rounded-xl p-3 backdrop-blur-sm">
-                <div className="text-[9px] font-bold uppercase opacity-60 mb-1">Positions</div>
-                <div className="text-base font-bold">{positions.length}</div>
+              <div className="bg-gray-50/50 dark:bg-white/5 rounded-2xl p-4 border border-gray-100 dark:border-white/5">
+                <div className="text-[9px] font-bold uppercase text-gray-400 mb-1">Positions</div>
+                <div className="text-base font-bold text-gray-900 dark:text-white">{positions.length}</div>
               </div>
-              <div className="bg-black/10 rounded-xl p-3 backdrop-blur-sm">
-                <div className="text-[9px] font-bold uppercase opacity-60 mb-1">Win Rate</div>
-                <div className="text-base font-bold">{resolvedPositionsCount > 0 ? Math.round((claimablePositions.length + claimedPositions.length) / resolvedPositionsCount * 100) : 0}%</div>
+              <div className="bg-gray-50/50 dark:bg-white/5 rounded-2xl p-4 border border-gray-100 dark:border-white/5">
+                <div className="text-[9px] font-bold uppercase text-gray-400 mb-1">Win Rate</div>
+                <div className="text-base font-bold text-gray-900 dark:text-white">{resolvedPositionsCount > 0 ? Math.round((claimablePositions.length + claimedPositions.length) / resolvedPositionsCount * 100) : 0}%</div>
               </div>
             </div>
           </motion.div>
@@ -265,12 +265,12 @@ export default function PortfolioPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1 }}
-            className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center relative shadow-xl"
+            className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-2xl border border-white/20 dark:border-white/5 rounded-[32px] p-8 flex flex-col items-center justify-center relative shadow-2xl"
           >
-            <h3 className="absolute top-6 left-6 text-xs font-bold text-gray-400 uppercase tracking-widest">Allocation</h3>
+            <h3 className="absolute top-8 left-8 text-xs font-bold text-gray-400 uppercase tracking-widest">Allocation</h3>
 
             {allocationData.length > 0 ? (
-              <div className="w-full h-[160px] mt-6 relative">
+              <div className="w-full h-[160px] mt-2 relative">
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsPie>
                     <Pie
@@ -301,11 +301,11 @@ export default function PortfolioPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2 w-full mt-3">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 w-full mt-4">
               {allocationData.map((d) => (
                 <div key={d.name} className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: d.color }} />
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
                     <span className="font-medium text-gray-500 dark:text-gray-400">{d.name}</span>
                   </div>
                   <span className="font-bold text-gray-900 dark:text-white">{Math.round((d.value / (totalValue + totalClaimed)) * 100)}%</span>
@@ -319,31 +319,37 @@ export default function PortfolioPage() {
         {/* Tabs & Content */}
         <div className="min-h-[600px]">
           {/* Custom Tab Switcher */}
-          <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-            {(['positions', 'claims', 'history', 'faucet'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={cn(
-                  "px-4 py-2 rounded-xl text-xs font-bold transition-all relative whitespace-nowrap border",
-                  activeTab === tab
-                    ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-transparent shadow-lg shadow-gray-900/20 dark:shadow-white/10"
-                    : "bg-white/50 dark:bg-gray-900/50 text-gray-500 hover:text-gray-900 dark:hover:text-white border-transparent hover:bg-white dark:hover:bg-gray-800"
-                )}
-              >
-                {tab === 'positions' && <PieChart className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />}
-                {tab === 'history' && <History className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />}
-                {tab === 'faucet' && <Wallet className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />}
+          <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+            {['positions', 'claims', 'history', 'faucet']
+              .filter(tab => {
+                // Hide faucet on mainnet (Chain ID 56)
+                if (tab === 'faucet' && chain?.id === 56) return false;
+                return true;
+              })
+              .map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab as PortfolioTab)}
+                  className={cn(
+                    "px-5 py-2.5 rounded-full text-xs font-bold transition-all relative whitespace-nowrap border",
+                    activeTab === tab
+                      ? "bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800"
+                      : "bg-white/50 dark:bg-gray-900/50 text-gray-500 hover:text-gray-900 dark:hover:text-white border-transparent hover:bg-white dark:hover:bg-gray-800"
+                  )}
+                >
+                  {tab === 'positions' && <PieChart className="w-3.5 h-3.5 inline-block mr-2 -mt-0.5 opacity-80" />}
+                  {tab === 'history' && <History className="w-3.5 h-3.5 inline-block mr-2 -mt-0.5 opacity-80" />}
+                  {tab === 'faucet' && <Wallet className="w-3.5 h-3.5 inline-block mr-2 -mt-0.5 opacity-80" />}
 
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
 
-                {tab === 'claims' && claimablePositions.length > 0 && (
-                  <span className="ml-1.5 bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded-full shadow-sm">
-                    {claimablePositions.length}
-                  </span>
-                )}
-              </button>
-            ))}
+                  {tab === 'claims' && claimablePositions.length > 0 && (
+                    <span className="ml-2 bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded-full shadow-sm">
+                      {claimablePositions.length}
+                    </span>
+                  )}
+                </button>
+              ))}
           </div>
 
           <div className="relative">
@@ -371,24 +377,24 @@ export default function PortfolioPage() {
                       {/* Active Section */}
                       {positions.filter(p => p.status === 'Active').length > 0 && (
                         <div>
-                          <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                            <span className="w-1.5 h-6 bg-blue-500 rounded-full" />
+                          <h3 className="text-lg font-black text-gray-900 dark:text-white mb-6 flex items-center gap-3">
+                            <span className="w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
                             Active Positions
                           </h3>
-                          <div className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl rounded-2xl border border-white/20 dark:border-white/5 overflow-hidden">
+                          <div className="overflow-hidden bg-transparent">
                             <div className="overflow-x-auto">
-                              <table className="w-full">
-                                <thead className="bg-gray-50/50 dark:bg-white/5 border-b border-gray-100 dark:border-white/5">
+                              <table className="w-full border-separate border-spacing-y-2">
+                                <thead>
                                   <tr>
-                                    <th className="px-4 py-3 text-left text-[9px] font-bold text-gray-400 uppercase tracking-widest">Position</th>
-                                    <th className="px-4 py-3 text-left text-[9px] font-bold text-gray-400 uppercase tracking-widest">Avg</th>
-                                    <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Shares</th>
-                                    <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Value</th>
-                                    <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">P/L</th>
-                                    <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Action</th>
+                                    <th className="px-6 py-3 text-left text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-8">Position</th>
+                                    <th className="px-6 py-3 text-left text-[9px] font-bold text-gray-400 uppercase tracking-widest">Avg</th>
+                                    <th className="px-6 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Shares</th>
+                                    <th className="px-6 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Value</th>
+                                    <th className="px-6 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">P/L</th>
+                                    <th className="px-6 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest pr-8">Action</th>
                                   </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                                <tbody className="space-y-2">
                                   {positions.filter(p => p.status === 'Active').map((position) => (
                                     <PositionRow
                                       key={`${position.marketId}-${position.side}`}
@@ -408,24 +414,24 @@ export default function PortfolioPage() {
                       {/* Resolved Section */}
                       {positions.filter(p => p.status === 'Resolved').length > 0 && (
                         <div>
-                          <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4 mt-3 flex items-center gap-2">
-                            <span className="w-1.5 h-6 bg-purple-500 rounded-full" />
+                          <h3 className="text-lg font-black text-gray-900 dark:text-white mb-6 mt-8 flex items-center gap-3">
+                            <span className="w-2 h-2 bg-purple-500 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
                             Resolved
                           </h3>
-                          <div className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl rounded-2xl border border-white/20 dark:border-white/5 overflow-hidden opacity-90">
+                          <div className="overflow-hidden bg-transparent opacity-80">
                             <div className="overflow-x-auto">
-                              <table className="w-full">
-                                <thead className="bg-gray-50/50 dark:bg-white/5 border-b border-gray-100 dark:border-white/5">
+                              <table className="w-full border-separate border-spacing-y-2">
+                                <thead>
                                   <tr>
-                                    <th className="px-4 py-3 text-left text-[9px] font-bold text-gray-400 uppercase tracking-widest">Position</th>
-                                    <th className="px-4 py-3 text-left text-[9px] font-bold text-gray-400 uppercase tracking-widest">Avg</th>
-                                    <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Shares</th>
-                                    <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Value</th>
-                                    <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">P/L</th>
-                                    <th className="px-4 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Action</th>
+                                    <th className="px-6 py-3 text-left text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-8">Position</th>
+                                    <th className="px-6 py-3 text-left text-[9px] font-bold text-gray-400 uppercase tracking-widest">Avg</th>
+                                    <th className="px-6 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Shares</th>
+                                    <th className="px-6 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Value</th>
+                                    <th className="px-6 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">P/L</th>
+                                    <th className="px-6 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest pr-8">Action</th>
                                   </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                                <tbody className="space-y-2">
                                   {positions.filter(p => p.status === 'Resolved').map((position) => (
                                     <PositionRow
                                       key={`${position.marketId}-${position.side}`}
@@ -561,7 +567,7 @@ export default function PortfolioPage() {
                                 <td className="px-4 py-3 text-right font-medium tabular-nums text-sm">{formatCurrency(trade.price)}</td>
                                 <td className="px-4 py-3 text-right font-black tabular-nums text-sm">{formatCurrency(trade.usdcAmount)}</td>
                                 <td className="px-4 py-3 text-right text-xs text-gray-400 font-mono">
-                                  {new Date(trade.timestamp * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                  {new Date(trade.timestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                 </td>
                               </tr>
                             ))}
@@ -599,43 +605,46 @@ export default function PortfolioPage() {
           </div>
         </div>
 
-      </main>
+      </main >
 
       {/* Nickname Modal */}
       <AnimatePresence>
-        {isNicknameModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-            onClick={() => setIsNicknameModalOpen(false)}
-          >
+        {
+          isNicknameModalOpen && (
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+              onClick={() => setIsNicknameModalOpen(false)}
             >
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Set Your Nickname</h2>
-                <button
-                  onClick={() => setIsNicknameModalOpen(false)}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                </button>
-              </div>
-              <NicknameManager onClose={() => setIsNicknameModalOpen(false)} />
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700"
+              >
+                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Set Your Nickname</h2>
+                  <button
+                    onClick={() => setIsNicknameModalOpen(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                  </button>
+                </div>
+                <NicknameManager onClose={() => setIsNicknameModalOpen(false)} />
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+          )
+        }
+      </AnimatePresence >
+    </div >
   );
 }
 
+// --- Position Row Component (Table Style) ---
 // --- Position Row Component (Table Style) ---
 function PositionRow({ position, trades = [], onClaimSuccess, isRedeemed = false }: { position: PortfolioPosition, trades?: PortfolioTrade[], onClaimSuccess: () => void, isRedeemed?: boolean }) {
   const { writeContractAsync, isPending } = useWriteContract();
@@ -711,11 +720,11 @@ function PositionRow({ position, trades = [], onClaimSuccess, isRedeemed = false
   };
 
   return (
-    <tr className="group hover:bg-white dark:hover:bg-white/5 transition-colors">
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-3">
+    <tr className="group transition-all hover:scale-[1.005]">
+      <td className="px-6 py-4 bg-white/40 dark:bg-gray-800/40 backdrop-blur-md rounded-l-2xl border-y border-l border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60 transition-colors">
+        <div className="flex items-center gap-4">
           <span className={cn(
-            "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border",
+            "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border shadow-sm",
             position.side === 'YES'
               ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800'
               : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-800'
@@ -723,71 +732,65 @@ function PositionRow({ position, trades = [], onClaimSuccess, isRedeemed = false
             {position.side}
           </span>
           <div className="flex-1 min-w-0">
-            <Link href={`/markets/${position.marketId}`} className="font-bold text-gray-900 dark:text-white hover:text-[#14B8A6] transition-colors line-clamp-1">
+            <Link href={`/markets/${position.marketId}`} className="font-bold text-gray-900 dark:text-white hover:text-teal-500 transition-colors line-clamp-1 text-sm">
               {position.question}
             </Link>
-            <div className="text-xs text-gray-400 font-medium mt-0.5">Market #{position.marketId}</div>
+            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1">Market #{position.marketId}</div>
           </div>
         </div>
       </td>
-      <td className="px-4 py-3">
+      <td className="px-6 py-4 bg-white/40 dark:bg-gray-800/40 backdrop-blur-md border-y border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60 transition-colors">
         {!canRedeem && !showLost && !showClaimed && avgPurchasePrice > 0 ? (
           <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 opacity-60">
               <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
                 {(avgPurchasePrice * 100).toFixed(2)}¢
               </span>
               <ArrowRight className="w-3 h-3 text-gray-400" />
             </div>
-            <div className="flex flex-col">
-              <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider">Now</span>
-              <span className="text-xs font-mono font-bold text-gray-900 dark:text-white">
-                {(position.currentPrice * 100).toFixed(2)}¢
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col">
-            <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider">Now</span>
-            <span className="text-xs font-mono font-bold text-gray-900 dark:text-white">
+            <span className="text-sm font-mono font-bold text-gray-900 dark:text-white">
               {(position.currentPrice * 100).toFixed(2)}¢
             </span>
           </div>
+        ) : (
+          <span className="text-sm font-mono font-bold text-gray-900 dark:text-white">
+            {(position.currentPrice * 100).toFixed(2)}¢
+          </span>
         )}
       </td>
-      <td className="px-4 py-3 text-right font-medium tabular-nums text-gray-900 dark:text-white">
+      <td className="px-6 py-4 text-right font-medium tabular-nums text-gray-900 dark:text-white bg-white/40 dark:bg-gray-800/40 backdrop-blur-md border-y border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60 transition-colors">
         {formatNumber(position.balance)}
       </td>
-      <td className="px-4 py-3 text-right font-black tabular-nums text-gray-900 dark:text-white">
+      <td className="px-6 py-4 text-right font-black tabular-nums text-gray-900 dark:text-white bg-white/40 dark:bg-gray-800/40 backdrop-blur-md border-y border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60 transition-colors">
         {formatCurrency(position.value)}
       </td>
-      <td className="px-4 py-3 text-right">
+      <td className="px-6 py-4 text-right bg-white/40 dark:bg-gray-800/40 backdrop-blur-md border-y border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60 transition-colors">
         {!canRedeem && !showLost && !showClaimed && totalInvested > 0 ? (
           <div className={cn(
-            "text-xs font-bold tabular-nums",
+            "text-xs font-bold tabular-nums inline-flex flex-col items-end",
             isProfit ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
           )}>
-            {isProfit ? '+' : ''}{formatCurrency(profitLoss)}
-            <div className="text-[10px] opacity-80">
-              ({isProfit ? '+' : ''}{profitLossPercent.toFixed(2)}%)
-            </div>
+            <span>{isProfit ? '+' : ''}{formatCurrency(profitLoss)}</span>
+            <span className="text-[10px] opacity-70 bg-gray-50 dark:bg-black/20 px-1 rounded">
+              {isProfit ? '+' : ''}{profitLossPercent.toFixed(2)}%
+            </span>
           </div>
         ) : (
-          <span className="text-[10px] text-gray-400">-</span>
+          <span className="text-[10px] text-gray-300">-</span>
         )}
       </td>
-      <td className="px-4 py-3">
+      <td className="px-6 py-4 bg-white/40 dark:bg-gray-800/40 backdrop-blur-md rounded-r-2xl border-y border-r border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60 transition-colors text-right">
         <div className="flex items-center justify-end gap-2">
           {canRedeem ? (
             <Button
               onClick={handleClaim}
               disabled={isClaiming || isPending}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg shadow-lg shadow-emerald-500/20 text-xs h-8 px-4"
+              className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 text-xs h-8 px-4 active:scale-95 transition-all"
             >
               {isClaiming || isPending ? (
                 <RefreshCw className="w-3 h-3 animate-spin" />
               ) : (
-                'Claim'
+                'Claim Win'
               )}
             </Button>
           ) : (
@@ -796,13 +799,13 @@ function PositionRow({ position, trades = [], onClaimSuccess, isRedeemed = false
                 <Button
                   onClick={handleSell}
                   disabled={isSelling}
-                  className="bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg shadow-lg shadow-blue-500/20 text-xs h-8 px-4"
+                  className="bg-white hover:bg-red-50 text-red-600 border border-red-100 hover:border-red-200 font-bold rounded-xl text-xs h-8 px-4 active:scale-95 transition-all shadow-sm"
                 >
                   Sell
                 </Button>
                 <Link href={`/markets/${position.marketId}`}>
-                  <Button variant="outline" size="sm" className="rounded-lg border-gray-200 dark:border-gray-700 font-bold hover:border-[#14B8A6] hover:text-[#14B8A6] text-xs h-8 px-4">
-                    Trade
+                  <Button variant="ghost" size="sm" className="rounded-xl text-gray-500 hover:text-teal-600 hover:bg-teal-50 font-bold text-xs h-8 px-3">
+                    <ArrowUpRight className="w-4 h-4" />
                   </Button>
                 </Link>
               </>
@@ -820,7 +823,7 @@ function LoadingState({ prefersReducedMotion = false }: { prefersReducedMotion?:
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {[1, 2, 3].map((i) => (
-        <div key={i} className={`h-64 bg-gray-100 dark:bg-gray-800 rounded-[40px] ${prefersReducedMotion ? '' : 'animate-pulse'}`} />
+        <div key={i} className={`h-64 bg-gray-100 dark:bg-gray-800 rounded-[32px] ${prefersReducedMotion ? '' : 'animate-pulse'}`} />
       ))}
     </div>
   );
@@ -924,20 +927,20 @@ function PositionCard({ position, trades = [], onClaimSuccess, isRedeemed = fals
 
   return (
     <div className={cn(
-      "relative rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 group overflow-hidden border backdrop-blur-xl",
+      "relative rounded-[32px] p-6 flex flex-col justify-between transition-all duration-300 group overflow-hidden border backdrop-blur-xl",
       canRedeem
-        ? "bg-white dark:bg-gray-800 border-emerald-500/30 shadow-[0_10px_40px_rgba(16,185,129,0.15)] hover:shadow-[0_10px_40px_rgba(16,185,129,0.25)]"
-        : "bg-white/60 dark:bg-gray-800/40 border-white/20 dark:border-white/5 hover:border-[#14B8A6]/30 hover:-translate-y-1 shadow-lg"
+        ? "bg-white/80 dark:bg-gray-800/80 border-emerald-500/30 shadow-[0_10px_40px_rgba(16,185,129,0.15)] hover:shadow-[0_10px_40px_rgba(16,185,129,0.25)]"
+        : "bg-white/60 dark:bg-gray-900/40 border-white/20 dark:border-white/5 hover:border-teal-500/20 hover:-translate-y-1 shadow-2xl"
     )}>
       {canRedeem && (
         <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 via-transparent to-transparent pointer-events-none" />
       )}
 
       {/* Header */}
-      <div className="flex items-start justify-between mb-4 relative z-10">
+      <div className="flex items-start justify-between mb-5 relative z-10">
         <div className="flex gap-2">
           <span className={cn(
-            "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border",
+            "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border shadow-sm",
             position.side === 'YES'
               ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800'
               : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-800'
@@ -945,38 +948,38 @@ function PositionCard({ position, trades = [], onClaimSuccess, isRedeemed = fals
             {position.side}
           </span>
           {canRedeem && (
-            <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-emerald-500 text-white shadow-sm flex items-center gap-1">
+            <span className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-emerald-500 text-white shadow-sm flex items-center gap-1.5">
               <Sparkles className="w-3 h-3" /> Win
             </span>
           )}
           {showLost && (
-            <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-gray-100 text-gray-500 border border-gray-200">
+            <span className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-gray-100 text-gray-500 border border-gray-200">
               Lost
             </span>
           )}
           {showClaimed && (
-            <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 border border-emerald-100">
+            <span className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 border border-emerald-100">
               Redeemed
             </span>
           )}
         </div>
         {/* Price Indicator */}
         {!canRedeem && !showLost && !showClaimed && (
-          <div className="text-xs font-bold text-gray-400 font-mono">
+          <div className="text-xs font-bold text-gray-400 font-mono bg-white/50 px-2 py-1 rounded-lg border border-white/10">
             {formatCurrency(position.currentPrice)}
           </div>
         )}
       </div>
 
-      <div className="relative z-10 mb-4 flex-1">
-        <Link href={`/markets/${position.marketId}`} className="group-hover:text-[#14B8A6] transition-colors">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-snug line-clamp-2 mb-1">{position.question}</h3>
+      <div className="relative z-10 mb-6 flex-1">
+        <Link href={`/markets/${position.marketId}`} className="group-hover:text-teal-500 transition-colors">
+          <h3 className="text-xl font-black text-gray-900 dark:text-white leading-tight line-clamp-2 mb-2">{position.question}</h3>
         </Link>
-        <div className="text-xs text-gray-400 font-medium mb-3">Market #{position.marketId}</div>
+        <div className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-4">Market #{position.marketId}</div>
 
         {/* Price Display: Avg → Now */}
         {!canRedeem && !showLost && !showClaimed && avgPurchasePrice > 0 && (
-          <div className="flex items-center gap-2 mb-3 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+          <div className="flex items-center gap-3 mb-4 p-3 bg-white/40 dark:bg-black/20 rounded-xl border border-white/10">
             <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
               Avg: {(avgPurchasePrice * 100).toFixed(2)}¢
             </span>
@@ -989,47 +992,53 @@ function PositionCard({ position, trades = [], onClaimSuccess, isRedeemed = fals
       </div>
 
       {/* Stats Divider */}
-      <div className="w-full h-px bg-gray-100 dark:bg-white/5 mb-4 relative z-10" />
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-white/10 to-transparent mb-5 relative z-10" />
 
-      <div className="space-y-3 relative z-10">
+      <div className="space-y-4 relative z-10">
         {/* Value and P/L */}
         <div className="flex items-end justify-between">
           <div>
-            <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Value</div>
+            <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Value</div>
             <div className={cn(
-              "text-xl font-black tracking-tight",
+              "text-2xl font-black tracking-tight tabular-nums",
               canRedeem ? "text-emerald-600 dark:text-emerald-400" : "text-gray-900 dark:text-white"
             )}>
               {formatCurrency(position.value)}
             </div>
-            {!canRedeem && !showLost && !showClaimed && totalInvested > 0 && (
+          </div>
+          {!canRedeem && !showLost && !showClaimed && totalInvested > 0 && (
+            <div className="text-right">
+              <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Return</div>
               <div className={cn(
-                "text-xs font-bold mt-1",
+                "text-sm font-bold flex items-center gap-1 justify-end",
                 isProfit ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
               )}>
-                {isProfit ? '+' : ''}{formatCurrency(profitLoss)} ({isProfit ? '+' : ''}{profitLossPercent.toFixed(2)}%)
+                {isProfit ? '+' : ''}{formatCurrency(profitLoss)}
+                <span className="text-[10px] opacity-70 bg-gray-100 dark:bg-black/20 px-1.5 py-0.5 rounded-md ml-1">
+                  {isProfit ? '+' : ''}{profitLossPercent.toFixed(2)}%
+                </span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Balance */}
-        <div className="text-[10px] text-gray-400 font-medium">
-          {formatNumber(position.balance)} {position.side === 'YES' ? 'Yes' : 'No'} shares
+        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+          {formatNumber(position.balance)} shares
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-3 pt-2">
           {canRedeem ? (
             <Button
               onClick={handleClaim}
               disabled={isClaiming || isPending}
-              className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all text-xs h-10"
+              className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all text-sm h-11"
             >
               {isClaiming || isPending ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
+                <RefreshCw className="w-5 h-5 animate-spin" />
               ) : (
-                <>Claim <ArrowRight className="w-3 h-3 ml-1" /></>
+                <>Claim Win <ArrowRight className="w-4 h-4 ml-1.5" /></>
               )}
             </Button>
           ) : (
@@ -1038,17 +1047,17 @@ function PositionCard({ position, trades = [], onClaimSuccess, isRedeemed = fals
                 <Button
                   onClick={handleSell}
                   disabled={isSelling}
-                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 active:scale-95 transition-all text-xs h-10"
+                  className="flex-1 bg-white hover:bg-red-50 text-red-600 border border-red-100 font-bold rounded-xl shadow-sm active:scale-95 transition-all text-xs h-10"
                 >
                   {isSelling ? (
                     <RefreshCw className="w-4 h-4 animate-spin" />
                   ) : (
-                    'Sell'
+                    'Sell Position'
                   )}
                 </Button>
                 <Link href={`/markets/${position.marketId}`} className="flex-1">
-                  <Button variant="outline" className="w-full rounded-xl border-gray-200 dark:border-gray-700 font-bold hover:border-[#14B8A6] hover:text-[#14B8A6] text-xs h-10">
-                    Trade
+                  <Button variant="outline" className="w-full rounded-xl border-gray-200 dark:border-gray-700 font-bold hover:border-teal-500 hover:text-teal-600 text-xs h-10 bg-transparent">
+                    Trade More
                   </Button>
                 </Link>
               </>

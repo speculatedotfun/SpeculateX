@@ -11,7 +11,7 @@ interface ResolutionInfoModalProps {
 export function ResolutionInfoModal({ isOpen, onClose, expiryTimestamp }: ResolutionInfoModalProps) {
   const expiryTime = new Date(Number(expiryTimestamp) * 1000);
   const expiryTimeStr = expiryTime.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-  const expiryDateStr = expiryTime.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const expiryDateStr = expiryTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
   return (
     <AnimatePresence>

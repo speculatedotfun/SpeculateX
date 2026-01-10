@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchSubgraph } from '@/lib/subgraphClient';
+import { getCurrentNetwork } from '@/lib/contracts';
 import { formatUnits } from 'viem';
 
 export interface LeaderboardUser {
@@ -82,8 +83,10 @@ export function useLeaderboard() {
         console.warn('Leaderboard fetch failed, using mock data:', e);
       }
 
-      // Fallback: Generate Mock Data if empty (for UI demo)
-      if (users.length === 0) {
+      // Fallback: Generate Mock Data if empty (for UI demo), BUT ONLY ON TESTNET
+      // On Mainnet, we want to show real data (or empty state if no traders yet)
+      const currentNetwork = getCurrentNetwork();
+      if (users.length === 0 && currentNetwork !== 'mainnet') {
         const mockAddresses = [
           '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
           '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC',

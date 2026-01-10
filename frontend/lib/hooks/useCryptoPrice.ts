@@ -31,6 +31,8 @@ export interface CryptoPricePoint {
     value: number;
 }
 
+export type CryptoTimeRange = '1D' | '1W' | '1M' | 'ALL';
+
 export function detectCryptoSymbol(marketQuestion: string): { symbol: string | null; baseToken: string | null } {
     if (!marketQuestion) return { symbol: null, baseToken: null };
 
@@ -46,7 +48,7 @@ export function detectCryptoSymbol(marketQuestion: string): { symbol: string | n
     return { symbol: null, baseToken: null };
 }
 
-export function useCryptoPrice(marketQuestion: string) {
+export function useCryptoPrice(marketQuestion: string, timeRange: CryptoTimeRange = '1W') {
     const [data, setData] = useState<CryptoPricePoint[]>([]);
     const [currentPrice, setCurrentPrice] = useState<number | null>(null);
     const [priceChange24h, setPriceChange24h] = useState<number | null>(null);
@@ -57,7 +59,7 @@ export function useCryptoPrice(marketQuestion: string) {
         return detectCryptoSymbol(marketQuestion);
     }, [marketQuestion]);
 
-    // Fetch initial data
+    // Fetch initial data (refetches when time range changes)
     useEffect(() => {
         if (!symbol) return;
 
@@ -77,8 +79,21 @@ export function useCryptoPrice(marketQuestion: string) {
                     setPriceChange24h(parseFloat(tickerData.priceChangePercent));
                 }
 
-                // Fetch klines (candles) for chart history (1h interval, limit 168 for 1 week)
-                const klinesRes = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=168`);
+                // Fetch klines (candles) for chart history (tuned by time range)
+                // Note: Binance max `limit` is 1000.
+                const range = timeRange ?? '1W';
+                const klineParams =
+                    range === '1D'
+                        ? { interval: '5m', limit: 288 }   // 24h
+                        : range === '1W'
+                          ? { interval: '1h', limit: 168 }  // 7d
+                          : range === '1M'
+                            ? { interval: '4h', limit: 180 } // ~30d
+                            : { interval: '1d', limit: 365 }; // ~1y "ALL"
+
+                const klinesRes = await fetch(
+                    `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${klineParams.interval}&limit=${klineParams.limit}`
+                );
                 const klinesData = await klinesRes.json();
 
                 if (disposed) return;
@@ -104,7 +119,7 @@ export function useCryptoPrice(marketQuestion: string) {
         return () => {
             disposed = true;
         };
-    }, [symbol]);
+    }, [symbol, timeRange]);
 
     // WebSocket for live updates
     useEffect(() => {

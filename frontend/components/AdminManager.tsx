@@ -629,7 +629,7 @@ export default function AdminManager() {
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate max-w-[200px]">{market.question}</span>
                     </div>
                     <div className="text-[10px] text-red-500 dark:text-red-400 mt-1">
-                      Expired: {new Date(Number(market.expiryTimestamp) * 1000).toLocaleString()}
+                      Expired: {new Date(Number(market.expiryTimestamp) * 1000).toLocaleString('en-US')}
                     </div>
                   </div>
                   <Button
