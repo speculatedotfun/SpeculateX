@@ -72,15 +72,38 @@ export function PositionTab({
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="p-8 bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-gray-200/60 dark:border-gray-700/60 text-center"
+        className="p-8 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800/80 dark:to-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-700 text-center relative overflow-hidden"
         role="status"
         aria-label="No positions in this market"
       >
-        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <PieChart className="w-8 h-8 text-gray-400" />
+        {/* Decorative background pattern */}
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
+          <div className="absolute top-4 left-4 w-32 h-32 rounded-full bg-emerald-500 blur-3xl" />
+          <div className="absolute bottom-4 right-4 w-32 h-32 rounded-full bg-rose-500 blur-3xl" />
         </div>
-        <h4 className="text-lg font-black text-gray-900 dark:text-white mb-2">No active position</h4>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Select an outcome and enter an amount in the trading panel to start.</p>
+
+        <div className="relative z-10">
+          <div className="w-20 h-20 bg-gradient-to-br from-[#14B8A6]/20 to-[#14B8A6]/5 dark:from-[#14B8A6]/30 dark:to-[#14B8A6]/10 rounded-3xl flex items-center justify-center mx-auto mb-5 border border-[#14B8A6]/20">
+            <PieChart className="w-10 h-10 text-[#14B8A6]" />
+          </div>
+          <h4 className="text-xl font-black text-gray-900 dark:text-white mb-2">No active position</h4>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-xs mx-auto">
+            Select an outcome and enter an amount in the trading panel to start trading.
+          </p>
+
+          {/* Action hint buttons */}
+          <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold">
+              <TrendingUp className="w-4 h-4" />
+              <span>Buy YES</span>
+            </div>
+            <span className="text-gray-300 dark:text-gray-600">or</span>
+            <div className="flex items-center gap-2 px-4 py-2 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold">
+              <TrendingDown className="w-4 h-4" />
+              <span>Buy NO</span>
+            </div>
+          </div>
+        </div>
       </motion.div>
     );
   }

@@ -13,6 +13,7 @@ interface OutcomeSelectorProps {
     noBalance: string;
     isBusy: boolean;
     isTradeable: boolean;
+    showReturnHint?: boolean;
 }
 
 export function OutcomeSelector({
@@ -24,9 +25,14 @@ export function OutcomeSelector({
     noBalance,
     isBusy,
     isTradeable,
+    showReturnHint = true,
 }: OutcomeSelectorProps) {
     const yesCents = (priceYes * 100).toFixed(1);
     const noCents = (priceNo * 100).toFixed(1);
+
+    // Calculate potential return per $1 invested (if outcome wins, you get $1 per share)
+    const yesReturn = priceYes > 0 ? ((1 / priceYes) - 1) * 100 : 0;
+    const noReturn = priceNo > 0 ? ((1 / priceNo) - 1) * 100 : 0;
 
     return (
         <div className="grid grid-cols-2 gap-3" role="group" aria-label="Choose outcome">
@@ -84,14 +90,28 @@ export function OutcomeSelector({
                 </div>
 
                 {/* Progress bar */}
-                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <motion.div
-                        className="h-full bg-emerald-500 rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${priceYes * 100}%` }}
-                        transition={{ duration: 0.5 }}
-                    />
+                <div className="relative">
+                    <div className="h-2.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <motion.div
+                            className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${priceYes * 100}%` }}
+                            transition={{ duration: 0.5 }}
+                        />
+                    </div>
+                    <span className="absolute right-0 -top-5 text-[10px] font-bold text-gray-400">
+                        {(priceYes * 100).toFixed(0)}%
+                    </span>
                 </div>
+
+                {/* Potential return hint */}
+                {showReturnHint && (
+                    <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/50">
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                            +{yesReturn.toFixed(0)}% if YES wins
+                        </span>
+                    </div>
+                )}
             </motion.button>
 
             {/* NO Card */}
@@ -148,14 +168,28 @@ export function OutcomeSelector({
                 </div>
 
                 {/* Progress bar */}
-                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <motion.div
-                        className="h-full bg-rose-500 rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${priceNo * 100}%` }}
-                        transition={{ duration: 0.5 }}
-                    />
+                <div className="relative">
+                    <div className="h-2.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <motion.div
+                            className="h-full bg-gradient-to-r from-rose-400 to-rose-500 rounded-full"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${priceNo * 100}%` }}
+                            transition={{ duration: 0.5 }}
+                        />
+                    </div>
+                    <span className="absolute right-0 -top-5 text-[10px] font-bold text-gray-400">
+                        {(priceNo * 100).toFixed(0)}%
+                    </span>
                 </div>
+
+                {/* Potential return hint */}
+                {showReturnHint && (
+                    <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/50">
+                        <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400">
+                            +{noReturn.toFixed(0)}% if NO wins
+                        </span>
+                    </div>
+                )}
             </motion.button>
         </div>
     );

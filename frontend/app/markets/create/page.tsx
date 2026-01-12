@@ -79,7 +79,7 @@ export default function CreateMarketPage() {
     }
 
     return (
-        <div className="min-h-screen font-sans selection:bg-[#14B8A6]/30 relative overflow-hidden">
+        <div className="flex-1 flex flex-col font-sans selection:bg-[#14B8A6]/30 relative overflow-hidden">
             {/* Enhanced Background */}
             <div className="fixed inset-0 pointer-events-none -z-10">
                 <div className="absolute inset-0 bg-grid-slate-900/[0.04] dark:bg-grid-slate-400/[0.05] bg-[bottom_1px_center]"></div>
@@ -92,7 +92,7 @@ export default function CreateMarketPage() {
 
             <Header />
 
-            <main className="max-w-4xl mx-auto px-4 py-12 relative z-10">
+            <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-12 relative z-10">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}

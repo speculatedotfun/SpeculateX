@@ -82,7 +82,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <ToastHost>
               <ReferralListener />
               <UsernameGuard>
-                {children}
+                <div className="min-h-screen flex flex-col">
+                  {children}
+                </div>
               </UsernameGuard>
             </ToastHost>
           </RainbowKitProvider>

@@ -210,13 +210,13 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen text-gray-900 dark:text-white font-sans selection:bg-[#14B8A6]/30 transition-colors duration-300">
+    <div className="flex-1 flex flex-col text-gray-900 dark:text-white font-sans selection:bg-[#14B8A6]/30 transition-colors duration-300">
       <div className="fixed inset-0 pointer-events-none -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white via-gray-50 to-gray-100 dark:from-gray-900 dark:via-[#0f1219] dark:to-[#0f1219]"></div>
       <div className="fixed inset-0 pointer-events-none -z-10 bg-[url('/grid.svg')] opacity-[0.03] invert dark:invert-0"></div>
 
       <Header />
 
-      <main className="relative z-10 mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-12">
+      <main className="flex-1 relative z-10 mx-auto max-w-[1400px] w-full px-4 sm:px-6 lg:px-8 py-12">
 
         {/* Header Section */}
         <div className="mb-12 flex flex-col xl:flex-row xl:items-end justify-between gap-8">

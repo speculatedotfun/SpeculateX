@@ -34,7 +34,7 @@ export default function DocsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen relative overflow-hidden font-sans">
+    <div className="flex-1 flex flex-col relative overflow-hidden font-sans">
 
       {/* Background Gradient */}
       <div className="absolute inset-0 pointer-events-none">
@@ -53,7 +53,7 @@ export default function DocsPage() {
 
       <Header />
 
-      <main className="relative z-10 mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12">
+      <main className="flex-1 relative z-10 mx-auto max-w-4xl w-full px-4 sm:px-6 lg:px-8 py-12">
 
         {/* Navigation & Title */}
         <div className="mb-8">

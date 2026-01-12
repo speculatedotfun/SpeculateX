@@ -24,7 +24,7 @@ export function TradeModeToggle({
             aria-label="Trade mode selection"
         >
             <motion.div
-                className="absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-white dark:bg-gray-750 rounded-lg shadow-lg border border-gray-100 dark:border-gray-600"
+                className="absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-100 dark:border-gray-600"
                 animate={{
                     x: tradeMode === 'sell' ? 'calc(100% + 6px)' : 0
                 }}

@@ -151,7 +151,7 @@ export default function MarketsPage() {
   };
 
   return (
-    <div className="min-h-screen relative font-sans selection:bg-[#14B8A6]/30 selection:text-[#0f0a2e] dark:selection:text-white pb-20">
+    <div className="flex-1 flex flex-col relative font-sans selection:bg-[#14B8A6]/30 selection:text-[#0f0a2e] dark:selection:text-white">
 
       {/* Background Gradient */}
       <div className="fixed inset-0 pointer-events-none -z-10 bg-[#FAF9FF] dark:bg-[#0f1219]">
@@ -170,7 +170,7 @@ export default function MarketsPage() {
         showSearch={true}
       />
 
-      <main className="relative z-10 mx-auto max-w-[1440px] px-6 py-6">
+      <main className="relative z-10 mx-auto max-w-[1440px] px-6 py-6 flex-1">
 
         {/* Dashboard Header */}
         <div className="flex items-center gap-3 mt-4">

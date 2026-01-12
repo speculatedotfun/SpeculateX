@@ -62,11 +62,17 @@ export function TradePreview({
           <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
             {isBuy ? 'You Receive' : 'You are Selling'}
           </span>
-          {priceImpact > 1 && (
-            <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">
-              {priceImpact.toFixed(1)}% impact
-            </span>
-          )}
+          {/* Price impact badge - always show for transparency */}
+          <span className={`text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 ${
+            priceImpact > 5
+              ? 'text-rose-600 bg-rose-500/10 dark:text-rose-400 dark:bg-rose-500/20'
+              : priceImpact > 1
+                ? 'text-amber-600 bg-amber-500/10 dark:text-amber-400 dark:bg-amber-500/20'
+                : 'text-emerald-600 bg-emerald-500/10 dark:text-emerald-400 dark:bg-emerald-500/20'
+          }`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+            {priceImpact < 0.1 ? '<0.1' : priceImpact.toFixed(1)}% slippage
+          </span>
         </div>
 
         <div className="flex items-baseline gap-2">

@@ -79,10 +79,13 @@ export function TradeAmountInput({
             `}>
                 <div className="flex justify-between items-center mb-3">
                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount</span>
-                    <div className="flex items-center gap-2 px-2 py-1 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
-                        <Wallet className="w-3 h-3 text-gray-400" />
-                        <span className="text-[11px] font-bold text-gray-500 tabular-nums">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+                        <Wallet className="w-3.5 h-3.5 text-[#14B8A6]" />
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-200 tabular-nums">
                             {tradeMode === 'buy' ? usdcBalance : (side === 'yes' ? yesBalance : noBalance)}
+                        </span>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase">
+                            {tradeMode === 'buy' ? 'USDC' : side.toUpperCase()}
                         </span>
                     </div>
                 </div>
@@ -119,13 +122,15 @@ export function TradeAmountInput({
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
                             onClick={() => handleQuickAmount(value)}
                             disabled={!isTradeable}
                             className={`
                                 flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all
                                 ${parseFloat(amount) === value
                                     ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md'
-                                    : 'bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 border border-gray-100 dark:border-gray-700/50'
+                                    : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 hover:shadow-sm'
                                 }
                                 disabled:opacity-50
                             `}
@@ -137,13 +142,15 @@ export function TradeAmountInput({
                     <motion.button
                         key="max-button"
                         layout
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={handleMax}
                         disabled={!isTradeable}
                         className={`
                             ${isBuy ? 'px-4' : 'flex-1'} py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all
                             ${parseFloat(amount) >= maxValue - 0.01 && maxValue > 0
-                                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md'
-                                : 'bg-[#14B8A6]/10 text-[#14B8A6] hover:bg-[#14B8A6]/20'
+                                ? 'bg-[#14B8A6] text-white shadow-md shadow-[#14B8A6]/25'
+                                : 'bg-[#14B8A6]/10 text-[#14B8A6] border border-[#14B8A6]/30 hover:bg-[#14B8A6]/20 hover:border-[#14B8A6]/50'
                             }
                             disabled:opacity-50
                         `}

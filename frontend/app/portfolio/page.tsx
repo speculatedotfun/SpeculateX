@@ -284,7 +284,7 @@ export default function PortfolioPage() {
   }
 
   return (
-    <div className="min-h-screen relative font-sans selection:bg-[#14B8A6]/30 selection:text-[#0f0a2e] dark:selection:text-white pb-20">
+    <div className="flex-1 flex flex-col relative font-sans selection:bg-[#14B8A6]/30 selection:text-[#0f0a2e] dark:selection:text-white">
 
       {/* Background Gradient - Match Markets */}
       <div className="fixed inset-0 pointer-events-none -z-10 bg-[#FAF9FF] dark:bg-[#0f1219]">
@@ -295,7 +295,7 @@ export default function PortfolioPage() {
 
       <Header />
 
-      <main className="relative z-10 mx-auto max-w-[1440px] px-6 py-6">
+      <main className="flex-1 relative z-10 mx-auto max-w-[1440px] w-full px-6 py-6">
 
         {/* Dashboard Header - Match Markets */}
         <div className="mb-6">
@@ -350,14 +350,15 @@ export default function PortfolioPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] text-gray-500 dark:text-gray-400">Best Market</span>
                       {bestMarket ? (
-                        <span
-                          className="text-[11px] font-medium text-gray-900 dark:text-white max-w-[150px] truncate"
+                        <Link
+                          href={`/markets/${bestMarket.marketId}`}
+                          className="text-[11px] font-medium text-teal-600 dark:text-teal-400 hover:underline max-w-[120px] truncate"
                           title={bestMarket.question}
                         >
-                          {bestMarket.question}
-                        </span>
+                          #{bestMarket.marketId}
+                        </Link>
                       ) : (
-                        <span className="text-[11px] font-medium text-gray-900 dark:text-white">N/A</span>
+                        <span className="text-[11px] font-medium text-gray-400">--</span>
                       )}
                     </div>
                     <div className="flex items-center justify-between">
@@ -614,9 +615,9 @@ export default function PortfolioPage() {
                               </thead>
                               <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
                                 {positions.filter(p => p.status === 'Active').map((position) => (
-                                  <PositionRow 
-                                    key={`${position.marketId}-${position.side}`} 
-                                    position={position} 
+                                  <PositionRow
+                                    key={`${position.marketId}-${position.side}`}
+                                    position={position}
                                     trades={trades}
                                     onClaimSuccess={() => refetch()}
                                   />
@@ -649,9 +650,9 @@ export default function PortfolioPage() {
                               </thead>
                               <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
                                 {positions.filter(p => p.status === 'Resolved').map((position) => (
-                                  <PositionRow 
-                                    key={`${position.marketId}-${position.side}`} 
-                                    position={position} 
+                                  <PositionRow
+                                    key={`${position.marketId}-${position.side}`}
+                                    position={position}
                                     trades={trades}
                                     onClaimSuccess={() => refetch()}
                                   />
@@ -1108,7 +1109,15 @@ function PositionRow({ position, trades = [], onClaimSuccess, isRedeemed = false
         {formatCurrency(position.value)}
       </td>
       <td className="px-4 py-3 text-right">
-        {totalInvested > 0 ? (
+        {showLost ? (
+          <div className="text-[13px] font-medium tabular-nums text-gray-400 inline-flex flex-col items-end">
+            <span>Lost</span>
+          </div>
+        ) : showClaimed ? (
+          <div className="text-[13px] font-medium tabular-nums text-emerald-500 inline-flex flex-col items-end">
+            <span>Won</span>
+          </div>
+        ) : totalInvested > 0 ? (
           <div className={cn(
             "text-[13px] font-semibold tabular-nums inline-flex flex-col items-end",
             isProfit ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"
@@ -1119,14 +1128,7 @@ function PositionRow({ position, trades = [], onClaimSuccess, isRedeemed = false
             </span>
           </div>
         ) : (
-          (actualIsResolved && position.value > 0 ? (
-            <div className="text-[13px] font-semibold tabular-nums text-emerald-600 dark:text-emerald-400 inline-flex flex-col items-end">
-              <span>+{formatCurrency(position.value)}</span>
-              <span className="text-[10px] opacity-70">—</span>
-            </div>
-          ) : (
-            <span className="text-[11px] text-gray-300">—</span>
-          ))
+          <span className="text-[11px] text-gray-300">--</span>
         )}
       </td>
       <td className="px-4 py-3 text-right">
@@ -1143,23 +1145,25 @@ function PositionRow({ position, trades = [], onClaimSuccess, isRedeemed = false
                 'Claim Win'
               )}
             </Button>
+          ) : showLost ? (
+            <span className="text-[11px] text-gray-400 font-medium">Resolved</span>
+          ) : showClaimed ? (
+            <span className="text-[11px] text-emerald-500 font-medium">Claimed</span>
           ) : (
-            !showLost && !showClaimed && (
-              <>
-                <Button
-                  onClick={handleSell}
-                  disabled={isSelling}
-                  className="bg-white hover:bg-red-50 text-red-600 border border-red-100 hover:border-red-200 font-bold rounded-xl text-xs h-8 px-4 active:scale-95 transition-all shadow-sm"
-                >
-                  Sell
+            <div className="flex items-center gap-1.5">
+              <Button
+                onClick={handleSell}
+                disabled={isSelling}
+                className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 border-0 font-semibold rounded-lg text-[11px] h-7 px-3 active:scale-95 transition-all"
+              >
+                Sell
+              </Button>
+              <Link href={`/markets/${position.marketId}`}>
+                <Button variant="ghost" size="sm" className="rounded-lg text-gray-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 h-7 w-7 p-0">
+                  <ArrowUpRight className="w-3.5 h-3.5" />
                 </Button>
-                <Link href={`/markets/${position.marketId}`}>
-                  <Button variant="ghost" size="sm" className="rounded-xl text-gray-500 hover:text-teal-600 hover:bg-teal-50 font-bold text-xs h-8 px-3">
-                    <ArrowUpRight className="w-4 h-4" />
-                  </Button>
-                </Link>
-              </>
-            )
+              </Link>
+            </div>
           )}
         </div>
       </td>
@@ -1419,7 +1423,7 @@ function PositionCard({ position, trades = [], onClaimSuccess, isRedeemed = fals
 // Suggested Markets List Component
 function SuggestedMarketsList() {
   const { data: markets = [], isLoading } = useMarketsListOptimized();
-  
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -1431,7 +1435,7 @@ function SuggestedMarketsList() {
   }
 
   const activeMarkets = markets.filter(m => m.status === 'LIVE TRADING');
-  
+
   if (!activeMarkets || activeMarkets.length === 0) {
     return null;
   }

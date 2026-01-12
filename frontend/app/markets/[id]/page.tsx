@@ -576,7 +576,7 @@ export default function MarketDetailPage() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden font-sans pb-24 md:pb-0">
+    <div className="flex-1 flex flex-col relative overflow-hidden font-sans">
 
       {/* Background Gradient */}
       <div className="fixed inset-0 pointer-events-none -z-10">
@@ -588,7 +588,7 @@ export default function MarketDetailPage() {
 
       <Header />
 
-      <div className="relative z-10 mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-6">
+      <div className="flex-1 relative z-10 mx-auto max-w-[1400px] w-full px-4 sm:px-6 lg:px-8 py-6">
 
         {/* Back Link & Share Button */}
         <motion.div initial={prefersReducedMotion ? false : { x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="mb-4 flex items-center justify-between">
@@ -678,12 +678,12 @@ export default function MarketDetailPage() {
                 <div className="flex items-center gap-2 flex-wrap">
                   {/* Yes/No Toggle */}
                   {chartPanel === 'market' && (
-                    <div className="flex items-center bg-gray-100 dark:bg-gray-700/50 rounded-xl p-0.5">
+                    <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1">
                       <button
                         onClick={() => setChartSide('yes')}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${chartSide === 'yes'
-                          ? 'bg-white dark:bg-gray-600 text-emerald-600 shadow-sm'
-                          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                          ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25'
+                          : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:border-emerald-300 dark:hover:border-emerald-600'
                           }`}
                       >
                         Yes
@@ -691,8 +691,8 @@ export default function MarketDetailPage() {
                       <button
                         onClick={() => setChartSide('no')}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${chartSide === 'no'
-                          ? 'bg-white dark:bg-gray-600 text-rose-500 shadow-sm'
-                          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                          ? 'bg-rose-500 text-white shadow-md shadow-rose-500/25'
+                          : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:border-rose-300 dark:hover:border-rose-600'
                           }`}
                       >
                         No
