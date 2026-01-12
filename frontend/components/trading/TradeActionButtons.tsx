@@ -111,13 +111,13 @@ export function TradeActionButtons({
     const config = getButtonConfig();
 
     const variantStyles = {
-        connect: 'bg-gradient-to-r from-[#14B8A6] to-[#0D9488] text-white shadow-lg shadow-teal-500/25 hover:shadow-teal-500/40',
-        yes: 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:-translate-y-0.5',
-        no: 'bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-lg shadow-rose-500/25 hover:shadow-rose-500/40 hover:-translate-y-0.5',
-        sell: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40',
-        disabled: 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 border border-gray-200 dark:border-gray-600',
-        error: 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-300 border border-rose-100 dark:border-rose-800/50',
-        loading: 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 cursor-wait',
+        connect: 'bg-gradient-to-r from-[#14B8A6] to-[#0D9488] text-white shadow-lg shadow-teal-500/25 hover:shadow-teal-500/40 active:scale-95 active:shadow-teal-500/20 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:ring-offset-2 focus:ring-offset-gray-900',
+        yes: 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 active:shadow-emerald-500/20 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:ring-offset-2 focus:ring-offset-gray-900',
+        no: 'bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-lg shadow-rose-500/25 hover:shadow-rose-500/40 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 active:shadow-rose-500/20 focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:ring-offset-2 focus:ring-offset-gray-900',
+        sell: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 active:scale-95 active:shadow-blue-500/20 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-gray-900',
+        disabled: 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 border border-gray-200 dark:border-gray-600 active:scale-100 focus:outline-none focus:ring-2 focus:ring-gray-400/50 focus:ring-offset-2 focus:ring-offset-gray-900',
+        error: 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-300 border border-rose-100 dark:border-rose-800/50 active:scale-95 focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:ring-offset-2 focus:ring-offset-gray-900',
+        loading: 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 cursor-wait active:scale-100 focus:outline-none',
     };
 
     return (
