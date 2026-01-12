@@ -5,343 +5,282 @@ export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
+import { ArrowLeft, FileText, ChevronDown } from 'lucide-react';
+import { useState } from 'react';
+
+const sections = [
+  { id: 'agreement', title: '1. Agreement to Terms' },
+  { id: 'nature', title: '2. Nature of Our Service' },
+  { id: 'affiliate', title: '3. Affiliate Disclosures' },
+  { id: 'intellectual', title: '4. Intellectual Property' },
+  { id: 'prohibited', title: '5. Prohibited Uses' },
+  { id: 'third-party', title: '6. Third Party Platforms' },
+  { id: 'no-advice', title: '7. No Financial Advice' },
+  { id: 'security', title: '8. Security & Liability' },
+  { id: 'indemnification', title: '9. Indemnification' },
+  { id: 'dispute', title: '10. Dispute Resolution' },
+  { id: 'termination', title: '11. Termination' },
+  { id: 'general', title: '12. General Provisions' },
+  { id: 'contact', title: 'Contact Information' },
+];
+
+function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+  return (
+    <section id={id} className="scroll-mt-24">
+      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-3">
+        <span className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center text-teal-600 dark:text-teal-400 text-sm font-bold">
+          {title.split('.')[0]}
+        </span>
+        {title.split('. ')[1] || title}
+      </h2>
+      <div className="pl-11 space-y-4">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function Paragraph({ children }: { children: React.ReactNode }) {
+  return <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{children}</p>;
+}
+
+function List({ items }: { items: string[] }) {
+  return (
+    <ul className="space-y-2">
+      {items.map((item, i) => (
+        <li key={i} className="flex items-start gap-2 text-gray-600 dark:text-gray-300">
+          <span className="w-1.5 h-1.5 rounded-full bg-teal-500 mt-2 shrink-0" />
+          {item}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export default function TermsOfServicePage() {
-  return (
-    <div className="flex-1 flex flex-col relative overflow-x-hidden font-sans selection:bg-[#14B8A6]/30 selection:text-[#0f0a2e] dark:selection:text-white">
+  const [activeSection, setActiveSection] = useState('agreement');
 
-      {/* Background Gradient */}
+  return (
+    <div className="flex-1 flex flex-col relative font-sans bg-[#FAF9FF] dark:bg-[#0f172a] min-h-screen">
+
+      {/* Background */}
       <div className="fixed inset-0 pointer-events-none -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#FAF9FF] via-[#F0F4F8] to-[#E8F0F5] dark:from-[#0f172a] dark:via-[#1a1f3a] dark:to-[#1e293b]"></div>
-        <div className="absolute left-1/2 top-0 -translate-x-1/2 m-auto h-[500px] w-[500px] rounded-full bg-[#14B8A6] opacity-10 blur-[100px]"></div>
+        <div className="absolute -left-[10%] -top-[10%] h-[600px] w-[600px] rounded-full bg-teal-400/10 blur-[120px]" />
+        <div className="absolute top-[40%] -right-[10%] h-[500px] w-[500px] rounded-full bg-purple-500/10 blur-[100px]" />
       </div>
 
       <Header />
 
-      <main className="flex-1 relative z-10 mx-auto max-w-4xl w-full px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+      <main className="flex-1 relative z-10 mx-auto max-w-6xl w-full px-4 sm:px-6 lg:px-8 py-8">
 
+        {/* Back Button */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-2xl border border-gray-200 dark:border-gray-700 rounded-[32px] p-8 lg:p-12 shadow-xl"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="mb-6"
         >
-          <h1 className="text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-2">
-            SpeculateX Terms of Service
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 mb-8">
-            Last Updated: 19.12.2025
-          </p>
-
-          <div className="prose prose-slate dark:prose-invert max-w-none">
-
-            {/* Section 1 */}
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">1. Agreement to Terms</h2>
-
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">1.1 Binding Agreement</h3>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                Welcome to SpeculateX (&quot;SpeculateX,&quot; &quot;we,&quot; &quot;us,&quot; &quot;our,&quot; or &quot;the Site&quot;). These Terms of Service (&quot;Terms&quot;) form a legally binding agreement between you (&quot;User,&quot; &quot;you,&quot; or &quot;your&quot;) and SpeculateX regarding your access to and use of our website, applications, analytics, and related services located at https://speculatex.io/.
-              </p>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                By accessing, browsing, or using SpeculateX in any capacity, you acknowledge that you have read, understood, and agree to comply with these Terms, along with our Privacy Policy and any additional guidelines posted on the Site. If you do not agree to these Terms, you must immediately stop using the Site.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">1.2 Eligibility Requirements</h3>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
-                To use SpeculateX, you must:
-              </p>
-              <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 mb-4">
-                <li>Be at least 18 years of age or the age of legal majority in your jurisdiction</li>
-                <li>Have full legal capacity to enter contracts</li>
-                <li>Not be restricted from accessing prediction market information services</li>
-                <li>Comply with all applicable laws, rules, and regulations</li>
-              </ul>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                You represent and warrant that you satisfy all eligibility requirements. If you use SpeculateX on behalf of an organization, you confirm that you have authority to bind that entity to these Terms.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">1.3 Changes to Terms</h3>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                We may revise, update, or modify these Terms at any time at our sole discretion. Updates become effective immediately once posted on this page. Your continued use of the Site after modifications confirms your acceptance of the updated Terms. We may provide additional notice for significant changes, such as email notifications or banners on the Site.
-              </p>
-            </section>
-
-            {/* Section 2 */}
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">2. Nature of Our Service</h2>
-
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">2.1 Informational and Educational Resource</h3>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
-                SpeculateX provides information, data, analytics, and user interfaces related to event outcomes, market trends, Web3 technologies, decentralized prediction markets, and blockchain activity. Content available on the Site may include:
-              </p>
-              <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 mb-4">
-                <li>Explanation of prediction market mechanics</li>
-                <li>Tools for exploring synthetic markets</li>
-                <li>Commentary, analytics, and educational material</li>
-                <li>Guides on how prediction platforms operate</li>
-                <li>Market comparisons and industry insights</li>
-              </ul>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                SpeculateX does not operate or provide real prediction markets, trading systems, or financial services.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">2.2 Independent Platform</h3>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                SpeculateX is an independent project. We are not affiliated with, endorsed by, or sponsored by any prediction market operator, including but not limited to Polymarket, Kalshi, or similar companies. All trademarks belong to their respective owners and are referenced only for informational purposes.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">2.3 No Execution or Financial Operations</h3>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
-                SpeculateX:
-              </p>
-              <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 mb-4">
-                <li>Does not execute trades</li>
-                <li>Does not match buyers and sellers</li>
-                <li>Does not provide custody or hold user funds</li>
-                <li>Does not offer wallets, accounts, or financial instruments</li>
-                <li>Does not act as a broker, exchange, money transmitter, or investment service</li>
-              </ul>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                Any decision to interact with blockchain networks or third party platforms is entirely your choice and responsibility.
-              </p>
-            </section>
-
-            {/* Section 3 */}
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">3. Affiliate, Referral, or Partnership Disclosures</h2>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                If applicable, SpeculateX may participate in referral or affiliate programs. Clicking certain links may generate commissions at no additional cost to you. Compensation does not influence the objectivity or accuracy of our content.
-              </p>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mt-4">
-                Any sponsored or paid material will be clearly marked as &quot;Sponsored&quot; or &quot;Advertisement.&quot;
-              </p>
-            </section>
-
-            {/* Section 4 */}
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">4. Intellectual Property Rights</h2>
-
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">4.1 Ownership</h3>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                All content on the Site, including text, branding, data, code, images, and design, is owned by SpeculateX or licensors and is protected by intellectual property laws.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">4.2 Limited License</h3>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                We provide you a limited, revocable, non exclusive, non transferable license to use the Site for personal, non commercial purposes. You may not reproduce, copy, scrape, alter, distribute, or create derivative works without written approval.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">4.3 User Content</h3>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                If you submit content to the Site, you grant SpeculateX a worldwide, royalty free license to display and use that content for the operation and promotion of the Site. You are responsible for ensuring all submitted material belongs to you.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">4.4 DMCA Requests</h3>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                Send takedown notices to <a href="mailto:speculatedotfun@gmail.com" className="text-[#14B8A6] hover:underline">speculatedotfun@gmail.com</a> including all required DMCA elements.
-              </p>
-            </section>
-
-            {/* Section 5 */}
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">5. Prohibited Uses</h2>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
-                You agree not to engage in:
-              </p>
-              <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 mb-4">
-                <li>Illegal, fraudulent, or harmful activity</li>
-                <li>Attempts to hack, disrupt, overload, reverse engineer, or bypass security</li>
-                <li>Scraping, data extraction, automated crawling, or unauthorized use of our data</li>
-                <li>Impersonation, misrepresentation, or creating false affiliations</li>
-                <li>Activities intended to manipulate traffic, analytics, or user behavior</li>
-                <li>Bypassing geo restrictions of third party platforms using VPNs or proxies</li>
-              </ul>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                These restrictions protect the integrity and safety of the Site and users.
-              </p>
-            </section>
-
-            {/* Section 6 */}
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">6. Third Party Platforms and External Links</h2>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                SpeculateX contains links to third party websites, blockchain platforms, prediction markets, and Web3 tools. We do not control or guarantee:
-              </p>
-              <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 mb-4">
-                <li>Accuracy of their content</li>
-                <li>Safety of their smart contracts</li>
-                <li>Legal compliance of their services</li>
-                <li>Security of their systems</li>
-                <li>Availability or uptime</li>
-              </ul>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                Your interactions with third parties are entirely at your own risk. Many platforms have geographic restrictions. It is your responsibility to stay compliant with local laws.
-              </p>
-            </section>
-
-            {/* Section 7 */}
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">7. No Financial or Trading Advice</h2>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                All Site content is provided for educational and informational purposes only. SpeculateX does not provide:
-              </p>
-              <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 mb-4">
-                <li>Investment advice</li>
-                <li>Legal advice</li>
-                <li>Tax guidance</li>
-                <li>Financial recommendations</li>
-                <li>Trading signals</li>
-                <li>Predictions or guarantees of future outcomes</li>
-              </ul>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
-                You acknowledge that:
-              </p>
-              <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 mb-4">
-                <li>Markets are volatile and risky</li>
-                <li>Past performance does not guarantee future results</li>
-                <li>You are solely responsible for your decisions</li>
-                <li>SpeculateX is not liable for your trading losses, market outcomes, or strategies</li>
-              </ul>
-            </section>
-
-            {/* Section 8 */}
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">8. Security, Blockchain Risks, and Limitations of Liability</h2>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                SpeculateX uses Web3 tools, decentralized technologies, and third party integrations. You acknowledge the inherent risks, including:
-              </p>
-              <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 mb-4">
-                <li>Smart contract failures or exploits</li>
-                <li>Temporary or permanent loss of tokens or funds</li>
-                <li>Network congestion or downtime</li>
-                <li>Incorrect wallet interactions</li>
-                <li>Gas fees, slippage, failed transactions</li>
-                <li>Phishing, hacking, or unauthorized access</li>
-                <li>Forks, chain reorganizations, or consensus failures</li>
-                <li>Market manipulation by external parties</li>
-              </ul>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                SpeculateX is not responsible for:
-              </p>
-              <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300 mb-4">
-                <li>Lost private keys</li>
-                <li>Stolen wallets</li>
-                <li>User errors</li>
-                <li>Incorrect transactions</li>
-                <li>Losses due to blockchain vulnerabilities</li>
-                <li>Losses from reliance on Site information</li>
-              </ul>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                The Site is provided &quot;AS IS&quot; and &quot;AS AVAILABLE&quot; without warranties of any kind. To the fullest extent allowed by law, SpeculateX is not liable for indirect, incidental, consequential, punitive, or special damages.
-              </p>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                Where liability cannot be excluded, our total liability is limited to 50 USD or the amount paid to SpeculateX in the last 12 months, whichever is lower.
-              </p>
-            </section>
-
-            {/* Section 9 */}
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">9. Indemnification</h2>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
-                You agree to indemnify and hold harmless SpeculateX, its team, contractors, partners, and affiliates from all claims arising from:
-              </p>
-              <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300">
-                <li>Your use of the Site</li>
-                <li>Violations of these Terms</li>
-                <li>Infringement of intellectual property</li>
-                <li>Interactions with blockchain networks</li>
-                <li>Activity on third party platforms</li>
-                <li>Illegal or fraudulent conduct</li>
-              </ul>
-            </section>
-
-            {/* Section 10 */}
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">10. Dispute Resolution</h2>
-
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">10.1 Governing Law</h3>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                These Terms are governed by the laws of Singapore, excluding conflict of laws rules.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">10.2 Informal Resolution</h3>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                Users must attempt to resolve disputes by contacting <a href="mailto:legal@speculatex.io" className="text-[#14B8A6] hover:underline">legal@speculatex.io</a> within 30 days before initiating arbitration.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">10.3 Binding Arbitration</h3>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                Disputes shall be resolved through binding arbitration conducted in English, seated in Singapore, before a single arbitrator. Arbitration may occur remotely subject to agreement.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">10.4 No Class Actions</h3>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-                All disputes must be brought on an individual basis. No class actions, mass claims, or collective proceedings are permitted.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">10.5 Exceptions</h3>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                Either party may seek injunctive or equitable relief in court for intellectual property violations, unauthorized access, or actions creating potential irreparable harm.
-              </p>
-            </section>
-
-            {/* Section 11 */}
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">11. Term and Termination</h2>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                These Terms remain active while you use the Site. SpeculateX may suspend or terminate your access at any time if you violate these Terms, misuse the Site, or pose a security risk. Upon termination, all rights granted to you cease immediately.
-              </p>
-            </section>
-
-            {/* Section 12 */}
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">12. General Provisions</h2>
-              <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300">
-                <li>These Terms and our Privacy Policy constitute the full agreement between you and SpeculateX.</li>
-                <li>If any provision is unenforceable, the rest remains valid.</li>
-                <li>Failure to enforce any provision is not a waiver.</li>
-                <li>You may not assign your rights without permission; we may assign freely.</li>
-                <li>We are not liable for delays caused by events beyond our control (force majeure).</li>
-                <li>Notices may be emailed or posted on the Site.</li>
-                <li>These Terms do not create a partnership, employment, or agency relationship.</li>
-                <li>The English version of these Terms prevails.</li>
-              </ul>
-            </section>
-
-            {/* Contact Information */}
-            <section className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Contact Information</h2>
-              <div className="space-y-2 text-gray-700 dark:text-gray-300">
-                <p>
-                  <strong>Website:</strong>{' '}
-                  <a href="https://speculatex.io/" className="text-[#14B8A6] hover:underline" target="_blank" rel="noopener noreferrer">
-                    https://speculatex.io/
-                  </a>
-                </p>
-                <p>
-                  <strong>Email:</strong>{' '}
-                  <a href="mailto:speculatedotfun@gmail.com" className="text-[#14B8A6] hover:underline">
-                    speculatedotfun@gmail.com
-                  </a>
-                </p>
-              </div>
-            </section>
-
-          </div>
-
-          <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 text-[#14B8A6] hover:text-[#0d9488] font-bold transition-colors"
-            >
-              ← Back to Home
-            </Link>
-          </div>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 text-sm font-medium transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Link>
         </motion.div>
+
+        <div className="flex gap-8">
+          {/* Sidebar - Table of Contents */}
+          <motion.aside
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="hidden lg:block w-64 shrink-0"
+          >
+            <div className="sticky top-24 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
+              <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
+                Contents
+              </h3>
+              <nav className="space-y-1">
+                {sections.map((section) => (
+                  <a
+                    key={section.id}
+                    href={`#${section.id}`}
+                    onClick={() => setActiveSection(section.id)}
+                    className={`block px-3 py-2 rounded-lg text-sm transition-colors ${activeSection === section.id
+                        ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 font-medium'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                      }`}
+                  >
+                    {section.title}
+                  </a>
+                ))}
+              </nav>
+            </div>
+          </motion.aside>
+
+          {/* Main Content */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="flex-1 min-w-0"
+          >
+            {/* Header Card */}
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 sm:p-8 mb-6 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shrink-0 shadow-lg shadow-teal-500/25">
+                  <FileText className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white mb-1">
+                    Terms of Service
+                  </h1>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Last Updated: December 19, 2025
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content Card */}
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 sm:p-8 shadow-sm">
+              <div className="space-y-10">
+
+                <Section id="agreement" title="1. Agreement to Terms">
+                  <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-700/30 mb-4">
+                    <Paragraph>
+                      By accessing SpeculateX, you agree to these Terms of Service, our Privacy Policy, and all applicable guidelines. If you don't agree, please stop using the Site immediately.
+                    </Paragraph>
+                  </div>
+                  <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Eligibility Requirements</h4>
+                  <List items={[
+                    'Be at least 18 years of age or the age of legal majority',
+                    'Have full legal capacity to enter contracts',
+                    'Not be restricted from accessing prediction market services',
+                    'Comply with all applicable laws and regulations'
+                  ]} />
+                </Section>
+
+                <Section id="nature" title="2. Nature of Our Service">
+                  <Paragraph>
+                    SpeculateX provides information, data, analytics, and user interfaces related to prediction markets and blockchain activity. We are an <strong className="text-gray-900 dark:text-white">independent informational platform</strong>.
+                  </Paragraph>
+                  <div className="grid sm:grid-cols-2 gap-3 mt-4">
+                    <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200/50 dark:border-emerald-700/30">
+                      <h5 className="font-semibold text-emerald-700 dark:text-emerald-400 text-sm mb-2">What We Provide</h5>
+                      <List items={['Market analytics & data', 'Educational content', 'Trading interfaces', 'Industry insights']} />
+                    </div>
+                    <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-900/10 border border-rose-200/50 dark:border-rose-700/30">
+                      <h5 className="font-semibold text-rose-600 dark:text-rose-400 text-sm mb-2">What We Don't Do</h5>
+                      <List items={['Execute trades', 'Hold user funds', 'Provide custody', 'Act as a broker']} />
+                    </div>
+                  </div>
+                </Section>
+
+                <Section id="affiliate" title="3. Affiliate Disclosures">
+                  <Paragraph>
+                    SpeculateX may participate in referral or affiliate programs. Clicking certain links may generate commissions at no additional cost to you. Compensation does not influence our content's objectivity.
+                  </Paragraph>
+                </Section>
+
+                <Section id="intellectual" title="4. Intellectual Property">
+                  <Paragraph>
+                    All content on the Site, including text, branding, data, code, and design, is owned by SpeculateX or our licensors and is protected by intellectual property laws.
+                  </Paragraph>
+                  <Paragraph>
+                    We provide you a limited, revocable, non-exclusive license to use the Site for personal, non-commercial purposes only.
+                  </Paragraph>
+                </Section>
+
+                <Section id="prohibited" title="5. Prohibited Uses">
+                  <List items={[
+                    'Illegal, fraudulent, or harmful activity',
+                    'Hacking, disrupting, or bypassing security',
+                    'Scraping, data extraction, or automated crawling',
+                    'Impersonation or misrepresentation',
+                    'Manipulating traffic or user behavior',
+                    'Bypassing geo-restrictions via VPNs'
+                  ]} />
+                </Section>
+
+                <Section id="third-party" title="6. Third Party Platforms">
+                  <Paragraph>
+                    SpeculateX contains links to third-party websites and blockchain platforms. We do not control or guarantee their accuracy, safety, or legal compliance. Your interactions with third parties are at your own risk.
+                  </Paragraph>
+                </Section>
+
+                <Section id="no-advice" title="7. No Financial Advice">
+                  <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-700/30">
+                    <Paragraph>
+                      <strong className="text-amber-700 dark:text-amber-400">⚠️ Important:</strong> All content is for educational purposes only. We do not provide investment, legal, tax, or financial advice. You are solely responsible for your decisions.
+                    </Paragraph>
+                  </div>
+                </Section>
+
+                <Section id="security" title="8. Security & Liability">
+                  <Paragraph>
+                    Blockchain interactions carry inherent risks including smart contract failures, network congestion, phishing, and loss of funds. The Site is provided "AS IS" without warranties.
+                  </Paragraph>
+                  <Paragraph>
+                    SpeculateX is not responsible for lost keys, stolen wallets, user errors, or losses from blockchain vulnerabilities.
+                  </Paragraph>
+                </Section>
+
+                <Section id="indemnification" title="9. Indemnification">
+                  <Paragraph>
+                    You agree to indemnify and hold harmless SpeculateX from all claims arising from your use of the Site, violations of these Terms, or interactions with blockchain networks.
+                  </Paragraph>
+                </Section>
+
+                <Section id="dispute" title="10. Dispute Resolution">
+                  <Paragraph>
+                    These Terms are governed by the laws of Singapore. Disputes shall be resolved through binding arbitration conducted in English before a single arbitrator. No class actions are permitted.
+                  </Paragraph>
+                </Section>
+
+                <Section id="termination" title="11. Termination">
+                  <Paragraph>
+                    These Terms remain active while you use the Site. SpeculateX may suspend or terminate your access at any time for violations or security concerns.
+                  </Paragraph>
+                </Section>
+
+                <Section id="general" title="12. General Provisions">
+                  <List items={[
+                    'These Terms constitute the full agreement between you and SpeculateX',
+                    'If any provision is unenforceable, the rest remains valid',
+                    'You may not assign your rights without permission',
+                    'We are not liable for delays caused by force majeure',
+                    'The English version of these Terms prevails'
+                  ]} />
+                </Section>
+
+                <Section id="contact" title="Contact Information">
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <a
+                      href="https://speculatex.io"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 p-4 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-teal-500 transition-colors text-center"
+                    >
+                      <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Website</div>
+                      <div className="text-teal-600 dark:text-teal-400 font-semibold">speculatex.io</div>
+                    </a>
+                    <a
+                      href="mailto:speculatedotfun@gmail.com"
+                      className="flex-1 p-4 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-teal-500 transition-colors text-center"
+                    >
+                      <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Email</div>
+                      <div className="text-teal-600 dark:text-teal-400 font-semibold">speculatedotfun@gmail.com</div>
+                    </a>
+                  </div>
+                </Section>
+
+              </div>
+            </div>
+          </motion.div>
+        </div>
 
       </main>
     </div>
   );
 }
-
