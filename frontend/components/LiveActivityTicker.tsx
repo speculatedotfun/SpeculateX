@@ -88,7 +88,11 @@ export function LiveActivityTicker() {
     return [...trades, ...trades, ...trades];
   }, [trades]);
 
+  // Hide on home page
   if (pathname === '/') return null;
+
+  // Hide on market detail pages (reduces distraction)
+  if (pathname?.startsWith('/markets/') && pathname !== '/markets') return null;
 
   if (trades.length === 0) return null;
 

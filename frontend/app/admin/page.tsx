@@ -216,7 +216,7 @@ export default function AdminPage() {
 
       <Header />
 
-      <main className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+      <main className="relative z-10 mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-12">
 
         {/* Header Section */}
         <div className="mb-12 flex flex-col xl:flex-row xl:items-end justify-between gap-8">

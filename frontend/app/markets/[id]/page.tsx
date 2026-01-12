@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useAccount, useReadContract, usePublicClient, useBlockNumber } from 'wagmi';
 import { useMarketData } from '@/lib/hooks/useMarketData';
 import Link from 'next/link';
@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MarketInfo, MarketResolution } from '@/lib/types';
 import { formatUnits, decodeEventLog } from 'viem';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Clock, AlertTriangle, CheckCircle2, Loader2, Share2, Check, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Clock, AlertTriangle, CheckCircle2, Loader2, Share2, Check, TrendingUp, MessageSquare, ChevronRight, X, Info } from 'lucide-react';
 
 // Components
 import Header from '@/components/Header';
@@ -120,7 +120,7 @@ function MarketDetailSkeleton() {
   return (
     <div className="min-h-screen bg-[#FAF9FF] dark:bg-[#0f172a] relative overflow-hidden">
       <Header />
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8" role="status" aria-label="Loading market details">
+      <div className="relative z-10 mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-8" role="status" aria-label="Loading market details">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -189,6 +189,7 @@ function MarketDetailSkeleton() {
 
 export default function MarketDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const publicClient = usePublicClient();
   const rawIdParam = Array.isArray(params?.id) ? params.id[0] : params?.id;
   const marketId = typeof rawIdParam === 'string' ? rawIdParam : '';
@@ -204,8 +205,15 @@ export default function MarketDetailPage() {
   // Use centralized market data hook
   const marketData = useMarketData(marketIdNum);
 
+  // Initialize side from URL query parameter
+  const urlSide = searchParams?.get('side');
+  const initialSide = (urlSide === 'yes' || urlSide === 'no') ? urlSide : 'yes';
+
   // UI state
-  const [activeTab, setActiveTab] = useState<'About' | 'Chat' | 'Resolution'>('About');
+  const [activeTab, setActiveTab] = useState<'About' | 'Activity' | 'Resolution'>('About');
+  const [chatOpen, setChatOpen] = useState(false);
+  const [tradeMode, setTradeMode] = useState<'buy' | 'sell'>('buy');
+  const [side, setSide] = useState<'yes' | 'no'>(initialSide);
   const [holderTab, setHolderTab] = useState<'yes' | 'no'>('yes');
   const [chartSide, setChartSide] = useState<'yes' | 'no'>('yes');
   const [chartPanel, setChartPanel] = useState<'market' | 'asset'>('market');
@@ -280,6 +288,15 @@ export default function MarketDetailPage() {
   useEffect(() => {
     setError('');
   }, [marketId]);
+
+  // Update side when URL query parameter changes
+  useEffect(() => {
+    if (!searchParams) return;
+    const urlSide = searchParams.get('side');
+    if (urlSide === 'yes' || urlSide === 'no') {
+      setSide(urlSide);
+    }
+  }, [searchParams]);
 
   // Optimized Metadata Loading (Subgraph -> RPC Fallback)
   const { data: subgraphMarket } = useQuery({
@@ -571,7 +588,7 @@ export default function MarketDetailPage() {
 
       <Header />
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+      <div className="relative z-10 mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-6">
 
         {/* Back Link & Share Button */}
         <motion.div initial={prefersReducedMotion ? false : { x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="mb-4 flex items-center justify-between">
@@ -625,8 +642,8 @@ export default function MarketDetailPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-3">
 
-          {/* --- Left Column: Chart & Tabs (7 cols) --- */}
-          <div className="lg:col-span-7 space-y-6">
+          {/* --- Left Column: Chart & Tabs (8 cols) --- */}
+          <div className="lg:col-span-8 space-y-6">
 
             {/* Chart Card */}
             <motion.div
@@ -802,7 +819,7 @@ export default function MarketDetailPage() {
               className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl shadow-lg shadow-gray-200/30 dark:shadow-black/30 border border-gray-100 dark:border-gray-800 overflow-hidden"
             >
               <div className="flex border-b border-gray-100 dark:border-gray-700 overflow-x-auto scrollbar-hide p-2 bg-gray-50/50 dark:bg-gray-900/20">
-                {(['About', 'Resolution', 'Chat'] as const).map((tab) => (
+                {(['About', 'Resolution', 'Activity'] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
@@ -843,27 +860,39 @@ export default function MarketDetailPage() {
                           noBalance={noBalance}
                           priceYes={marketData.currentPrices.yes}
                           priceNo={marketData.currentPrices.no}
+                          setTradeMode={setTradeMode}
+                          setSide={setSide}
                         />
 
                         {/* Rules Section */}
                         <div className="mt-6 p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
                           <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                              <AlertTriangle className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                            <span className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
+                              <Info className="w-3.5 h-3.5 text-indigo-500" />
                             </span>
-                            Resolution Rules
+                            How it resolves
                           </h3>
-                          <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                          <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
                             {resolution?.oracleType === 0 && 'This market is resolved manually by the platform administrators.'}
-                            {resolution?.oracleType === 1 && 'This market resolves automatically based on Chainlink oracle data at the expiration time.'}
+                            {resolution?.oracleType === 1 && `This market resolves automatically based on Chainlink oracle data at the ${market.question.includes('BTC') ? 'BTC/USD' : 'target'} price feed.`}
                             {!resolution && 'Standard resolution rules apply.'}
                           </div>
+                          <button
+                            onClick={() => setActiveTab('Resolution')}
+                            className="mt-4 text-[11px] font-bold text-[#14B8A6] uppercase tracking-widest hover:text-[#0D9488] transition-colors"
+                          >
+                            View technical details →
+                          </button>
                         </div>
                       </div>
                     )}
 
-                    {/* Chat Tab - Comments */}
-                    {activeTab === 'Chat' && <CommentsTab marketId={marketId} isConnected={isConnected} address={address} />}
+                    {/* Activity Tab - Live Trades */}
+                    {activeTab === 'Activity' && (
+                      <div className="h-[400px]">
+                        <LiveTradeFeed transactions={transactions} />
+                      </div>
+                    )}
 
                     {/* Resolution Tab */}
                     {activeTab === 'Resolution' && (
@@ -871,6 +900,7 @@ export default function MarketDetailPage() {
                         resolution={resolution}
                         marketId={marketIdNum}
                         marketStatus={marketStatus === 0 ? 'active' : marketStatus === 1 ? 'resolved' : 'cancelled'}
+                        marketCreatedAt={marketWithCreatedAt?.createdAt ?? snapshotData?.createdAt ?? undefined}
                       />
                     )}
                   </motion.div>
@@ -879,8 +909,8 @@ export default function MarketDetailPage() {
             </motion.div>
           </div>
 
-          {/* --- Right Column: Trading & Stats (5 cols) --- */}
-          <div className="lg:col-span-5 space-y-4">
+          {/* --- Right Column: Trading & Stats (4 cols) --- */}
+          <div className="lg:col-span-4 space-y-4">
 
             {/* Trading Card (Desktop Sticky) - ID for Mobile Scroll */}
             <motion.div
@@ -895,15 +925,37 @@ export default function MarketDetailPage() {
                   <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl shadow-lg shadow-gray-200/30 dark:shadow-black/30 border border-gray-100 dark:border-gray-800 overflow-hidden">
                     <TradingCard
                       marketId={marketIdNum}
+                      tradeMode={tradeMode}
+                      setTradeMode={setTradeMode}
+                      side={side}
+                      setSide={setSide}
                       onTradeSuccess={(trade) => mergeTransactionRows([trade])}
                     />
                   </div>
 
 
-                  {/* Live Trades */}
-                  <div className="h-[200px]">
-                    <LiveTradeFeed transactions={transactions} />
-                  </div>
+                  {/* Chat Trigger Button */}
+                  <button
+                    onClick={() => {
+                      // We'll use a simple state or just switch to a modal if we had one.
+                      // For now, let's just scroll to the tabs and set them to "About" or 
+                      // maybe keep Chat as a hidden fifth tab or just a modal.
+                      // The user said "as a drawer/button".
+                      setChatOpen(true);
+                    }}
+                    className="w-full p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-[#14B8A6] transition-all flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#14B8A6]/10 flex items-center justify-center text-[#14B8A6]">
+                        <MessageSquare className="w-5 h-5" />
+                      </div>
+                      <div className="text-left">
+                        <div className="text-sm font-black text-gray-900 dark:text-white">Community Chat</div>
+                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Join the discussion</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-[#14B8A6] group-hover:translate-x-1 transition-all" />
+                  </button>
 
                   {!marketIsActive && (
                     <motion.div
@@ -950,6 +1002,48 @@ export default function MarketDetailPage() {
           <TrendingUp className="w-6 h-6" />
         </button>
       </motion.div>
+
+      {/* Chat Sidebar / Drawer */}
+      <AnimatePresence>
+        {chatOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setChatOpen(false)}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
+            />
+            {/* Drawer */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 right-0 w-full sm:w-[400px] bg-white dark:bg-gray-900 shadow-2xl z-[101] border-l border-gray-100 dark:border-gray-800 flex flex-col"
+            >
+              <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/30">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-[#14B8A6]/10 flex items-center justify-center text-[#14B8A6]">
+                    <MessageSquare className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Market Chat</h3>
+                </div>
+                <button
+                  onClick={() => setChatOpen(false)}
+                  className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <CommentsTab marketId={marketId} isConnected={isConnected} address={address} />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
     </div >
   );

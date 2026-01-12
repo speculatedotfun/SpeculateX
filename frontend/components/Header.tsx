@@ -10,7 +10,7 @@ import { isAdmin as checkIsAdmin } from '@/lib/accessControl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import NetworkSelector from '@/components/NetworkSelector';
-import { Menu, X, User, LogOut, Copy, Check } from 'lucide-react';
+import { Menu, X, User, LogOut, Copy, Check, Droplet, Users, Search as SearchIcon } from 'lucide-react';
 import { hapticFeedback } from '@/lib/haptics';
 import { useNicknames, getDisplayName } from '@/lib/hooks/useNicknames';
 import { NicknameManager } from '@/components/NicknameManager';
@@ -51,7 +51,7 @@ function HeaderAccountButton({ account, openAccountModal }: { account: any, open
           <button
             onClick={() => setIsModalOpen(true)}
             type="button"
-            className="relative flex items-center gap-3 rounded-full bg-white dark:bg-gray-900 px-1 py-1 pr-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+            className="relative flex items-center gap-3 rounded-full bg-white dark:bg-gray-900 px-1 py-1 pr-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all hover:-translate-y-[1px] hover:shadow-sm"
           >
             {/* Avatar */}
             <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-[#14B8A6] to-cyan-500 flex items-center justify-center text-white shadow-md">
@@ -78,7 +78,7 @@ function HeaderAccountButton({ account, openAccountModal }: { account: any, open
               <span className="text-[10px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-cyan-500 uppercase tracking-wider">
                 {account.displayBalance ? account.displayBalance : 'Connected'}
               </span>
-              <span className={`text-xs font-bold text-gray-900 dark:text-gray-100 ${hasNickname ? '' : 'font-mono'}`}>
+              <span className={`text-sm font-black text-gray-900 dark:text-gray-100 ${hasNickname ? '' : 'font-mono'}`}>
                 {displayName}
               </span>
             </div>
@@ -229,7 +229,7 @@ function CustomConnectButton({ prefersReducedMotion = false }: { prefersReducedM
                       openConnectModal();
                     }}
                     type="button"
-                    className="group relative inline-flex items-center justify-center rounded-full bg-[#14B8A6] dark:bg-[#14B8A6] px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-[#14B8A6]/25 dark:shadow-[#14B8A6]/30 hover:bg-[#0D9488] dark:hover:bg-[#0D9488] hover:shadow-xl hover:shadow-[#14B8A6]/30 dark:hover:shadow-[#14B8A6]/40 transition-all duration-300 active:scale-95"
+                    className="group relative inline-flex items-center justify-center rounded-full bg-[#14B8A6] dark:bg-[#14B8A6] px-6 py-3 text-base font-black text-white shadow-lg shadow-[#14B8A6]/25 dark:shadow-[#14B8A6]/30 hover:bg-[#0D9488] dark:hover:bg-[#0D9488] hover:shadow-xl hover:shadow-[#14B8A6]/30 dark:hover:shadow-[#14B8A6]/40 transition-all duration-300 active:scale-95"
                   >
                     Connect Wallet
                   </button>
@@ -241,7 +241,7 @@ function CustomConnectButton({ prefersReducedMotion = false }: { prefersReducedM
                   <button
                     onClick={openChainModal}
                     type="button"
-                    className="inline-flex items-center justify-center rounded-full bg-red-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-600 hover:shadow-lg hover:shadow-red-500/25 transition-all active:scale-95"
+                    className="inline-flex items-center justify-center rounded-full bg-red-500 px-6 py-3 text-base font-black text-white hover:bg-red-600 hover:shadow-lg hover:shadow-red-500/25 transition-all active:scale-95"
                   >
                     Wrong Network
                   </button>
@@ -258,7 +258,18 @@ function CustomConnectButton({ prefersReducedMotion = false }: { prefersReducedM
 }
 
 // --- Main Header Component ---
-export default function Header() {
+interface HeaderProps {
+  stats?: {
+    liquidity: string;
+    traders: number | string;
+  };
+  searchTerm?: string;
+  onSearchChange?: (value: string) => void;
+  showSearch?: boolean;
+}
+
+export default function Header(props: HeaderProps = {}) {
+  const { stats, searchTerm = '', onSearchChange, showSearch = false } = props;
   const pathname = usePathname();
   const { address, isConnected } = useAccount();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -302,82 +313,114 @@ export default function Header() {
     return pathname.startsWith(path);
   };
 
-  const isLandingPage = pathname === '/';
-
-  // Close mobile menu when route changes
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [pathname]);
-
   const navLinks = [
-    { href: '/', label: 'Home' },
-    { href: '/markets', label: 'Markets' },
+    { href: '/', label: 'Markets' },
     { href: '/portfolio', label: 'Portfolio' },
     { href: '/leaderboard', label: 'Leaderboard' },
     ...(isAdmin ? [{ href: '/admin', label: 'Admin' }] : []),
   ];
 
   return (
-    <header className={`sticky top-0 z-50 transition-all duration-300 border-b ${scrolled
-      ? 'bg-white/70 dark:bg-[#0f1219]/70 backdrop-blur-xl shadow-lg shadow-black/5 border-gray-200/50 dark:border-white/5'
-      : 'bg-transparent border-transparent'
-      }`}
-    >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className={`flex items-center justify-between transition-all duration-300 ${scrolled ? 'h-16' : 'h-16 sm:h-20'}`}>
+    <header className={`sticky top-0 z-50 bg-white/60 dark:bg-[#0f1219]/60 backdrop-blur-md border-b border-black/5 dark:border-white/5 transition-all duration-300 ${scrolled ? 'shadow-sm shadow-black/5' : ''}`}>
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-4 transition-all duration-300 h-16">
 
-          {/* Logo */}
-          <Link href="/" className="flex items-center group flex-shrink-0 relative z-20" onClick={() => setIsMobileMenuOpen(false)}>
-            <div className="relative w-[140px] sm:w-[200px] h-10 sm:h-10 transition-transform duration-300 group-hover:scale-105">
-              {/* Light mode logo */}
-              <Image
-                src="/Whitelogo.png"
-                alt="SpeculateX Logo"
-                fill
-                sizes="(max-width: 640px) 140px, 200px"
-                priority
-                className="object-contain object-left dark:hidden"
-              />
-              {/* Dark mode logo */}
-              <Image
-                src="/darklogo.png"
-                alt="SpeculateX Logo"
-                fill
-                sizes="(max-width: 640px) 140px, 200px"
-                priority
-                className="object-contain object-left hidden dark:block"
-              />
+          {/* Left: Logo + Navigation */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {/* Logo */}
+            <Link href="/" className="flex items-center group relative z-20 -ml-4 sm:-ml-6 lg:-ml-8" onClick={() => setIsMobileMenuOpen(false)}>
+              <div className="relative w-[160px] sm:w-[220px] h-9 sm:h-10 transition-transform duration-300 group-hover:scale-105 pl-4 sm:pl-6 lg:pl-8">
+                {/* Light mode logo */}
+                <Image
+                  src="/Whitelogo.png"
+                  alt="SpeculateX Logo"
+                  fill
+                  sizes="(max-width: 640px) 160px, 220px"
+                  priority
+                  className="object-contain object-left dark:hidden"
+                />
+                {/* Dark mode logo */}
+                <Image
+                  src="/darklogo.png"
+                  alt="SpeculateX Logo"
+                  fill
+                  sizes="(max-width: 640px) 160px, 220px"
+                  priority
+                  className="object-contain object-left hidden dark:block"
+                />
+              </div>
+            </Link>
+
+            {/* Navigation Links */}
+            <div className="hidden md:flex items-center gap-2">
+              {/* Vertical Divider */}
+              <div className="w-px h-6 bg-gray-300/60 dark:bg-gray-600/60" />
+              
+              {/* Navigation Links */}
+              <nav className="flex items-center gap-1">
+                {navLinks.map((link) => {
+                  const active = isActive(link.href);
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={`relative px-3 py-2 rounded-lg text-sm transition-all duration-200 hover:-translate-y-[1px] hover:shadow-sm ${
+                        active
+                          ? 'text-teal-600 dark:text-teal-400 font-bold'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 font-medium'
+                      }`}
+                    >
+                      {link.label}
+                      {active && (
+                        <motion.div
+                          layoutId={prefersReducedMotion ? undefined : "navbar-indicator"}
+                          className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-teal-500 to-cyan-400 rounded-full"
+                          transition={prefersReducedMotion ? { duration: 0 } : { type: "spring", bounce: 0.2, duration: 0.6 }}
+                        />
+                      )}
+                    </Link>
+                  );
+                })}
+              </nav>
             </div>
-          </Link>
+          </div>
 
-          {/* Navigation - Desktop */}
-          <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
-            {navLinks.map((link) => {
-              const active = isActive(link.href);
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`relative px-4 py-2 rounded-full text-sm font-bold transition-all duration-300 ${active
-                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-cyan-500'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                    }`}
-                >
-                  {link.label}
-                  {active && (
-                    <motion.div
-                      layoutId={prefersReducedMotion ? undefined : "navbar-indicator"}
-                      className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-teal-400 to-cyan-400 mx-auto w-1/2 rounded-full shadow-[0_0_10px_rgba(20,184,166,0.5)]"
-                      transition={prefersReducedMotion ? { duration: 0 } : { type: "spring", bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
+          {/* Center: Search Bar (only on markets page) */}
+          {showSearch && onSearchChange && (
+            <div className="hidden lg:flex flex-1 max-w-lg mx-8">
+              <div className="relative w-full group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <SearchIcon className="h-4 w-4 text-gray-400 group-focus-within:text-teal-500 transition-colors" />
+                </div>
+                <input
+                  type="text"
+                  className="block w-full h-11 pl-11 pr-20 rounded-full bg-white/80 dark:bg-gray-800/60 border border-black/5 dark:border-white/5 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/30 dark:focus:border-teal-500/30 focus:bg-white dark:focus:bg-gray-800/80 text-sm transition-all font-medium shadow-sm"
+                  placeholder="Search markets..."
+                  value={searchTerm}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                />
+                <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                  <kbd className="hidden xl:inline-flex items-center gap-0.5 px-2 py-1 rounded-md text-[10px] font-semibold text-gray-400 dark:text-gray-500 bg-gray-100/80 dark:bg-gray-700/60 border border-black/5 dark:border-white/5">
+                    ⌘K
+                  </kbd>
+                </div>
+              </div>
+            </div>
+          )}
 
-          {/* Right Side - Wallet or Launch App */}
-          <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0 relative z-20">
+          {/* Right Side - Stats + Network + Wallet */}
+          <div className="flex items-center gap-2 flex-shrink-0 relative z-20 ml-auto">
+            {/* Stats (optional) - Merged into one pill */}
+            {stats && (
+              <div className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800/60 border border-gray-200/50 dark:border-gray-700/50">
+                <Droplet className="w-4 h-4 text-blue-500 dark:text-blue-400 shrink-0" />
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{stats.liquidity}</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">·</span>
+                <Users className="w-4 h-4 text-purple-500 dark:text-purple-400 shrink-0" />
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{stats.traders}</span>
+              </div>
+            )}
+            
             {/* Network Selector */}
             <NetworkSelector />
 
@@ -416,25 +459,7 @@ export default function Header() {
 
             {/* Custom Wallet Button (Desktop) */}
             <div className="hidden sm:block">
-              {isLandingPage ? (
-                <Link
-                  href="/markets"
-                  className="group relative inline-flex items-center justify-center rounded-full bg-teal-500 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-teal-500/25 dark:shadow-teal-500/10 hover:bg-teal-600 hover:shadow-xl hover:shadow-teal-500/30 transition-all duration-300 active:scale-95 overflow-hidden ring-2 ring-transparent hover:ring-teal-500/20"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />
-                  <span className="mr-2 relative z-10">Launch App</span>
-                  <svg
-                    className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1 relative z-10"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </Link>
-              ) : (
-                <CustomConnectButton prefersReducedMotion={prefersReducedMotion} />
-              )}
+              <CustomConnectButton prefersReducedMotion={prefersReducedMotion} />
             </div>
           </div>
         </div>

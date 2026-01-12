@@ -7,13 +7,15 @@ interface SparklineProps {
   color?: string;
   width?: number;
   height?: number;
+  strokeWidth?: number;
 }
 
 export function Sparkline({ 
   data, 
   color = '#14B8A6', 
   width = 80, 
-  height = 30 
+  height = 30,
+  strokeWidth = 2,
 }: SparklineProps) {
   const points = useMemo(() => {
     if (data.length < 2) return '';
@@ -36,7 +38,7 @@ export function Sparkline({
       <polyline
         fill="none"
         stroke={color}
-        strokeWidth="2"
+        strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
         points={points}

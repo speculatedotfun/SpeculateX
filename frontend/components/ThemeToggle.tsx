@@ -19,7 +19,7 @@ export function ThemeToggle() {
         onMouseLeave={() => setShowTooltip(false)}
         onFocus={() => setShowTooltip(true)}
         onBlur={() => setShowTooltip(false)}
-        className="relative p-2.5 rounded-xl bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-[#14B8A6] dark:hover:text-[#14B8A6] border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-[#14B8A6] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+        className="relative p-2 rounded-full border border-black/5 dark:border-white/5 bg-white/60 dark:bg-gray-800/40 text-gray-500 dark:text-gray-400 hover:text-[#14B8A6] dark:hover:text-[#14B8A6] hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all hover:-translate-y-[1px] hover:shadow-sm focus:outline-none focus:ring-1 focus:ring-[#14B8A6]/20"
         aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
       >
         <AnimatePresence mode="wait" initial={false}>
@@ -31,7 +31,7 @@ export function ThemeToggle() {
               exit={{ rotate: 90, opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
             >
-              <Sun className="w-5 h-5" aria-hidden="true" />
+              <Sun className="w-3.5 h-3.5" aria-hidden="true" />
             </motion.div>
           ) : (
             <motion.div
@@ -41,7 +41,7 @@ export function ThemeToggle() {
               exit={{ rotate: -90, opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
             >
-              <Moon className="w-5 h-5" aria-hidden="true" />
+              <Moon className="w-3.5 h-3.5" aria-hidden="true" />
             </motion.div>
           )}
         </AnimatePresence>

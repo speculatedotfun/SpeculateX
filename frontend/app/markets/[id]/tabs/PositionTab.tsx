@@ -1,7 +1,8 @@
 'use client';
 import { motion } from 'framer-motion';
-import { Wallet, TrendingUp, TrendingDown, PieChart, ArrowUpRight, ArrowDownRight, Trophy } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, PieChart, ArrowUpRight, ArrowDownRight, Trophy, ArrowRight } from 'lucide-react';
 import type { TransactionRow } from '@/lib/marketTransformers';
+import { hapticFeedback } from '@/lib/haptics';
 
 interface PositionTabProps {
   isConnected: boolean;
@@ -11,6 +12,8 @@ interface PositionTabProps {
   noBalance: string;
   priceYes: number;
   priceNo: number;
+  setTradeMode: (mode: 'buy' | 'sell') => void;
+  setSide: (side: 'yes' | 'no') => void;
 }
 
 export function PositionTab({
@@ -21,6 +24,8 @@ export function PositionTab({
   noBalance,
   priceYes,
   priceNo,
+  setTradeMode,
+  setSide,
 }: PositionTabProps) {
   const yesShares = parseFloat(yesBalance);
   const noShares = parseFloat(noBalance);
@@ -28,89 +33,37 @@ export function PositionTab({
   const hasNo = noShares > 0.0001;
   const yesValue = yesShares * priceYes;
   const noValue = noShares * priceNo;
-  const totalValue = yesValue + noValue;
-  const totalShares = yesShares + noShares;
 
-  // Calculate Average Cost & P&L
-  const userTransactions = transactions.filter(
-    tx => tx.user.toLowerCase() === address?.toLowerCase()
-  );
+  const getAvgPrice = (type: 'BuyYes' | 'BuyNo') => {
+    const relevant = transactions.filter(t => t.type === type);
+    if (relevant.length === 0) return 0;
+    // For buy transactions: output = tokens received, price = price per token
+    // Calculate weighted average: sum(tokens * price) / sum(tokens)
+    const weightedSum = relevant.reduce((acc, curr) => acc + (parseFloat(curr.output) * parseFloat(curr.price)), 0);
+    const totalTokens = relevant.reduce((acc, curr) => acc + parseFloat(curr.output), 0);
+    return totalTokens > 0 ? (weightedSum / totalTokens) : 0;
+  };
 
-  let yesCostBasis = 0;
-  let yesSharesOwned = 0;
-  let noCostBasis = 0;
-  let noSharesOwned = 0;
+  const yesAvgPrice = getAvgPrice('BuyYes');
+  const noAvgPrice = getAvgPrice('BuyNo');
 
-  // Sort chronological for basis calculation
-  const sortedTx = [...userTransactions].sort((a, b) => a.timestamp - b.timestamp);
+  const yesProfit = yesAvgPrice > 0 ? (priceYes - yesAvgPrice) * yesShares : 0;
+  const noProfit = noAvgPrice > 0 ? (priceNo - noAvgPrice) * noShares : 0;
 
-  for (const tx of sortedTx) {
-    const isBuy = tx.type.startsWith('Buy');
-    const isYes = tx.type.endsWith('Yes');
-
-    // The transformer already converts to human-readable values:
-    // amount = USDC for buys, tokens for sells (already human-readable)
-    // output = tokens for buys, USDC for sells (already human-readable)
-    const usdc = isBuy ? parseFloat(tx.amount) : parseFloat(tx.output);
-    const shares = isBuy ? parseFloat(tx.output) : parseFloat(tx.amount);
-
-    if (isYes) {
-      if (isBuy) {
-        yesCostBasis += usdc;
-        yesSharesOwned += shares;
-      } else if (yesSharesOwned > 0) {
-        const ratio = Math.min(1, shares / yesSharesOwned);
-        yesCostBasis -= yesCostBasis * ratio;
-        yesSharesOwned -= shares;
-      }
-    } else {
-      if (isBuy) {
-        noCostBasis += usdc;
-        noSharesOwned += shares;
-      } else if (noSharesOwned > 0) {
-        const ratio = Math.min(1, shares / noSharesOwned);
-        noCostBasis -= noCostBasis * ratio;
-        noSharesOwned -= shares;
-      }
-    }
-  }
-
-  // avgPrice is in dollars (e.g., 0.50 means 50 cents)
-  const yesAvgPrice = yesSharesOwned > 0 ? yesCostBasis / yesSharesOwned : 0;
-  const noAvgPrice = noSharesOwned > 0 ? noCostBasis / noSharesOwned : 0;
-
-  // Final P&L calculation based on CURRENT reported balances
-  // priceYes and priceNo are between 0 and 1 (e.g., 0.49 = 49 cents)
-  const yesProfit = hasYes ? (priceYes - yesAvgPrice) * yesShares : 0;
-  const noProfit = hasNo ? (priceNo - noAvgPrice) * noShares : 0;
-  const totalProfit = yesProfit + noProfit;
-  const totalProfitPct = (yesCostBasis + noCostBasis) > 0
-    ? (totalProfit / (yesCostBasis + noCostBasis)) * 100
-    : 0;
+  const handleSellAction = (side: 'yes' | 'no') => {
+    hapticFeedback('medium');
+    setTradeMode('sell');
+    setSide(side);
+    document.getElementById('trading-card-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   if (!isConnected) {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="flex flex-col items-center justify-center py-8 text-center"
-        role="status"
-        aria-label="Wallet not connected"
-      >
-        <div className="relative mb-6">
-          <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800 rounded-full blur-xl opacity-50" />
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-            className="relative w-20 h-20 bg-white dark:bg-gray-800 rounded-[2rem] flex items-center justify-center shadow-xl border border-gray-100 dark:border-gray-700"
-          >
-            <Wallet className="w-10 h-10 text-gray-400" aria-hidden="true" />
-          </motion.div>
-        </div>
-        <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Connect Wallet</h3>
-        <p className="text-gray-500 max-w-sm mx-auto">Connect your wallet to track your positions, P&L, and performance in real-time.</p>
-      </motion.div>
+      <div className="p-8 text-center bg-gray-50/50 dark:bg-gray-800/30 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+        <Wallet className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Connect Wallet</h3>
+        <p className="text-sm text-gray-500">Connect your wallet to view your active positions</p>
+      </div>
     );
   }
 
@@ -119,24 +72,22 @@ export function PositionTab({
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col items-center justify-center py-16 text-center container mx-auto"
+        className="p-8 bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-gray-200/60 dark:border-gray-700/60 text-center"
         role="status"
         aria-label="No positions in this market"
       >
-        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-3xl flex items-center justify-center mb-4">
+        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <PieChart className="w-8 h-8 text-gray-400" />
         </div>
-        <p className="text-lg font-bold text-gray-900 dark:text-white mb-1">No Active Positions</p>
-        <p className="text-sm text-gray-500">Take a position on YES or NO to see it here.</p>
+        <h4 className="text-lg font-black text-gray-900 dark:text-white mb-2">No active position</h4>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Select an outcome and enter an amount in the trading panel to start.</p>
       </motion.div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Individual Positions */}
-      <h3 className="text-lg font-black text-gray-900 dark:text-white px-2">Your Positions</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-6">
         {hasYes && (
           <PositionCard
             type="yes"
@@ -144,6 +95,7 @@ export function PositionTab({
             price={priceYes}
             avgPrice={yesAvgPrice}
             profit={yesProfit}
+            onSell={() => handleSellAction('yes')}
           />
         )}
         {hasNo && (
@@ -153,6 +105,7 @@ export function PositionTab({
             price={priceNo}
             avgPrice={noAvgPrice}
             profit={noProfit}
+            onSell={() => handleSellAction('no')}
           />
         )}
       </div>
@@ -160,7 +113,21 @@ export function PositionTab({
   );
 }
 
-function PositionCard({ type, balance, price, avgPrice, profit }: { type: 'yes' | 'no', balance: string, price: number, avgPrice: number, profit: number }) {
+function PositionCard({
+  type,
+  balance,
+  price,
+  avgPrice,
+  profit,
+  onSell
+}: {
+  type: 'yes' | 'no',
+  balance: string,
+  price: number,
+  avgPrice: number,
+  profit: number,
+  onSell: () => void
+}) {
   const isYes = type === 'yes';
   const shares = parseFloat(balance);
   const value = shares * price;
@@ -170,83 +137,68 @@ function PositionCard({ type, balance, price, avgPrice, profit }: { type: 'yes' 
     <motion.div
       initial={{ scale: 0.95, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      whileHover={{ scale: 1.02 }}
-      transition={{ type: "spring", stiffness: 300 }}
       className={`p-6 rounded-[32px] border relative overflow-hidden group ${isYes
-        ? 'bg-gradient-to-br from-white to-green-50/50 dark:from-gray-800 dark:to-green-900/10 border-green-200 dark:border-green-800/30'
-        : 'bg-gradient-to-br from-white to-red-50/50 dark:from-gray-800 dark:to-red-900/10 border-red-200 dark:border-red-800/30'
+        ? 'bg-gradient-to-br from-white to-emerald-50/30 dark:from-gray-800/50 dark:to-emerald-900/5 border-emerald-100 dark:border-emerald-800/30'
+        : 'bg-gradient-to-br from-white to-rose-50/30 dark:from-gray-800/50 dark:to-rose-900/5 border-rose-100 dark:border-rose-800/30'
         }`}
     >
       <div className="flex justify-between items-start relative z-10">
         <div>
-          <div className={`text-xs font-black uppercase tracking-widest mb-3 flex items-center gap-2 ${isYes ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+          <div className={`text-[10px] font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2 ${isYes ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
             }`}>
-            <span className={`p-1.5 rounded-lg ${isYes ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+            <span className={`p-1.5 rounded-lg ${isYes ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-rose-100 dark:bg-rose-900/30'}`}>
               {isYes ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
             </span>
-            {type.toUpperCase()} POSITION
+            {type} Position
           </div>
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+            <span className="text-4xl font-black text-gray-900 dark:text-white tracking-tight tabular-nums">
               ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <span className="font-bold">{shares.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-            <span className="text-xs uppercase">shares</span>
-            <span className="text-gray-300 dark:text-gray-600">•</span>
-            <span className="font-medium">{(price * 100).toFixed(1)}¢ each</span>
+          <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
+            <span>{shares.toLocaleString(undefined, { maximumFractionDigits: 2 })} Shares</span>
+            <span>•</span>
+            <span>{(price * 100).toFixed(1)}¢</span>
           </div>
         </div>
-        <div className={`px-3 py-1.5 rounded-xl text-sm font-black border flex items-center gap-1.5 ${isYes
-          ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-100 dark:border-green-800/50'
-          : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-100 dark:border-red-800/50'
-          }`}>
-          <span className="opacity-50 text-[10px]">PRICE</span>
-          {(price * 100).toFixed(1)}¢
-        </div>
+
+        <button
+          onClick={onSell}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${isYes
+              ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-600'
+              : 'bg-rose-500 text-white shadow-lg shadow-rose-500/20 hover:bg-rose-600'
+            }`}
+        >
+          Sell
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
       </div>
 
-      <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700/50 grid grid-cols-2 gap-4 relative z-10">
+      <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800/50 flex justify-between relative z-10">
         <div>
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Avg. Price</div>
-          <div className="text-lg font-black text-gray-900 dark:text-white">
+          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Avg. Price</div>
+          <div className="text-xl font-black text-gray-900 dark:text-white tabular-nums">
             {(avgPrice * 100).toFixed(1)}¢
           </div>
         </div>
         <div className="text-right">
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Unrealized P&L</div>
-          <div className={`text-lg font-black flex flex-col items-end justify-center ${profit >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Unrealized P&L</div>
+          <div className={`text-xl font-black flex flex-col items-end justify-center tabular-nums ${profit >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
             <div className="flex items-center gap-1">
-              {profit >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+              {profit >= 0 ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
               {profit >= 0 ? '+' : ''}{profitPct.toFixed(1)}%
             </div>
             <div className="text-[10px] font-bold opacity-60">
-              {profit >= 0 ? '+' : ''}${profit.toFixed(2)}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-6 p-4 rounded-2xl bg-gray-900/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-            <Trophy className="w-3 h-3 text-amber-500" /> If You Win
-          </div>
-          <div className="text-right">
-            <div className="text-sm font-black text-gray-900 dark:text-white">
-              ${shares.toFixed(2)}
-            </div>
-            <div className="text-[10px] font-bold text-emerald-500">
-              +${(shares - value).toFixed(2)} profit
+              {profit >= 0 ? '+' : ''}${Math.abs(profit).toFixed(2)}
             </div>
           </div>
         </div>
       </div>
 
       {/* Decorative background icon */}
-      <div className={`absolute -bottom-4 -right-4 opacity-[0.03] dark:opacity-[0.05] pointer-events-none transition-transform group-hover:scale-110 duration-500 ${isYes ? 'text-green-500' : 'text-red-500'}`}>
-        {isYes ? <TrendingUp size={120} /> : <TrendingDown size={120} />}
+      <div className={`absolute -bottom-6 -right-6 opacity-[0.03] dark:opacity-[0.05] pointer-events-none transition-transform group-hover:scale-110 duration-500 ${isYes ? 'text-emerald-500' : 'text-rose-500'}`}>
+        {isYes ? <TrendingUp size={140} /> : <TrendingDown size={140} />}
       </div>
     </motion.div>
   );

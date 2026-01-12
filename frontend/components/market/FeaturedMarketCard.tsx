@@ -3,10 +3,10 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Clock, TrendingUp, Activity, ArrowRight } from 'lucide-react';
-import { PriceDisplay } from '@/components/market/PriceDisplay';
 import { Sparkline } from '@/components/market/Sparkline';
 import { MarketCardData } from './MarketCard';
+import { useMemo } from 'react';
+import { formatUnits } from 'viem';
 
 interface FeaturedMarketCardProps {
     market: MarketCardData;
@@ -15,97 +15,158 @@ interface FeaturedMarketCardProps {
     formatNumber: (value: number) => string;
 }
 
+function getTimeRemaining(timestamp: bigint): string {
+    if (timestamp === 0n) return '';
+    const now = Math.floor(Date.now() / 1000);
+    const expiry = Number(timestamp);
+    const seconds = expiry - now;
+    if (seconds <= 0) return 'Expired';
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    if (days > 0) return `${days}d ${hours}h`;
+    return `${hours}h`;
+}
+
 export function FeaturedMarketCard({ market, prefersReducedMotion = false, getMarketLogo, formatNumber }: FeaturedMarketCardProps) {
-    const isPositive = market.yesPrice >= 0.5;
+    const isAuto = market.oracleType === 1;
+    const isLive = market.status === 'LIVE TRADING';
+    const timeLeft = useMemo(() => getTimeRemaining(market.expiryTimestamp), [market.expiryTimestamp]);
+    const volumeDisplay = `$${formatNumber(market.volume)}`;
+    const liquidityValue = typeof market.totalPairsUSDC === 'bigint' ? market.totalPairsUSDC : BigInt(market.totalPairsUSDC || 0);
+    const liquidityDisplay = `$${formatNumber(Number(formatUnits(liquidityValue, 6)))}`;
+
+    const yesLeading = market.yesPrice >= 0.5;
+    const leadingPercent = Math.round((yesLeading ? market.yesPrice : market.noPrice) * 100);
+
+    const yesCents = (market.yesPrice * 100).toFixed(1);
+    const noCents = (market.noPrice * 100).toFixed(1);
+
+    const priceHistory = market.priceHistory || [];
+    const stats24h = useMemo(() => {
+        if (priceHistory.length === 0) return { high: market.yesPrice, low: market.yesPrice, change: 0, changePct: 0 };
+        const high = Math.max(...priceHistory);
+        const low = Math.min(...priceHistory);
+        const firstPrice = priceHistory[0] || market.yesPrice;
+        const change = market.yesPrice - firstPrice;
+        const changePct = firstPrice > 0 ? (change / firstPrice) * 100 : 0;
+        return { high, low, change, changePct };
+    }, [priceHistory, market.yesPrice]);
+
+    const isPositiveChange = stats24h.changePct >= 0;
 
     return (
-        <Link href={`/markets/${market.id}`} className="block group">
-            <motion.div
-                whileHover={prefersReducedMotion ? {} : { y: -2 }}
-                className="relative overflow-hidden rounded-xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border border-gray-100 dark:border-gray-800 hover:border-teal-500/30 hover:shadow-lg transition-all duration-200"
-            >
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative w-full"
+        >
+            <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
                 <div className="flex flex-col lg:flex-row">
-                    {/* Left Content */}
-                    <div className="flex-1 p-4 lg:p-5">
+                    {/* LEFT - White background content */}
+                    <div className="flex-1 px-6 pt-6 pb-0">
+                        {/* Logo + Question */}
+                        <div className="flex items-start gap-3 mb-3">
+                            <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center shrink-0 -mt-0.5">
+                                {market.question ? (
+                                    <Image
+                                        src={getMarketLogo(market.question)}
+                                        alt=""
+                                        width={18}
+                                        height={18}
+                                        className="object-contain"
+                                        unoptimized
+                                    />
+                                ) : <span className="text-xs">📈</span>}
+                            </div>
+                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white leading-tight">
+                                {market.question}
+                            </h2>
+                        </div>
+
                         {/* Badges */}
-                        <div className="flex items-center gap-2 mb-3">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold text-orange-600 dark:text-orange-400 bg-orange-500/10">
-                                <TrendingUp className="w-3 h-3" />
-                                TRENDING NOW
-                            </span>
-                            {market.status === 'LIVE TRADING' && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
-                                    LIVE
+                        <div className="flex items-center gap-2 mb-4">
+                            {isLive && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-gray-200/60 dark:border-gray-700/60">
+                                    <span className="w-1 h-1 rounded-full bg-emerald-500" />
+                                    <span className="text-[10px] leading-none font-semibold text-emerald-600 dark:text-emerald-400 uppercase">Live</span>
+                                </span>
+                            )}
+                            {isAuto && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200/60 dark:border-gray-700/60">
+                                    <span className="w-1 h-1 rounded-full bg-emerald-500" />
+                                    <span className="text-[10px] leading-none font-semibold text-gray-500 dark:text-gray-400 uppercase">Auto</span>
                                 </span>
                             )}
                         </div>
 
-                        {/* Title Row */}
-                        <div className="flex items-start gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-center shrink-0">
-                                {market.question ? (
-                                    <Image
-                                        src={getMarketLogo(market.question)}
-                                        alt="Logo"
-                                        width={28}
-                                        height={28}
-                                        className="object-contain"
-                                        unoptimized
-                                    />
-                                ) : <div className="text-lg">🔥</div>}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <h2 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white leading-snug line-clamp-2 group-hover:text-teal-600 transition-colors mb-1">
-                                    {market.question}
-                                </h2>
-                                <div className="flex items-center gap-3 text-xs text-gray-400">
-                                    <span className="flex items-center gap-1">
-                                        <Activity className="w-3 h-3" />
-                                        ${formatNumber(market.volume)} Volume
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                        <Clock className="w-3 h-3" />
-                                        Ends {new Date(Number(market.expiryTimestamp) * 1000).toLocaleDateString('en-US')}
-                                    </span>
-                                </div>
-                            </div>
+                        {/* 70% Chance */}
+                        <div className="flex items-baseline gap-2 mb-2">
+                            <span className="text-[40px] font-bold text-emerald-500 tabular-nums leading-none">
+                                {leadingPercent}%
+                            </span>
+                            <span className="text-lg text-gray-400 font-medium">Chance</span>
                         </div>
 
-                        {/* Prices + CTA */}
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div>
-                                    <span className="text-[9px] font-bold text-emerald-600/60 uppercase block mb-0.5">Yes Price</span>
-                                    <PriceDisplay price={market.yesPrice} priceClassName="text-xl font-bold text-emerald-600 dark:text-emerald-400" />
-                                </div>
-                                <div>
-                                    <span className="text-[9px] font-bold text-rose-600/60 uppercase block mb-0.5">No Price</span>
-                                    <PriceDisplay price={market.noPrice} priceClassName="text-xl font-bold text-rose-600 dark:text-rose-400" />
-                                </div>
+                        {/* YES / NO / Pays */}
+                        <div className="flex items-center gap-2 text-base mb-8">
+                            <span className="font-bold text-emerald-500">YES {yesCents}¢</span>
+                            <span className="text-gray-300">·</span>
+                            <span className="font-bold text-gray-600 dark:text-gray-300">NO {noCents}¢</span>
+                            <span className="text-gray-300">·</span>
+                            <span className="text-gray-400 text-base">Pays $1 if correct</span>
+                        </div>
+
+                        {/* Bottom Stats + Buttons - Gray background like chart */}
+                        <div className="flex items-center justify-between pt-4 pb-3 px-6 -mx-6 mt-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800">
+                            <div className="flex items-center gap-5 text-xs text-gray-400">
+                                <span>Vol: <span className="font-medium text-gray-600 dark:text-gray-300">{volumeDisplay}</span></span>
+                                <span>Liq: <span className="font-medium text-gray-600 dark:text-gray-300">{liquidityDisplay}</span></span>
+                                <span>Ends in: <span className="font-medium text-gray-600 dark:text-gray-300">{timeLeft}</span></span>
                             </div>
-                            <span className="hidden sm:flex items-center gap-1 text-sm font-medium text-teal-600 dark:text-teal-400 group-hover:translate-x-1 transition-transform">
-                                Trade this market <ArrowRight className="w-4 h-4" />
-                            </span>
+                            <Link
+                                href={`/markets/${market.id}`}
+                                className="px-5 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs shadow-sm"
+                            >
+                                Trade
+                            </Link>
                         </div>
                     </div>
 
-                    {/* Right Chart */}
-                    <div className="lg:w-[280px] h-[100px] lg:h-auto bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center p-4 relative">
-                        <div className="w-full h-full max-h-[80px]">
+                    {/* RIGHT - Gray chart panel */}
+                    <div className="lg:w-[220px] bg-gray-50 dark:bg-gray-800/50 lg:border-l border-t lg:border-t-0 border-gray-100 dark:border-gray-800 p-5">
+                        <div className="flex items-start justify-between mb-3">
+                            <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Last 24 Hours</span>
+                            <span className={`text-base font-bold ${isPositiveChange ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                {isPositiveChange ? '+' : ''}{stats24h.changePct.toFixed(1)}%
+                            </span>
+                        </div>
+                        <div className="h-[80px] mb-4">
                             <Sparkline
-                                data={market.priceHistory || []}
-                                color={isPositive ? '#14B8A6' : '#ef4444'}
+                                data={priceHistory}
+                                color={isPositiveChange ? '#10B981' : '#F43F5E'}
                                 height={80}
                                 strokeWidth={2}
                             />
                         </div>
-                        <span className="absolute top-2 right-2 text-[8px] font-mono text-gray-400 bg-white dark:bg-gray-900 px-1.5 py-0.5 rounded">
-                            LIVE CHART
-                        </span>
+                        <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-gray-400">High</span>
+                                <span className="font-medium text-gray-700 dark:text-gray-200">{(stats24h.high * 100).toFixed(1)}¢</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-400">Low</span>
+                                <span className="font-medium text-emerald-500">{isPositiveChange ? '+' : ''}{(stats24h.low * 100).toFixed(1)}¢</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-400">Change</span>
+                                <span className={`font-medium ${isPositiveChange ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                    {isPositiveChange ? '+' : ''}{stats24h.changePct.toFixed(1)}%
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </motion.div>
-        </Link>
+            </div>
+        </motion.div>
     );
 }

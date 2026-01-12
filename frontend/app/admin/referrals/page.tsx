@@ -41,7 +41,7 @@ export default function AdminReferralsPage() {
         <div className="min-h-screen bg-gray-50/50 dark:bg-[#0a0a0a]">
             <Header />
 
-            <main className="container mx-auto px-4 py-8 max-w-7xl">
+            <main className="container mx-auto px-4 py-8 max-w-[1400px]">
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">

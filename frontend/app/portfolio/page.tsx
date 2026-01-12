@@ -169,7 +169,7 @@ export default function PortfolioPage() {
 
       <Header />
 
-      <main className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 pb-24">
+      <main className="relative z-10 mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-8 pb-24">
 
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
@@ -178,10 +178,10 @@ export default function PortfolioPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.5 }}
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 backdrop-blur-md text-[9px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3 shadow-sm">
-              <Wallet className="w-2.5 h-2.5 text-[#14B8A6]" /> Portfolio Overview
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 backdrop-blur-md text-xs font-black uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400 mb-4 shadow-sm">
+              <Wallet className="w-3 h-3 text-[#14B8A6]" /> Portfolio Overview
             </div>
-            <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-gray-900 to-gray-500 dark:from-white dark:to-gray-500 tracking-tighter mb-2">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-gray-900 to-gray-500 dark:from-white dark:to-gray-500 tracking-tighter mb-2">
               My Portfolio
             </h1>
           </motion.div>

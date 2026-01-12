@@ -1,13 +1,14 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { Wallet, Loader2, ArrowRightLeft } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Wallet, Loader2, Zap, AlertCircle, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface TradeActionButtonsProps {
     isConnected: boolean;
     isBusy: boolean;
     isTradeable: boolean;
     tradeMode: 'buy' | 'sell';
+    side: 'yes' | 'no';
     amount: string;
     canBuy: boolean;
     canSell: boolean;
@@ -23,6 +24,7 @@ export function TradeActionButtons({
     isBusy,
     isTradeable,
     tradeMode,
+    side,
     amount,
     canBuy,
     canSell,
@@ -32,56 +34,129 @@ export function TradeActionButtons({
     handleTrade,
     openConnectModal,
 }: TradeActionButtonsProps) {
-    if (!isConnected) {
-        return (
-            <button
-                onClick={openConnectModal}
-                className="w-full py-5 rounded-[24px] bg-gradient-to-r from-[#14B8A6] to-[#0D9488] text-white font-black text-lg shadow-xl shadow-teal-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 group"
-            >
-                <Wallet className="w-6 h-6 group-hover:rotate-12 transition-transform" />
-                Connect Wallet to Trade
-            </button>
-        );
-    }
-
     const needsApproval = tradeMode === 'buy' && (usdcAllowanceValue === undefined || usdcAllowanceValue < amountBigInt);
     const isValid = tradeMode === 'buy' ? canBuy : canSell;
-    const isDisabled = !isTradeable || isBusy || !amount || parseFloat(amount) <= 0 || !isValid;
+    const amountNum = parseFloat(amount || '0');
+    const hasAmount = amountNum > 0;
+    const isYes = side === 'yes';
+
+    // Determine button state and messaging
+    const getButtonConfig = () => {
+        if (!isConnected) {
+            return {
+                label: 'Connect Wallet',
+                subLabel: 'Start trading by connecting your wallet',
+                icon: <Wallet className="w-5 h-5" />,
+                disabled: false,
+                variant: 'connect' as const,
+                action: openConnectModal,
+            };
+        }
+
+        if (!isTradeable) {
+            return {
+                label: 'Market Closed',
+                subLabel: 'This market is no longer accepting trades',
+                icon: <AlertCircle className="w-5 h-5" />,
+                disabled: true,
+                variant: 'disabled' as const,
+            };
+        }
+
+        if (isBusy) {
+            return {
+                label: busyLabel || 'Processing...',
+                subLabel: 'Please wait for transaction confirmation',
+                icon: <Loader2 className="w-5 h-5 animate-spin" />,
+                disabled: true,
+                variant: 'loading' as const,
+            };
+        }
+
+        if (!hasAmount) {
+            return {
+                label: 'Enter Amount',
+                subLabel: 'Please specify how much you want to trade',
+                icon: <DollarSign className="w-5 h-5" />,
+                disabled: true,
+                variant: 'disabled' as const,
+            };
+        }
+
+        if (!isValid) {
+            return {
+                label: 'Insufficient Balance',
+                subLabel: `You don't have enough ${tradeMode === 'buy' ? 'USDC' : side.toUpperCase()}`,
+                icon: <AlertCircle className="w-5 h-5" />,
+                disabled: true,
+                variant: 'error' as const,
+            };
+        }
+
+        // Main CTA - Buy YES or Buy NO (or Sell)
+        const actionLabel = tradeMode === 'buy'
+            ? `Buy ${side.toUpperCase()}`
+            : `Sell ${side.toUpperCase()}`;
+
+        return {
+            label: needsApproval ? `Approve & ${actionLabel}` : actionLabel,
+            subLabel: needsApproval ? 'Allow SpeculateX to use your USDC' : `Place your ${side.toUpperCase()} ${tradeMode} order`,
+            icon: isYes ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />,
+            disabled: false,
+            variant: tradeMode === 'buy' ? (isYes ? 'yes' : 'no') : 'sell' as const,
+            action: handleTrade,
+        };
+    };
+
+    const config = getButtonConfig();
+
+    const variantStyles = {
+        connect: 'bg-gradient-to-r from-[#14B8A6] to-[#0D9488] text-white shadow-lg shadow-teal-500/25 hover:shadow-teal-500/40',
+        yes: 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:-translate-y-0.5',
+        no: 'bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-lg shadow-rose-500/25 hover:shadow-rose-500/40 hover:-translate-y-0.5',
+        sell: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40',
+        disabled: 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700',
+        error: 'bg-rose-50 dark:bg-rose-950/20 text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30',
+        loading: 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-wait',
+    };
 
     return (
-        <button
-            onClick={handleTrade}
-            disabled={isDisabled}
-            className={`
-        w-full py-5 rounded-[24px] font-black text-xl shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-3 relative overflow-hidden group
-        ${isDisabled
-                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed shadow-none border border-gray-200 dark:border-gray-700'
-                    : 'bg-gradient-to-r from-[#14B8A6] to-[#0D9488] text-white shadow-teal-500/20 hover:shadow-teal-500/40 hover:-translate-y-0.5'
-                }
-      `}
-        >
-            {isBusy ? (
-                <>
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                    <span className="animate-pulse">{busyLabel || 'Processing...'}</span>
-                </>
-            ) : (
-                <>
-                    <ArrowRightLeft className={`w-6 h-6 transition-transform ${!isDisabled ? 'group-hover:rotate-180 duration-500' : ''}`} />
-                    <span>
-                        {needsApproval ? 'Approve & ' : ''}
-                        {tradeMode === 'buy' ? 'Place Buy Order' : 'Place Sell Order'}
-                    </span>
-                </>
-            )}
+        <div className="space-y-3">
+            <button
+                onClick={config.action}
+                disabled={config.disabled}
+                className={`
+                    w-full py-4 rounded-2xl font-black text-lg tracking-wide transition-all duration-300 flex items-center justify-center gap-3 relative overflow-hidden
+                    ${variantStyles[config.variant]}
+                    ${config.disabled ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'}
+                `}
+            >
+                {config.icon}
+                <span>{config.label}</span>
 
-            {!isDisabled && (
+                {/* Shimmer effect for active button */}
+                {(config.variant === 'yes' || config.variant === 'no' || config.variant === 'connect') && !config.disabled && (
+                    <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%]"
+                        animate={{ x: '200%' }}
+                        transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                    />
+                )}
+            </button>
+
+            <AnimatePresence mode="wait">
                 <motion.div
-                    className="absolute inset-0 bg-white/20 translate-x-[-100%]"
-                    animate={{ x: '200%' }}
-                    transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                />
-            )}
-        </button>
+                    key={config.subLabel}
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 5 }}
+                    className="text-center"
+                >
+                    <span className={`text-[10px] font-bold uppercase tracking-[0.15em] ${config.variant === 'error' ? 'text-rose-500' : 'text-gray-400'}`}>
+                        {config.subLabel}
+                    </span>
+                </motion.div>
+            </AnimatePresence>
+        </div>
     );
 }

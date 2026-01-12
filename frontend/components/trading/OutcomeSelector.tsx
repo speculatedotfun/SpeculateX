@@ -1,9 +1,8 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
-import { Wallet, CheckCircle2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { TrendingUp, TrendingDown, Check } from 'lucide-react';
 import { hapticFeedback } from '@/lib/haptics';
-import { formatPrice } from '@/lib/tradingUtils';
 
 interface OutcomeSelectorProps {
     side: 'yes' | 'no';
@@ -26,71 +25,138 @@ export function OutcomeSelector({
     isBusy,
     isTradeable,
 }: OutcomeSelectorProps) {
+    const yesCents = (priceYes * 100).toFixed(1);
+    const noCents = (priceNo * 100).toFixed(1);
+
     return (
-        <div className="grid grid-cols-2 gap-3" role="group" aria-label="Outcome selection">
-            {(['yes', 'no'] as const).map(s => {
-                const price = s === 'yes' ? priceYes : priceNo;
-                const isSelected = side === s;
-                const balance = s === 'yes' ? yesBalance : noBalance;
-
-                return (
-                    <motion.button
-                        key={s}
-                        whileTap={{ scale: 0.98 }}
-                        whileHover={{ scale: !isBusy && isTradeable ? 1.01 : 1 }}
-                        onClick={() => {
-                            if (!isBusy && isTradeable) {
-                                hapticFeedback('light');
-                                setSide(s);
-                            }
-                        }}
-                        className={`
-              relative p-3 rounded-xl text-left transition-all duration-200 border-2 overflow-hidden
-              ${s === 'yes'
-                                ? (isSelected
-                                    ? 'bg-green-50 dark:bg-green-900/20 border-green-500 shadow-sm'
-                                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-green-300')
-                                : (isSelected
-                                    ? 'bg-red-50 dark:bg-red-900/20 border-red-500 shadow-sm'
-                                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-red-300')
-                            }
-              disabled:opacity-50 disabled:cursor-not-allowed
-            `}
-                        disabled={!isTradeable}
-                        role="radio"
-                        aria-checked={isSelected}
-                        aria-label={`${s.toUpperCase()} outcome at ${formatPrice(price)}, balance: ${balance}`}
+        <div className="grid grid-cols-2 gap-3" role="group" aria-label="Choose outcome">
+            {/* YES Card */}
+            <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                    if (!isBusy && isTradeable) {
+                        hapticFeedback('light');
+                        setSide('yes');
+                    }
+                }}
+                className={`
+                    relative p-4 rounded-xl text-left transition-all duration-200 border-2 overflow-hidden
+                    ${side === 'yes'
+                        ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 shadow-lg shadow-emerald-500/20 ring-2 ring-emerald-500/30'
+                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-700'
+                    }
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                `}
+                disabled={!isTradeable}
+                role="radio"
+                aria-checked={side === 'yes'}
+            >
+                {/* Selected checkmark */}
+                {side === 'yes' && (
+                    <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        className="absolute top-3 right-3 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg"
                     >
-                        <div className="flex justify-between items-center mb-2">
-                            <span className={`text-xs font-bold uppercase tracking-wider ${s === 'yes' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                {s}
-                            </span>
-                            <AnimatePresence mode="wait">
-                                {isSelected && (
-                                    <motion.div
-                                        initial={{ scale: 0 }}
-                                        animate={{ scale: 1 }}
-                                        exit={{ scale: 0 }}
-                                        className={`w-5 h-5 rounded-full flex items-center justify-center ${s === 'yes' ? 'bg-green-500' : 'bg-red-500'} text-white`}
-                                    >
-                                        <CheckCircle2 className="w-3 h-3" aria-hidden="true" />
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
+                        <Check className="w-4 h-4 text-white" strokeWidth={3} />
+                    </motion.div>
+                )}
 
-                        <div className="space-y-0.5">
-                            <div className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
-                                {formatPrice(price)}
-                            </div>
-                            <div className="flex items-center gap-1 text-[10px] font-medium text-gray-500">
-                                <Wallet className="w-2.5 h-2.5" aria-hidden="true" />
-                                <span>Bal: {balance}</span>
-                            </div>
-                        </div>
-                    </motion.button>
-                );
-            })}
+                {/* Header */}
+                <div className="flex items-center gap-2 mb-2">
+                    <div className={`p-1.5 rounded-lg ${side === 'yes' ? 'bg-emerald-500 text-white' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'}`}>
+                        <TrendingUp className="w-4 h-4" />
+                    </div>
+                    <span className={`text-sm font-black uppercase tracking-wider ${side === 'yes' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'}`}>
+                        Yes
+                    </span>
+                </div>
+
+                {/* Price */}
+                <div className="mb-2">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Price</div>
+                    <div className="flex items-baseline gap-0.5">
+                        <span className={`text-3xl font-black tabular-nums ${side === 'yes' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
+                            {yesCents}
+                        </span>
+                        <span className={`text-base font-bold ${side === 'yes' ? 'text-emerald-500/60' : 'text-gray-400'}`}>¢</span>
+                    </div>
+                </div>
+
+                {/* Progress bar */}
+                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <motion.div
+                        className="h-full bg-emerald-500 rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${priceYes * 100}%` }}
+                        transition={{ duration: 0.5 }}
+                    />
+                </div>
+            </motion.button>
+
+            {/* NO Card */}
+            <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                    if (!isBusy && isTradeable) {
+                        hapticFeedback('light');
+                        setSide('no');
+                    }
+                }}
+                className={`
+                    relative p-4 rounded-xl text-left transition-all duration-200 border-2 overflow-hidden
+                    ${side === 'no'
+                        ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-500 shadow-lg shadow-rose-500/20 ring-2 ring-rose-500/30'
+                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-rose-300 dark:hover:border-rose-700'
+                    }
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                `}
+                disabled={!isTradeable}
+                role="radio"
+                aria-checked={side === 'no'}
+            >
+                {/* Selected checkmark */}
+                {side === 'no' && (
+                    <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        className="absolute top-3 right-3 w-6 h-6 bg-rose-500 rounded-full flex items-center justify-center shadow-lg"
+                    >
+                        <Check className="w-4 h-4 text-white" strokeWidth={3} />
+                    </motion.div>
+                )}
+
+                {/* Header */}
+                <div className="flex items-center gap-2 mb-2">
+                    <div className={`p-1.5 rounded-lg ${side === 'no' ? 'bg-rose-500 text-white' : 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'}`}>
+                        <TrendingDown className="w-4 h-4" />
+                    </div>
+                    <span className={`text-sm font-black uppercase tracking-wider ${side === 'no' ? 'text-rose-600 dark:text-rose-400' : 'text-gray-400'}`}>
+                        No
+                    </span>
+                </div>
+
+                {/* Price */}
+                <div className="mb-2">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Price</div>
+                    <div className="flex items-baseline gap-0.5">
+                        <span className={`text-3xl font-black tabular-nums ${side === 'no' ? 'text-rose-600 dark:text-rose-400' : 'text-gray-900 dark:text-white'}`}>
+                            {noCents}
+                        </span>
+                        <span className={`text-base font-bold ${side === 'no' ? 'text-rose-500/60' : 'text-gray-400'}`}>¢</span>
+                    </div>
+                </div>
+
+                {/* Progress bar */}
+                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <motion.div
+                        className="h-full bg-rose-500 rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${priceNo * 100}%` }}
+                        transition={{ duration: 0.5 }}
+                    />
+                </div>
+            </motion.button>
         </div>
     );
 }

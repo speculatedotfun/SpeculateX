@@ -64,7 +64,7 @@ export default function NetworkSelector() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200/50 dark:border-gray-700/50 bg-white/50 dark:bg-gray-800/50 hover:bg-white/80 dark:hover:bg-gray-800 hover:border-teal-500/30 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 backdrop-blur-md"
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-black/5 dark:border-white/5 bg-white/60 dark:bg-gray-800/40 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all hover:-translate-y-[1px] hover:shadow-sm focus:outline-none focus:ring-1 focus:ring-teal-500/20"
         type="button"
         aria-label="Select network"
         aria-expanded={isOpen}
@@ -72,7 +72,7 @@ export default function NetworkSelector() {
       >
         {/* Network Status Indicator */}
         <div className="relative">
-          <Globe className="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+          <Globe className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" aria-hidden="true" />
           <span
             className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ring-2 ring-white dark:ring-gray-800 ${currentNetwork === 'mainnet'
                 ? 'bg-green-500 shadow-lg shadow-green-500/50'
@@ -81,12 +81,12 @@ export default function NetworkSelector() {
             aria-hidden="true"
           />
         </div>
-        <span className="text-sm font-bold whitespace-nowrap text-gray-900 dark:text-white">
+        <span className="text-xs font-medium whitespace-nowrap text-gray-600 dark:text-gray-400">
           <span className={currentNetwork === 'mainnet' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}>
             {currentNetwork === 'mainnet' ? 'BSC Mainnet' : 'BSC Testnet'}
           </span>
         </span>
-        <ChevronDown className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
       </button>
 
       <AnimatePresence>

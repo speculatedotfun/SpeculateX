@@ -42,15 +42,24 @@ import { useRedeem } from './trading/useRedeem';
 interface TradingCardProps {
   marketId: number;
   onTradeSuccess?: (trade: any) => void;
+  tradeMode: 'buy' | 'sell';
+  setTradeMode: (mode: 'buy' | 'sell') => void;
+  side: 'yes' | 'no';
+  setSide: (side: 'yes' | 'no') => void;
 }
 
-export default function TradingCard({ marketId, onTradeSuccess }: TradingCardProps) {
+export default function TradingCard({
+  marketId,
+  onTradeSuccess,
+  tradeMode,
+  setTradeMode,
+  side,
+  setSide
+}: TradingCardProps) {
   const { address, isConnected } = useAccount();
   const marketIdBI = useMemo(() => BigInt(marketId), [marketId]);
 
   // --- UI State ---
-  const [tradeMode, setTradeMode] = useState<'buy' | 'sell'>('buy');
-  const [side, setSide] = useState<'yes' | 'no'>('yes');
   const [amount, setAmount] = useState('');
 
   // --- Data Hook ---
@@ -228,7 +237,7 @@ export default function TradingCard({ marketId, onTradeSuccess }: TradingCardPro
           <Skeleton className="h-14 w-full rounded-2xl bg-gray-200 dark:bg-gray-800" />
         </div>
       ) : (
-        <div className="p-3 space-y-3 bg-transparent" data-testid="trading-card" role="main" aria-label="Trading interface">
+        <div className="p-4 space-y-4 bg-transparent" data-testid="trading-card" role="main" aria-label="Trading interface">
           {!isTradeable && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -244,6 +253,7 @@ export default function TradingCard({ marketId, onTradeSuccess }: TradingCardPro
             </motion.div>
           )}
 
+          {/* Step 1: Mode Selection (Buy | Sell) */}
           <TradeModeToggle
             tradeMode={tradeMode}
             setTradeMode={setTradeMode}
@@ -251,6 +261,7 @@ export default function TradingCard({ marketId, onTradeSuccess }: TradingCardPro
             isTradeable={isTradeable}
           />
 
+          {/* Step 2: Outcome Selection (YES | NO) */}
           <OutcomeSelector
             side={side}
             setSide={setSide}
@@ -261,6 +272,9 @@ export default function TradingCard({ marketId, onTradeSuccess }: TradingCardPro
             isBusy={isBusy}
             isTradeable={isTradeable}
           />
+
+          {/* Divider */}
+          <div className="border-t border-gray-100 dark:border-gray-800" />
 
           <div className="space-y-4">
             <TradeAmountInput
@@ -282,7 +296,7 @@ export default function TradingCard({ marketId, onTradeSuccess }: TradingCardPro
 
             <AnimatePresence>
               {amount && parseFloat(amount) > 0 && !(tradeMode === 'buy' ? canBuy : canSell) && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                <motion.div key="insufficient-balance" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
                   <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800" role="alert">
                     <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
                     <div className="text-xs font-medium text-red-700 dark:text-red-300">
@@ -292,7 +306,7 @@ export default function TradingCard({ marketId, onTradeSuccess }: TradingCardPro
                 </motion.div>
               )}
               {overJumpCap && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                <motion.div key="split-order-info" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
                   <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800" role="alert">
                     <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
                     <div className="text-xs font-medium text-blue-700 dark:text-blue-300">
@@ -306,9 +320,9 @@ export default function TradingCard({ marketId, onTradeSuccess }: TradingCardPro
 
           <AnimatePresence>
             {amount && parseFloat(amount) > 0 && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
+              <motion.div key="trade-preview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
                 <TradePreview
-                  amount={amount} tradeMode={tradeMode} currentPrice={currentPrice} newPrice={newPrice} shares={shares} avgPrice={avgPrice}
+                  amount={amount} tradeMode={tradeMode} side={side} currentPrice={currentPrice} newPrice={newPrice} shares={shares} avgPrice={avgPrice}
                   costUsd={costUsd} feeUsd={feeUsd} feePercent={feePercent} maxProfit={maxProfit} maxProfitPct={maxProfitPct} maxPayout={maxPayout}
                   gasEstimate={null} feeTreasuryBps={feeTreasuryBps} feeVaultBps={feeVaultBps} feeLpBps={feeLpBps} tradeMultiple={0}
                 />
@@ -321,6 +335,7 @@ export default function TradingCard({ marketId, onTradeSuccess }: TradingCardPro
             isBusy={isBusy}
             isTradeable={isTradeable}
             tradeMode={tradeMode}
+            side={side}
             amount={amount}
             canBuy={canBuy}
             canSell={canSell}
@@ -329,6 +344,9 @@ export default function TradingCard({ marketId, onTradeSuccess }: TradingCardPro
             busyLabel={busyLabel}
             handleTrade={handleTrade}
           />
+
+          {/* Divider before LP section */}
+          <div className="border-t border-gray-100 dark:border-gray-800 mt-2" />
 
           <div className="pt-2 space-y-4">
             {(isResolved || isCancelled) && (

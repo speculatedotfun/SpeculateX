@@ -99,22 +99,22 @@ export default function LeaderboardPage() {
 
             <Header />
 
-            <main className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 pb-24">
+            <main className="relative z-10 mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-8 pb-24">
 
                 {/* Hero Section */}
                 <div className="text-center mb-12 relative">
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/50 dark:bg-white/5 border border-white/20 backdrop-blur-md text-[9px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4 shadow-sm"
+                        className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/50 dark:bg-white/5 border border-white/20 backdrop-blur-md text-xs font-black uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400 mb-5 shadow-sm"
                     >
-                        <Sparkles className="w-2.5 h-2.5 text-[#14B8A6]" /> Live Rankings
+                        <Sparkles className="w-3 h-3 text-[#14B8A6]" /> Live Rankings
                     </motion.div>
 
                     <motion.h1
                         initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-gray-900 to-gray-500 dark:from-white dark:to-gray-500 tracking-tighter mb-4"
+                        className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-gray-900 to-gray-500 dark:from-white dark:to-gray-500 tracking-tighter mb-4"
                     >
                         Leaderboard
                     </motion.h1>
@@ -123,7 +123,7 @@ export default function LeaderboardPage() {
                         initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
-                        className="text-base text-gray-500 dark:text-gray-400 max-w-2xl mx-auto font-light leading-relaxed"
+                        className="text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto font-medium leading-relaxed"
                     >
                         A live ranking of market participants.
                     </motion.p>
@@ -190,7 +190,7 @@ export default function LeaderboardPage() {
                         )}
 
                         {/* Controls Bar */}
-                        <div className="sticky top-20 z-30 mb-8 max-w-7xl mx-auto">
+                        <div className="sticky top-20 z-30 mb-8 max-w-[1400px] mx-auto">
                             <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl p-2 rounded-2xl border border-white/20 dark:border-white/10 shadow-xl flex flex-col md:flex-row gap-3 items-center justify-between">
 
                                 {/* Search */}
@@ -229,7 +229,7 @@ export default function LeaderboardPage() {
                             initial={prefersReducedMotion ? false : { opacity: 0, y: 40 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.3 }}
-                            className="max-w-7xl mx-auto"
+                            className="max-w-[1400px] mx-auto"
                         >
                             <div className="overflow-x-auto">
                                 <table className="w-full border-separate border-spacing-y-2">

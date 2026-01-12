@@ -5,7 +5,6 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Providers } from './providers';
-import { LiveActivityTicker } from '@/components/LiveActivityTicker';
 import { CommandPalette } from '@/components/CommandPalette';
 import DisclaimerModal from '@/components/DisclaimerModal';
 import Footer from '@/components/Footer';
@@ -38,7 +37,6 @@ export default function RootLayout({
       >
         <Providers>
           <DisclaimerModal />
-          <LiveActivityTicker />
           <CommandPalette />
           <main className="flex-1">
             {children}

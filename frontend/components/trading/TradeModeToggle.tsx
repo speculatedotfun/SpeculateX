@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { hapticFeedback } from '@/lib/haptics';
+import { ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
 
 interface TradeModeToggleProps {
     tradeMode: 'buy' | 'sell';
@@ -18,37 +19,55 @@ export function TradeModeToggle({
 }: TradeModeToggleProps) {
     return (
         <div
-            className="flex bg-gray-100 dark:bg-gray-800/80 p-1.5 rounded-2xl relative"
+            className="flex bg-gray-100/50 dark:bg-gray-800/50 p-1.5 rounded-xl relative border border-gray-200/50 dark:border-gray-700/50"
             role="group"
             aria-label="Trade mode selection"
         >
             <motion.div
-                className="absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-white dark:bg-gray-700 rounded-xl shadow-sm"
+                className="absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-white dark:bg-gray-750 rounded-lg shadow-lg border border-gray-100 dark:border-gray-600"
                 animate={{
                     x: tradeMode === 'sell' ? 'calc(100% + 6px)' : 0
                 }}
-                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             />
-            {(['buy', 'sell'] as const).map(m => (
-                <button
-                    key={m}
-                    onClick={() => {
-                        if (!isBusy && isTradeable) {
-                            hapticFeedback('light');
-                            setTradeMode(m);
-                        }
-                    }}
-                    className={`relative flex-1 py-3 font-black text-sm uppercase tracking-widest transition-colors z-10 flex items-center justify-center gap-2 ${tradeMode === m ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                        }`}
-                    disabled={!isTradeable}
-                    role="radio"
-                    aria-checked={tradeMode === m}
-                    aria-label={`${m === 'buy' ? 'Buy' : 'Sell'} mode`}
-                    tabIndex={tradeMode === m ? 0 : -1}
-                >
-                    {m === 'buy' ? 'Buy' : 'Sell'}
-                </button>
-            ))}
+
+            <button
+                onClick={() => {
+                    if (!isBusy && isTradeable) {
+                        hapticFeedback('light');
+                        setTradeMode('buy');
+                    }
+                }}
+                className={`relative flex-1 py-3.5 font-black text-xs uppercase tracking-[0.1em] transition-all duration-300 z-10 flex items-center justify-center gap-2 ${tradeMode === 'buy'
+                    ? 'text-gray-900 dark:text-white'
+                    : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400'
+                    }`}
+                disabled={!isTradeable}
+                role="radio"
+                aria-checked={tradeMode === 'buy'}
+            >
+                <ArrowDownToLine className={`w-3.5 h-3.5 transition-transform duration-300 ${tradeMode === 'buy' ? 'scale-110' : 'scale-100'}`} />
+                Buy
+            </button>
+
+            <button
+                onClick={() => {
+                    if (!isBusy && isTradeable) {
+                        hapticFeedback('light');
+                        setTradeMode('sell');
+                    }
+                }}
+                className={`relative flex-1 py-3.5 font-black text-xs uppercase tracking-[0.1em] transition-all duration-300 z-10 flex items-center justify-center gap-2 ${tradeMode === 'sell'
+                    ? 'text-gray-900 dark:text-white'
+                    : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400'
+                    }`}
+                disabled={!isTradeable}
+                role="radio"
+                aria-checked={tradeMode === 'sell'}
+            >
+                <ArrowUpFromLine className={`w-3.5 h-3.5 transition-transform duration-300 ${tradeMode === 'sell' ? 'scale-110' : 'scale-100'}`} />
+                Sell
+            </button>
         </div>
     );
 }
