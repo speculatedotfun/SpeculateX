@@ -12,13 +12,15 @@ import AdminManager from '@/components/AdminManager';
 import USDCMinterManager from '@/components/USDCMinterManager';
 import AdminOperationsManager from '@/components/AdminOperationsManager';
 import ManualResolveMarkets from '@/components/admin/ManualResolveMarkets';
+import RoleVisualization from '@/components/admin/RoleVisualization';
+import RoleActivityLog from '@/components/admin/RoleActivityLog';
 import Header from '@/components/Header';
 import { getMarketCount, getMarket, getMarketState, getLpResidualPot } from '@/lib/hooks';
 import { isAdmin as checkIsAdmin } from '@/lib/accessControl';
 import { formatUnits } from 'viem';
 import { positionTokenAbi } from '@/lib/abis';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Plus, Shield, Users, Wallet, Zap, BarChart3, Database, Settings, Lock } from 'lucide-react';
+import { Activity, Plus, Shield, Users, Wallet, Zap, BarChart3, Database, Settings, Lock, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Market {
@@ -374,9 +376,25 @@ export default function AdminPage() {
             <AdminManager />
           </motion.div>
 
-          {/* System Ledger (Span 12) */}
+          {/* Role Visualization (Span 6) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }}
+            className="md:col-span-6 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 shadow-sm dark:shadow-none transition-colors"
+          >
+            <RoleVisualization />
+          </motion.div>
+
+          {/* Role Activity Log (Span 6) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
+            className="md:col-span-6 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 shadow-sm dark:shadow-none transition-colors"
+          >
+            <RoleActivityLog />
+          </motion.div>
+
+          {/* System Ledger (Span 12) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
             className="md:col-span-12 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 shadow-sm dark:shadow-none transition-colors"
           >
             <div className="flex items-center justify-between mb-8">

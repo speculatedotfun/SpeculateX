@@ -170,17 +170,22 @@ export default function MarketsPage() {
         showSearch={true}
       />
 
-      <main className="relative z-10 mx-auto max-w-[1440px] px-6 py-6 flex-1">
+      <main className="relative z-10 w-full mx-auto max-w-[1440px] px-6 py-6 flex-1">
 
-        {/* Dashboard Header */}
-        <div className="flex items-center gap-3 mt-4">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-            Markets
+        {/* Hero Section */}
+        <motion.div
+          initial={prefersReducedMotion ? false : { opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center py-6"
+        >
+          <h1 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">
+            Be The Market
           </h1>
-          <div className="h-6 px-3 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center">
-            <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase">Live</span>
-          </div>
-        </div>
+          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
+            Trade on what happens next
+          </p>
+        </motion.div>
 
         {/* --- FEATURED MARKET --- */}
         {!loading && featuredMarket && !searchTerm && activeStatusTab === 'Active' && (

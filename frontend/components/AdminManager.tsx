@@ -2,12 +2,13 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient } from 'wagmi';
 import { getAddresses, getCurrentNetwork, getNetwork } from '@/lib/contracts';
-import { getCoreAbi, getChainlinkResolverAbi } from '@/lib/abis';
+import { getCoreAbi, getChainlinkResolverAbi, treasuryAbi } from '@/lib/abis';
 import { isAdmin as checkIsAdmin } from '@/lib/accessControl';
 import { keccak256, stringToBytes, decodeErrorResult } from 'viem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
+import { ConfirmDialog, ConfirmDialogType } from '@/components/ui/ConfirmDialog';
 import { Shield, UserPlus, X, Link, Database, Loader2, CheckCircle2, Zap, Clock, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CRYPTO_ASSETS } from '@/lib/assets';
@@ -34,7 +35,7 @@ export default function AdminManager() {
 
   const [loadingMarkets, setLoadingMarkets] = useState(false);
   const [resolvingMarketId, setResolvingMarketId] = useState<number | null>(null);
-  
+
   // Admin management states
   const [revokeAdminAddress, setRevokeAdminAddress] = useState('');
   const [transferFromAddress, setTransferFromAddress] = useState('');
@@ -44,9 +45,23 @@ export default function AdminManager() {
   const [validTransferToAddress, setValidTransferToAddress] = useState(false);
   const [loadingAdmins, setLoadingAdmins] = useState(false);
 
+  // Confirmation dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    type: ConfirmDialogType;
+    addressDisplay?: string;
+    roleInfo?: string;
+    onConfirm: () => Promise<void>;
+  }>({ isOpen: false, title: '', description: '', type: 'danger', onConfirm: async () => { } });
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
   // Contracts hooks... (same logic as before)
   const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000';
   const MARKET_CREATOR_ROLE = keccak256(stringToBytes('MARKET_CREATOR_ROLE'));
+  const TREASURY_WITHDRAWER_ROLE = keccak256(stringToBytes('WITHDRAWER_ROLE'));
+  const TREASURY_ADMIN_ROLE = keccak256(stringToBytes('ADMIN_ROLE'));
 
   const { writeContractAsync: addAdminAsync } = useWriteContract();
   const { writeContract: removeAdmin } = useWriteContract();
@@ -55,6 +70,8 @@ export default function AdminManager() {
   const { writeContractAsync: resolveMarketAsync } = useWriteContract();
   const { writeContractAsync: revokeAdminAsync } = useWriteContract();
   const { writeContractAsync: transferAdminAsync } = useWriteContract();
+  const { writeContractAsync: treasuryGrantRoleAsync } = useWriteContract();
+  const { writeContractAsync: treasuryRevokeRoleAsync } = useWriteContract();
 
   // Check current resolver address
   const addresses = getAddresses();
@@ -110,6 +127,29 @@ export default function AdminManager() {
     const isValid = /^0x[a-fA-F0-9]{40}$/.test(transferToAddress);
     setValidTransferToAddress(isValid);
   }, [transferToAddress]);
+
+  // Treasury (money-only) role management
+  const [treasuryRoleAddress, setTreasuryRoleAddress] = useState('');
+  const [validTreasuryRoleAddress, setValidTreasuryRoleAddress] = useState(false);
+  const [treasuryHasWithdrawer, setTreasuryHasWithdrawer] = useState<boolean | null>(null);
+  const [treasuryHasAdmin, setTreasuryHasAdmin] = useState<boolean | null>(null);
+  const [loadingTreasuryRoles, setLoadingTreasuryRoles] = useState(false);
+
+  useEffect(() => {
+    const isValid = /^0x[a-fA-F0-9]{40}$/.test(treasuryRoleAddress);
+    setValidTreasuryRoleAddress(isValid);
+  }, [treasuryRoleAddress]);
+
+  // Core market-ops role (market creation only, no admin)
+  const [marketCreatorAddress, setMarketCreatorAddress] = useState('');
+  const [validMarketCreatorAddress, setValidMarketCreatorAddress] = useState(false);
+  const [coreHasMarketCreator, setCoreHasMarketCreator] = useState<boolean | null>(null);
+  const [loadingCoreCreatorRole, setLoadingCoreCreatorRole] = useState(false);
+
+  useEffect(() => {
+    const isValid = /^0x[a-fA-F0-9]{40}$/.test(marketCreatorAddress);
+    setValidMarketCreatorAddress(isValid);
+  }, [marketCreatorAddress]);
 
   // Update current resolver when data changes
   useEffect(() => {
@@ -184,44 +224,203 @@ export default function AdminManager() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentResolver, isAdmin, publicClient]);
 
-  // Load current admins
+  const refreshTreasuryRoles = async (addr?: string) => {
+    const pc = publicClient;
+    const target = (addr ?? treasuryRoleAddress).trim();
+    if (!pc || !addresses.treasury || !/^0x[a-fA-F0-9]{40}$/.test(target)) return;
+
+    try {
+      setLoadingTreasuryRoles(true);
+      const [hasWithdrawer, hasAdminRole] = await Promise.all([
+        pc.readContract({
+          address: addresses.treasury,
+          abi: treasuryAbi,
+          functionName: 'hasRole',
+          args: [TREASURY_WITHDRAWER_ROLE, target as `0x${string}`],
+        }) as Promise<boolean>,
+        pc.readContract({
+          address: addresses.treasury,
+          abi: treasuryAbi,
+          functionName: 'hasRole',
+          args: [TREASURY_ADMIN_ROLE, target as `0x${string}`],
+        }) as Promise<boolean>,
+      ]);
+      setTreasuryHasWithdrawer(Boolean(hasWithdrawer));
+      setTreasuryHasAdmin(Boolean(hasAdminRole));
+    } catch (e) {
+      console.error('Error checking treasury roles:', e);
+      pushToast({ title: 'Error', description: 'Failed to check Treasury roles', type: 'error' });
+      setTreasuryHasWithdrawer(null);
+      setTreasuryHasAdmin(null);
+    } finally {
+      setLoadingTreasuryRoles(false);
+    }
+  };
+
+  const refreshCoreMarketCreatorRole = async (addr?: string) => {
+    const pc = publicClient;
+    const target = (addr ?? marketCreatorAddress).trim();
+    if (!pc || !addresses.core || !/^0x[a-fA-F0-9]{40}$/.test(target)) return;
+
+    try {
+      setLoadingCoreCreatorRole(true);
+      const hasCreator = await pc.readContract({
+        address: addresses.core,
+        abi: getCoreAbi(getCurrentNetwork()),
+        functionName: 'hasRole',
+        args: [MARKET_CREATOR_ROLE as `0x${string}`, target as `0x${string}`],
+      }) as boolean;
+      setCoreHasMarketCreator(Boolean(hasCreator));
+    } catch (e) {
+      console.error('Error checking market creator role:', e);
+      pushToast({ title: 'Error', description: 'Failed to check MARKET_CREATOR_ROLE', type: 'error' });
+      setCoreHasMarketCreator(null);
+    } finally {
+      setLoadingCoreCreatorRole(false);
+    }
+  };
+
+  const handleGrantMarketCreatorRole = async () => {
+    if (!publicClient) return;
+    const target = marketCreatorAddress.trim();
+    if (!/^0x[a-fA-F0-9]{40}$/.test(target)) return;
+
+    try {
+      pushToast({ title: 'Granting Market Creator Role', description: 'Confirm the transaction…', type: 'info' });
+      const h = await addAdminAsync({
+        address: addresses.core,
+        abi: getCoreAbi(getCurrentNetwork()),
+        functionName: 'grantRole',
+        args: [MARKET_CREATOR_ROLE as `0x${string}`, target as `0x${string}`],
+      });
+      await publicClient.waitForTransactionReceipt({ hash: h });
+      pushToast({ title: 'Success', description: 'MARKET_CREATOR_ROLE granted.', type: 'success' });
+      await refreshCoreMarketCreatorRole(target);
+    } catch (e: any) {
+      pushToast({ title: 'Error', description: e?.message || 'Failed to grant MARKET_CREATOR_ROLE', type: 'error' });
+    }
+  };
+
+  const handleRevokeMarketCreatorRole = async () => {
+    if (!publicClient) return;
+    const target = marketCreatorAddress.trim();
+    if (!/^0x[a-fA-F0-9]{40}$/.test(target)) return;
+
+    try {
+      pushToast({ title: 'Revoking Market Creator Role', description: 'Confirm the transaction…', type: 'info' });
+      const h = await revokeAdminAsync({
+        address: addresses.core,
+        abi: getCoreAbi(getCurrentNetwork()),
+        functionName: 'revokeRole',
+        args: [MARKET_CREATOR_ROLE as `0x${string}`, target as `0x${string}`],
+      });
+      await publicClient.waitForTransactionReceipt({ hash: h });
+      pushToast({ title: 'Success', description: 'MARKET_CREATOR_ROLE revoked.', type: 'success' });
+      await refreshCoreMarketCreatorRole(target);
+    } catch (e: any) {
+      pushToast({ title: 'Error', description: e?.message || 'Failed to revoke MARKET_CREATOR_ROLE', type: 'error' });
+    }
+  };
+
+  const handleGrantTreasuryRoles = async () => {
+    if (!publicClient) return;
+    const target = treasuryRoleAddress.trim();
+    if (!/^0x[a-fA-F0-9]{40}$/.test(target)) return;
+
+    try {
+      if (!addresses.treasury) throw new Error('Treasury address not configured');
+
+      pushToast({ title: 'Granting Treasury Roles', description: 'Confirm the transactions…', type: 'info' });
+
+      const h1 = await treasuryGrantRoleAsync({
+        address: addresses.treasury,
+        abi: treasuryAbi,
+        functionName: 'grantRole',
+        args: [TREASURY_WITHDRAWER_ROLE, target as `0x${string}`],
+      });
+      await publicClient.waitForTransactionReceipt({ hash: h1 });
+
+      const h2 = await treasuryGrantRoleAsync({
+        address: addresses.treasury,
+        abi: treasuryAbi,
+        functionName: 'grantRole',
+        args: [TREASURY_ADMIN_ROLE, target as `0x${string}`],
+      });
+      await publicClient.waitForTransactionReceipt({ hash: h2 });
+
+      pushToast({
+        title: 'Success',
+        description: 'Treasury roles granted (WITHDRAWER_ROLE + ADMIN_ROLE).',
+        type: 'success',
+      });
+      await refreshTreasuryRoles(target);
+    } catch (e: any) {
+      pushToast({ title: 'Error', description: e?.message || 'Failed to grant Treasury roles', type: 'error' });
+    }
+  };
+
+  const handleRevokeTreasuryRoles = async () => {
+    if (!publicClient) return;
+    const target = treasuryRoleAddress.trim();
+    if (!/^0x[a-fA-F0-9]{40}$/.test(target)) return;
+
+    try {
+      if (!addresses.treasury) throw new Error('Treasury address not configured');
+
+      pushToast({ title: 'Revoking Treasury Roles', description: 'Confirm the transactions…', type: 'info' });
+
+      const h1 = await treasuryRevokeRoleAsync({
+        address: addresses.treasury,
+        abi: treasuryAbi,
+        functionName: 'revokeRole',
+        args: [TREASURY_WITHDRAWER_ROLE, target as `0x${string}`],
+      });
+      await publicClient.waitForTransactionReceipt({ hash: h1 });
+
+      const h2 = await treasuryRevokeRoleAsync({
+        address: addresses.treasury,
+        abi: treasuryAbi,
+        functionName: 'revokeRole',
+        args: [TREASURY_ADMIN_ROLE, target as `0x${string}`],
+      });
+      await publicClient.waitForTransactionReceipt({ hash: h2 });
+
+      pushToast({
+        title: 'Success',
+        description: 'Treasury roles revoked.',
+        type: 'success',
+      });
+      await refreshTreasuryRoles(target);
+    } catch (e: any) {
+      pushToast({ title: 'Error', description: e?.message || 'Failed to revoke Treasury roles', type: 'error' });
+    }
+  };
+
+  // Load current admins - since contract doesn't support enumeration, 
+  // we track admins that were added via this UI session
+  // For full visibility, check the Role Visualization component which queries known addresses
   const loadCurrentAdmins = async () => {
     if (!publicClient || !addresses.core) return;
-    
+
     try {
       setLoadingAdmins(true);
-      const coreAbi = getCoreAbi(getCurrentNetwork());
-      
-      // Get role member count
-      const memberCount = await publicClient.readContract({
-        address: addresses.core,
-        abi: coreAbi,
-        functionName: 'getRoleMemberCount',
-        args: [DEFAULT_ADMIN_ROLE as `0x${string}`],
-      }) as bigint;
-      
-      const count = Number(memberCount);
-      const admins: string[] = [];
-      
-      // Fetch each admin address
-      for (let i = 0; i < count; i++) {
-        try {
-          const adminAddr = await publicClient.readContract({
-            address: addresses.core,
-            abi: coreAbi,
-            functionName: 'getRoleMember',
-            args: [DEFAULT_ADMIN_ROLE as `0x${string}`, BigInt(i)],
-          }) as `0x${string}`;
-          admins.push(adminAddr);
-        } catch (e) {
-          console.error(`Error fetching admin ${i}:`, e);
+      // Since AccessControl doesn't have enumeration, we can only check known addresses
+      // The Role Visualization component provides better visibility
+      // Here we just verify if connected user is admin
+      if (address) {
+        const hasAdmin = await publicClient.readContract({
+          address: addresses.core,
+          abi: getCoreAbi(getCurrentNetwork()),
+          functionName: 'hasRole',
+          args: [DEFAULT_ADMIN_ROLE as `0x${string}`, address],
+        }) as boolean;
+
+        if (hasAdmin && !currentAdmins.includes(address)) {
+          setCurrentAdmins(prev => [...prev, address]);
         }
       }
-      
-      setCurrentAdmins(admins);
     } catch (e) {
-      console.error('Error loading admins:', e);
-      pushToast({ title: 'Error', description: 'Failed to load admin list', type: 'error' });
+      console.error('Error checking admin status:', e);
     } finally {
       setLoadingAdmins(false);
     }
@@ -466,12 +665,12 @@ export default function AdminManager() {
 
   const handleRevoke = async () => {
     if (!revokeAdminAddress || !publicClient) return;
-    
+
     try {
       const addresses = getAddresses();
-      
+
       pushToast({ title: 'Revoking Admin Role', description: 'Please confirm the transaction...', type: 'info' });
-      
+
       // Revoke DEFAULT_ADMIN_ROLE
       const adminHash = await revokeAdminAsync({
         address: addresses.core,
@@ -479,12 +678,12 @@ export default function AdminManager() {
         functionName: 'revokeRole',
         args: [DEFAULT_ADMIN_ROLE as `0x${string}`, revokeAdminAddress as `0x${string}`],
       });
-      
+
       if (adminHash) {
         await publicClient.waitForTransactionReceipt({ hash: adminHash });
         pushToast({ title: 'Revoking Market Creator Role', description: 'Removing market creator role...', type: 'info' });
       }
-      
+
       // Revoke MARKET_CREATOR_ROLE
       const creatorHash = await revokeAdminAsync({
         address: addresses.core,
@@ -492,7 +691,7 @@ export default function AdminManager() {
         functionName: 'revokeRole',
         args: [MARKET_CREATOR_ROLE as `0x${string}`, revokeAdminAddress as `0x${string}`],
       });
-      
+
       if (creatorHash) {
         await publicClient.waitForTransactionReceipt({ hash: creatorHash });
         pushToast({ title: 'Success', description: 'Admin roles revoked successfully!', type: 'success' });
@@ -506,17 +705,17 @@ export default function AdminManager() {
 
   const handleTransfer = async () => {
     if (!transferFromAddress || !transferToAddress || !publicClient) return;
-    
+
     if (transferFromAddress.toLowerCase() === transferToAddress.toLowerCase()) {
       pushToast({ title: 'Error', description: 'From and To addresses must be different', type: 'error' });
       return;
     }
-    
+
     try {
       const addresses = getAddresses();
-      
+
       pushToast({ title: 'Transferring Admin', description: 'Granting roles to new admin...', type: 'info' });
-      
+
       // Step 1: Grant roles to new admin
       const grantAdminHash = await transferAdminAsync({
         address: addresses.core,
@@ -524,23 +723,23 @@ export default function AdminManager() {
         functionName: 'grantRole',
         args: [DEFAULT_ADMIN_ROLE as `0x${string}`, transferToAddress as `0x${string}`],
       });
-      
+
       if (grantAdminHash) {
         await publicClient.waitForTransactionReceipt({ hash: grantAdminHash });
       }
-      
+
       const grantCreatorHash = await transferAdminAsync({
         address: addresses.core,
         abi: getCoreAbi(getCurrentNetwork()),
         functionName: 'grantRole',
         args: [MARKET_CREATOR_ROLE as `0x${string}`, transferToAddress as `0x${string}`],
       });
-      
+
       if (grantCreatorHash) {
         await publicClient.waitForTransactionReceipt({ hash: grantCreatorHash });
         pushToast({ title: 'Revoking Old Admin', description: 'Removing roles from old admin...', type: 'info' });
       }
-      
+
       // Step 2: Revoke roles from old admin
       const revokeAdminHash = await transferAdminAsync({
         address: addresses.core,
@@ -548,18 +747,18 @@ export default function AdminManager() {
         functionName: 'revokeRole',
         args: [DEFAULT_ADMIN_ROLE as `0x${string}`, transferFromAddress as `0x${string}`],
       });
-      
+
       if (revokeAdminHash) {
         await publicClient.waitForTransactionReceipt({ hash: revokeAdminHash });
       }
-      
+
       const revokeCreatorHash = await transferAdminAsync({
         address: addresses.core,
         abi: getCoreAbi(getCurrentNetwork()),
         functionName: 'revokeRole',
         args: [MARKET_CREATOR_ROLE as `0x${string}`, transferFromAddress as `0x${string}`],
       });
-      
+
       if (revokeCreatorHash) {
         await publicClient.waitForTransactionReceipt({ hash: revokeCreatorHash });
         pushToast({ title: 'Success', description: 'Admin transferred successfully!', type: 'success' });
@@ -684,6 +883,112 @@ export default function AdminManager() {
     }
   };
 
+  // Confirmation wrapper functions for dangerous operations
+  const confirmGrantAdmin = () => {
+    if (!validAddress) return;
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Grant Admin Role',
+      description: 'You are about to grant full admin privileges to this address. This gives them complete control over the protocol including role management, upgrades, and settings.',
+      type: 'warning',
+      addressDisplay: newAdminAddress,
+      roleInfo: 'DEFAULT_ADMIN_ROLE + MARKET_CREATOR_ROLE',
+      onConfirm: async () => {
+        setConfirmLoading(true);
+        try {
+          await handleAdd();
+        } finally {
+          setConfirmLoading(false);
+          setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        }
+      },
+    });
+  };
+
+  const confirmRevokeAdmin = () => {
+    if (!validRevokeAddress) return;
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Revoke Admin Role',
+      description: 'You are about to revoke all admin privileges from this address. This action removes their ability to manage the protocol.',
+      type: 'danger',
+      addressDisplay: revokeAdminAddress,
+      roleInfo: 'DEFAULT_ADMIN_ROLE + MARKET_CREATOR_ROLE',
+      onConfirm: async () => {
+        setConfirmLoading(true);
+        try {
+          await handleRevoke();
+        } finally {
+          setConfirmLoading(false);
+          setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        }
+      },
+    });
+  };
+
+  const confirmTransferAdmin = () => {
+    if (!validTransferFromAddress || !validTransferToAddress) return;
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Transfer Admin Role',
+      description: `You are about to transfer admin privileges. Roles will be granted to the new address and revoked from the old address.`,
+      type: 'danger',
+      addressDisplay: `From: ${transferFromAddress.slice(0, 10)}... → To: ${transferToAddress.slice(0, 10)}...`,
+      roleInfo: 'DEFAULT_ADMIN_ROLE + MARKET_CREATOR_ROLE',
+      onConfirm: async () => {
+        setConfirmLoading(true);
+        try {
+          await handleTransfer();
+        } finally {
+          setConfirmLoading(false);
+          setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        }
+      },
+    });
+  };
+
+  const confirmGrantTreasuryRoles = () => {
+    if (!validTreasuryRoleAddress) return;
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Grant Treasury Roles',
+      description: 'You are about to grant treasury withdrawal and admin privileges. This allows the address to withdraw funds from the Treasury.',
+      type: 'warning',
+      addressDisplay: treasuryRoleAddress,
+      roleInfo: 'WITHDRAWER_ROLE + ADMIN_ROLE',
+      onConfirm: async () => {
+        setConfirmLoading(true);
+        try {
+          await handleGrantTreasuryRoles();
+        } finally {
+          setConfirmLoading(false);
+          setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        }
+      },
+    });
+  };
+
+  const confirmRevokeTreasuryRoles = () => {
+    if (!validTreasuryRoleAddress) return;
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Revoke Treasury Roles',
+      description: 'You are about to remove treasury privileges from this address. They will no longer be able to withdraw funds.',
+      type: 'danger',
+      addressDisplay: treasuryRoleAddress,
+      roleInfo: 'WITHDRAWER_ROLE + ADMIN_ROLE',
+      onConfirm: async () => {
+        setConfirmLoading(true);
+        try {
+          await handleRevokeTreasuryRoles();
+        } finally {
+          setConfirmLoading(false);
+          setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        }
+      },
+    });
+  };
+
 
   if (isLoading) {
     return (
@@ -720,7 +1025,7 @@ export default function AdminManager() {
             Refresh
           </Button>
         </div>
-        
+
         {currentAdmins.length === 0 ? (
           <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-center text-xs text-gray-500 dark:text-gray-400">
             No admins found or loading...
@@ -752,6 +1057,164 @@ export default function AdminManager() {
         )}
       </div>
 
+      {/* Core: Market Ops Only (MARKET_CREATOR_ROLE) */}
+      <div className="space-y-2 pt-4 border-t border-gray-200 dark:border-white/5">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 block">
+            Market Ops Role (No Money)
+          </label>
+          <Button
+            onClick={() => refreshCoreMarketCreatorRole()}
+            disabled={!validMarketCreatorAddress || loadingCoreCreatorRole}
+            variant="ghost"
+            size="sm"
+            className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+          >
+            {loadingCoreCreatorRole ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Database className="w-3 h-3 mr-1" />}
+            Check
+          </Button>
+        </div>
+
+        <p className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+          This grants <span className="font-bold">only</span> <span className="font-mono">MARKET_CREATOR_ROLE</span> (create markets). It does not grant admin powers and does not touch Treasury.
+        </p>
+
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Input
+              value={marketCreatorAddress}
+              onChange={(e) => setMarketCreatorAddress(e.target.value)}
+              placeholder="0x... (ops wallet)"
+              className="font-mono pr-10 bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:ring-blue-500"
+              aria-label="Ops wallet address for MARKET_CREATOR_ROLE"
+            />
+            <AnimatePresence>
+              {validMarketCreatorAddress && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                >
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          <Button
+            onClick={handleGrantMarketCreatorRole}
+            disabled={!validMarketCreatorAddress}
+            className="bg-blue-600 hover:bg-blue-700 text-white min-w-[110px]"
+          >
+            Grant
+          </Button>
+          <Button
+            onClick={handleRevokeMarketCreatorRole}
+            disabled={!validMarketCreatorAddress}
+            className="bg-red-600 hover:bg-red-700 text-white min-w-[110px]"
+          >
+            Revoke
+          </Button>
+        </div>
+
+        <div className="rounded-lg border border-gray-200 dark:border-white/10 bg-white/60 dark:bg-gray-900/30 p-3">
+          <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            MARKET_CREATOR_ROLE status
+          </div>
+          <div className="mt-1 text-sm font-bold text-gray-900 dark:text-white">
+            {coreHasMarketCreator === null ? '—' : coreHasMarketCreator ? '✅ Granted' : '❌ Not granted'}
+          </div>
+        </div>
+
+        {!validMarketCreatorAddress && marketCreatorAddress.length > 0 && (
+          <p className="text-xs text-red-500 dark:text-red-400 ml-1">Invalid Ethereum address format</p>
+        )}
+      </div>
+
+      {/* Treasury Roles (Money-only) */}
+      <div className="space-y-2 pt-4 border-t border-gray-200 dark:border-white/5">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 block">
+            Treasury Roles (Money Only)
+          </label>
+          <Button
+            onClick={() => refreshTreasuryRoles()}
+            disabled={!validTreasuryRoleAddress || loadingTreasuryRoles}
+            variant="ghost"
+            size="sm"
+            className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+          >
+            {loadingTreasuryRoles ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Database className="w-3 h-3 mr-1" />}
+            Check
+          </Button>
+        </div>
+
+        <p className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+          Give your Safe multisig these roles so <span className="font-bold">only the Safe</span> can withdraw from Treasury.
+          This does <span className="font-bold">not</span> affect market creation.
+        </p>
+
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Input
+              value={treasuryRoleAddress}
+              onChange={(e) => setTreasuryRoleAddress(e.target.value)}
+              placeholder="0x... (Safe multisig address)"
+              className="font-mono pr-10 bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:ring-emerald-500"
+              aria-label="Safe multisig address for Treasury roles"
+            />
+            <AnimatePresence>
+              {validTreasuryRoleAddress && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                >
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          <Button
+            onClick={confirmGrantTreasuryRoles}
+            disabled={!validTreasuryRoleAddress}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white min-w-[110px]"
+          >
+            Grant
+          </Button>
+          <Button
+            onClick={confirmRevokeTreasuryRoles}
+            disabled={!validTreasuryRoleAddress}
+            className="bg-red-600 hover:bg-red-700 text-white min-w-[110px]"
+          >
+            Revoke
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 bg-white/60 dark:bg-gray-900/30 p-3">
+            <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              WITHDRAWER_ROLE (daily capped withdrawals)
+            </div>
+            <div className="mt-1 text-sm font-bold text-gray-900 dark:text-white">
+              {treasuryHasWithdrawer === null ? '—' : treasuryHasWithdrawer ? '✅ Granted' : '❌ Not granted'}
+            </div>
+          </div>
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 bg-white/60 dark:bg-gray-900/30 p-3">
+            <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              ADMIN_ROLE (schedule/execute large withdraws)
+            </div>
+            <div className="mt-1 text-sm font-bold text-gray-900 dark:text-white">
+              {treasuryHasAdmin === null ? '—' : treasuryHasAdmin ? '✅ Granted' : '❌ Not granted'}
+            </div>
+            <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+              Large withdrawals are timelocked by the contract (24h).
+            </div>
+          </div>
+        </div>
+
+        {!validTreasuryRoleAddress && treasuryRoleAddress.length > 0 && (
+          <p className="text-xs text-red-500 dark:text-red-400 ml-1">Invalid Ethereum address format</p>
+        )}
+      </div>
+
       {/* 1. Grant Admin Role */}
       <div className="space-y-2 pt-4 border-t border-gray-200 dark:border-white/5">
         <label htmlFor="admin-address" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 block">Grant Admin Role</label>
@@ -776,7 +1239,7 @@ export default function AdminManager() {
               )}
             </AnimatePresence>
           </div>
-          <Button onClick={handleAdd} disabled={!validAddress} className="bg-purple-600 hover:bg-purple-700 text-white min-w-[100px]">
+          <Button onClick={confirmGrantAdmin} disabled={!validAddress} className="bg-purple-600 hover:bg-purple-700 text-white min-w-[100px]">
             <UserPlus className="w-4 h-4 mr-2" /> Add
           </Button>
         </div>
@@ -811,9 +1274,9 @@ export default function AdminManager() {
               )}
             </AnimatePresence>
           </div>
-          <Button 
-            onClick={handleRevoke} 
-            disabled={!validRevokeAddress} 
+          <Button
+            onClick={confirmRevokeAdmin}
+            disabled={!validRevokeAddress}
             className="bg-red-600 hover:bg-red-700 text-white min-w-[100px]"
           >
             <X className="w-4 h-4 mr-2" /> Revoke
@@ -871,8 +1334,8 @@ export default function AdminManager() {
               )}
             </AnimatePresence>
           </div>
-          <Button 
-            onClick={handleTransfer} 
+          <Button
+            onClick={confirmTransferAdmin}
             disabled={!validTransferFromAddress || !validTransferToAddress || transferFromAddress.toLowerCase() === transferToAddress.toLowerCase()}
             className="w-full bg-orange-600 hover:bg-orange-700 text-white"
           >
@@ -989,6 +1452,21 @@ export default function AdminManager() {
           </div>
         )}
       </div>
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        type={confirmDialog.type}
+        addressDisplay={confirmDialog.addressDisplay}
+        roleInfo={confirmDialog.roleInfo}
+        isLoading={confirmLoading}
+        confirmText="Proceed"
+        cancelText="Cancel"
+      />
 
     </div>
   );

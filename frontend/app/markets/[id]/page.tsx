@@ -216,7 +216,7 @@ export default function MarketDetailPage() {
   const [side, setSide] = useState<'yes' | 'no'>(initialSide);
   const [holderTab, setHolderTab] = useState<'yes' | 'no'>('yes');
   const [chartSide, setChartSide] = useState<'yes' | 'no'>('yes');
-  const [chartPanel, setChartPanel] = useState<'market' | 'asset'>('market');
+  const [chartPanel, setChartPanel] = useState<'market' | 'asset'>('asset');
   const [timeRange, setTimeRange] = useState<SnapshotTimeRange>('ALL');
   const [yesBalance, setYesBalance] = useState<string>('0');
   const [noBalance, setNoBalance] = useState<string>('0');
@@ -536,10 +536,11 @@ export default function MarketDetailPage() {
   const hasAssetReference = Boolean(assetInfo.symbol);
 
   useEffect(() => {
-    if (!hasAssetReference && chartPanel === 'asset') {
+    // Only switch to market tab if market is loaded AND there's no asset reference
+    if (market && !hasAssetReference && chartPanel === 'asset') {
       setChartPanel('market');
     }
-  }, [hasAssetReference, chartPanel]);
+  }, [market, hasAssetReference, chartPanel]);
 
   if (marketData.isLoading || !market || !resolution) {
     return <MarketDetailSkeleton />;
@@ -670,7 +671,7 @@ export default function MarketDetailPage() {
                       </div>
                     </div>
                   ) : (
-                    <span className="text-sm font-bold text-amber-600 dark:text-amber-400">Reference Asset</span>
+                    <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{assetInfo.name || assetInfo.symbol}</span>
                   )}
                 </div>
 
