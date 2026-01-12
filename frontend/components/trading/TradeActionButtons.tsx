@@ -115,9 +115,9 @@ export function TradeActionButtons({
         yes: 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:-translate-y-0.5',
         no: 'bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-lg shadow-rose-500/25 hover:shadow-rose-500/40 hover:-translate-y-0.5',
         sell: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40',
-        disabled: 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700',
-        error: 'bg-rose-50 dark:bg-rose-950/20 text-rose-500 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30',
-        loading: 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-wait',
+        disabled: 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 border border-gray-200 dark:border-gray-600',
+        error: 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-300 border border-rose-100 dark:border-rose-800/50',
+        loading: 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 cursor-wait',
     };
 
     return (
@@ -127,8 +127,8 @@ export function TradeActionButtons({
                 disabled={config.disabled}
                 className={`
                     w-full py-4 rounded-2xl font-black text-lg tracking-wide transition-all duration-300 flex items-center justify-center gap-3 relative overflow-hidden
-                    ${variantStyles[config.variant]}
-                    ${config.disabled ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'}
+                    ${variantStyles[config.variant as keyof typeof variantStyles]}
+                    ${config.disabled ? 'cursor-not-allowed opacity-90 dark:opacity-100' : 'cursor-pointer'}
                 `}
             >
                 {config.icon}
@@ -152,7 +152,7 @@ export function TradeActionButtons({
                     exit={{ opacity: 0, y: 5 }}
                     className="text-center"
                 >
-                    <span className={`text-[10px] font-bold uppercase tracking-[0.15em] ${config.variant === 'error' ? 'text-rose-500' : 'text-gray-400'}`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-[0.15em] ${config.variant === 'error' ? 'text-rose-600 dark:text-rose-300' : 'text-gray-500 dark:text-gray-400'}`}>
                         {config.subLabel}
                     </span>
                 </motion.div>
