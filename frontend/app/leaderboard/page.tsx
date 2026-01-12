@@ -88,73 +88,25 @@ export default function LeaderboardPage() {
     }, [users, userAddress]);
 
     return (
-        <div className="min-h-screen relative overflow-hidden font-sans selection:bg-[#14B8A6]/30">
+        <div className="min-h-screen relative font-sans selection:bg-[#14B8A6]/30 selection:text-[#0f0a2e] dark:selection:text-white pb-20">
 
-            {/* Dynamic Background */}
-            <div className="fixed inset-0 pointer-events-none -z-10 bg-gray-50 dark:bg-[#0B1121]">
-                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.02] invert dark:invert-0" />
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-[#14B8A6]/5 rounded-full blur-[120px] mix-blend-screen" />
-                <div className="absolute bottom-0 right-0 w-[800px] h-[600px] bg-purple-500/5 rounded-full blur-[120px] mix-blend-screen" />
+            {/* Background Gradient - Match Markets/Portfolio */}
+            <div className="fixed inset-0 pointer-events-none -z-10 bg-[#FAF9FF] dark:bg-[#0f1219]">
+                <div className="absolute inset-0 bg-grid-slate-900/[0.04] dark:bg-grid-slate-400/[0.05] bg-[bottom_1px_center]"></div>
+                <div className="absolute -left-[10%] -top-[10%] h-[600px] w-[600px] rounded-full bg-teal-400/10 blur-[120px]" />
+                <div className="absolute top-[40%] -right-[10%] h-[500px] w-[500px] rounded-full bg-purple-500/10 blur-[100px]" />
             </div>
 
             <Header />
 
-            <main className="relative z-10 mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-8 pb-24">
+            <main className="relative z-10 mx-auto max-w-[1440px] px-6 py-6">
 
-                {/* Hero Section */}
-                <div className="text-center mb-12 relative">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/50 dark:bg-white/5 border border-white/20 backdrop-blur-md text-xs font-black uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400 mb-5 shadow-sm"
-                    >
-                        <Sparkles className="w-3 h-3 text-[#14B8A6]" /> Live Rankings
-                    </motion.div>
-
-                    <motion.h1
-                        initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-gray-900 to-gray-500 dark:from-white dark:to-gray-500 tracking-tighter mb-4"
-                    >
+                {/* Dashboard Header - Match Markets/Portfolio */}
+                <div className="mb-6">
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
                         Leaderboard
-                    </motion.h1>
-
-                    <motion.p
-                        initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto font-medium leading-relaxed"
-                    >
-                        A live ranking of market participants.
-                    </motion.p>
+                    </h1>
                 </div>
-
-                {/* Stats Row */}
-                <motion.div
-                    initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="flex flex-wrap justify-center gap-4 mb-12 max-w-4xl mx-auto"
-                >
-                    <StatCard
-                        title="Active Traders"
-                        value={users.length.toString()}
-                        icon={Users}
-                        color="text-blue-500"
-                    />
-                    <StatCard
-                        title="Total Points"
-                        value={formatNumber(users.reduce((acc, u) => acc + u.points, 0))}
-                        icon={Zap}
-                        color="text-amber-500"
-                    />
-                    <StatCard
-                        title="Total Trades"
-                        value={formatNumber(users.reduce((acc, u) => acc + u.totalTrades, 0))}
-                        icon={Activity}
-                        color="text-purple-500"
-                    />
-                </motion.div>
 
                 {isLoading ? (
                     <LoadingSkeleton />
@@ -162,9 +114,8 @@ export default function LeaderboardPage() {
                     <>
                         {/* Top 3 Podium */}
                         {top3.length > 0 && !search && (
-                            <div className="relative mb-16">
-                                <div className="absolute inset-0 bg-gradient-to-b from-teal-500/10 to-transparent blur-3xl -z-10 rounded-full opacity-50" />
-                                <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-end justify-center max-w-5xl mx-auto px-4">
+                            <div className="mb-8">
+                                <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-end justify-center">
                                     {/* 2nd Place */}
                                     {top3[1] && (
                                         <div className="order-2 md:order-1 w-full md:w-64">
@@ -190,8 +141,8 @@ export default function LeaderboardPage() {
                         )}
 
                         {/* Controls Bar */}
-                        <div className="sticky top-20 z-30 mb-8 max-w-[1400px] mx-auto">
-                            <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl p-2 rounded-2xl border border-white/20 dark:border-white/10 shadow-xl flex flex-col md:flex-row gap-3 items-center justify-between">
+                        <div className="sticky top-20 z-30 mb-6">
+                            <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm p-2 flex flex-col md:flex-row gap-3 items-center justify-between">
 
                                 {/* Search */}
                                 <div className="relative flex-1 w-full md:max-w-md group">
@@ -225,30 +176,25 @@ export default function LeaderboardPage() {
                         </div>
 
                         {/* Leaderboard Table */}
-                        <motion.div
-                            initial={prefersReducedMotion ? false : { opacity: 0, y: 40 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3 }}
-                            className="max-w-[1400px] mx-auto"
-                        >
+                        <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
                             <div className="overflow-x-auto">
-                                <table className="w-full border-separate border-spacing-y-2">
-                                    <thead>
+                                <table className="w-full">
+                                    <thead className="bg-gray-50/50 dark:bg-gray-800/10">
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest w-20 pl-8">Rank</th>
-                                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Trader</th>
-                                            <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest hidden md:table-cell">Activity</th>
-                                            <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest pr-8">Points</th>
+                                            <th className="px-4 py-2.5 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wide w-20">Rank</th>
+                                            <th className="px-4 py-2.5 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Trader</th>
+                                            <th className="px-4 py-2.5 text-center text-[10px] font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Activity</th>
+                                            <th className="px-4 py-2.5 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Points</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="space-y-2">
+                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800/50">
                                         {/* Always display all filtered users to confirm data visibility if total count is low */}
                                         {filteredUsers.map((user) => (
                                             <LeaderboardRow key={user.address} user={user} isCurrentUser={user.address.toLowerCase() === userAddress?.toLowerCase()} nicknames={nicknames} />
                                         ))}
                                         {filteredUsers.length === 0 && (
                                             <tr>
-                                                <td colSpan={4} className="px-6 py-20 text-center">
+                                                <td colSpan={4} className="px-4 py-20 text-center">
                                                     <div className="flex flex-col items-center gap-4 opacity-40">
                                                         <div className="p-4 bg-gray-100 dark:bg-white/5 rounded-full">
                                                             <Search className="w-8 h-8" />
@@ -261,7 +207,7 @@ export default function LeaderboardPage() {
                                     </tbody>
                                 </table>
                             </div>
-                        </motion.div>
+                        </div>
                     </>
                 )}
             </main>
@@ -301,7 +247,7 @@ export default function LeaderboardPage() {
 
 function StatCard({ title, value, icon: Icon, color }: any) {
     return (
-        <div className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl rounded-2xl p-5 border border-white/20 dark:border-white/5 shadow-lg flex flex-col items-start gap-4 hover:scale-[1.02] transition-transform w-full sm:w-56 group">
+        <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm p-5 flex flex-col items-start gap-4 w-full sm:w-56 group">
             <div className={cn("p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 group-hover:bg-white dark:group-hover:bg-white/10 transition-colors", color)}>
                 <Icon className="w-5 h-5" />
             </div>
@@ -326,25 +272,19 @@ function PodiumCard({ user, place, prefersReducedMotion = false, nicknames = {} 
     let gradient = '';
 
     if (isFirst) {
-        borderClass = 'border-yellow-500/30 dark:border-yellow-400/30';
+        borderClass = 'border-yellow-400/40 dark:border-yellow-400/30';
         textClass = 'text-yellow-600 dark:text-yellow-400';
-        shadowClass = 'shadow-yellow-500/20';
         icon = <Crown className="w-8 h-8" />;
         label = 'Champion';
-        gradient = 'from-yellow-500/20 via-yellow-500/5 to-transparent';
     } else if (isSecond) {
-        borderClass = 'border-slate-400/30';
+        borderClass = 'border-slate-300/40 dark:border-slate-500/30';
         textClass = 'text-slate-600 dark:text-slate-300';
-        shadowClass = 'shadow-slate-400/20';
         icon = <Medal className="w-7 h-7" />;
         label = 'Silver';
-        gradient = 'from-slate-400/20 via-slate-400/5 to-transparent';
     } else {
-        borderClass = 'border-orange-400/30';
+        borderClass = 'border-orange-400/40 dark:border-orange-400/30';
         textClass = 'text-orange-600 dark:text-orange-400';
-        shadowClass = 'shadow-orange-400/20';
         icon = <Medal className="w-7 h-7" />;
-        gradient = 'from-orange-400/20 via-orange-400/5 to-transparent';
     }
 
     return (
@@ -352,14 +292,11 @@ function PodiumCard({ user, place, prefersReducedMotion = false, nicknames = {} 
             initial={prefersReducedMotion ? false : { y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             className={cn(
-                "relative rounded-[32px] p-6 flex flex-col items-center border backdrop-blur-2xl shadow-2xl transition-all hover:-translate-y-2 duration-300 bg-white/60 dark:bg-gray-900/40 overflow-hidden",
-                borderClass, shadowClass
+                "relative rounded-2xl p-6 flex flex-col items-center border border-gray-200 dark:border-gray-800 shadow-sm transition-all hover:-translate-y-1 duration-300 bg-white dark:bg-gray-900",
+                borderClass
             )}
         >
-            {/* Glow Effect */}
-            <div className={cn("absolute inset-0 bg-gradient-to-b opacity-50 pointer-events-none", gradient)} />
-
-            <div className={cn("absolute -top-6 mb-4 p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-xl border relative z-10", borderClass, textClass)}>
+            <div className={cn("absolute -top-6 mb-4 p-3 rounded-2xl bg-white dark:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-800 relative z-10", borderClass, textClass)}>
                 {icon}
             </div>
 
@@ -383,15 +320,13 @@ function PodiumCard({ user, place, prefersReducedMotion = false, nicknames = {} 
 
 function LeaderboardRow({ user, isCurrentUser, nicknames = {} }: { user: LeaderboardUser, isCurrentUser: boolean, nicknames?: Record<string, string> }) {
     return (
-        <tr className="group transition-transform hover:scale-[1.005]">
-            <td className={cn(
-                "px-6 py-4 rounded-l-2xl border-y border-l transition-colors backdrop-blur-md",
-                isCurrentUser
-                    ? "bg-teal-50/50 dark:bg-teal-900/10 border-teal-200 dark:border-teal-800"
-                    : "bg-white/40 dark:bg-gray-800/40 border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60"
-            )}>
+        <tr className={cn(
+            "group transition-colors",
+            isCurrentUser && "bg-teal-50/30 dark:bg-teal-900/10"
+        )}>
+            <td className="px-4 py-3">
                 <div className={cn(
-                    "w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shadow-sm",
+                    "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs",
                     user.rank <= 3
                         ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
                         : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400"
@@ -399,43 +334,28 @@ function LeaderboardRow({ user, isCurrentUser, nicknames = {} }: { user: Leaderb
                     {user.rank}
                 </div>
             </td>
-            <td className={cn(
-                "px-6 py-4 border-y transition-colors backdrop-blur-md",
-                isCurrentUser
-                    ? "bg-teal-50/50 dark:bg-teal-900/10 border-teal-200 dark:border-teal-800"
-                    : "bg-white/40 dark:bg-gray-800/40 border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60"
-            )}>
+            <td className="px-4 py-3">
                 <div className="flex items-center gap-3">
                     <div>
-                        <div className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                        <div className="font-semibold text-sm text-gray-900 dark:text-white flex items-center gap-2">
                             <span className={nicknames[user.address.toLowerCase()] ? '' : 'font-mono'}>
                                 {getDisplayName(user.address, nicknames)}
                             </span>
-                            {isCurrentUser && <span className="px-1.5 py-0.5 rounded-md bg-teal-500 text-white text-[9px] font-black uppercase shadow-sm">You</span>}
+                            {isCurrentUser && <span className="px-1.5 py-0.5 rounded-md bg-teal-500 text-white text-[9px] font-bold uppercase">You</span>}
                         </div>
-                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">{user.totalTrades} Trades</div>
+                        <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mt-0.5">{user.totalTrades} Trades</div>
                     </div>
                 </div>
             </td>
-            <td className={cn(
-                "px-6 py-4 border-y transition-colors backdrop-blur-md hidden md:table-cell",
-                isCurrentUser
-                    ? "bg-teal-50/50 dark:bg-teal-900/10 border-teal-200 dark:border-teal-800"
-                    : "bg-white/40 dark:bg-gray-800/40 border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60"
-            )}>
-                <div className="flex justify-center opacity-40 group-hover:opacity-100 transition-opacity">
+            <td className="px-4 py-3 hidden md:table-cell">
+                <div className="flex justify-center opacity-60 group-hover:opacity-100 transition-opacity">
                     <Sparkline data={generateActivityData(user.address)} color={user.rank <= 3 ? '#EAB308' : '#14B8A6'} width={80} height={24} />
                 </div>
             </td>
-            <td className={cn(
-                "px-6 py-4 rounded-r-2xl border-y border-r transition-colors backdrop-blur-md text-right",
-                isCurrentUser
-                    ? "bg-teal-50/50 dark:bg-teal-900/10 border-teal-200 dark:border-teal-800"
-                    : "bg-white/40 dark:bg-gray-800/40 border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60"
-            )}>
+            <td className="px-4 py-3 text-right">
                 <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-sm font-black text-gray-900 dark:text-white">{formatNumber(user.points)}</span>
-                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Points</span>
+                    <span className="text-sm font-bold text-gray-900 dark:text-white">{formatNumber(user.points)}</span>
+                    <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider">Points</span>
                 </div>
             </td>
         </tr>
@@ -445,15 +365,17 @@ function LeaderboardRow({ user, isCurrentUser, nicknames = {} }: { user: Leaderb
 function LoadingSkeleton() {
     return (
         <div className="animate-pulse space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-80">
-                <div className="bg-gray-200 dark:bg-gray-800 rounded-3xl" />
-                <div className="bg-gray-200 dark:bg-gray-800 rounded-3xl -mt-12" />
-                <div className="bg-gray-200 dark:bg-gray-800 rounded-3xl" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-80">
+                <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl" />
+                <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl -mt-12" />
+                <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl" />
             </div>
-            <div className="space-y-4">
-                {[1, 2, 3, 4, 5].map(i => (
-                    <div key={i} className="h-20 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
-                ))}
+            <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                <div className="space-y-0">
+                    {[1, 2, 3, 4, 5].map(i => (
+                        <div key={i} className="h-16 bg-gray-100 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800 last:border-0" />
+                    ))}
+                </div>
             </div>
         </div>
     );

@@ -33,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.className} min-h-screen flex flex-col bg-[#FAF9FF] dark:bg-[#0f172a] text-slate-900 dark:text-slate-50 antialiased mesh-gradient`}
+        className={`${inter.className} h-screen min-h-screen flex flex-col bg-[#FAF9FF] dark:bg-[#0f172a] text-slate-900 dark:text-slate-50 antialiased mesh-gradient overflow-auto`}
       >
         <Providers>
           <DisclaimerModal />

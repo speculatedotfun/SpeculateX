@@ -26,6 +26,19 @@ import { getMarketResolution } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
 import { Sparkline } from '@/components/market/Sparkline';
 import { NicknameManager } from '@/components/NicknameManager';
+import Image from 'next/image';
+import { useMarketsListOptimized } from '@/lib/hooks/useMarketsListOptimized';
+
+// Helper: Get market logo based on question
+const getMarketLogo = (question?: string | null): string => {
+  const normalized = typeof question === 'string' ? question : question != null ? String(question) : '';
+  const q = normalized.toLowerCase();
+  if (q.includes('btc') || q.includes('bitcoin')) return '/logos/BTC_ethereum.png';
+  if (q.includes('eth') || q.includes('ethereum')) return '/logos/ETH_ethereum.png';
+  if (q.includes('sol') || q.includes('solana')) return '/logos/SOL_solana.png';
+  if (q.includes('bnb') || q.includes('binance')) return '/logos/BNB_bsc.png';
+  return '/logos/default.png';
+};
 
 
 const formatCurrency = (value: number) => {
@@ -87,7 +100,10 @@ export default function PortfolioPage() {
   const trades = data?.trades || [];
   const redemptions = data?.redemptions || [];
 
-  const totalValue = positions.reduce((acc, pos) => acc + pos.value, 0);
+  const activeValue = positions
+    .filter(p => p.status === 'Active')
+    .reduce((acc, pos) => acc + pos.value, 0);
+
   const activePositionsCount = positions.filter(p => p.status === 'Active').length;
   const resolvedPositionsCount = positions.filter(p => p.status === 'Resolved').length;
   const totalClaimed = redemptions.reduce((acc, r) => acc + r.amount, 0);
@@ -102,6 +118,116 @@ export default function PortfolioPage() {
 
     return isResolved && hasWon && hasBalance && notRedeemed;
   });
+
+  const claimableValue = claimablePositions.reduce((acc, p) => acc + (p.value || 0), 0);
+  const totalNetWorth = activeValue + claimableValue + totalClaimed;
+  const openExposure = activeValue;
+
+  // --- PnL (realized) + Best Market (unrealized) ---
+  const nowSec = Math.floor(Date.now() / 1000);
+  const cutoff24h = nowSec - 24 * 60 * 60;
+  const cutoff7d = nowSec - 7 * 24 * 60 * 60;
+
+  const { realized24h, basis24h, realized7d, basis7d, avgCostByKey } = useMemo(() => {
+    type PosState = { tokens: number; costSum: number }; // costSum in USD
+    const state = new Map<string, PosState>();
+
+    let realized24hAcc = 0;
+    let basis24hAcc = 0;
+    let realized7dAcc = 0;
+    let basis7dAcc = 0;
+
+    const sorted = [...trades].sort((a, b) => a.timestamp - b.timestamp);
+
+    for (const t of sorted) {
+      const side = (t.side || '').toUpperCase();
+      if (side !== 'YES' && side !== 'NO') continue;
+
+      const action = (t.action || '').toLowerCase();
+      const qty = Number(t.tokenAmount || 0);
+      const price = Number(t.price || 0); // USD per token
+      if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(price) || price < 0) continue;
+
+      const key = `${t.marketId}-${side}`;
+      const st = state.get(key) ?? { tokens: 0, costSum: 0 };
+
+      if (action === 'buy') {
+        // avg cost basis (USD)
+        st.costSum += qty * price;
+        st.tokens += qty;
+        state.set(key, st);
+        continue;
+      }
+
+      if (action === 'sell') {
+        if (st.tokens <= 0) continue;
+        const sellQty = Math.min(qty, st.tokens);
+        const avgCost = st.tokens > 0 ? st.costSum / st.tokens : 0;
+
+        const pnl = (price - avgCost) * sellQty;
+        const basis = avgCost * sellQty;
+
+        if (t.timestamp >= cutoff24h) {
+          realized24hAcc += pnl;
+          basis24hAcc += basis;
+        }
+        if (t.timestamp >= cutoff7d) {
+          realized7dAcc += pnl;
+          basis7dAcc += basis;
+        }
+
+        st.tokens -= sellQty;
+        st.costSum -= avgCost * sellQty;
+        if (st.tokens <= 0) {
+          st.tokens = 0;
+          st.costSum = 0;
+        }
+        state.set(key, st);
+      }
+    }
+
+    const avgCostByKeyLocal = new Map<string, number>();
+    for (const [k, st] of state.entries()) {
+      avgCostByKeyLocal.set(k, st.tokens > 0 ? st.costSum / st.tokens : 0);
+    }
+
+    return {
+      realized24h: realized24hAcc,
+      basis24h: basis24hAcc,
+      realized7d: realized7dAcc,
+      basis7d: basis7dAcc,
+      avgCostByKey: avgCostByKeyLocal,
+    };
+  }, [trades, cutoff24h, cutoff7d]);
+
+  const pnl24h = realized24h;
+  const pnlPercent24h = basis24h > 0 ? (realized24h / basis24h) * 100 : 0;
+  const pnl7d = realized7d;
+  const pnlPercent7d = basis7d > 0 ? (realized7d / basis7d) * 100 : 0;
+
+  const bestMarket = useMemo(() => {
+    const actives = positions.filter(p => p.status === 'Active');
+    if (actives.length === 0) return null;
+
+    let best: { marketId: number; question: string; pnl: number; pnlPct: number } | null = null;
+
+    for (const p of actives) {
+      const key = `${p.marketId}-${p.side}`;
+      const avgCost = avgCostByKey.get(key) ?? 0;
+      const qty = Number(p.balance || 0);
+      if (!Number.isFinite(qty) || qty <= 0) continue;
+
+      const invested = avgCost * qty;
+      const pnl = (p.currentPrice - avgCost) * qty;
+      const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
+
+      if (!best || pnlPct > best.pnlPct) {
+        best = { marketId: p.marketId, question: p.question, pnl, pnlPct };
+      }
+    }
+
+    return best;
+  }, [positions, avgCostByKey]);
 
   const lostPositions = positions.filter(p =>
     p.status === 'Resolved' && !p.won
@@ -158,223 +284,260 @@ export default function PortfolioPage() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-x-hidden font-sans selection:bg-[#14B8A6]/30">
+    <div className="min-h-screen relative font-sans selection:bg-[#14B8A6]/30 selection:text-[#0f0a2e] dark:selection:text-white pb-20">
 
-      {/* Dynamic Background */}
-      <div className="fixed inset-0 pointer-events-none -z-10 bg-gray-50 dark:bg-[#0B1121]">
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.02] invert dark:invert-0" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-[#14B8A6]/5 rounded-full blur-[120px] mix-blend-screen" />
-        <div className="absolute bottom-0 right-0 w-[800px] h-[600px] bg-purple-500/5 rounded-full blur-[120px] mix-blend-screen" />
+      {/* Background Gradient - Match Markets */}
+      <div className="fixed inset-0 pointer-events-none -z-10 bg-[#FAF9FF] dark:bg-[#0f1219]">
+        <div className="absolute inset-0 bg-grid-slate-900/[0.04] dark:bg-grid-slate-400/[0.05] bg-[bottom_1px_center]"></div>
+        <div className="absolute -left-[10%] -top-[10%] h-[600px] w-[600px] rounded-full bg-teal-400/10 blur-[120px]" />
+        <div className="absolute top-[40%] -right-[10%] h-[500px] w-[500px] rounded-full bg-purple-500/10 blur-[100px]" />
       </div>
 
       <Header />
 
-      <main className="relative z-10 mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-8 pb-24">
+      <main className="relative z-10 mx-auto max-w-[1440px] px-6 py-6">
 
-        {/* Page Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-          <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.5 }}
-          >
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 backdrop-blur-md text-xs font-black uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400 mb-4 shadow-sm">
-              <Wallet className="w-3 h-3 text-[#14B8A6]" /> Portfolio Overview
-            </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-gray-900 to-gray-500 dark:from-white dark:to-gray-500 tracking-tighter mb-2">
-              My Portfolio
-            </h1>
-          </motion.div>
-
-          <div className="flex items-center gap-2">
-            <motion.button
-              onClick={() => setIsNicknameModalOpen(true)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="group relative overflow-hidden bg-white/50 dark:bg-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 text-gray-700 dark:text-gray-300 pl-3 pr-4 h-10 rounded-xl flex items-center gap-2 shadow-sm hover:shadow-md hover:bg-white dark:hover:bg-gray-800 transition-all backdrop-blur-md"
-            >
-              <div className="flex items-center justify-center w-6 h-6 bg-teal-100 dark:bg-teal-900/20 rounded-lg">
-                <User className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-              </div>
-              <div className="flex flex-col items-start leading-none gap-0.5">
-                <span className="text-[8px] font-bold uppercase opacity-60">Profile</span>
-                <span className={cn("text-xs font-black", address && nicknames[address.toLowerCase()] ? "text-teal-600 dark:text-teal-400" : "")}>
-                  {address ? getDisplayName(address, nicknames) : 'Set Nickname'}
-                </span>
-              </div>
-            </motion.button>
-
-            {claimablePositions.length > 0 && (
-              <motion.button
-                onClick={() => setActiveTab('claims')}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="group relative overflow-hidden bg-gradient-to-r from-emerald-500 to-teal-500 text-white pl-3 pr-4 h-10 rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-500/20"
-              >
-                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                <div className="flex items-center justify-center w-6 h-6 bg-white/20 rounded-lg backdrop-blur-md">
-                  <Trophy className="w-3.5 h-3.5 text-white" />
-                </div>
-                <div className="flex flex-col items-start leading-none relative z-10 gap-0.5">
-                  <span className="text-[8px] font-bold uppercase opacity-80">Ready</span>
-                  <span className="text-xs font-black">{claimablePositions.length} Wins</span>
-                </div>
-              </motion.button>
-            )}
-
-            <button
-              onClick={async () => {
-                setIsManualRefreshing(true);
-                await refetch();
-                setIsManualRefreshing(false);
-              }}
-              disabled={isRefetching || isManualRefreshing}
-              className="w-10 h-10 flex items-center justify-center bg-white/50 dark:bg-gray-800/50 border border-gray-200/50 dark:border-white/10 rounded-xl hover:bg-white dark:hover:bg-gray-800 transition-all disabled:opacity-50 backdrop-blur-xl shadow-sm hover:shadow-md group"
-            >
-              <RefreshCw className={`w-4 h-4 text-gray-500 group-hover:text-teal-500 transition-colors ${(isRefetching || isManualRefreshing) ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
+        {/* Dashboard Header - Match Markets */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            Portfolio
+          </h1>
         </div>
 
-        {/* Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+        {/* Top Cards (match screenshot) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          {/* Total Net Worth Card */}
+          <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+            <div className="p-5">
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                {/* Left: Title + Value */}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                      <Wallet className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Total Net Worth</span>
+                  </div>
+                  <div className="text-3xl font-bold tabular-nums text-gray-900 dark:text-white">
+                    {isLoading ? '$0.00' : formatCurrency(totalNetWorth)}
+                  </div>
+                </div>
 
+                {/* Right: Mini Panel */}
+                <div className="w-full md:w-[260px] rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 px-3 py-2.5">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400">24h PnL</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-semibold tabular-nums text-gray-900 dark:text-white">{formatCurrency(pnl24h)}</span>
+                        <span className={cn(
+                          "text-[10px] tabular-nums px-1.5 py-0.5 rounded",
+                          pnlPercent24h >= 0 ? "bg-emerald-100/70 dark:bg-emerald-900/40 text-emerald-500" : "bg-red-100/70 dark:bg-red-900/40 text-red-500"
+                        )}>{pnlPercent24h >= 0 ? '+' : ''}{pnlPercent24h.toFixed(1)}%</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400">7d PnL</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-semibold tabular-nums text-gray-900 dark:text-white">{formatCurrency(pnl7d)}</span>
+                        <span className={cn(
+                          "text-[10px] tabular-nums px-1.5 py-0.5 rounded",
+                          pnlPercent7d >= 0 ? "bg-emerald-100/70 dark:bg-emerald-900/40 text-emerald-500" : "bg-red-100/70 dark:bg-red-900/40 text-red-500"
+                        )}>{pnlPercent7d >= 0 ? '+' : ''}{pnlPercent7d.toFixed(1)}%</span>
+                      </div>
+                    </div>
+                    <div className="h-px bg-gray-100 dark:bg-gray-700/50" />
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400">Best Market</span>
+                      {bestMarket ? (
+                        <span
+                          className="text-[11px] font-medium text-gray-900 dark:text-white max-w-[150px] truncate"
+                          title={bestMarket.question}
+                        >
+                          {bestMarket.question}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-medium text-gray-900 dark:text-white">N/A</span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400">Open Exposure</span>
+                      <span className="text-[11px] font-semibold tabular-nums text-gray-900 dark:text-white">{formatCurrency(openExposure)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-          {/* Main Value Card */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="lg:col-span-2 bg-white/60 dark:bg-gray-900/40 backdrop-blur-2xl border border-white/20 dark:border-white/5 rounded-[32px] p-8 shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[240px]"
-          >
-            <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-teal-500/5 rounded-full blur-3xl -mr-24 -mt-24 pointer-events-none" />
-
-            <div className="relative z-10">
-              <div className="flex items-start justify-between mb-8">
+              {/* Bottom Stats Row */}
+              <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800 grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div>
-                  <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-2">Total Net Worth</h2>
-                  <div className="text-4xl md:text-5xl font-black tracking-tighter tabular-nums text-gray-900 dark:text-white">
-                    {isLoading ? "..." : formatCurrency(totalValue + totalClaimed)}
+                  <div className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Active Value</div>
+                  <div className="text-sm font-semibold tabular-nums text-gray-900 dark:text-white">{formatCurrency(activeValue)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Realized Gains</div>
+                  <div className="text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">+{formatCurrency(totalClaimed)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Positions</div>
+                  <div className="text-sm font-semibold tabular-nums text-gray-900 dark:text-white">{positions.length}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Win Rate</div>
+                  <div className="text-sm font-semibold tabular-nums text-gray-900 dark:text-white">{resolvedPositionsCount > 0 ? Math.round((claimablePositions.length + claimedPositions.length) / resolvedPositionsCount * 100) : 0}%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Allocation Card */}
+          <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+            <div className="p-5">
+              <div className="text-[10px] text-gray-400 uppercase tracking-wide mb-3">Allocation</div>
+
+              <div className="flex items-center gap-5">
+                {/* Legend */}
+                <div className="flex-1 space-y-2">
+                  {allocationData.length > 0 && totalNetWorth > 0 ? (
+                    allocationData.map((d) => (
+                      <div key={d.name} className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
+                          <span className="text-gray-600 dark:text-gray-400">{d.name}</span>
+                        </div>
+                        <span className="font-medium tabular-nums text-gray-900 dark:text-white">
+                          {Math.round((d.value / totalNetWorth) * 100)}%
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                          <span className="text-gray-600 dark:text-gray-400">Active Markets</span>
+                        </div>
+                        <span className="font-medium tabular-nums text-gray-900 dark:text-white">0%</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-gray-300" />
+                          <span className="text-gray-600 dark:text-gray-400">Unused Balance</span>
+                        </div>
+                        <span className="font-medium tabular-nums text-gray-900 dark:text-white">100.0%</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Donut */}
+                <div className="relative w-[110px] h-[110px] shrink-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsPie>
+                      <Pie
+                        data={
+                          allocationData.length > 0 && totalNetWorth > 0
+                            ? allocationData
+                            : [{ name: 'Unused', value: 100 }]
+                        }
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={38}
+                        outerRadius={50}
+                        paddingAngle={2}
+                        dataKey="value"
+                        stroke="none"
+                      >
+                        {allocationData.length > 0 && totalNetWorth > 0
+                          ? allocationData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))
+                          : <Cell fill="#E5E7EB" />}
+                      </Pie>
+                    </RechartsPie>
+                  </ResponsiveContainer>
+
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-lg font-bold tabular-nums text-gray-900 dark:text-white">
+                      {allocationData.length > 0 && totalNetWorth > 0 ? '—' : '100%'}
+                    </span>
+                    <span className="text-[10px] text-gray-400">
+                      {allocationData.length > 0 && totalNetWorth > 0 ? 'Mixed' : 'Unused'}
+                    </span>
                   </div>
                 </div>
-                <div className="bg-teal-50 dark:bg-teal-900/20 p-3 rounded-2xl border border-teal-100 dark:border-teal-800/30">
-                  <TrendingUp className="w-6 h-6 text-teal-600 dark:text-teal-400" />
-                </div>
               </div>
             </div>
-
-            <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-gray-50/50 dark:bg-white/5 rounded-2xl p-4 border border-gray-100 dark:border-white/5">
-                <div className="text-[9px] font-bold uppercase text-gray-400 mb-1">Active Value</div>
-                <div className="text-base font-bold text-gray-900 dark:text-white">{formatCurrency(totalValue)}</div>
-              </div>
-              <div className="bg-gray-50/50 dark:bg-white/5 rounded-2xl p-4 border border-gray-100 dark:border-white/5">
-                <div className="text-[9px] font-bold uppercase text-gray-400 mb-1">Realized Gains</div>
-                <div className="text-base font-bold text-emerald-600 dark:text-emerald-400">+{formatCurrency(totalClaimed)}</div>
-              </div>
-              <div className="bg-gray-50/50 dark:bg-white/5 rounded-2xl p-4 border border-gray-100 dark:border-white/5">
-                <div className="text-[9px] font-bold uppercase text-gray-400 mb-1">Positions</div>
-                <div className="text-base font-bold text-gray-900 dark:text-white">{positions.length}</div>
-              </div>
-              <div className="bg-gray-50/50 dark:bg-white/5 rounded-2xl p-4 border border-gray-100 dark:border-white/5">
-                <div className="text-[9px] font-bold uppercase text-gray-400 mb-1">Win Rate</div>
-                <div className="text-base font-bold text-gray-900 dark:text-white">{resolvedPositionsCount > 0 ? Math.round((claimablePositions.length + claimedPositions.length) / resolvedPositionsCount * 100) : 0}%</div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Allocation Chart */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-2xl border border-white/20 dark:border-white/5 rounded-[32px] p-8 flex flex-col items-center justify-center relative shadow-2xl"
-          >
-            <h3 className="absolute top-8 left-8 text-xs font-bold text-gray-400 uppercase tracking-widest">Allocation</h3>
-
-            {allocationData.length > 0 ? (
-              <div className="w-full h-[160px] mt-2 relative">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsPie>
-                    <Pie
-                      data={allocationData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={65}
-                      paddingAngle={5}
-                      dataKey="value"
-                      stroke="none"
-                    >
-                      {allocationData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                  </RechartsPie>
-                </ResponsiveContainer>
-                {/* Centered Total */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none flex-col">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase">Total</span>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-[160px] opacity-30 mt-6">
-                <PieChart className="w-12 h-12 mb-2" />
-                <div className="text-xs font-bold">No Data</div>
-              </div>
-            )}
-
-
-
-
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3 w-full mt-4">
-              {allocationData.map((d) => (
-                <div key={d.name} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
-                    <span className="font-medium text-gray-500 dark:text-gray-400">{d.name}</span>
-                  </div>
-                  <span className="font-bold text-gray-900 dark:text-white">{Math.round((d.value / (totalValue + totalClaimed)) * 100)}%</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
+          </div>
         </div>
 
 
         {/* Tabs & Content */}
         <div className="min-h-[600px]">
-          {/* Custom Tab Switcher */}
-          <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
-            {['positions', 'claims', 'history', 'referrals', 'faucet']
-              .filter(tab => {
-                // Hide faucet on mainnet (Chain ID 56)
-                if (tab === 'faucet' && chain?.id === 56) return false;
-                return true;
-              })
-              .map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab as PortfolioTab)}
-                  className={cn(
-                    "px-5 py-2.5 rounded-full text-xs font-bold transition-all relative whitespace-nowrap border",
-                    activeTab === tab
-                      ? "bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800"
-                      : "bg-white/50 dark:bg-gray-900/50 text-gray-500 hover:text-gray-900 dark:hover:text-white border-transparent hover:bg-white dark:hover:bg-gray-800"
-                  )}
+          {/* Tabs Row (match Markets underline tabs) + Controls */}
+          <div className="flex items-center justify-between gap-4 mb-6">
+            {/* Left: Underline Tabs */}
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+              {([
+                { id: 'positions', label: 'Positions', count: positions.length },
+                { id: 'claims', label: 'Claims', count: claimablePositions.length },
+                { id: 'history', label: 'History', count: trades.length },
+                { id: 'referrals', label: 'Referrals', count: referralData.length },
+                { id: 'faucet', label: 'Faucet', count: 0 },
+              ] as const)
+                .filter(tab => {
+                  if (tab.id === 'faucet' && chain?.id === 56) return false;
+                  return true;
+                })
+                .map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as PortfolioTab)}
+                      className={cn(
+                        "relative px-3 py-2 text-sm font-medium transition-all duration-200 whitespace-nowrap",
+                        isActive
+                          ? "text-slate-900 dark:text-white border-b-2 border-slate-900 dark:border-white"
+                          : "text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300"
+                      )}
+                    >
+                      {tab.label}
+                      {tab.count > 0 && (
+                        <span className={cn(
+                          "ml-1.5 text-xs tabular-nums",
+                          isActive ? "text-slate-700 dark:text-gray-200" : "text-slate-400 dark:text-gray-500"
+                        )}>
+                          ({tab.count})
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+            </div>
+
+            {/* Right: Sort / Filter Pills */}
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="relative">
+                <select
+                  aria-label="Sort"
+                  className="h-9 pl-3 pr-8 rounded-full bg-white/70 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 text-sm text-gray-700 dark:text-gray-300 shadow-sm hover:border-gray-300 dark:hover:border-gray-700 transition-colors appearance-none cursor-pointer"
+                  defaultValue="recent"
                 >
-                  {tab === 'positions' && <PieChart className="w-3.5 h-3.5 inline-block mr-2 -mt-0.5 opacity-80" />}
-                  {tab === 'history' && <History className="w-3.5 h-3.5 inline-block mr-2 -mt-0.5 opacity-80" />}
-                  {tab === 'faucet' && <Wallet className="w-3.5 h-3.5 inline-block mr-2 -mt-0.5 opacity-80" />}
-
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-
-                  {tab === 'claims' && claimablePositions.length > 0 && (
-                    <span className="ml-2 bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded-full shadow-sm">
-                      {claimablePositions.length}
-                    </span>
-                  )}
-                </button>
-              ))}
+                  <option value="recent">Most Recent</option>
+                  <option value="value">Highest Value</option>
+                  <option value="oldest">Oldest First</option>
+                </select>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">▾</span>
+              </div>
+              <button
+                type="button"
+                className="h-9 px-4 rounded-full bg-white/70 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 text-sm text-gray-700 dark:text-gray-300 shadow-sm hover:border-gray-300 dark:hover:border-gray-700 transition-colors flex items-center gap-2"
+              >
+                <span className="text-gray-400">≡</span>
+                <span>Filter</span>
+              </button>
+            </div>
           </div>
 
           <div className="relative">
@@ -386,89 +549,115 @@ export default function PortfolioPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="space-y-12"
+                  className="space-y-6"
                 >
                   {isLoading ? (
                     <LoadingState prefersReducedMotion={prefersReducedMotion} />
                   ) : positions.length === 0 ? (
-                    <EmptyState
-                      title="Vault Empty"
-                      description="You have no active positions. The markets await your prediction."
-                      actionLink="/markets"
-                      actionText="Find Markets"
-                    />
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Left: Empty Vault Message */}
+                      <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm p-8 flex flex-col items-center justify-center text-center">
+                        <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-6">
+                          <Search className="w-8 h-8 text-gray-400" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Your Vault is Empty</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-xs">
+                          You have no active positions. The markets await your predictions.
+                        </p>
+                        <div className="flex items-center gap-3">
+                          <Link href="/markets">
+                            <button className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full font-semibold text-sm transition-all shadow-lg shadow-emerald-500/20">
+                              Explore Markets
+                            </button>
+                          </Link>
+                          <button className="px-6 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-full font-semibold text-sm flex items-center gap-2 hover:border-gray-300 transition-all">
+                            <Wallet className="w-4 h-4" />
+                            Deposit
+                          </button>
+                        </div>
+                        <Link href="#" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium mt-4">
+                          Learn how it works →
+                        </Link>
+                      </div>
+
+                      {/* Right: Suggested Markets */}
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Suggested Markets</h4>
+                        <div className="grid grid-cols-1 gap-4">
+                          {/* Suggested Markets from Hook */}
+                          <SuggestedMarketsList />
+                        </div>
+                      </div>
+                    </div>
                   ) : (
                     <>
                       {/* Active Section */}
                       {positions.filter(p => p.status === 'Active').length > 0 && (
-                        <div>
-                          <h3 className="text-lg font-black text-gray-900 dark:text-white mb-6 flex items-center gap-3">
-                            <span className="w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                            Active Positions
-                          </h3>
-                          <div className="overflow-hidden bg-transparent">
-                            <div className="overflow-x-auto">
-                              <table className="w-full border-separate border-spacing-y-2">
-                                <thead>
-                                  <tr>
-                                    <th className="px-6 py-3 text-left text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-8">Position</th>
-                                    <th className="px-6 py-3 text-left text-[9px] font-bold text-gray-400 uppercase tracking-widest">Avg</th>
-                                    <th className="px-6 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Shares</th>
-                                    <th className="px-6 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Value</th>
-                                    <th className="px-6 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">P/L</th>
-                                    <th className="px-6 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest pr-8">Action</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="space-y-2">
-                                  {positions.filter(p => p.status === 'Active').map((position) => (
-                                    <PositionRow
-                                      key={`${position.marketId}-${position.side}`}
-                                      position={position}
-                                      trades={trades}
-                                      onClaimSuccess={() => refetch()}
-                                      isRedeemed={redeemedMarketIds.has(position.marketId)}
-                                    />
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
+                        <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                          {/* Section Header */}
+                          <div className="bg-gray-50 dark:bg-gray-800/50 px-4 py-2.5 flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                            <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Active Positions</span>
+                            <span className="text-[10px] text-gray-400">({positions.filter(p => p.status === 'Active').length})</span>
+                          </div>
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead className="bg-gray-50/50 dark:bg-gray-800/10">
+                                <tr>
+                                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Market</th>
+                                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Price</th>
+                                  <th className="px-4 py-2.5 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Balance</th>
+                                  <th className="px-4 py-2.5 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Value</th>
+                                  <th className="px-4 py-2.5 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wide">P&L</th>
+                                  <th className="px-4 py-2.5 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Action</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
+                                {positions.filter(p => p.status === 'Active').map((position) => (
+                                  <PositionRow 
+                                    key={`${position.marketId}-${position.side}`} 
+                                    position={position} 
+                                    trades={trades}
+                                    onClaimSuccess={() => refetch()}
+                                  />
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
                         </div>
                       )}
 
                       {/* Resolved Section */}
                       {positions.filter(p => p.status === 'Resolved').length > 0 && (
-                        <div>
-                          <h3 className="text-lg font-black text-gray-900 dark:text-white mb-6 mt-8 flex items-center gap-3">
-                            <span className="w-2 h-2 bg-purple-500 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
-                            Resolved
-                          </h3>
-                          <div className="overflow-hidden bg-transparent opacity-80">
-                            <div className="overflow-x-auto">
-                              <table className="w-full border-separate border-spacing-y-2">
-                                <thead>
-                                  <tr>
-                                    <th className="px-6 py-3 text-left text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-8">Position</th>
-                                    <th className="px-6 py-3 text-left text-[9px] font-bold text-gray-400 uppercase tracking-widest">Avg</th>
-                                    <th className="px-6 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Shares</th>
-                                    <th className="px-6 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">Value</th>
-                                    <th className="px-6 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest">P/L</th>
-                                    <th className="px-6 py-3 text-right text-[9px] font-bold text-gray-400 uppercase tracking-widest pr-8">Action</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="space-y-2">
-                                  {positions.filter(p => p.status === 'Resolved').map((position) => (
-                                    <PositionRow
-                                      key={`${position.marketId}-${position.side}`}
-                                      position={position}
-                                      trades={trades}
-                                      onClaimSuccess={() => refetch()}
-                                      isRedeemed={redeemedMarketIds.has(position.marketId)}
-                                    />
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
+                        <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                          <div className="bg-gray-50 dark:bg-gray-800/50 px-4 py-2.5 flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                            <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Resolved</span>
+                            <span className="text-[10px] text-gray-400">({positions.filter(p => p.status === 'Resolved').length})</span>
+                          </div>
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead className="bg-gray-50/50 dark:bg-gray-800/10">
+                                <tr>
+                                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Market</th>
+                                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Final Price</th>
+                                  <th className="px-4 py-2.5 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Balance</th>
+                                  <th className="px-4 py-2.5 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Value</th>
+                                  <th className="px-4 py-2.5 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wide">P&L</th>
+                                  <th className="px-4 py-2.5 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Action</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
+                                {positions.filter(p => p.status === 'Resolved').map((position) => (
+                                  <PositionRow 
+                                    key={`${position.marketId}-${position.side}`} 
+                                    position={position} 
+                                    trades={trades}
+                                    onClaimSuccess={() => refetch()}
+                                  />
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
                         </div>
                       )}
@@ -496,7 +685,7 @@ export default function PortfolioPage() {
                           Unclaimed Winnings
                         </h3>
                         {claimablePositions.length === 0 ? (
-                          <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-md rounded-2xl p-8 text-center border border-dashed border-gray-300 dark:border-gray-700">
+                          <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm p-8 text-center">
                             <Trophy className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
                             <p className="text-base font-medium text-gray-500 dark:text-gray-400">All winnings have been claimed.</p>
                           </div>
@@ -556,7 +745,7 @@ export default function PortfolioPage() {
                       actionText="Start Trading"
                     />
                   ) : (
-                    <div className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl rounded-2xl border border-white/20 dark:border-white/5 overflow-hidden">
+                    <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
                       <div className="overflow-x-auto">
                         <table className="w-full">
                           <thead className="bg-gray-50/50 dark:bg-white/5 border-b border-gray-100 dark:border-white/5">
@@ -612,17 +801,15 @@ export default function PortfolioPage() {
                   exit={{ opacity: 0 }}
                   className="flex justify-center py-12"
                 >
-                  <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-[32px] p-2 shadow-xl border border-gray-100 dark:border-gray-700">
-                    <div className="bg-gray-50 dark:bg-gray-900/50 rounded-[28px] p-8">
-                      <div className="flex justify-center mb-6">
-                        <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400">
-                          <Wallet className="w-8 h-8" />
-                        </div>
+                  <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm p-6">
+                    <div className="flex justify-center mb-6">
+                      <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        <Wallet className="w-8 h-8" />
                       </div>
-                      <h3 className="text-xl font-black text-center text-gray-900 dark:text-white mb-2">Need Test Funds?</h3>
-                      <p className="text-sm text-gray-500 text-center mb-8">Mint USDC to start trading on the testnet.</p>
-                      <MintUsdcForm />
                     </div>
+                    <h3 className="text-xl font-black text-center text-gray-900 dark:text-white mb-2">Need Test Funds?</h3>
+                    <p className="text-sm text-gray-500 text-center mb-8">Mint USDC to start trading on the testnet.</p>
+                    <MintUsdcForm />
                   </div>
                 </motion.div>
               )}
@@ -663,23 +850,23 @@ export default function PortfolioPage() {
 
                       {/* Stats Row */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                        <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 border border-white/20 dark:border-white/5">
+                        <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm p-4">
                           <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Referrals</div>
                           <div className="text-2xl font-black text-gray-900 dark:text-white">{referralData.length}</div>
                         </div>
-                        <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 border border-white/20 dark:border-white/5">
+                        <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm p-4">
                           <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Volume</div>
                           <div className="text-2xl font-black text-[#14B8A6]">
                             ${referralData.reduce((acc: number, r: any) => acc + Number(r.amount || 0), 0).toLocaleString()}
                           </div>
                         </div>
-                        <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 border border-white/20 dark:border-white/5">
+                        <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm p-4">
                           <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Referral Points</div>
                           <div className="text-2xl font-black text-emerald-500">
                             {Math.floor(referralData.reduce((acc: number, r: any) => acc + Number(r.amount || 0), 0)).toLocaleString()} PTS
                           </div>
                         </div>
-                        <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-2xl p-4 border border-white/20 dark:border-white/5">
+                        <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm p-4">
                           <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Points Ratio</div>
                           <div className="text-2xl font-black text-purple-500">1:1</div>
                         </div>
@@ -688,7 +875,7 @@ export default function PortfolioPage() {
                   </div>
 
                   {/* Referrals List */}
-                  <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl rounded-2xl border border-gray-200/60 dark:border-gray-800/60 overflow-hidden">
+                  <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
                     {/* Header */}
                     <div className="px-6 py-4 border-b border-gray-200/60 dark:border-gray-800/60 flex items-center justify-between">
                       <h4 className="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2">
@@ -769,43 +956,39 @@ export default function PortfolioPage() {
             </AnimatePresence>
           </div>
         </div>
+      </main>
 
-      </main >
-
-      {/* Nickname Modal */}
       <AnimatePresence>
-        {
-          isNicknameModalOpen && (
+        {isNicknameModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsNicknameModalOpen(false)}
+          >
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-              onClick={() => setIsNicknameModalOpen(false)}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700"
             >
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                onClick={(e) => e.stopPropagation()}
-                className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700"
-              >
-                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Set Your Nickname</h2>
-                  <button
-                    onClick={() => setIsNicknameModalOpen(false)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                  >
-                    <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                  </button>
-                </div>
-                <NicknameManager onClose={() => setIsNicknameModalOpen(false)} />
-              </motion.div>
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Set Your Nickname</h2>
+                <button
+                  onClick={() => setIsNicknameModalOpen(false)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                </button>
+              </div>
+              <NicknameManager onClose={() => setIsNicknameModalOpen(false)} />
             </motion.div>
-          )
-        }
-      </AnimatePresence >
-    </div >
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -883,66 +1066,70 @@ function PositionRow({ position, trades = [], onClaimSuccess, isRedeemed = false
   };
 
   return (
-    <tr className="group transition-all hover:scale-[1.005]">
-      <td className="px-6 py-4 bg-white/40 dark:bg-gray-800/40 backdrop-blur-md rounded-l-2xl border-y border-l border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60 transition-colors">
-        <div className="flex items-center gap-4">
+    <tr className="group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-3">
           <span className={cn(
-            "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border shadow-sm",
+            "px-2 py-1 rounded-lg text-[10px] font-bold uppercase",
             position.side === 'YES'
-              ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800'
-              : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-800'
+              ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+              : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400'
           )}>
             {position.side}
           </span>
           <div className="flex-1 min-w-0">
-            <Link href={`/markets/${position.marketId}`} className="font-bold text-gray-900 dark:text-white hover:text-teal-500 transition-colors line-clamp-1 text-sm">
+            <Link href={`/markets/${position.marketId}`} className="font-medium text-[13px] text-gray-800 dark:text-white hover:text-teal-500 transition-colors line-clamp-1">
               {position.question}
             </Link>
-            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1">Market #{position.marketId}</div>
+            <div className="text-[10px] text-gray-400 mt-0.5">Market #{position.marketId}</div>
           </div>
         </div>
       </td>
-      <td className="px-6 py-4 bg-white/40 dark:bg-gray-800/40 backdrop-blur-md border-y border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60 transition-colors">
+      <td className="px-4 py-3">
         {!canRedeem && !showLost && !showClaimed && avgPurchasePrice > 0 ? (
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1.5 opacity-60">
-              <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
-                {(avgPurchasePrice * 100).toFixed(2)}¢
-              </span>
-              <ArrowRight className="w-3 h-3 text-gray-400" />
-            </div>
-            <span className="text-sm font-mono font-bold text-gray-900 dark:text-white">
-              {(position.currentPrice * 100).toFixed(2)}¢
+          <div className="flex flex-col">
+            <span className="text-[10px] text-gray-400 line-through">
+              {(avgPurchasePrice * 100).toFixed(1)}¢
+            </span>
+            <span className="text-[13px] font-semibold tabular-nums text-gray-900 dark:text-white">
+              {(position.currentPrice * 100).toFixed(1)}¢
             </span>
           </div>
         ) : (
-          <span className="text-sm font-mono font-bold text-gray-900 dark:text-white">
-            {(position.currentPrice * 100).toFixed(2)}¢
+          <span className="text-[13px] font-semibold tabular-nums text-gray-900 dark:text-white">
+            {(position.currentPrice * 100).toFixed(1)}¢
           </span>
         )}
       </td>
-      <td className="px-6 py-4 text-right font-medium tabular-nums text-gray-900 dark:text-white bg-white/40 dark:bg-gray-800/40 backdrop-blur-md border-y border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60 transition-colors">
+      <td className="px-4 py-3 text-right text-[13px] font-medium tabular-nums text-gray-600 dark:text-gray-300">
         {formatNumber(position.balance)}
       </td>
-      <td className="px-6 py-4 text-right font-black tabular-nums text-gray-900 dark:text-white bg-white/40 dark:bg-gray-800/40 backdrop-blur-md border-y border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60 transition-colors">
+      <td className="px-4 py-3 text-right text-[13px] font-bold tabular-nums text-gray-900 dark:text-white">
         {formatCurrency(position.value)}
       </td>
-      <td className="px-6 py-4 text-right bg-white/40 dark:bg-gray-800/40 backdrop-blur-md border-y border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60 transition-colors">
-        {!canRedeem && !showLost && !showClaimed && totalInvested > 0 ? (
+      <td className="px-4 py-3 text-right">
+        {totalInvested > 0 ? (
           <div className={cn(
-            "text-xs font-bold tabular-nums inline-flex flex-col items-end",
-            isProfit ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+            "text-[13px] font-semibold tabular-nums inline-flex flex-col items-end",
+            isProfit ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"
           )}>
             <span>{isProfit ? '+' : ''}{formatCurrency(profitLoss)}</span>
-            <span className="text-[10px] opacity-70 bg-gray-50 dark:bg-black/20 px-1 rounded">
-              {isProfit ? '+' : ''}{profitLossPercent.toFixed(2)}%
+            <span className="text-[10px] opacity-70">
+              {isProfit ? '+' : ''}{profitLossPercent.toFixed(1)}%
             </span>
           </div>
         ) : (
-          <span className="text-[10px] text-gray-300">-</span>
+          (actualIsResolved && position.value > 0 ? (
+            <div className="text-[13px] font-semibold tabular-nums text-emerald-600 dark:text-emerald-400 inline-flex flex-col items-end">
+              <span>+{formatCurrency(position.value)}</span>
+              <span className="text-[10px] opacity-70">—</span>
+            </div>
+          ) : (
+            <span className="text-[11px] text-gray-300">—</span>
+          ))
         )}
       </td>
-      <td className="px-6 py-4 bg-white/40 dark:bg-gray-800/40 backdrop-blur-md rounded-r-2xl border-y border-r border-white/20 dark:border-white/5 group-hover:bg-white/60 dark:group-hover:bg-gray-800/60 transition-colors text-right">
+      <td className="px-4 py-3 text-right">
         <div className="flex items-center justify-end gap-2">
           {canRedeem ? (
             <Button
@@ -984,9 +1171,9 @@ function PositionRow({ position, trades = [], onClaimSuccess, isRedeemed = false
 
 function LoadingState({ prefersReducedMotion = false }: { prefersReducedMotion?: boolean }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {[1, 2, 3].map((i) => (
-        <div key={i} className={`h-64 bg-gray-100 dark:bg-gray-800 rounded-[32px] ${prefersReducedMotion ? '' : 'animate-pulse'}`} />
+        <div key={i} className={`h-64 rounded-2xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-800 ${prefersReducedMotion ? '' : 'animate-pulse'}`} />
       ))}
     </div>
   );
@@ -1087,10 +1274,10 @@ function PositionCard({ position, trades = [], onClaimSuccess, isRedeemed = fals
 
   return (
     <div className={cn(
-      "relative rounded-[32px] p-6 flex flex-col justify-between transition-all duration-300 group overflow-hidden border backdrop-blur-xl",
+      "relative rounded-2xl p-4 flex flex-col justify-between transition-all duration-300 group overflow-hidden border shadow-sm hover:shadow-md",
       canRedeem
-        ? "bg-white/80 dark:bg-gray-800/80 border-emerald-500/30 shadow-[0_10px_40px_rgba(16,185,129,0.15)] hover:shadow-[0_10px_40px_rgba(16,185,129,0.25)]"
-        : "bg-white/60 dark:bg-gray-900/40 border-white/20 dark:border-white/5 hover:border-teal-500/20 hover:-translate-y-1 shadow-2xl"
+        ? "bg-white dark:bg-gray-900 border-emerald-200 dark:border-emerald-800"
+        : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-teal-500/50 dark:hover:border-teal-500/50"
     )}>
       {canRedeem && (
         <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 via-transparent to-transparent pointer-events-none" />
@@ -1226,5 +1413,94 @@ function PositionCard({ position, trades = [], onClaimSuccess, isRedeemed = fals
         </div>
       </div>
     </div>
+  );
+}
+
+// Suggested Markets List Component
+function SuggestedMarketsList() {
+  const { data: markets = [], isLoading } = useMarketsListOptimized();
+  
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2].map((i) => (
+          <div key={i} className="h-32 rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  const activeMarkets = markets.filter(m => m.status === 'LIVE TRADING');
+  
+  if (!activeMarkets || activeMarkets.length === 0) {
+    return null;
+  }
+
+  return (
+    <>
+      {activeMarkets.slice(0, 2).map(market => {
+        const logoUrl = getMarketLogo(market.question);
+
+        return (
+          <div key={market.id} className="rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden group hover:border-teal-500/30 transition-all">
+            <div className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 rounded-md bg-gray-50 dark:bg-gray-800 flex items-center justify-center overflow-hidden">
+                  <Image
+                    src={logoUrl}
+                    alt="Market Logo"
+                    width={16}
+                    height={16}
+                    className="object-contain"
+                  />
+                </div>
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase">Live</span>
+                </span>
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800">
+                  <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Auto</span>
+                </span>
+              </div>
+
+              <Link href={`/markets/${market.id}`} className="block group-hover:text-teal-500 transition-colors">
+                <h3 className="text-[13px] font-medium text-gray-800 dark:text-white leading-snug mb-3 line-clamp-2">
+                  {market.question}
+                </h3>
+              </Link>
+
+              <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mb-2">
+                YES {(market.yesPrice * 100).toFixed(1)}¢
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Link href={`/markets/${market.id}?side=yes`} className="flex-1">
+                  <button className="w-full py-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
+                    YES {(market.yesPrice * 100).toFixed(1)}¢
+                  </button>
+                </Link>
+                <Link href={`/markets/${market.id}?side=no`} className="flex-1">
+                  <button className="w-full py-2 rounded-lg bg-rose-50 dark:bg-rose-900/20 text-rose-500 dark:text-rose-400 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/30 transition-colors">
+                    NO {(market.noPrice * 100).toFixed(1)}¢
+                  </button>
+                </Link>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 dark:bg-gray-800/50 px-4 py-2.5 flex items-center justify-between border-t border-gray-100 dark:border-gray-800">
+              <div className="flex items-center gap-2 text-[11px] text-gray-400">
+                <span>Vol: <span className="text-gray-600 dark:text-gray-300">{formatCurrency(market.volume)}</span></span>
+                <span>All Time</span>
+              </div>
+              <Link href={`/markets/${market.id}`}>
+                <button className="px-4 py-1 rounded-full bg-emerald-500 text-white text-[11px] font-bold shadow-sm shadow-emerald-500/20 hover:bg-emerald-600 transition-all">
+                  Trade
+                </button>
+              </Link>
+            </div>
+          </div>
+        );
+      })}
+    </>
   );
 }

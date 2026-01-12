@@ -251,6 +251,14 @@ export function useUserPortfolio() {
       // 5. Construct Final Positions List
       const positions: PortfolioPosition[] = [];
 
+      const normalizeBool = (v: any): boolean | undefined => {
+        if (v === null || v === undefined) return undefined;
+        if (typeof v === 'boolean') return v;
+        if (typeof v === 'number') return v !== 0;
+        if (typeof v === 'bigint') return v !== 0n;
+        return undefined;
+      };
+
       // Map back results
       balanceResults.forEach((res, idx) => {
         const { id, side } = balanceLookup[idx];
@@ -260,8 +268,8 @@ export function useUserPortfolio() {
           const info = marketInfoMap.get(id);
           if (info) {
             const { market, resolution, priceYes } = info;
-            const isResolved = resolution.isResolved;
-            const yesWins = resolution.yesWins;
+            const isResolved = normalizeBool((resolution as any).isResolved) ?? false;
+            const yesWins = normalizeBool((resolution as any).yesWins);
 
             let currentPrice = 0;
             let won = false;
@@ -296,7 +304,7 @@ export function useUserPortfolio() {
               value: bal * currentPrice,
               status: isResolved ? 'Resolved' : 'Active',
               marketResolved: isResolved,
-              yesWins: yesWins ?? undefined,
+              yesWins,
               won
             });
           }
