@@ -174,11 +174,11 @@ export default function MarketsPage() {
 
         {/* Dashboard Header */}
         <div className="flex items-center gap-3 mt-4">
-          <h1 className="text-3xl font-bold text-slate-900">
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
             Markets
           </h1>
-          <div className="h-6 px-3 rounded-full bg-emerald-100 flex items-center">
-            <span className="text-xs font-semibold text-emerald-700 uppercase">Live</span>
+          <div className="h-6 px-3 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center">
+            <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase">Live</span>
           </div>
         </div>
 
@@ -191,7 +191,7 @@ export default function MarketsPage() {
           >
             <div className="flex items-center gap-2 mb-3">
               <span className="text-amber-500">★</span>
-              <span className="text-sm font-medium text-slate-700">Featured</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Featured</span>
             </div>
             <FeaturedMarketCard
               market={featuredMarket}
@@ -229,8 +229,8 @@ export default function MarketsPage() {
                     className={`
                       relative px-3 py-2 text-sm font-medium transition-all duration-200 whitespace-nowrap
                       ${isActive
-                        ? 'text-slate-900 border-b-2 border-slate-900'
-                        : 'text-slate-400 hover:text-slate-700'
+                        ? 'text-slate-900 dark:text-white border-b-2 border-slate-900 dark:border-white'
+                        : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                       }
                     `}
                   >
@@ -247,19 +247,19 @@ export default function MarketsPage() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  className="appearance-none h-8 pl-3 pr-7 bg-white rounded-full text-sm border border-slate-200 cursor-pointer hover:border-slate-300 transition-colors"
+                  className="appearance-none h-8 pl-3 pr-7 bg-white dark:bg-gray-800 rounded-full text-sm border border-slate-200 dark:border-gray-700 cursor-pointer hover:border-slate-300 dark:hover:border-gray-600 transition-colors text-slate-700 dark:text-gray-200"
                 >
                   <option value="volume">Highest Volume</option>
                   <option value="newest">Newest Listed</option>
                   <option value="ending">Ending Soon</option>
                 </select>
-                <ArrowUpDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+                <ArrowUpDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 dark:text-gray-400 pointer-events-none" />
               </div>
 
               {/* Filter Button */}
-              <button className="h-8 px-3 rounded-full bg-white border border-slate-200 text-sm flex items-center gap-1.5 hover:border-slate-300 transition-colors">
-                <Filter className="w-3.5 h-3.5 text-slate-500" />
-                <span className="text-slate-600">Filter</span>
+              <button className="h-8 px-3 rounded-full bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-sm flex items-center gap-1.5 hover:border-slate-300 dark:hover:border-gray-600 transition-colors">
+                <Filter className="w-3.5 h-3.5 text-slate-500 dark:text-gray-400" />
+                <span className="text-slate-600 dark:text-gray-300">Filter</span>
               </button>
             </div>
           </div>
@@ -267,8 +267,8 @@ export default function MarketsPage() {
 
         {/* Results Counter */}
         <div className="mt-4 mb-4">
-          <p className="text-xs text-slate-400">
-            Showing <span className="font-semibold text-slate-700">{filteredMarkets.length} results</span>
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            Showing <span className="font-semibold text-slate-700 dark:text-slate-300">{filteredMarkets.length} results</span>
           </p>
         </div>
 
