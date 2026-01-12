@@ -593,7 +593,7 @@ export default function MarketDetailPage() {
         {/* Back Link & Share Button */}
         <motion.div initial={prefersReducedMotion ? false : { x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="mb-4 flex items-center justify-between">
           <Link
-            href="/markets"
+            href="/"
             className="inline-flex items-center text-gray-500 hover:text-[#14B8A6] dark:text-gray-400 dark:hover:text-[#14B8A6] font-bold text-sm transition-colors group"
           >
             <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center mr-3 group-hover:border-[#14B8A6] transition-colors shadow-sm">
