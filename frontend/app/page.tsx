@@ -26,7 +26,7 @@ import { FeaturedMarketCard } from '@/components/market/FeaturedMarketCard';
 import { Filter, ArrowUpDown } from 'lucide-react';
 import { useMarketsListOptimized } from '@/lib/hooks/useMarketsListOptimized'; // NEW HOOK
 
-const STATUS_FILTERS = ['Active', 'Expired', 'Resolved', 'Cancelled'] as const;
+const STATUS_FILTERS = ['Active', 'Expired', 'Resolved'] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 export default function MarketsPage() {

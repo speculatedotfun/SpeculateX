@@ -10,65 +10,56 @@ import { useNicknames } from '@/lib/hooks/useNicknames';
 export function ReferralCopyButton() {
     const { address, isConnected } = useAccount();
     const { pushToast } = useToast();
-    const { registerUsername } = useNicknames();
+    const { registerUsername, fetchUsernameForAddress, nicknames } = useNicknames();
     const [copied, setCopied] = useState(false);
-    const [username, setUsername] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [inputUsername, setInputUsername] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Fetch username on mount
+    // Get username from hook (uses cache)
+    const username = address ? nicknames[address.toLowerCase()] || null : null;
+    const isLoading = address ? !nicknames[address.toLowerCase()] && address !== undefined : false;
+
+    // Fetch username on mount if not in cache
     useEffect(() => {
-        if (!address) return;
-
-        const fetchUsername = async () => {
-            setIsLoading(true);
-            try {
-                const res = await fetch(`/api/usernames?address=${address}`);
-                const data = await res.json();
-                if (data.found && data.username) {
-                    setUsername(data.username);
-                }
-            } catch (e) {
-                console.error('Failed to fetch username', e);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchUsername();
-    }, [address]);
+        if (!address || username) return;
+        
+        fetchUsernameForAddress(address).then((fetchedUsername) => {
+            // Username will be set via hook's state management
+        });
+    }, [address, username, fetchUsernameForAddress]);
 
     const handleClick = useCallback(() => {
         if (!address) return;
 
         // If no username, show modal to set one
-        if (!username) {
+        const currentUsername = address ? nicknames[address.toLowerCase()] : null;
+        if (!currentUsername) {
             setShowModal(true);
             return;
         }
 
         // Copy the link with username
         const baseUrl = window.location.origin;
-        const referralLink = `${baseUrl}?ref=${username}`;
+        const referralLink = `${baseUrl}?ref=${currentUsername}`;
 
         navigator.clipboard.writeText(referralLink).then(() => {
             setCopied(true);
             pushToast({
                 title: 'Referral Link Copied!',
-                description: `Share: ${baseUrl}?ref=${username}`,
+                description: `Share: ${baseUrl}?ref=${currentUsername}`,
                 type: 'success',
             });
             setTimeout(() => setCopied(false), 2000);
         });
-    }, [address, username, pushToast]);
+    }, [address, nicknames, pushToast]);
 
     const handleEditClick = useCallback(() => {
-        setInputUsername(username || '');
+        const currentUsername = address ? nicknames[address.toLowerCase()] : null;
+        setInputUsername(currentUsername || '');
         setShowModal(true);
-    }, [username]);
+    }, [address, nicknames]);
 
     const handleSubmitUsername = useCallback(async () => {
         if (!address || !inputUsername.trim()) return;
@@ -76,10 +67,12 @@ export function ReferralCopyButton() {
         setIsSubmitting(true);
         setError(null);
 
+        const currentUsername = address ? nicknames[address.toLowerCase()] : null;
+
         try {
             // Use PUT if already have a username, POST if new
-            const method = username ? 'PUT' : 'POST';
-            const bodyData = username
+            const method = currentUsername ? 'PUT' : 'POST';
+            const bodyData = currentUsername
                 ? { newUsername: inputUsername.trim(), address }
                 : { username: inputUsername.trim(), address };
 
@@ -96,7 +89,6 @@ export function ReferralCopyButton() {
                 return;
             }
 
-            setUsername(data.username);
             registerUsername(address, data.username);
             setShowModal(false);
             setInputUsername('');
@@ -120,7 +112,7 @@ export function ReferralCopyButton() {
         } finally {
             setIsSubmitting(false);
         }
-    }, [address, inputUsername, username, pushToast, registerUsername]);
+    }, [address, inputUsername, nicknames, pushToast, registerUsername]);
 
     if (!isConnected || !address) return null;
 
@@ -151,7 +143,7 @@ export function ReferralCopyButton() {
                 </button>
 
                 {/* Edit Button - only show if username exists */}
-                {username && (
+                {username && address && nicknames[address.toLowerCase()] && (
                     <button
                         onClick={handleEditClick}
                         className="p-2 text-gray-400 hover:text-[#14B8A6] hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"

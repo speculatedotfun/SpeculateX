@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
+import { promises as fs } from 'fs';
 import path from 'path';
 
 // Define the path to the local data file
@@ -17,31 +17,64 @@ interface ReferralRecord {
     type: string;
 }
 
-// Ensure data directory calls
-if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+// In-memory cache with TTL
+let cache: {
+    data: ReferralRecord[];
+    timestamp: number;
+} | null = null;
+
+const CACHE_TTL = 10000; // 10 seconds
+
+// Ensure data directory exists (async)
+async function ensureDataDir() {
+    try {
+        await fs.access(DATA_DIR);
+    } catch {
+        await fs.mkdir(DATA_DIR, { recursive: true });
+    }
 }
 
 // Helper to read data
-function readData(): ReferralRecord[] {
-    if (!fs.existsSync(DATA_FILE)) {
-        return [];
+async function readData(): Promise<ReferralRecord[]> {
+    // Check cache first
+    if (cache && Date.now() - cache.timestamp < CACHE_TTL) {
+        return cache.data;
     }
+
+    await ensureDataDir();
+
     try {
-        const fileContent = fs.readFileSync(DATA_FILE, 'utf-8');
-        return JSON.parse(fileContent);
-    } catch (error) {
+        await fs.access(DATA_FILE);
+        const fileContent = await fs.readFile(DATA_FILE, 'utf-8');
+        const data = JSON.parse(fileContent);
+        
+        // Update cache
+        cache = { data, timestamp: Date.now() };
+        return data;
+    } catch (error: any) {
+        if (error.code === 'ENOENT') {
+            // File doesn't exist, return empty array
+            const emptyData: ReferralRecord[] = [];
+            cache = { data: emptyData, timestamp: Date.now() };
+            return emptyData;
+        }
         console.error('Error reading referral data:', error);
         return [];
     }
 }
 
 // Helper to write data
-function writeData(data: ReferralRecord[]) {
+async function writeData(data: ReferralRecord[]) {
+    await ensureDataDir();
+    
     try {
-        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
+        await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
+        // Invalidate cache on write
+        cache = { data, timestamp: Date.now() };
     } catch (error) {
         console.error('Error writing referral data:', error);
+        // Invalidate cache on error to force fresh read
+        cache = null;
     }
 }
 
@@ -50,7 +83,7 @@ export async function GET(request: Request) {
     const referrer = searchParams.get('referrer')?.toLowerCase();
     const referrers = searchParams.get('referrers')?.toLowerCase();
 
-    const data = readData();
+    const data = await readData();
 
     // Bulk lookup by referrers
     if (referrers) {
@@ -97,10 +130,10 @@ export async function POST(request: Request) {
             type: body.type || 'unknown'
         };
 
-        const currentData = readData();
+        const currentData = await readData();
         // Prepend or append - appending is safer for concurrency conceptually, sorting on read
         currentData.push(newRecord);
-        writeData(currentData);
+        await writeData(currentData);
 
         return NextResponse.json({ success: true, count: currentData.length });
     } catch (error) {

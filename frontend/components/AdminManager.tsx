@@ -8,7 +8,7 @@ import { keccak256, stringToBytes, decodeErrorResult } from 'viem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
-import { Shield, UserPlus, X, Link, Database, Loader2, CheckCircle2, Zap, Clock } from 'lucide-react';
+import { Shield, UserPlus, X, Link, Database, Loader2, CheckCircle2, Zap, Clock, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CRYPTO_ASSETS } from '@/lib/assets';
 const chainlinkResolverAbi = getChainlinkResolverAbi(getNetwork());
@@ -34,6 +34,15 @@ export default function AdminManager() {
 
   const [loadingMarkets, setLoadingMarkets] = useState(false);
   const [resolvingMarketId, setResolvingMarketId] = useState<number | null>(null);
+  
+  // Admin management states
+  const [revokeAdminAddress, setRevokeAdminAddress] = useState('');
+  const [transferFromAddress, setTransferFromAddress] = useState('');
+  const [transferToAddress, setTransferToAddress] = useState('');
+  const [validRevokeAddress, setValidRevokeAddress] = useState(false);
+  const [validTransferFromAddress, setValidTransferFromAddress] = useState(false);
+  const [validTransferToAddress, setValidTransferToAddress] = useState(false);
+  const [loadingAdmins, setLoadingAdmins] = useState(false);
 
   // Contracts hooks... (same logic as before)
   const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000';
@@ -44,6 +53,8 @@ export default function AdminManager() {
   const { writeContractAsync: setChainlinkResolverAsync } = useWriteContract();
   const { writeContractAsync: setGlobalFeedAsync } = useWriteContract();
   const { writeContractAsync: resolveMarketAsync } = useWriteContract();
+  const { writeContractAsync: revokeAdminAsync } = useWriteContract();
+  const { writeContractAsync: transferAdminAsync } = useWriteContract();
 
   // Check current resolver address
   const addresses = getAddresses();
@@ -84,6 +95,21 @@ export default function AdminManager() {
     const isValid = /^0x[a-fA-F0-9]{40}$/.test(feedAddress);
     setValidFeedAddress(isValid);
   }, [feedAddress]);
+
+  useEffect(() => {
+    const isValid = /^0x[a-fA-F0-9]{40}$/.test(revokeAdminAddress);
+    setValidRevokeAddress(isValid);
+  }, [revokeAdminAddress]);
+
+  useEffect(() => {
+    const isValid = /^0x[a-fA-F0-9]{40}$/.test(transferFromAddress);
+    setValidTransferFromAddress(isValid);
+  }, [transferFromAddress]);
+
+  useEffect(() => {
+    const isValid = /^0x[a-fA-F0-9]{40}$/.test(transferToAddress);
+    setValidTransferToAddress(isValid);
+  }, [transferToAddress]);
 
   // Update current resolver when data changes
   useEffect(() => {
@@ -157,6 +183,57 @@ export default function AdminManager() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentResolver, isAdmin, publicClient]);
+
+  // Load current admins
+  const loadCurrentAdmins = async () => {
+    if (!publicClient || !addresses.core) return;
+    
+    try {
+      setLoadingAdmins(true);
+      const coreAbi = getCoreAbi(getCurrentNetwork());
+      
+      // Get role member count
+      const memberCount = await publicClient.readContract({
+        address: addresses.core,
+        abi: coreAbi,
+        functionName: 'getRoleMemberCount',
+        args: [DEFAULT_ADMIN_ROLE as `0x${string}`],
+      }) as bigint;
+      
+      const count = Number(memberCount);
+      const admins: string[] = [];
+      
+      // Fetch each admin address
+      for (let i = 0; i < count; i++) {
+        try {
+          const adminAddr = await publicClient.readContract({
+            address: addresses.core,
+            abi: coreAbi,
+            functionName: 'getRoleMember',
+            args: [DEFAULT_ADMIN_ROLE as `0x${string}`, BigInt(i)],
+          }) as `0x${string}`;
+          admins.push(adminAddr);
+        } catch (e) {
+          console.error(`Error fetching admin ${i}:`, e);
+        }
+      }
+      
+      setCurrentAdmins(admins);
+    } catch (e) {
+      console.error('Error loading admins:', e);
+      pushToast({ title: 'Error', description: 'Failed to load admin list', type: 'error' });
+    } finally {
+      setLoadingAdmins(false);
+    }
+  };
+
+  // Load admins on mount
+  useEffect(() => {
+    if (isAdmin && publicClient) {
+      loadCurrentAdmins();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, publicClient]);
 
   // Handle manual market resolution
   const handleResolveMarket = async (marketId: number) => {
@@ -380,9 +457,118 @@ export default function AdminManager() {
         await publicClient.waitForTransactionReceipt({ hash: creatorHash });
         pushToast({ title: 'Success', description: 'Admin and market creator roles granted successfully!', type: 'success' });
         setNewAdminAddress(''); // Clear the input
+        await loadCurrentAdmins(); // Refresh admin list
       }
     } catch (e: any) {
       pushToast({ title: 'Error', description: e.message || 'Failed to grant roles', type: 'error' });
+    }
+  };
+
+  const handleRevoke = async () => {
+    if (!revokeAdminAddress || !publicClient) return;
+    
+    try {
+      const addresses = getAddresses();
+      
+      pushToast({ title: 'Revoking Admin Role', description: 'Please confirm the transaction...', type: 'info' });
+      
+      // Revoke DEFAULT_ADMIN_ROLE
+      const adminHash = await revokeAdminAsync({
+        address: addresses.core,
+        abi: getCoreAbi(getCurrentNetwork()),
+        functionName: 'revokeRole',
+        args: [DEFAULT_ADMIN_ROLE as `0x${string}`, revokeAdminAddress as `0x${string}`],
+      });
+      
+      if (adminHash) {
+        await publicClient.waitForTransactionReceipt({ hash: adminHash });
+        pushToast({ title: 'Revoking Market Creator Role', description: 'Removing market creator role...', type: 'info' });
+      }
+      
+      // Revoke MARKET_CREATOR_ROLE
+      const creatorHash = await revokeAdminAsync({
+        address: addresses.core,
+        abi: getCoreAbi(getCurrentNetwork()),
+        functionName: 'revokeRole',
+        args: [MARKET_CREATOR_ROLE as `0x${string}`, revokeAdminAddress as `0x${string}`],
+      });
+      
+      if (creatorHash) {
+        await publicClient.waitForTransactionReceipt({ hash: creatorHash });
+        pushToast({ title: 'Success', description: 'Admin roles revoked successfully!', type: 'success' });
+        setRevokeAdminAddress('');
+        await loadCurrentAdmins(); // Refresh admin list
+      }
+    } catch (e: any) {
+      pushToast({ title: 'Error', description: e.message || 'Failed to revoke roles', type: 'error' });
+    }
+  };
+
+  const handleTransfer = async () => {
+    if (!transferFromAddress || !transferToAddress || !publicClient) return;
+    
+    if (transferFromAddress.toLowerCase() === transferToAddress.toLowerCase()) {
+      pushToast({ title: 'Error', description: 'From and To addresses must be different', type: 'error' });
+      return;
+    }
+    
+    try {
+      const addresses = getAddresses();
+      
+      pushToast({ title: 'Transferring Admin', description: 'Granting roles to new admin...', type: 'info' });
+      
+      // Step 1: Grant roles to new admin
+      const grantAdminHash = await transferAdminAsync({
+        address: addresses.core,
+        abi: getCoreAbi(getCurrentNetwork()),
+        functionName: 'grantRole',
+        args: [DEFAULT_ADMIN_ROLE as `0x${string}`, transferToAddress as `0x${string}`],
+      });
+      
+      if (grantAdminHash) {
+        await publicClient.waitForTransactionReceipt({ hash: grantAdminHash });
+      }
+      
+      const grantCreatorHash = await transferAdminAsync({
+        address: addresses.core,
+        abi: getCoreAbi(getCurrentNetwork()),
+        functionName: 'grantRole',
+        args: [MARKET_CREATOR_ROLE as `0x${string}`, transferToAddress as `0x${string}`],
+      });
+      
+      if (grantCreatorHash) {
+        await publicClient.waitForTransactionReceipt({ hash: grantCreatorHash });
+        pushToast({ title: 'Revoking Old Admin', description: 'Removing roles from old admin...', type: 'info' });
+      }
+      
+      // Step 2: Revoke roles from old admin
+      const revokeAdminHash = await transferAdminAsync({
+        address: addresses.core,
+        abi: getCoreAbi(getCurrentNetwork()),
+        functionName: 'revokeRole',
+        args: [DEFAULT_ADMIN_ROLE as `0x${string}`, transferFromAddress as `0x${string}`],
+      });
+      
+      if (revokeAdminHash) {
+        await publicClient.waitForTransactionReceipt({ hash: revokeAdminHash });
+      }
+      
+      const revokeCreatorHash = await transferAdminAsync({
+        address: addresses.core,
+        abi: getCoreAbi(getCurrentNetwork()),
+        functionName: 'revokeRole',
+        args: [MARKET_CREATOR_ROLE as `0x${string}`, transferFromAddress as `0x${string}`],
+      });
+      
+      if (revokeCreatorHash) {
+        await publicClient.waitForTransactionReceipt({ hash: revokeCreatorHash });
+        pushToast({ title: 'Success', description: 'Admin transferred successfully!', type: 'success' });
+        setTransferFromAddress('');
+        setTransferToAddress('');
+        await loadCurrentAdmins(); // Refresh admin list
+      }
+    } catch (e: any) {
+      pushToast({ title: 'Error', description: e.message || 'Failed to transfer admin', type: 'error' });
     }
   };
 
@@ -517,8 +703,57 @@ export default function AdminManager() {
   return (
     <div className="space-y-6">
 
-      {/* 1. Grant Admin Role */}
+      {/* Current Admins List */}
       <div className="space-y-2">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 block">
+            Current Admins ({currentAdmins.length})
+          </label>
+          <Button
+            onClick={loadCurrentAdmins}
+            disabled={loadingAdmins}
+            variant="ghost"
+            size="sm"
+            className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+          >
+            {loadingAdmins ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Database className="w-3 h-3 mr-1" />}
+            Refresh
+          </Button>
+        </div>
+        
+        {currentAdmins.length === 0 ? (
+          <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-center text-xs text-gray-500 dark:text-gray-400">
+            No admins found or loading...
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+            {currentAdmins.map((admin, idx) => (
+              <div key={idx} className="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-white/5 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-purple-500" />
+                  <span className="font-mono text-sm text-gray-900 dark:text-white">{admin.slice(0, 6)}...{admin.slice(-4)}</span>
+                  {admin.toLowerCase() === address?.toLowerCase() && (
+                    <span className="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full font-bold">
+                      You
+                    </span>
+                  )}
+                </div>
+                <a
+                  href={`https://${getCurrentNetwork() === 'testnet' ? 'testnet.' : ''}bscscan.com/address/${admin}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-1.5 text-gray-400 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 1. Grant Admin Role */}
+      <div className="space-y-2 pt-4 border-t border-gray-200 dark:border-white/5">
         <label htmlFor="admin-address" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 block">Grant Admin Role</label>
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -548,6 +783,114 @@ export default function AdminManager() {
         {newAdminAddress.length > 0 && !validAddress && (
           <p className="text-xs text-red-500 dark:text-red-400 ml-1">Invalid Ethereum address format</p>
         )}
+      </div>
+
+      {/* Revoke Admin Role */}
+      <div className="space-y-2 pt-4 border-t border-gray-200 dark:border-white/5">
+        <label htmlFor="revoke-admin-address" className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 block">
+          Revoke Admin Role
+        </label>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Input
+              id="revoke-admin-address"
+              value={revokeAdminAddress}
+              onChange={(e) => setRevokeAdminAddress(e.target.value)}
+              placeholder="0x..."
+              className="font-mono pr-10 bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:ring-red-500"
+              aria-label="Admin address to revoke"
+            />
+            <AnimatePresence>
+              {validRevokeAddress && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                >
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          <Button 
+            onClick={handleRevoke} 
+            disabled={!validRevokeAddress} 
+            className="bg-red-600 hover:bg-red-700 text-white min-w-[100px]"
+          >
+            <X className="w-4 h-4 mr-2" /> Revoke
+          </Button>
+        </div>
+        {revokeAdminAddress.length > 0 && !validRevokeAddress && (
+          <p className="text-xs text-red-500 dark:text-red-400 ml-1">Invalid Ethereum address format</p>
+        )}
+        <p className="text-xs text-amber-600 dark:text-amber-400 ml-1 mt-1">
+          ⚠️ Warning: This will remove all admin permissions from the address
+        </p>
+      </div>
+
+      {/* Transfer Admin */}
+      <div className="space-y-2 pt-4 border-t border-gray-200 dark:border-white/5">
+        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 block">
+          Transfer Admin (Replace Admin)
+        </label>
+        <div className="space-y-3">
+          <div className="relative">
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">From (Current Admin)</label>
+            <Input
+              value={transferFromAddress}
+              onChange={(e) => setTransferFromAddress(e.target.value)}
+              placeholder="0x... (current admin)"
+              className="font-mono pr-10 bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:ring-orange-500"
+            />
+            <AnimatePresence>
+              {validTransferFromAddress && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                  className="absolute right-3 top-8 -translate-y-1/2"
+                >
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          <div className="relative">
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">To (New Admin)</label>
+            <Input
+              value={transferToAddress}
+              onChange={(e) => setTransferToAddress(e.target.value)}
+              placeholder="0x... (new admin)"
+              className="font-mono pr-10 bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:ring-emerald-500"
+            />
+            <AnimatePresence>
+              {validTransferToAddress && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                  className="absolute right-3 top-8 -translate-y-1/2"
+                >
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          <Button 
+            onClick={handleTransfer} 
+            disabled={!validTransferFromAddress || !validTransferToAddress || transferFromAddress.toLowerCase() === transferToAddress.toLowerCase()}
+            className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+          >
+            <Zap className="w-4 h-4 mr-2" /> Transfer Admin
+          </Button>
+        </div>
+        {(transferFromAddress.length > 0 && !validTransferFromAddress) && (
+          <p className="text-xs text-red-500 dark:text-red-400 ml-1">Invalid "From" address format</p>
+        )}
+        {(transferToAddress.length > 0 && !validTransferToAddress) && (
+          <p className="text-xs text-red-500 dark:text-red-400 ml-1">Invalid "To" address format</p>
+        )}
+        {validTransferFromAddress && validTransferToAddress && transferFromAddress.toLowerCase() === transferToAddress.toLowerCase() && (
+          <p className="text-xs text-red-500 dark:text-red-400 ml-1">From and To addresses must be different</p>
+        )}
+        <p className="text-xs text-amber-600 dark:text-amber-400 ml-1 mt-1">
+          ⚠️ This will grant admin to the new address and revoke it from the old address
+        </p>
       </div>
 
       {/* 2. Chainlink Resolver */}

@@ -304,168 +304,291 @@ export default function PortfolioPage() {
           </h1>
         </div>
 
-        {/* Top Cards (match screenshot) */}
+        {/* Top Cards - Professional Design */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-          {/* Total Net Worth Card */}
-          <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
-            <div className="p-5">
-              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                {/* Left: Title + Value */}
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <div className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                      <Wallet className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+
+          {/* Main Portfolio Card - Premium Design */}
+          <div className="lg:col-span-2 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+            {/* Hero Section */}
+            <div className="px-6 py-5 relative overflow-hidden">
+              {/* Decorative Elements */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/5 dark:bg-teal-500/10 rounded-full blur-3xl" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/5 dark:bg-purple-500/10 rounded-full blur-3xl" />
+
+              <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                {/* Left: Net Worth */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/25">
+                      <Wallet className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Total Net Worth</span>
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Net Worth</span>
                   </div>
-                  <div className="text-3xl font-bold tabular-nums text-gray-900 dark:text-white">
+                  <div className="text-4xl font-black tabular-nums text-gray-900 dark:text-white tracking-tight">
                     {isLoading ? '$0.00' : formatCurrency(totalNetWorth)}
                   </div>
                 </div>
 
-                {/* Right: Mini Panel */}
-                <div className="w-full md:w-[260px] rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 px-3 py-2.5">
-                  <div className="space-y-2">
+                {/* Right: Quick Stats Panel */}
+                <div className="bg-gray-50 dark:bg-gray-800/50 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 min-w-[240px]">
+                  <div className="space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400">24h PnL</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">24h PnL</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-semibold tabular-nums text-gray-900 dark:text-white">{formatCurrency(pnl24h)}</span>
+                        <span className="text-sm font-bold tabular-nums text-gray-900 dark:text-white">{formatCurrency(pnl24h)}</span>
                         <span className={cn(
-                          "text-[10px] tabular-nums px-1.5 py-0.5 rounded",
-                          pnlPercent24h >= 0 ? "bg-emerald-100/70 dark:bg-emerald-900/40 text-emerald-500" : "bg-red-100/70 dark:bg-red-900/40 text-red-500"
+                          "text-[10px] font-bold tabular-nums px-2 py-0.5 rounded-full",
+                          pnlPercent24h >= 0
+                            ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                            : "bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400"
                         )}>{pnlPercent24h >= 0 ? '+' : ''}{pnlPercent24h.toFixed(1)}%</span>
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400">7d PnL</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">7d PnL</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-semibold tabular-nums text-gray-900 dark:text-white">{formatCurrency(pnl7d)}</span>
+                        <span className="text-sm font-bold tabular-nums text-gray-900 dark:text-white">{formatCurrency(pnl7d)}</span>
                         <span className={cn(
-                          "text-[10px] tabular-nums px-1.5 py-0.5 rounded",
-                          pnlPercent7d >= 0 ? "bg-emerald-100/70 dark:bg-emerald-900/40 text-emerald-500" : "bg-red-100/70 dark:bg-red-900/40 text-red-500"
+                          "text-[10px] font-bold tabular-nums px-2 py-0.5 rounded-full",
+                          pnlPercent7d >= 0
+                            ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                            : "bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400"
                         )}>{pnlPercent7d >= 0 ? '+' : ''}{pnlPercent7d.toFixed(1)}%</span>
                       </div>
                     </div>
-                    <div className="h-px bg-gray-100 dark:bg-gray-700/50" />
+                    <div className="h-px bg-gray-200 dark:bg-gray-700" />
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400">Best Market</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">Best Market</span>
                       {bestMarket ? (
                         <Link
                           href={`/markets/${bestMarket.marketId}`}
-                          className="text-[11px] font-medium text-teal-600 dark:text-teal-400 hover:underline max-w-[120px] truncate"
+                          className="text-sm font-semibold text-teal-600 dark:text-teal-400 hover:text-teal-500 dark:hover:text-teal-300 transition-colors"
                           title={bestMarket.question}
                         >
                           #{bestMarket.marketId}
                         </Link>
                       ) : (
-                        <span className="text-[11px] font-medium text-gray-400">--</span>
+                        <span className="text-sm font-medium text-gray-400">—</span>
                       )}
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400">Open Exposure</span>
-                      <span className="text-[11px] font-semibold tabular-nums text-gray-900 dark:text-white">{formatCurrency(openExposure)}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">Open Exposure</span>
+                      <span className="text-sm font-bold tabular-nums text-gray-900 dark:text-white">{formatCurrency(openExposure)}</span>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Bottom Stats Row */}
-              <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div>
-                  <div className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Active Value</div>
-                  <div className="text-sm font-semibold tabular-nums text-gray-900 dark:text-white">{formatCurrency(activeValue)}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Realized Gains</div>
-                  <div className="text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">+{formatCurrency(totalClaimed)}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Positions</div>
-                  <div className="text-sm font-semibold tabular-nums text-gray-900 dark:text-white">{positions.length}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Win Rate</div>
-                  <div className="text-sm font-semibold tabular-nums text-gray-900 dark:text-white">{resolvedPositionsCount > 0 ? Math.round((claimablePositions.length + claimedPositions.length) / resolvedPositionsCount * 100) : 0}%</div>
-                </div>
+            {/* Bottom Stats Grid */}
+            <div className="bg-white dark:bg-gray-900 border-x border-b border-gray-200 dark:border-gray-800 px-6 py-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="group"
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Active Value</span>
+                  </div>
+                  <div className="text-lg font-bold tabular-nums text-gray-900 dark:text-white">{formatCurrency(activeValue)}</div>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                  className="group"
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Realized Gains</span>
+                  </div>
+                  <div className="text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400">+{formatCurrency(totalClaimed)}</div>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="group"
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-2 h-2 rounded-full bg-purple-500" />
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Positions</span>
+                  </div>
+                  <div className="text-lg font-bold tabular-nums text-gray-900 dark:text-white">{positions.length}</div>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 }}
+                  className="group"
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-2 h-2 rounded-full bg-amber-500" />
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Win Rate</span>
+                  </div>
+                  <div className="text-lg font-bold tabular-nums text-gray-900 dark:text-white">
+                    {resolvedPositionsCount > 0 ? Math.round((claimablePositions.length + claimedPositions.length) / resolvedPositionsCount * 100) : 0}%
+                  </div>
+                </motion.div>
               </div>
             </div>
           </div>
 
-          {/* Allocation Card */}
+          {/* Allocation Card - Professional Design */}
           <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
-            <div className="p-5">
-              <div className="text-[10px] text-gray-400 uppercase tracking-wide mb-3">Allocation</div>
-
-              <div className="flex items-center gap-5">
-                {/* Legend */}
-                <div className="flex-1 space-y-2">
-                  {allocationData.length > 0 && totalNetWorth > 0 ? (
-                    allocationData.map((d) => (
-                      <div key={d.name} className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
-                          <span className="text-gray-600 dark:text-gray-400">{d.name}</span>
-                        </div>
-                        <span className="font-medium tabular-nums text-gray-900 dark:text-white">
-                          {Math.round((d.value / totalNetWorth) * 100)}%
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <>
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                          <span className="text-gray-600 dark:text-gray-400">Active Markets</span>
-                        </div>
-                        <span className="font-medium tabular-nums text-gray-900 dark:text-white">0%</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-gray-300" />
-                          <span className="text-gray-600 dark:text-gray-400">Unused Balance</span>
-                        </div>
-                        <span className="font-medium tabular-nums text-gray-900 dark:text-white">100.0%</span>
-                      </div>
-                    </>
-                  )}
+            {/* Header */}
+            <div className="px-5 pt-5 pb-3 border-b border-gray-100 dark:border-gray-800">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-white">Portfolio Allocation</h3>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Asset distribution overview</p>
                 </div>
+                <div className="text-right">
+                  <div className="text-lg font-bold tabular-nums text-gray-900 dark:text-white">{formatCurrency(totalNetWorth)}</div>
+                  <div className="text-[10px] text-gray-400 uppercase tracking-wide">Total Value</div>
+                </div>
+              </div>
+            </div>
 
-                {/* Donut */}
-                <div className="relative w-[110px] h-[110px] shrink-0">
+            <div className="p-5">
+              <div className="flex items-start gap-6">
+                {/* Donut Chart */}
+                <div className="relative w-[120px] h-[120px] shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <RechartsPie>
+                      <defs>
+                        <linearGradient id="activeGrad" x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0%" stopColor="#10B981" />
+                          <stop offset="100%" stopColor="#34D399" />
+                        </linearGradient>
+                        <linearGradient id="pendingGrad" x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0%" stopColor="#6366F1" />
+                          <stop offset="100%" stopColor="#818CF8" />
+                        </linearGradient>
+                        <linearGradient id="unusedGrad" x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0%" stopColor="#D1D5DB" />
+                          <stop offset="100%" stopColor="#E5E7EB" />
+                        </linearGradient>
+                      </defs>
                       <Pie
                         data={
                           allocationData.length > 0 && totalNetWorth > 0
                             ? allocationData
-                            : [{ name: 'Unused', value: 100 }]
+                            : [{ name: 'Available', value: 100, color: '#E5E7EB' }]
                         }
                         cx="50%"
                         cy="50%"
-                        innerRadius={38}
-                        outerRadius={50}
-                        paddingAngle={2}
+                        innerRadius={42}
+                        outerRadius={56}
+                        paddingAngle={allocationData.length > 1 ? 3 : 0}
                         dataKey="value"
                         stroke="none"
+                        startAngle={90}
+                        endAngle={-270}
                       >
                         {allocationData.length > 0 && totalNetWorth > 0
                           ? allocationData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
+                            <Cell key={`cell-${index}`} fill={entry.color} className="drop-shadow-sm" />
                           ))
-                          : <Cell fill="#E5E7EB" />}
+                          : <Cell fill="url(#unusedGrad)" />}
                       </Pie>
                     </RechartsPie>
                   </ResponsiveContainer>
 
+                  {/* Center Stats */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span className="text-lg font-bold tabular-nums text-gray-900 dark:text-white">
-                      {allocationData.length > 0 && totalNetWorth > 0 ? '—' : '100%'}
+                    <span className="text-xl font-black tabular-nums text-gray-900 dark:text-white">
+                      {allocationData.length > 0 && totalNetWorth > 0
+                        ? `${Math.round((activeValue / totalNetWorth) * 100)}%`
+                        : '0%'}
                     </span>
-                    <span className="text-[10px] text-gray-400">
-                      {allocationData.length > 0 && totalNetWorth > 0 ? 'Mixed' : 'Unused'}
+                    <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider">
+                      Invested
                     </span>
                   </div>
+                </div>
+
+                {/* Legend & Breakdown */}
+                <div className="flex-1 space-y-3">
+                  {allocationData.length > 0 && totalNetWorth > 0 ? (
+                    <>
+                      {allocationData.map((d, idx) => {
+                        const pct = Math.round((d.value / totalNetWorth) * 100);
+                        return (
+                          <div key={d.name} className="group">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-3 h-3 rounded-full shadow-sm"
+                                  style={{ backgroundColor: d.color }}
+                                />
+                                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{d.name}</span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs font-bold tabular-nums text-gray-900 dark:text-white">
+                                  {formatCurrency(d.value)}
+                                </span>
+                                <span className="text-[10px] font-semibold tabular-nums text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
+                                  {pct}%
+                                </span>
+                              </div>
+                            </div>
+                            {/* Progress bar */}
+                            <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${pct}%` }}
+                                transition={{ duration: 0.8, delay: idx * 0.1, ease: "easeOut" }}
+                                className="h-full rounded-full"
+                                style={{ backgroundColor: d.color }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  ) : (
+                    <>
+                      <div className="group">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm" />
+                            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Active Markets</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold tabular-nums text-gray-900 dark:text-white">$0.00</span>
+                            <span className="text-[10px] font-semibold tabular-nums text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">0%</span>
+                          </div>
+                        </div>
+                        <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                          <div className="h-full w-0 bg-emerald-500 rounded-full" />
+                        </div>
+                      </div>
+                      <div className="group">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600 shadow-sm" />
+                            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Available Balance</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold tabular-nums text-gray-900 dark:text-white">{formatCurrency(totalNetWorth || 0)}</span>
+                            <span className="text-[10px] font-semibold tabular-nums text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">100%</span>
+                          </div>
+                        </div>
+                        <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: "100%" }}
+                            transition={{ duration: 0.8, ease: "easeOut" }}
+                            className="h-full bg-gray-300 dark:bg-gray-600 rounded-full"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

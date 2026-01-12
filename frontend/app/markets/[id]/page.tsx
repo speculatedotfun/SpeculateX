@@ -676,29 +676,6 @@ export default function MarketDetailPage() {
 
                 {/* Right: Controls */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  {/* Yes/No Toggle */}
-                  {chartPanel === 'market' && (
-                    <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1">
-                      <button
-                        onClick={() => setChartSide('yes')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${chartSide === 'yes'
-                          ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25'
-                          : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:border-emerald-300 dark:hover:border-emerald-600'
-                          }`}
-                      >
-                        Yes
-                      </button>
-                      <button
-                        onClick={() => setChartSide('no')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${chartSide === 'no'
-                          ? 'bg-rose-500 text-white shadow-md shadow-rose-500/25'
-                          : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:border-rose-300 dark:hover:border-rose-600'
-                          }`}
-                      >
-                        No
-                      </button>
-                    </div>
-                  )}
 
                   {/* Market/Asset Toggle */}
                   {hasAssetReference && (

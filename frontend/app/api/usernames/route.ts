@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
+import { promises as fs } from 'fs';
 import path from 'path';
 
 const DATA_PATH = path.join(process.cwd(), 'data', 'usernames.json');
@@ -10,25 +10,50 @@ interface UsernameEntry {
     createdAt: number;
 }
 
-function readData(): Record<string, UsernameEntry> {
+// In-memory cache with TTL
+let cache: {
+    data: Record<string, UsernameEntry>;
+    timestamp: number;
+} | null = null;
+
+const CACHE_TTL = 10000; // 10 seconds
+
+async function readData(): Promise<Record<string, UsernameEntry>> {
+    // Check cache first
+    if (cache && Date.now() - cache.timestamp < CACHE_TTL) {
+        return cache.data;
+    }
+
     try {
-        if (!fs.existsSync(DATA_PATH)) {
-            fs.writeFileSync(DATA_PATH, '{}', 'utf-8');
-            return {};
+        await fs.access(DATA_PATH);
+        const raw = await fs.readFile(DATA_PATH, 'utf-8');
+        const data = JSON.parse(raw);
+        
+        // Update cache
+        cache = { data, timestamp: Date.now() };
+        return data;
+    } catch (e: any) {
+        if (e.code === 'ENOENT') {
+            // File doesn't exist, create it
+            await fs.writeFile(DATA_PATH, '{}', 'utf-8');
+            const emptyData = {};
+            cache = { data: emptyData, timestamp: Date.now() };
+            return emptyData;
         }
-        const raw = fs.readFileSync(DATA_PATH, 'utf-8');
-        return JSON.parse(raw);
-    } catch (e) {
         console.error('[Usernames] Failed to read data:', e);
         return {};
     }
 }
 
-function writeData(data: Record<string, UsernameEntry>) {
+async function writeData(data: Record<string, UsernameEntry>) {
     try {
-        fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 2), 'utf-8');
+        await fs.writeFile(DATA_PATH, JSON.stringify(data, null, 2), 'utf-8');
+        // Invalidate cache on write
+        cache = { data, timestamp: Date.now() };
     } catch (e) {
         console.error('[Usernames] Failed to write data:', e);
+        // Invalidate cache on error to force fresh read
+        cache = null;
     }
 }
 
@@ -44,7 +69,7 @@ export async function GET(request: Request) {
     const address = searchParams.get('address')?.toLowerCase();
     const addresses = searchParams.get('addresses')?.toLowerCase();
 
-    const data = readData();
+    const data = await readData();
 
     // Bulk lookup by addresses
     if (addresses) {
@@ -109,7 +134,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid address format' }, { status: 400 });
         }
 
-        const data = readData();
+        const data = await readData();
 
         // Check if username is taken
         if (data[normalizedUsername]) {
@@ -132,7 +157,7 @@ export async function POST(request: Request) {
             createdAt: Date.now(),
         };
 
-        writeData(data);
+        await writeData(data);
 
         return NextResponse.json({
             success: true,
@@ -169,7 +194,7 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: 'Invalid address format' }, { status: 400 });
         }
 
-        const data = readData();
+        const data = await readData();
 
         // Check if new username is already taken
         if (data[normalizedNewUsername]) {
@@ -193,7 +218,7 @@ export async function PUT(request: Request) {
             createdAt: Date.now(),
         };
 
-        writeData(data);
+        await writeData(data);
 
         return NextResponse.json({
             success: true,
