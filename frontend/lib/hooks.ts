@@ -424,3 +424,47 @@ export async function getLpResidualPot(id: bigint): Promise<bigint> {
   const market = await getMarket(id);
   return BigInt((market as Record<string, any>)?.residualUSDC ?? 0n);
 }
+
+// Role constants (keccak256 hashes)
+const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`;
+const MARKET_CREATOR_ROLE = keccak256(stringToBytes('MARKET_CREATOR_ROLE'));
+
+// Check if address is admin
+export async function isAdmin(address: `0x${string}`): Promise<boolean> {
+  if (!address || address === ZERO_ADDRESS) return false;
+
+  try {
+    const addresses = getAddresses();
+    const publicClient = getClientForCurrentNetwork();
+    const result = await publicClient.readContract({
+      address: addresses.core,
+      abi: getCoreAbi(getCurrentNetwork()),
+      functionName: 'hasRole',
+      args: [DEFAULT_ADMIN_ROLE, address],
+    });
+    return Boolean(result);
+  } catch (error) {
+    console.error('[isAdmin] Error checking admin role:', error);
+    return false;
+  }
+}
+
+// Check if address can create markets
+export async function canCreateMarkets(address: `0x${string}`): Promise<boolean> {
+  if (!address || address === ZERO_ADDRESS) return false;
+
+  try {
+    const addresses = getAddresses();
+    const publicClient = getClientForCurrentNetwork();
+    const result = await publicClient.readContract({
+      address: addresses.core,
+      abi: getCoreAbi(getCurrentNetwork()),
+      functionName: 'hasRole',
+      args: [MARKET_CREATOR_ROLE, address],
+    });
+    return Boolean(result);
+  } catch (error) {
+    console.error('[canCreateMarkets] Error checking market creator role:', error);
+    return false;
+  }
+}
