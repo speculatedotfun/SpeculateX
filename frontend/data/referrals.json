@@ -70,5 +70,14 @@
     "marketId": 24,
     "amount": "50",
     "type": "BuyYes"
+  },
+  {
+    "timestamp": 1768295296634,
+    "referrer": "0xbb9ed373c8fa2a2432737ac97cdefa727d1210e9",
+    "user": "0x29D67d1Ad683A76b2750f74B40b6e79d715C933c",
+    "txHash": "0xd5f54bce863e20ad08b3d76f8815ad233a99281945260dab45e51fc58e9a9789",
+    "marketId": 35,
+    "amount": "100",
+    "type": "BuyNo"
   }
 ]

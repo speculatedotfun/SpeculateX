@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MarketInfo, MarketResolution } from '@/lib/types';
 import { formatUnits, decodeEventLog } from 'viem';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Clock, AlertTriangle, CheckCircle2, Loader2, Share2, Check, TrendingUp, MessageSquare, ChevronRight, X, Info } from 'lucide-react';
+import { ArrowLeft, Clock, AlertTriangle, CheckCircle2, Loader2, Share2, Check, TrendingUp, MessageSquare, ChevronRight, X, Info, ArrowRight } from 'lucide-react';
 
 // Components
 import Header from '@/components/Header';
@@ -843,25 +843,43 @@ export default function MarketDetailPage() {
                         />
 
                         {/* Rules Section */}
-                        <div className="mt-6 p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
-                          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
-                              <Info className="w-3.5 h-3.5 text-indigo-500" />
-                            </span>
-                            How it resolves
-                          </h3>
-                          <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
-                            {resolution?.oracleType === 0 && 'This market is resolved manually by the platform administrators.'}
-                            {resolution?.oracleType === 1 && `This market resolves automatically based on Chainlink oracle data at the ${market.question.includes('BTC') ? 'BTC/USD' : 'target'} price feed.`}
-                            {!resolution && 'Standard resolution rules apply.'}
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.1 }}
+                          className="mt-6 p-5 bg-gradient-to-br from-white to-indigo-50/30 dark:from-gray-800/80 dark:to-indigo-900/10 rounded-2xl border border-indigo-100/50 dark:border-indigo-800/30 relative overflow-hidden"
+                        >
+                          {/* Decorative background */}
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl" />
+
+                          <div className="relative z-10">
+                            <div className="flex items-center gap-3 mb-4">
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                                <Info className="w-5 h-5 text-white" />
+                              </div>
+                              <div>
+                                <h3 className="text-sm font-black text-gray-900 dark:text-white">Resolution Info</h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">How this market settles</p>
+                              </div>
+                            </div>
+
+                            <div className="p-4 bg-white/60 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-800 mb-4">
+                              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
+                                {resolution?.oracleType === 0 && 'This market is resolved manually by the platform administrators.'}
+                                {resolution?.oracleType === 1 && `This market resolves automatically using Chainlink oracle data at the ${market.question.includes('BTC') ? 'BTC/USD' : 'target'} price feed.`}
+                                {!resolution && 'Standard resolution rules apply.'}
+                              </p>
+                            </div>
+
+                            <button
+                              onClick={() => setActiveTab('Resolution')}
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold rounded-lg transition-all shadow-lg shadow-indigo-500/20"
+                            >
+                              View Technical Details
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </button>
                           </div>
-                          <button
-                            onClick={() => setActiveTab('Resolution')}
-                            className="mt-4 text-[11px] font-bold text-[#14B8A6] uppercase tracking-widest hover:text-[#0D9488] transition-colors"
-                          >
-                            View technical details →
-                          </button>
-                        </div>
+                        </motion.div>
                       </div>
                     )}
 

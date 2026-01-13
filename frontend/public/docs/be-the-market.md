@@ -1,160 +1,195 @@
----
-# SpeculateX — Be the Market
+# How SpeculateX Works
 
-## TL;DR
+## What is SpeculateX?
 
-SpeculateX is a prediction market protocol where:
-- **Creators** launch markets by seeding liquidity.
-- **Traders** buy YES/NO positions with instant execution (AMM/LMSR).
-- **Liquidity providers (LPs)** deepen markets and **earn trading fees**.
-
-Each market is its own mini-economy: pricing, liquidity, fees, and settlement are handled on-chain.
-
-> **Scope of this doc:** This describes the **current V1 implementation** (Diamond Router + Facets on Testnet). Any “V2” concepts below are explicitly marked as roadmap.
+SpeculateX is a **decentralized prediction market** where you can trade on the outcome of future events. Instead of betting against a bookmaker, you're trading against other users — and the market itself sets the odds.
 
 ---
 
-## What “Be the Market” means
+## The Basics in 30 Seconds
 
-Most prediction markets have two big problems:
-- **Liquidity is thin** → prices jump, slippage is high, and traders don’t trust the odds.
-- **Users are passive** → traders trade, but don’t benefit from market growth.
+1. **Buy YES or NO shares** on any question
+2. **Price = Probability** — YES at 70¢ means the market thinks there's a 70% chance
+3. **Win $1 per share** if you're right, $0 if wrong
+4. **Sell anytime** — don't wait for the outcome
 
-SpeculateX flips this:
-- If you add liquidity to a market, you become part of the infrastructure that powers it.
-- You earn a share of the market’s trading fees.
-
-You’re not just trading against a platform — you’re helping run the market.
+> **Example:** If you buy YES at 30¢ and win, you profit 70¢ per share (233% return)
 
 ---
 
-## How a SpeculateX market works (V1)
+<div id="how-trading-works"></div>
 
-Each market has exactly two outcome tokens:
-- **YES** token (ERC20)
-- **NO** token (ERC20)
+## How Trading Works
 
-Trading is handled by an AMM (LMSR). The **YES price** (0 to 1) represents the market-implied probability of YES; NO is roughly \(1 - p_{yes}\).
+### Step 1: Find a Market
 
-### Lifecycle
+Browse markets like:
+- "Will BTC trade above $100,000 by Jan 31?"
+- "Will ETH hit $5,000 this quarter?"
 
-1. **Create**: a creator sets the question + expiry + resolution config and seeds USDC.
-2. **Trade**: users buy/sell YES/NO using USDC.
-3. **Resolve**: after expiry, the market is resolved (e.g., via Chainlink feed).
-4. **Redeem**: winners redeem for payout; LPs claim any residual vault funds.
+### Step 2: Buy Your Position
 
----
+Each market has two tokens:
+- **YES Token** — Pays $1 if the outcome is YES
+- **NO Token** — Pays $1 if the outcome is NO
 
-## V1: Instant market creation (what’s live today)
+The prices always add up to roughly $1:
+```
+If YES = 70¢, then NO ≈ 30¢
+```
 
-### Market creation
+### Step 3: Wait or Trade
 
-To create a market, the creator provides:
-- A **question** (human-readable title)
-- Outcome token names/symbols
-- Initial seed liquidity (**initUsdc**)
-- Expiry time (**expiryTimestamp**)
-- Optional Chainlink oracle config (feed + target + comparison)
+You can:
+- **Hold until resolution** — Wait for the outcome
+- **Sell anytime** — Lock in profit or cut losses early
 
-**Important implementation detail:** In the current V1 contracts, liquidity is **not withdrawable**. There is no `removeLiquidity()`.
+### Step 4: Claim Winnings
 
-Why:
-- It simplifies solvency and accounting.
-- It aligns LP incentives with market quality and trading volume.
-
-### Trading & pricing (LMSR AMM)
-
-Traders can:
-- **Buy** YES or NO with USDC
-- **Sell** YES or NO back to the pool
-
-Prices move continuously based on LMSR math. There is no order book.
-
-### Fees (V1)
-
-Each trade takes a fee (basis points) split between:
-- **Protocol treasury**
-- **Liquidity providers (LPs)** (claimable via `claimLpFees`)
-- **Market vault** (reinvested into the vault to deepen liquidity/solvency)
-
-> Fees are configurable on-chain. Do not assume a fixed 1% split unless the deployed config sets it.
-
-### LP economics (V1)
-
-LP actions:
-- **Add liquidity** at any time (`addLiquidity`)
-- **Claim fees** at any time (`claimLpFees`)
-- **After resolution**, claim any **residual vault funds** (`claimLpResidual`)
-
-LPs cannot withdraw principal in V1. The “reward” is fees + residuals.
+After the market resolves:
+- **If you're right:** Each share pays $1
+- **If you're wrong:** Each share pays $0
 
 ---
 
-## Resolution: what users must understand
+## Why This is Different
 
-### Resolve-time snapshot
-
-For Chainlink markets, resolution is **snapshotted at resolve-time**:
-- The first successful call to the resolver after `expiryTimestamp` determines the price used for resolution.
-
-This is a design choice:
-- **Pro:** no single party can block resolution forever.
-- **Con:** there is a “race” to resolve first; automation is recommended to reduce timing discretion.
-
-### Oracle safety
-
-The system enforces:
-- **staleness bounds** (reject old oracle updates)
-- **decimal guardrails** (avoid accidental scaling mismatches)
+| Traditional Betting | SpeculateX |
+|---------------------|------------|
+| Trust the bookmaker | Trust the code |
+| House can refuse payout | Automatic, guaranteed payout |
+| House sets the odds | Market sets the odds |
+| Your funds in their custody | Your funds in your wallet |
 
 ---
 
-## Market titles without subgraphs
+## Understanding Prices
 
-Market questions are stored on-chain and read via:
-- `getMarketQuestion(uint256)`
+The price of a YES token is the market's belief in the probability:
 
-This means the frontend does **not** need to depend on a subgraph for market titles (important for reliability when subgraphs lag or RPC nodes prune logs).
+| YES Price | What it Means |
+|-----------|---------------|
+| 80¢ | Market thinks 80% likely |
+| 50¢ | Complete uncertainty (coin flip) |
+| 20¢ | Market thinks 20% likely |
 
----
-
-## Architecture note (V1 on Testnet today)
-
-The Testnet deployment uses a Diamond-style architecture:
-- **Router**: single entry point (`SpeculateCoreRouter`)
-- **Facets**: `MarketFacet`, `TradingFacet`, `LiquidityFacet`, `SettlementFacet`
-
-This makes it easier to modularize logic and avoid contract size limits.
+**Pro tip:** If you think the true probability is higher than the current price, buy. If lower, sell.
 
 ---
 
-## V2 (Roadmap): Bonding curve launch + LLT
+## Fees
 
-This section is conceptual and **not deployed** in the current contracts.
+Every trade has a small fee:
+- **1% to Treasury** — Protocol sustainability
+- **1% to LPs** — Rewards liquidity providers
 
-In a potential V2, markets could start in a funding phase:
-- A bonding curve provides transparent early price discovery.
-- A **Launch Liquidity Threshold (LLT)** defines when the market becomes fully active.
-
-Goal:
-- Reduce reliance on a single creator’s seed capital.
-- Let communities bootstrap markets into deep liquidity before live trading.
+Example: Trade 100 USDC → 2 USDC in fees
 
 ---
+
+## How Markets Resolve
+
+Markets use **Chainlink oracles** for trustless resolution:
+
+1. Market expires at the set time
+2. Chainlink provides the official price/data
+3. Contract automatically determines winner
+4. Users redeem winning tokens for $1 each
+
+**No human can manipulate the outcome** — it's all automated.
+
+---
+
+## Liquidity Providers (LPs)
+
+Want to earn passive income? Add liquidity to markets:
+
+1. **Deposit USDC** to deepen the market
+2. **Earn fees** on every trade (1%)
+3. **Claim residual** after resolution
+
+> LPs help make prices more stable and earn rewards for it.
+
+---
+
+## Safety Features
+
+### Your Funds Are Safe
+
+- **Solvency guaranteed** — The vault always has enough to pay winners
+- **No rug pulls** — 24-hour timelock on all admin actions
+- **Pause protection** — Even if paused, you can always withdraw winnings
+
+### Slippage Protection
+
+- Set a minimum output to avoid bad fills
+- Deadline parameter prevents stale transactions
+
+---
+
+<div id="getting-started"></div>
+
+## Getting Started
+
+### 1. Connect Your Wallet
+Use MetaMask or any Web3 wallet on BSC network.
+
+### 2. Get USDC
+You'll need USDC (on BSC) to trade.
+
+### 3. Find a Market
+Browse active markets and pick one you have an opinion on.
+
+### 4. Trade!
+Buy YES or NO shares based on your prediction.
+
+### 5. Monitor
+Track your positions in the Portfolio page.
+
+### 6. Redeem
+After resolution, claim your winnings!
+
+---
+
+<div id="faq"></div>
 
 ## FAQ
 
-### Can I withdraw liquidity?
-Not in V1. You can claim fees during the market and claim residuals after resolution.
+### How is the price determined?
+SpeculateX uses **LMSR (Logarithmic Market Scoring Rule)**, a mathematical formula that adjusts prices based on supply and demand. No order book, no counterparty.
 
-### Who can resolve?
-Anyone can call the resolver after expiry (or automation/bots can do it).
+### Can I lose more than I invested?
+No. Maximum loss is what you paid for shares.
 
-### Does the UI require the subgraph for market titles?
-No. Titles are on-chain via `getMarketQuestion(uint256)`.
+### What if the oracle is wrong?
+Markets use Chainlink, the industry-standard decentralized oracle network. Staleness checks and decimal verification add extra safety.
+
+### Can I trade on mobile?
+Yes! The web app works on all devices.
+
+### Is there a minimum trade?
+The protocol requires minimum 500 USDC liquidity per market, but individual trades can be smaller.
 
 ---
 
-## Disclaimer
+## Quick Reference
 
-This document is informational. Prediction markets involve risk. Always verify deployed contract behavior and parameters before using real funds.
+| Action | What Happens |
+|--------|--------------|
+| Buy YES | You're betting the outcome is YES |
+| Buy NO | You're betting the outcome is NO |
+| Sell | Exit your position before resolution |
+| Redeem | Convert winning tokens to USDC |
+| Add Liquidity | Earn fees from trades |
+
+---
+
+## Need Help?
+
+- **Questions?** Join our [Discord](https://discord.gg/speculatex)
+- **Updates?** Follow on [Twitter](https://twitter.com/speculatex)
+- **Bugs?** Report in Discord or GitHub
+
+---
+
+*Prediction markets involve risk. Trade responsibly.*

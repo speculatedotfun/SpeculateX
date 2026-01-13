@@ -92,27 +92,36 @@ export default function DocsPage() {
           transition={{ delay: 0.1 }}
           className="grid sm:grid-cols-3 gap-3 mb-6"
         >
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 hover:border-teal-500 dark:hover:border-teal-500 transition-colors cursor-pointer group">
+          <button
+            onClick={() => document.getElementById('getting-started')?.scrollIntoView({ behavior: 'smooth' })}
+            className="text-left bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 hover:border-teal-500 dark:hover:border-teal-500 transition-colors cursor-pointer group"
+          >
             <div className="w-10 h-10 rounded-lg bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center mb-3 group-hover:bg-teal-100 dark:group-hover:bg-teal-900/30 transition-colors">
               <FileText className="w-5 h-5 text-teal-600 dark:text-teal-400" />
             </div>
             <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-1">Getting Started</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">Learn the basics</p>
-          </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 hover:border-purple-500 dark:hover:border-purple-500 transition-colors cursor-pointer group">
+          </button>
+          <button
+            onClick={() => document.getElementById('how-trading-works')?.scrollIntoView({ behavior: 'smooth' })}
+            className="text-left bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 hover:border-purple-500 dark:hover:border-purple-500 transition-colors cursor-pointer group"
+          >
             <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center mb-3 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/30 transition-colors">
               <BookOpen className="w-5 h-5 text-purple-600 dark:text-purple-400" />
             </div>
             <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-1">How It Works</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">Market mechanics</p>
-          </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 hover:border-amber-500 dark:hover:border-amber-500 transition-colors cursor-pointer group">
+          </button>
+          <button
+            onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
+            className="text-left bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 hover:border-amber-500 dark:hover:border-amber-500 transition-colors cursor-pointer group"
+          >
             <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center mb-3 group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30 transition-colors">
               <ExternalLink className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             </div>
-            <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-1">Advanced</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Pro strategies</p>
-          </div>
+            <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-1">FAQ</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Common questions</p>
+          </button>
         </motion.div>
 
         {/* Content Card */}

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Sparkline } from '@/components/market/Sparkline';
 import { MarketCardData } from './MarketCard';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { formatUnits } from 'viem';
 
 interface FeaturedMarketCardProps {
@@ -28,6 +28,8 @@ function getTimeRemaining(timestamp: bigint): string {
 }
 
 export function FeaturedMarketCard({ market, prefersReducedMotion = false, getMarketLogo, formatNumber }: FeaturedMarketCardProps) {
+    const [selectedSide, setSelectedSide] = useState<'yes' | 'no'>('yes');
+
     const isAuto = market.oracleType === 1;
     const isLive = market.status === 'LIVE TRADING';
     const timeLeft = useMemo(() => getTimeRemaining(market.expiryTimestamp), [market.expiryTimestamp]);
@@ -107,16 +109,32 @@ export function FeaturedMarketCard({ market, prefersReducedMotion = false, getMa
                             <span className="text-lg text-gray-400 font-medium">Chance</span>
                         </div>
 
-                        {/* YES / NO / Pays */}
-                        <div className="flex items-center gap-2 text-base mb-8">
-                            <span className="font-bold text-emerald-500">YES {yesCents}¢</span>
-                            <span className="text-gray-300">·</span>
-                            <span className="font-bold text-gray-600 dark:text-gray-300">NO {noCents}¢</span>
-                            <span className="text-gray-300">·</span>
-                            <span className="text-gray-400 text-base">Pays $1 if correct</span>
+                        {/* YES / NO Segmented Selector */}
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+                                <button
+                                    onClick={() => setSelectedSide('yes')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${selectedSide === 'yes'
+                                            ? 'bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                        }`}
+                                >
+                                    YES {yesCents}¢
+                                </button>
+                                <button
+                                    onClick={() => setSelectedSide('no')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${selectedSide === 'no'
+                                            ? 'bg-white dark:bg-gray-700 text-rose-500 dark:text-rose-400 shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                        }`}
+                                >
+                                    NO {noCents}¢
+                                </button>
+                            </div>
+                            <span className="text-gray-400 text-sm">Pays $1 if correct</span>
                         </div>
 
-                        {/* Bottom Stats + Buttons - Gray background like chart */}
+                        {/* Bottom Stats + Trade Button */}
                         <div className="flex items-center justify-between pt-4 pb-3 px-6 -mx-6 mt-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800">
                             <div className="flex items-center gap-5 text-xs text-gray-400">
                                 <span>Vol: <span className="font-medium text-gray-600 dark:text-gray-300">{volumeDisplay}</span></span>
@@ -124,10 +142,13 @@ export function FeaturedMarketCard({ market, prefersReducedMotion = false, getMa
                                 <span>Ends in: <span className="font-medium text-gray-600 dark:text-gray-300">{timeLeft}</span></span>
                             </div>
                             <Link
-                                href={`/markets/${market.id}`}
-                                className="px-5 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs shadow-sm"
+                                href={`/markets/${market.id}?side=${selectedSide}`}
+                                className={`px-5 py-1.5 rounded-full font-semibold text-xs shadow-sm transition-all ${selectedSide === 'yes'
+                                        ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                                        : 'bg-rose-500 hover:bg-rose-600 text-white'
+                                    }`}
                             >
-                                Trade
+                                Trade {selectedSide.toUpperCase()}
                             </Link>
                         </div>
                     </div>

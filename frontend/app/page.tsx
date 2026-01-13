@@ -23,6 +23,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { StatsBanner } from '@/components/market/StatsBanner';
 import { MarketCard, MarketCardData } from '@/components/market/MarketCard';
 import { FeaturedMarketCard } from '@/components/market/FeaturedMarketCard';
+import { QuickBuyModal } from '@/components/QuickBuyModal';
 import { Filter, ArrowUpDown } from 'lucide-react';
 import { useMarketsListOptimized } from '@/lib/hooks/useMarketsListOptimized'; // NEW HOOK
 
@@ -49,6 +50,21 @@ export default function MarketsPage() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 12;
+
+  // Quick Buy Modal State
+  const [quickBuyModal, setQuickBuyModal] = useState<{
+    isOpen: boolean;
+    marketId: number | null;
+    side: 'yes' | 'no';
+  }>({ isOpen: false, marketId: null, side: 'yes' });
+
+  const handleQuickBuy = useCallback((marketId: number, side: 'yes' | 'no') => {
+    setQuickBuyModal({ isOpen: true, marketId, side });
+  }, []);
+
+  const handleCloseQuickBuy = useCallback(() => {
+    setQuickBuyModal({ isOpen: false, marketId: null, side: 'yes' });
+  }, []);
 
   // Check for reduced motion preference
   useEffect(() => {
@@ -172,19 +188,73 @@ export default function MarketsPage() {
 
       <main className="relative z-10 w-full mx-auto max-w-[1440px] px-6 py-6 flex-1">
 
-        {/* Hero Section */}
+        {/* Hero Section - Two Column Layout */}
         <motion.div
           initial={prefersReducedMotion ? false : { opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="text-center py-6"
+          className="py-4"
         >
-          <h1 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">
-            Be The Market
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
-            Trade on what happens next
-          </p>
+          <div>
+            {/* Left: Hero Content */}
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white mb-1 tracking-tight">
+                Price the Future
+              </h1>
+              <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-4">
+                Trade YES/NO shares on what happens next.
+              </p>
+
+              {/* CTA Buttons with How it Works Tooltip */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => document.getElementById('markets-grid')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="px-5 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold transition-all shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30"
+                >
+                  Explore Markets
+                </button>
+
+                {/* How it Works Tooltip Trigger */}
+                <div className="relative group">
+                  <button className="px-4 py-2 rounded-full bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-slate-300 text-sm font-semibold hover:border-slate-300 dark:hover:border-gray-600 transition-all flex items-center gap-2">
+                    <span className="w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-500">?</span>
+                    How it Works
+                  </button>
+
+                  {/* Tooltip Content */}
+                  <div className="absolute left-0 top-full mt-2 w-72 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div className="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-gray-700 shadow-xl p-4">
+                      <div className="space-y-2.5">
+                        <div className="flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-xs font-bold text-emerald-600 dark:text-emerald-400">1</span>
+                          <span className="text-sm text-slate-700 dark:text-slate-300">Buy YES or NO shares</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-400">2</span>
+                          <span className="text-sm text-slate-700 dark:text-slate-300">Price = probability</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-xs font-bold text-purple-600 dark:text-purple-400">3</span>
+                          <span className="text-sm text-slate-700 dark:text-slate-300">Settles to $1 if you're right</span>
+                        </div>
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-gray-800 flex items-center justify-between">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                          <span className="text-amber-500">💡</span>
+                          <span>YES at 70¢ → win $1</span>
+                        </p>
+                        <a href="/docs" className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors">
+                          Learn more →
+                        </a>
+                      </div>
+                      {/* Tooltip Arrow */}
+                      <div className="absolute -top-2 left-8 w-4 h-4 bg-white dark:bg-gray-900 border-l border-t border-slate-200 dark:border-gray-700 rotate-45" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </motion.div>
 
         {/* --- FEATURED MARKET --- */}
@@ -192,18 +262,28 @@ export default function MarketsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-4 mb-6"
+            className="mt-2 mb-6"
           >
+            {/* Featured Pill + Reason */}
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-amber-500">★</span>
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Featured</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-500/10 to-orange-500/10 dark:from-amber-500/20 dark:to-orange-500/20 border border-amber-500/20 dark:border-amber-500/30">
+                <span className="text-sm">🔥</span>
+                <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide">Featured</span>
+              </span>
+              <span className="text-xs text-slate-400 dark:text-slate-500">Highest volume today</span>
             </div>
-            <FeaturedMarketCard
-              market={featuredMarket}
-              getMarketLogo={getMarketLogo}
-              formatNumber={formatNumber}
-              prefersReducedMotion={prefersReducedMotion}
-            />
+            {/* Glow wrapper */}
+            <div className="relative">
+              <div className="absolute -inset-1 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-rose-500/20 rounded-2xl blur-lg opacity-50 dark:opacity-30"></div>
+              <div className="relative">
+                <FeaturedMarketCard
+                  market={featuredMarket}
+                  getMarketLogo={getMarketLogo}
+                  formatNumber={formatNumber}
+                  prefersReducedMotion={prefersReducedMotion}
+                />
+              </div>
+            </div>
           </motion.div>
         )}
 
@@ -278,58 +358,80 @@ export default function MarketsPage() {
         </div>
 
         {/* Market Cards Grid */}
-        <AnimatePresence mode="popLayout">
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" role="status" aria-label="Loading markets">
-              {[1, 2, 3, 4, 5, 6].map(i => (
-                <motion.div
-                  key={i}
-                  initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: prefersReducedMotion ? 0 : i * 0.1 }}
-                >
-                  <Skeleton className="h-[240px] rounded-xl bg-gray-200 dark:bg-gray-800" />
-                </motion.div>
-              ))}
-            </div>
-          ) : filteredMarkets.length === 0 ? (
-            <motion.div
-              initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col items-center justify-center py-16 px-4 text-center bg-white/40 dark:bg-gray-800/40 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 backdrop-blur-sm"
-            >
-              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700/50 rounded-full flex items-center justify-center mb-4 text-3xl shadow-inner">🔍</div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No markets found</h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-xs">We couldn&apos;t find any markets matching your current filters.</p>
-              <button
-                onClick={() => { setSearchTerm(''); setActiveStatusTab('Active'); }}
-                className="px-6 py-2.5 bg-teal-500 hover:bg-teal-600 text-white rounded-full font-bold transition-all shadow-lg shadow-teal-500/20 hover:shadow-teal-500/30 hover:-translate-y-0.5"
+        <div id="markets-grid">
+          <AnimatePresence mode="popLayout">
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" role="status" aria-label="Loading markets">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <motion.div
+                    key={i}
+                    initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: prefersReducedMotion ? 0 : i * 0.1 }}
+                  >
+                    <Skeleton className="h-[240px] rounded-xl bg-gray-200 dark:bg-gray-800" />
+                  </motion.div>
+                ))}
+              </div>
+            ) : filteredMarkets.length === 0 ? (
+              <motion.div
+                initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center justify-center py-16 px-4 text-center bg-white/40 dark:bg-gray-800/40 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 backdrop-blur-sm"
               >
-                Clear all filters
-              </button>
-            </motion.div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {paginatedMarkets.map((market, index) => (
-                <motion.div
-                  key={market.id}
-                  layout={!prefersReducedMotion}
-                  initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95 }}
-                  transition={{ duration: prefersReducedMotion ? 0 : 0.3, delay: prefersReducedMotion ? 0 : index * 0.05 }}
+                {/* Tab-specific empty states */}
+                {activeStatusTab === 'Active' && (
+                  <>
+                    <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700/50 rounded-full flex items-center justify-center mb-4 text-3xl shadow-inner">🔍</div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No markets found</h3>
+                    <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-xs">We couldn&apos;t find any markets matching your current filters.</p>
+                  </>
+                )}
+                {activeStatusTab === 'Expired' && (
+                  <>
+                    <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-4 text-3xl shadow-inner">🎉</div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">All caught up!</h3>
+                    <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-xs">No expired markets waiting for resolution. Everything is either live or resolved.</p>
+                  </>
+                )}
+                {activeStatusTab === 'Resolved' && (
+                  <>
+                    <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mb-4 text-3xl shadow-inner">📊</div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No resolved markets yet</h3>
+                    <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-xs">Check back soon to see completed markets and their outcomes.</p>
+                  </>
+                )}
+                <button
+                  onClick={() => { setSearchTerm(''); setActiveStatusTab('Active'); }}
+                  className="px-6 py-2.5 bg-teal-500 hover:bg-teal-600 text-white rounded-full font-bold transition-all shadow-lg shadow-teal-500/20 hover:shadow-teal-500/30 hover:-translate-y-0.5"
                 >
-                  <MarketCard
-                    market={market}
-                    prefersReducedMotion={prefersReducedMotion}
-                    getMarketLogo={getMarketLogo}
-                    formatNumber={formatNumber}
-                  />
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </AnimatePresence>
+                  View active markets
+                </button>
+              </motion.div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {paginatedMarkets.map((market, index) => (
+                  <motion.div
+                    key={market.id}
+                    layout={!prefersReducedMotion}
+                    initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95 }}
+                    transition={{ duration: prefersReducedMotion ? 0 : 0.3, delay: prefersReducedMotion ? 0 : index * 0.05 }}
+                  >
+                    <MarketCard
+                      market={market}
+                      prefersReducedMotion={prefersReducedMotion}
+                      getMarketLogo={getMarketLogo}
+                      formatNumber={formatNumber}
+                      onQuickBuy={handleQuickBuy}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* Pagination */
           !loading && filteredMarkets.length > 0 && (
@@ -342,6 +444,24 @@ export default function MarketsPage() {
             </div>
           )}
       </main>
+
+      {/* Quick Buy Modal */}
+      {quickBuyModal.marketId && (() => {
+        const selectedMarket = markets.find(m => m.id === quickBuyModal.marketId);
+        if (!selectedMarket) return null;
+        return (
+          <QuickBuyModal
+            isOpen={quickBuyModal.isOpen}
+            onClose={handleCloseQuickBuy}
+            marketId={quickBuyModal.marketId}
+            initialSide={quickBuyModal.side}
+            question={selectedMarket.question}
+            logoUrl={getMarketLogo(selectedMarket.question)}
+            yesPrice={selectedMarket.yesPrice}
+            noPrice={selectedMarket.noPrice}
+          />
+        );
+      })()}
     </div >
   );
 }

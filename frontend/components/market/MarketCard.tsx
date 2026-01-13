@@ -34,6 +34,7 @@ interface MarketCardProps {
     prefersReducedMotion?: boolean;
     getMarketLogo: (question?: string | null) => string;
     formatNumber: (value: number) => string;
+    onQuickBuy?: (marketId: number, side: 'yes' | 'no') => void;
 }
 
 // --- Helper: Format Time Remaining ---
@@ -71,11 +72,14 @@ function useCountdown(expiryTimestamp: bigint, isResolved: boolean): string {
     return timeRemaining;
 }
 
-export function MarketCard({ market, prefersReducedMotion = false, getMarketLogo, formatNumber }: MarketCardProps) {
+export function MarketCard({ market, prefersReducedMotion = false, getMarketLogo, formatNumber, onQuickBuy }: MarketCardProps) {
     const router = useRouter();
     const isLive = market.status === 'LIVE TRADING';
     const isResolved = market.status === 'RESOLVED';
     const isAuto = market.oracleType === 1;
+
+    // Detect untouched/new markets (50/50 split = no trades yet)
+    const isNew = isLive && Math.abs(market.yesPrice - 0.5) < 0.01 && Math.abs(market.noPrice - 0.5) < 0.01;
 
     const countdown = useCountdown(market.expiryTimestamp, market.isResolved);
     const volumeDisplay = `$${formatNumber(market.volume)}`;
@@ -139,6 +143,12 @@ export function MarketCard({ market, prefersReducedMotion = false, getMarketLogo
                                 <span className="text-[10px] font-semibold text-purple-600 dark:text-purple-400 uppercase">Resolved</span>
                             </span>
                         )}
+                        {isNew && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/30">
+                                <span className="text-[10px]">✨</span>
+                                <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase">New</span>
+                            </span>
+                        )}
                     </div>
 
                     {/* Question Title */}
@@ -152,9 +162,13 @@ export function MarketCard({ market, prefersReducedMotion = false, getMarketLogo
                             onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                router.push(`/markets/${market.id}?side=yes`);
+                                if (onQuickBuy) {
+                                    onQuickBuy(market.id, 'yes');
+                                } else {
+                                    router.push(`/markets/${market.id}?side=yes`);
+                                }
                             }}
-                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-800/50 transition-colors"
                         >
                             <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">YES</span>
                             <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{yesCents}¢</span>
@@ -163,9 +177,13 @@ export function MarketCard({ market, prefersReducedMotion = false, getMarketLogo
                             onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                router.push(`/markets/${market.id}?side=no`);
+                                if (onQuickBuy) {
+                                    onQuickBuy(market.id, 'no');
+                                } else {
+                                    router.push(`/markets/${market.id}?side=no`);
+                                }
                             }}
-                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors"
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/40 border border-rose-200 dark:border-rose-800/50 transition-colors"
                         >
                             <span className="text-xs font-semibold text-rose-500 dark:text-rose-400">NO</span>
                             <span className="text-sm font-bold text-rose-500 dark:text-rose-400 tabular-nums">{noCents}¢</span>
