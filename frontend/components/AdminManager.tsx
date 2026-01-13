@@ -22,6 +22,7 @@ export default function AdminManager() {
   const [newAdminAddress, setNewAdminAddress] = useState('');
   const [chainlinkResolverAddress, setChainlinkResolverAddress] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [hasDefaultAdminRole, setHasDefaultAdminRole] = useState(false);
   const [currentAdmins, setCurrentAdmins] = useState<string[]>([]);
   const [selectedFeed, setSelectedFeed] = useState('');
   const [feedAddress, setFeedAddress] = useState('');
@@ -96,6 +97,33 @@ export default function AdminManager() {
       });
     }
   }, [address]);
+
+  // Check if user has DEFAULT_ADMIN_ROLE specifically (for permission management)
+  useEffect(() => {
+    const checkDefaultAdminRole = async () => {
+      if (!address || !publicClient) {
+        setHasDefaultAdminRole(false);
+        return;
+      }
+
+      try {
+        const addresses = getAddresses();
+        const hasRole = await publicClient.readContract({
+          address: addresses.core,
+          abi: getCoreAbi(getCurrentNetwork()),
+          functionName: 'hasRole',
+          args: [DEFAULT_ADMIN_ROLE as `0x${string}`, address],
+        }) as boolean;
+
+        setHasDefaultAdminRole(hasRole);
+      } catch (error) {
+        console.error('Error checking DEFAULT_ADMIN_ROLE:', error);
+        setHasDefaultAdminRole(false);
+      }
+    };
+
+    checkDefaultAdminRole();
+  }, [address, publicClient]);
 
   // Real-time address validation
   useEffect(() => {
@@ -1004,6 +1032,30 @@ export default function AdminManager() {
   }
 
   if (!isAdmin) return null;
+
+  // If user only has MARKET_CREATOR_ROLE but not DEFAULT_ADMIN_ROLE, show restricted message
+  if (!hasDefaultAdminRole) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-sm font-bold text-blue-900 dark:text-blue-200 mb-2">
+                Limited Access
+              </h3>
+              <p className="text-xs text-blue-800 dark:text-blue-300 mb-3">
+                You have <span className="font-mono font-bold">MARKET_CREATOR_ROLE</span> which allows you to create markets, but you need <span className="font-mono font-bold">DEFAULT_ADMIN_ROLE</span> to manage admin permissions.
+              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-400">
+                Only full admins can grant or revoke roles. Contact a DEFAULT_ADMIN to upgrade your permissions.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
