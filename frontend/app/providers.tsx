@@ -141,23 +141,33 @@ if (typeof window !== 'undefined' && !appKitInitialized) {
   appKitInitialized = true;
 }
 
-// Theme sync component - syncs site theme with AppKit modal
-function AppKitThemeSync() {
+// Client-only theme sync component - syncs site theme with AppKit modal
+function AppKitThemeSyncClient() {
   const { theme } = useTheme();
   const { setThemeMode } = useAppKitTheme();
+
+  useEffect(() => {
+    // Sync AppKit theme with site theme
+    setThemeMode(theme);
+  }, [theme, setThemeMode]);
+
+  return null;
+}
+
+// Wrapper that only renders on client side
+function AppKitThemeSync() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (!mounted) return;
-    // Sync AppKit theme with site theme
-    setThemeMode(theme);
-  }, [theme, mounted, setThemeMode]);
+  // Don't render during SSR
+  if (!mounted) {
+    return null;
+  }
 
-  return null;
+  return <AppKitThemeSyncClient />;
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
