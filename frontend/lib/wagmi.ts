@@ -11,6 +11,12 @@ import {
   safeWallet,
   ledgerWallet,
   argentWallet,
+  binanceWallet,
+  phantomWallet,
+  zerionWallet,
+  bitgetWallet,
+  tokenPocketWallet,
+  imTokenWallet,
 } from '@rainbow-me/rainbowkit/wallets';
 import { http } from 'wagmi';
 import { bscTestnet, bsc } from 'wagmi/chains';
@@ -82,24 +88,35 @@ export const config = getDefaultConfig({
   ssr: true,
   wallets: [
     {
-      groupName: 'Recommended',
+      groupName: 'Popular on BSC',
       wallets: [
-        rainbowWallet,
         metaMaskWallet,
-        rabbyWallet,
-        okxWallet,
+        binanceWallet,
         trustWallet,
+        okxWallet,
+        bitgetWallet,
+        tokenPocketWallet,
+      ],
+    },
+    {
+      groupName: 'More Wallets',
+      wallets: [
+        rabbyWallet,
         coinbaseWallet,
+        phantomWallet,
+        zerionWallet,
+        imTokenWallet,
+        rainbowWallet,
         walletConnectWallet,
       ],
     },
     {
-      groupName: 'Multisig',
-      wallets: [safeWallet],
+      groupName: 'Multisig & Hardware',
+      wallets: [safeWallet, ledgerWallet],
     },
     {
       groupName: 'Other',
-      wallets: [ledgerWallet, argentWallet, injectedWallet],
+      wallets: [argentWallet, injectedWallet],
     },
   ],
   transports: {

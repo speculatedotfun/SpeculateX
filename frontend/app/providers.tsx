@@ -4,13 +4,21 @@ import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { config } from '@/lib/wagmi';
 import { ToastHost } from '@/components/ui/toast';
-import { ThemeProvider } from '@/lib/theme';
-
+import { ThemeProvider, useTheme } from '@/lib/theme';
+import {
+  RainbowKitProvider,
+  darkTheme,
+  lightTheme,
+  type Theme,
+} from '@rainbow-me/rainbowkit';
 
 // Dynamic import to avoid chunking issues
 import dynamic from 'next/dynamic';
 import { useReferral } from '@/lib/hooks/useReferral';
 import { UsernameGuard } from '@/components/UsernameGuard';
+
+// Import styles
+import '@rainbow-me/rainbowkit/styles.css';
 
 // Helper component to run the hook inside the context
 function ReferralListener() {
@@ -18,16 +26,49 @@ function ReferralListener() {
   return null;
 }
 
-const RainbowKitProvider = dynamic(
-  () => import('@rainbow-me/rainbowkit').then((mod) => mod.RainbowKitProvider),
-  {
-    ssr: false,
-    loading: () => null,
-  }
-);
+// Custom RainbowKit theme matching SpeculateX design
+const customLightTheme: Theme = lightTheme({
+  accentColor: '#14B8A6', // Teal primary color
+  accentColorForeground: 'white',
+  borderRadius: 'large',
+  fontStack: 'system',
+  overlayBlur: 'small',
+});
 
-// Import styles
-import '@rainbow-me/rainbowkit/styles.css';
+const customDarkTheme: Theme = darkTheme({
+  accentColor: '#14B8A6', // Teal primary color
+  accentColorForeground: 'white',
+  borderRadius: 'large',
+  fontStack: 'system',
+  overlayBlur: 'small',
+});
+
+// Override specific colors to match site design
+customLightTheme.colors.modalBackground = '#ffffff';
+customLightTheme.colors.modalBorder = 'rgba(0, 0, 0, 0.06)';
+customLightTheme.colors.profileForeground = '#f8fafc';
+customLightTheme.colors.closeButtonBackground = 'rgba(0, 0, 0, 0.06)';
+customLightTheme.colors.actionButtonBorder = 'rgba(20, 184, 166, 0.2)';
+customLightTheme.colors.actionButtonSecondaryBackground = 'rgba(20, 184, 166, 0.1)';
+
+customDarkTheme.colors.modalBackground = '#0f172a'; // dark:bg-[#0f172a]
+customDarkTheme.colors.modalBorder = 'rgba(255, 255, 255, 0.06)';
+customDarkTheme.colors.profileForeground = '#1e293b';
+customDarkTheme.colors.closeButtonBackground = 'rgba(255, 255, 255, 0.06)';
+customDarkTheme.colors.actionButtonBorder = 'rgba(20, 184, 166, 0.3)';
+customDarkTheme.colors.actionButtonSecondaryBackground = 'rgba(20, 184, 166, 0.15)';
+
+// Themed RainbowKit wrapper that syncs with site theme
+function ThemedRainbowKit({ children }: { children: React.ReactNode }) {
+  const { theme } = useTheme();
+  const rainbowTheme = theme === 'dark' ? customDarkTheme : customLightTheme;
+
+  return (
+    <RainbowKitProvider theme={rainbowTheme} coolMode>
+      {children}
+    </RainbowKitProvider>
+  );
+}
 
 // Singleton QueryClient to prevent multiple instances
 let globalQueryClient: QueryClient | undefined;
@@ -78,7 +119,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ThemeProvider>
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider>
+          <ThemedRainbowKit>
             <ToastHost>
               <ReferralListener />
               <UsernameGuard>
@@ -87,11 +128,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
                 </div>
               </UsernameGuard>
             </ToastHost>
-          </RainbowKitProvider>
+          </ThemedRainbowKit>
         </QueryClientProvider>
       </WagmiProvider>
     </ThemeProvider>
   );
 }
-
-

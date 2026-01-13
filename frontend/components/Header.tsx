@@ -3,16 +3,17 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAccount } from 'wagmi';
+import { useAccount, useDisconnect } from 'wagmi';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { isAdmin as checkIsAdmin } from '@/lib/accessControl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import NetworkSelector from '@/components/NetworkSelector';
-import { Menu, X, User, Droplet, Users, Search as SearchIcon } from 'lucide-react';
+import { Menu, X, User, Droplet, Users, Search as SearchIcon, LogOut, Copy, Check } from 'lucide-react';
 import { hapticFeedback } from '@/lib/haptics';
 import { useNicknames, getDisplayName } from '@/lib/hooks/useNicknames';
+import { ConnectWalletModal } from '@/components/ConnectWalletModal';
 
 // --- Sub-component for account button with nickname support ---
 function HeaderAccountButton({ account, openAccountModal }: { account: any, openAccountModal: () => void }) {
@@ -63,71 +64,190 @@ function HeaderAccountButton({ account, openAccountModal }: { account: any, open
   );
 }
 
-// --- Sub-component to fix nesting/parsing issues ---
-function CustomConnectButton({ prefersReducedMotion = false }: { prefersReducedMotion?: boolean }) {
+// --- Custom Account Dropdown ---
+function AccountDropdown({ onDisconnect }: { onDisconnect: () => void }) {
+  const { address } = useAccount();
+  const { nicknames } = useNicknames();
+  const [isOpen, setIsOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const displayName = address ? getDisplayName(address, nicknames) : '';
+  const hasNickname = address && nicknames[address.toLowerCase()];
+
+  const handleCopy = async () => {
+    if (address) {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   return (
-    <ConnectButton.Custom>
-      {({
-        account,
-        chain,
-        openAccountModal,
-        openChainModal,
-        openConnectModal,
-        authenticationStatus,
-        mounted,
-      }) => {
-        const ready = mounted && authenticationStatus !== 'loading';
-        const connected =
-          ready &&
-          account &&
-          chain &&
-          (!authenticationStatus || authenticationStatus === 'authenticated');
-
-        return (
-          <div
-            {...(!ready && {
-              'aria-hidden': true,
-              style: {
-                opacity: 0,
-                pointerEvents: 'none',
-                userSelect: 'none',
-              },
-            })}
-          >
-            {(() => {
-              if (!connected) {
-                return (
-                  <button
-                    onClick={() => {
-                      hapticFeedback('medium');
-                      openConnectModal();
-                    }}
-                    type="button"
-                    className="group relative inline-flex items-center justify-center rounded-full bg-[#14B8A6] dark:bg-[#14B8A6] px-6 py-3 text-base font-black text-white shadow-lg shadow-[#14B8A6]/25 dark:shadow-[#14B8A6]/30 hover:bg-[#0D9488] dark:hover:bg-[#0D9488] hover:shadow-xl hover:shadow-[#14B8A6]/30 dark:hover:shadow-[#14B8A6]/40 transition-all duration-300 active:scale-95"
-                  >
-                    Connect Wallet
-                  </button>
-                );
-              }
-
-              if (chain.unsupported) {
-                return (
-                  <button
-                    onClick={openChainModal}
-                    type="button"
-                    className="inline-flex items-center justify-center rounded-full bg-red-500 px-6 py-3 text-base font-black text-white hover:bg-red-600 hover:shadow-lg hover:shadow-red-500/25 transition-all active:scale-95"
-                  >
-                    Wrong Network
-                  </button>
-                );
-              }
-
-              return <HeaderAccountButton account={account} openAccountModal={openAccountModal} />;
-            })()}
+    <div className="relative">
+      <div className="group relative rounded-full bg-gradient-to-r from-teal-400 to-cyan-400 p-[1px]">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          type="button"
+          className="relative flex items-center gap-3 rounded-full bg-white dark:bg-gray-900 px-1 py-1 pr-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all hover:-translate-y-[1px] hover:shadow-sm"
+        >
+          {/* Avatar */}
+          <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-[#14B8A6] to-cyan-500 flex items-center justify-center text-white shadow-md">
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
+            </svg>
+            {/* Online Dot */}
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-white dark:bg-gray-900 rounded-full flex items-center justify-center">
+              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+            </div>
           </div>
-        );
-      }}
-    </ConnectButton.Custom>
+
+          <div className="flex flex-col items-start leading-none gap-0.5">
+            <span className="text-[10px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-cyan-500 uppercase tracking-wider">
+              Connected
+            </span>
+            <span className={`text-sm font-black text-gray-900 dark:text-gray-100 ${hasNickname ? '' : 'font-mono'}`}>
+              {displayName}
+            </span>
+          </div>
+        </button>
+      </div>
+
+      {/* Dropdown Menu */}
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setIsOpen(false)}
+            />
+
+            {/* Menu */}
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-900 rounded-2xl shadow-xl shadow-black/10 dark:shadow-black/30 border border-gray-200 dark:border-gray-700 overflow-hidden z-50"
+            >
+              {/* Address */}
+              <div className="p-4 border-b border-gray-100 dark:border-gray-800">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Wallet Address</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-mono text-gray-900 dark:text-white truncate flex-1">
+                    {address?.slice(0, 10)}...{address?.slice(-8)}
+                  </p>
+                  <button
+                    onClick={handleCopy}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    {copied ? (
+                      <Check className="w-4 h-4 text-emerald-500" />
+                    ) : (
+                      <Copy className="w-4 h-4 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="p-2">
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    onDisconnect();
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="font-medium">Disconnect</span>
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// --- Sub-component with custom modal ---
+function CustomConnectButton({ prefersReducedMotion = false }: { prefersReducedMotion?: boolean }) {
+  const { isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  return (
+    <>
+      {!isConnected ? (
+        <button
+          onClick={() => {
+            hapticFeedback('medium');
+            setIsModalOpen(true);
+          }}
+          type="button"
+          className="group relative inline-flex items-center justify-center rounded-full bg-[#14B8A6] dark:bg-[#14B8A6] px-6 py-3 text-base font-black text-white shadow-lg shadow-[#14B8A6]/25 dark:shadow-[#14B8A6]/30 hover:bg-[#0D9488] dark:hover:bg-[#0D9488] hover:shadow-xl hover:shadow-[#14B8A6]/30 dark:hover:shadow-[#14B8A6]/40 transition-all duration-300 active:scale-95"
+        >
+          Connect Wallet
+        </button>
+      ) : (
+        <AccountDropdown onDisconnect={() => disconnect()} />
+      )}
+
+      <ConnectWalletModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
+    </>
+  );
+}
+
+// --- Mobile Connect Button ---
+function MobileConnectButton({ onClose }: { onClose: () => void }) {
+  const { isConnected, address } = useAccount();
+  const { disconnect } = useDisconnect();
+  const { nicknames } = useNicknames();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const displayName = address ? getDisplayName(address, nicknames) : '';
+
+  const handleClick = () => {
+    if (isConnected) {
+      disconnect();
+      onClose();
+    } else {
+      setIsModalOpen(true);
+    }
+  };
+
+  return (
+    <>
+      <button
+        onClick={handleClick}
+        className="w-full py-3 rounded-xl bg-teal-500 text-white font-bold shadow-lg shadow-teal-500/20 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+        aria-label={isConnected ? `Disconnect wallet: ${displayName}` : 'Connect your wallet'}
+      >
+        {isConnected ? `Disconnect (${displayName})` : 'Connect Wallet'}
+      </button>
+
+      <ConnectWalletModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          onClose();
+        }}
+      />
+    </>
   );
 }
 
@@ -381,22 +501,7 @@ export default function Header(props: HeaderProps = {}) {
 
                 {/* Mobile Connect Button */}
                 <div className="pt-4 mt-2 border-t border-gray-100 dark:border-gray-800" role="none">
-                  <div className="w-full">
-                    <ConnectButton.Custom>
-                      {({ openConnectModal, openAccountModal, mounted, account }) => {
-                        const connected = mounted && account;
-                        return (
-                          <button
-                            onClick={connected ? openAccountModal : openConnectModal}
-                            className="w-full py-3 rounded-xl bg-teal-500 text-white font-bold shadow-lg shadow-teal-500/20 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-                            aria-label={connected ? `Manage wallet: ${account.displayName}` : 'Connect your wallet'}
-                          >
-                            {connected ? account.displayName : 'Connect Wallet'}
-                          </button>
-                        );
-                      }}
-                    </ConnectButton.Custom>
-                  </div>
+                  <MobileConnectButton onClose={() => setIsMobileMenuOpen(false)} />
                 </div>
               </div>
             </motion.nav>
