@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAccount, useDisconnect } from 'wagmi';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import { isAdmin as checkIsAdmin } from '@/lib/accessControl';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,8 +14,19 @@ import { hapticFeedback } from '@/lib/haptics';
 import { useNicknames, getDisplayName } from '@/lib/hooks/useNicknames';
 import { useAppKit } from '@reown/appkit/react';
 
+function ClientOnly({ children, fallback = null }: { children: ReactNode; fallback?: ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return <>{fallback}</>;
+  return <>{children}</>;
+}
+
 // --- Sub-component for account button with nickname support ---
-function HeaderAccountButton({ account }: { account: { address: string; displayBalance?: string } }) {
+function HeaderAccountButtonClient({ account }: { account: { address: string; displayBalance?: string } }) {
   const { nicknames } = useNicknames();
   const { open } = useAppKit();
   const displayName = getDisplayName(account.address, nicknames);
@@ -64,8 +75,16 @@ function HeaderAccountButton({ account }: { account: { address: string; displayB
   );
 }
 
+function HeaderAccountButton({ account }: { account: { address: string; displayBalance?: string } }) {
+  return (
+    <ClientOnly>
+      <HeaderAccountButtonClient account={account} />
+    </ClientOnly>
+  );
+}
+
 // --- Sub-component for AppKit Connect Button ---
-function CustomConnectButton({ prefersReducedMotion = false }: { prefersReducedMotion?: boolean }) {
+function CustomConnectButtonClient({ prefersReducedMotion = false }: { prefersReducedMotion?: boolean }) {
   const { address, isConnected } = useAccount();
   const { open } = useAppKit();
 
@@ -93,8 +112,26 @@ function CustomConnectButton({ prefersReducedMotion = false }: { prefersReducedM
   );
 }
 
+function CustomConnectButton({ prefersReducedMotion = false }: { prefersReducedMotion?: boolean }) {
+  return (
+    <ClientOnly
+      fallback={
+        <button
+          type="button"
+          disabled
+          className="group relative inline-flex items-center justify-center rounded-full bg-[#14B8A6] dark:bg-[#14B8A6] px-6 py-3 text-base font-black text-white shadow-lg shadow-[#14B8A6]/25 dark:shadow-[#14B8A6]/30 opacity-80 cursor-not-allowed"
+        >
+          Connect Wallet
+        </button>
+      }
+    >
+      <CustomConnectButtonClient prefersReducedMotion={prefersReducedMotion} />
+    </ClientOnly>
+  );
+}
+
 // --- Sub-component for Mobile AppKit Connect Button ---
-function MobileConnectButton() {
+function MobileConnectButtonClient() {
   const { address, isConnected } = useAccount();
   const { open } = useAppKit();
   const { nicknames } = useNicknames();
@@ -123,6 +160,25 @@ function MobileConnectButton() {
     >
       {displayName}
     </button>
+  );
+}
+
+function MobileConnectButton() {
+  return (
+    <ClientOnly
+      fallback={
+        <button
+          className="w-full py-3 rounded-xl bg-teal-500 text-white font-bold shadow-lg shadow-teal-500/20 opacity-80 cursor-not-allowed"
+          type="button"
+          disabled
+          aria-label="Connect your wallet"
+        >
+          Connect Wallet
+        </button>
+      }
+    >
+      <MobileConnectButtonClient />
+    </ClientOnly>
   );
 }
 

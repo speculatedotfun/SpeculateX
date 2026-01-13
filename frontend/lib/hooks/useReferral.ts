@@ -1,18 +1,23 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { isAddress } from 'viem';
 
 const STORAGE_KEY = 'speculate_referrer';
 
 export function useReferral() {
-    const searchParams = useSearchParams();
     const [isLookingUp, setIsLookingUp] = useState(false);
 
     useEffect(() => {
         const handleRefParam = async () => {
-            const refParam = searchParams?.get('ref');
+            if (typeof window === 'undefined') return;
+
+            let refParam: string | null = null;
+            try {
+                refParam = new URLSearchParams(window.location.search).get('ref');
+            } catch {
+                // ignore
+            }
             if (!refParam) return;
 
             // If it's already a valid address, save directly
@@ -48,7 +53,7 @@ export function useReferral() {
         };
 
         handleRefParam();
-    }, [searchParams]);
+    }, []);
 
     // Helper to get the current referrer (safe for hydration)
     const getReferrer = () => {

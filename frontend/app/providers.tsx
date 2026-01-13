@@ -11,10 +11,27 @@ import { useReferral } from '@/lib/hooks/useReferral';
 import { UsernameGuard } from '@/components/UsernameGuard';
 import { useEffect, useState } from 'react';
 
-// Helper component to run the hook inside the context
-function ReferralListener() {
+// Client-only component that uses the referral hook
+function ReferralListenerClient() {
   useReferral();
   return null;
+}
+
+// Helper component to run the hook inside the context
+// Only renders on client side to avoid SSR issues with useSearchParams
+function ReferralListener() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Don't render during SSR
+  if (!mounted) {
+    return null;
+  }
+
+  return <ReferralListenerClient />;
 }
 
 // 0. Setup queryClient - singleton pattern
