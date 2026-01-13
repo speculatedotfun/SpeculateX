@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { config } from '@/lib/wagmi';
@@ -121,7 +122,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <QueryClientProvider client={queryClient}>
           <ThemedRainbowKit>
             <ToastHost>
-              <ReferralListener />
+              <Suspense fallback={null}>
+                <ReferralListener />
+              </Suspense>
               <UsernameGuard>
                 <div className="min-h-screen flex flex-col">
                   {children}
