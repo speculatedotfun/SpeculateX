@@ -1,4 +1,17 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
+import {
+  rainbowWallet,
+  metaMaskWallet,
+  rabbyWallet,
+  okxWallet,
+  trustWallet,
+  coinbaseWallet,
+  walletConnectWallet,
+  injectedWallet,
+  safeWallet,
+  ledgerWallet,
+  argentWallet,
+} from '@rainbow-me/rainbowkit/wallets';
 import { http } from 'wagmi';
 import { bscTestnet, bsc } from 'wagmi/chains';
 
@@ -49,9 +62,9 @@ const mainnetRpcUrl = process.env.NEXT_PUBLIC_MAINNET_RPC_URL || 'https://bsc-da
 // Get your Project ID from: https://cloud.reown.com/
 const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo-project-id-for-development';
 
-if (!process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 
-    process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID === 'your_project_id_here' || 
-    process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID === 'demo-project-id-for-development') {
+if (!process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ||
+  process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID === 'your_project_id_here' ||
+  process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID === 'demo-project-id-for-development') {
   if (typeof window !== 'undefined') {
     console.warn(
       '⚠️ NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is not set or invalid!\n' +
@@ -67,6 +80,28 @@ export const config = getDefaultConfig({
   projectId: walletConnectProjectId,
   chains: [bscTestnetOverride, bscMainnetOverride],
   ssr: true,
+  wallets: [
+    {
+      groupName: 'Recommended',
+      wallets: [
+        rainbowWallet,
+        metaMaskWallet,
+        rabbyWallet,
+        okxWallet,
+        trustWallet,
+        coinbaseWallet,
+        walletConnectWallet,
+      ],
+    },
+    {
+      groupName: 'Multisig',
+      wallets: [safeWallet],
+    },
+    {
+      groupName: 'Other',
+      wallets: [ledgerWallet, argentWallet, injectedWallet],
+    },
+  ],
   transports: {
     [bscTestnetOverride.id]: http(testnetRpcUrl),
     [bscMainnetOverride.id]: http(mainnetRpcUrl),

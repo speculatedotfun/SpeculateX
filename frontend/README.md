@@ -117,6 +117,8 @@ Copy `.env.testnet` to `.env.local`:
 cp .env.testnet .env.local
 ```
 
+> If you don't have these files locally, use `ENV_MAINNET.example` / `ENV_TESTNET.example` as templates and create `.env.local`.
+
 #### For Production (Vercel)
 Use `.env.production` - contains **ALL** variables for both networks.
 
