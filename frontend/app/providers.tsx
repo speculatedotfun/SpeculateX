@@ -1,25 +1,15 @@
 'use client';
 
-import { Suspense } from 'react';
+import { createAppKit, useAppKit, useAppKitTheme } from '@reown/appkit/react';
 import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { config } from '@/lib/wagmi';
+import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
+import { bsc, bscTestnet, type AppKitNetwork } from '@reown/appkit/networks';
 import { ToastHost } from '@/components/ui/toast';
 import { ThemeProvider, useTheme } from '@/lib/theme';
-import {
-  RainbowKitProvider,
-  darkTheme,
-  lightTheme,
-  type Theme,
-} from '@rainbow-me/rainbowkit';
-
-// Dynamic import to avoid chunking issues
-import dynamic from 'next/dynamic';
 import { useReferral } from '@/lib/hooks/useReferral';
 import { UsernameGuard } from '@/components/UsernameGuard';
-
-// Import styles
-import '@rainbow-me/rainbowkit/styles.css';
+import { useEffect, useState } from 'react';
 
 // Helper component to run the hook inside the context
 function ReferralListener() {
@@ -27,56 +17,11 @@ function ReferralListener() {
   return null;
 }
 
-// Custom RainbowKit theme matching SpeculateX design
-const customLightTheme: Theme = lightTheme({
-  accentColor: '#14B8A6', // Teal primary color
-  accentColorForeground: 'white',
-  borderRadius: 'large',
-  fontStack: 'system',
-  overlayBlur: 'small',
-});
-
-const customDarkTheme: Theme = darkTheme({
-  accentColor: '#14B8A6', // Teal primary color
-  accentColorForeground: 'white',
-  borderRadius: 'large',
-  fontStack: 'system',
-  overlayBlur: 'small',
-});
-
-// Override specific colors to match site design
-customLightTheme.colors.modalBackground = '#ffffff';
-customLightTheme.colors.modalBorder = 'rgba(0, 0, 0, 0.06)';
-customLightTheme.colors.profileForeground = '#f8fafc';
-customLightTheme.colors.closeButtonBackground = 'rgba(0, 0, 0, 0.06)';
-customLightTheme.colors.actionButtonBorder = 'rgba(20, 184, 166, 0.2)';
-customLightTheme.colors.actionButtonSecondaryBackground = 'rgba(20, 184, 166, 0.1)';
-
-customDarkTheme.colors.modalBackground = '#0f172a'; // dark:bg-[#0f172a]
-customDarkTheme.colors.modalBorder = 'rgba(255, 255, 255, 0.06)';
-customDarkTheme.colors.profileForeground = '#1e293b';
-customDarkTheme.colors.closeButtonBackground = 'rgba(255, 255, 255, 0.06)';
-customDarkTheme.colors.actionButtonBorder = 'rgba(20, 184, 166, 0.3)';
-customDarkTheme.colors.actionButtonSecondaryBackground = 'rgba(20, 184, 166, 0.15)';
-
-// Themed RainbowKit wrapper that syncs with site theme
-function ThemedRainbowKit({ children }: { children: React.ReactNode }) {
-  const { theme } = useTheme();
-  const rainbowTheme = theme === 'dark' ? customDarkTheme : customLightTheme;
-
-  return (
-    <RainbowKitProvider theme={rainbowTheme} coolMode>
-      {children}
-    </RainbowKitProvider>
-  );
-}
-
-// Singleton QueryClient to prevent multiple instances
+// 0. Setup queryClient - singleton pattern
 let globalQueryClient: QueryClient | undefined;
 
 function getQueryClient() {
   if (typeof window === 'undefined') {
-    // Server: always make a new query client
     return new QueryClient({
       defaultOptions: {
         queries: {
@@ -85,7 +30,6 @@ function getQueryClient() {
       },
     });
   } else {
-    // Browser: make a new query client if we don't already have one
     if (!globalQueryClient) {
       globalQueryClient = new QueryClient({
         defaultOptions: {
@@ -113,27 +57,130 @@ function getQueryClient() {
   }
 }
 
+// 1. Get projectId from environment
+const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo-project-id-for-development';
+
+if (!process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ||
+  process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID === 'your_project_id_here' ||
+  process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID === 'demo-project-id-for-development') {
+  if (typeof window !== 'undefined') {
+    console.warn(
+      '⚠️ NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is not set or invalid!\n' +
+      'Wallet connections may not work properly.\n' +
+      'Get your Project ID from: https://cloud.reown.com/\n' +
+      'Then add it to your .env.local file as: NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id'
+    );
+  }
+}
+
+// 2. Create a metadata object
+const metadata = {
+  name: 'SpeculateX',
+  description: 'Trade on real-world events with infinite liquidity using AMM bonding curves.',
+  url: typeof window !== 'undefined' ? window.location.origin : 'https://speculatex.app',
+  icons: ['/logo.svg'],
+};
+
+// 3. Set the networks - BSC Mainnet and Testnet
+const networks: [AppKitNetwork, ...AppKitNetwork[]] = [bsc, bscTestnet];
+
+// 4. Create Wagmi Adapter
+const wagmiAdapter = new WagmiAdapter({
+  networks,
+  projectId,
+  ssr: true,
+});
+
+// 5. Create AppKit modal - only run on client side
+let appKitInitialized = false;
+
+// Get initial theme from localStorage or system preference
+function getInitialTheme(): 'light' | 'dark' {
+  if (typeof window === 'undefined') return 'dark';
+  try {
+    const stored = localStorage.getItem('theme');
+    if (stored === 'light' || stored === 'dark') return stored;
+  } catch {
+    // Ignore localStorage errors
+  }
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+if (typeof window !== 'undefined' && !appKitInitialized) {
+  createAppKit({
+    adapters: [wagmiAdapter],
+    networks,
+    projectId,
+    metadata,
+    features: {
+      analytics: true,
+      email: false, // Disable email login for now
+      socials: false, // Disable social logins for now
+    },
+    // Featured wallets shown prominently at the top of the modal
+    // Wallet IDs from: https://explorer.walletconnect.com/
+    featuredWalletIds: [
+      'c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96', // MetaMask
+      '4622a2b2d6af1c9844944291e5e7351a6aa24cd7b23099efac1b2fd875da31a0', // Trust Wallet
+      '1ae92b26df02f0abca6304df07debccd18262fdf5fe82daa81593582dac9a369', // Rainbow
+      'c03dfee351b6fcc421b4494ea33b9d4b92a984f87aa76d1663bb28705e95034a', // OKX Wallet
+      '18388be9ac2d02726dbac9777c96efaac06d744b2f6d580fccdd4127a6d01fd1', // Rabby
+      '0b415a746fb9ee99cce155c2ceca0c6f6061b1dbca2d722b3ba16381d0562150', // SafePal
+    ],
+    // Don't include certain wallets in "All Wallets"
+    excludeWalletIds: [],
+    themeMode: getInitialTheme(),
+    themeVariables: {
+      '--w3m-accent': '#14B8A6', // Teal primary color
+      '--w3m-color-mix': '#ffffff', // White mix for light mode, removes blue tint
+      '--w3m-color-mix-strength': 0, // No color mixing
+      '--w3m-border-radius-master': '12px',
+      '--w3m-font-family': 'inherit',
+    },
+  });
+  appKitInitialized = true;
+}
+
+// Theme sync component - syncs site theme with AppKit modal
+function AppKitThemeSync() {
+  const { theme } = useTheme();
+  const { setThemeMode } = useAppKitTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    // Sync AppKit theme with site theme
+    setThemeMode(theme);
+  }, [theme, mounted, setThemeMode]);
+
+  return null;
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
 
   return (
     <ThemeProvider>
-      <WagmiProvider config={config}>
+      <WagmiProvider config={wagmiAdapter.wagmiConfig}>
         <QueryClientProvider client={queryClient}>
-          <ThemedRainbowKit>
-            <ToastHost>
-              <Suspense fallback={null}>
-                <ReferralListener />
-              </Suspense>
-              <UsernameGuard>
-                <div className="min-h-screen flex flex-col">
-                  {children}
-                </div>
-              </UsernameGuard>
-            </ToastHost>
-          </ThemedRainbowKit>
+          <AppKitThemeSync />
+          <ToastHost>
+            <ReferralListener />
+            <UsernameGuard>
+              <div className="min-h-screen flex flex-col">
+                {children}
+              </div>
+            </UsernameGuard>
+          </ToastHost>
         </QueryClientProvider>
       </WagmiProvider>
     </ThemeProvider>
   );
 }
+
+// Export the wagmi config for use elsewhere
+export { wagmiAdapter };
