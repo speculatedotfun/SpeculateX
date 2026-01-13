@@ -13,7 +13,7 @@ function getClientForCurrentNetwork() {
     return getPublicClient(config, { chainId: chainId as 56 | 97 });
 }
 
-// Check if an address is an admin (SpeculateCore uses AccessControl)
+// Check if an address is an admin (has DEFAULT_ADMIN_ROLE or MARKET_CREATOR_ROLE)
 export async function isAdmin(address: `0x${string}`): Promise<boolean> {
     if (!address) return false;
 
@@ -33,14 +33,25 @@ export async function isAdmin(address: `0x${string}`): Promise<boolean> {
     try {
         const publicClient = getClientForCurrentNetwork();
         const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000';
-        const hasAdminRole = await publicClient.readContract({
-            address: addresses.core,
-            abi: getCoreAbi(getCurrentNetwork()),
-            functionName: 'hasRole',
-            args: [DEFAULT_ADMIN_ROLE as `0x${string}`, address],
-        }) as boolean;
+        const MARKET_CREATOR_ROLE = keccak256(stringToBytes('MARKET_CREATOR_ROLE'));
 
-        if (hasAdminRole) {
+        // Check both DEFAULT_ADMIN_ROLE and MARKET_CREATOR_ROLE
+        const [hasAdminRole, hasMarketCreatorRole] = await Promise.all([
+            publicClient.readContract({
+                address: addresses.core,
+                abi: getCoreAbi(getCurrentNetwork()),
+                functionName: 'hasRole',
+                args: [DEFAULT_ADMIN_ROLE as `0x${string}`, address],
+            }) as Promise<boolean>,
+            publicClient.readContract({
+                address: addresses.core,
+                abi: getCoreAbi(getCurrentNetwork()),
+                functionName: 'hasRole',
+                args: [MARKET_CREATOR_ROLE as `0x${string}`, address],
+            }) as Promise<boolean>
+        ]);
+
+        if (hasAdminRole || hasMarketCreatorRole) {
             adminRoleCache.set(normalized, true);
             return true;
         }

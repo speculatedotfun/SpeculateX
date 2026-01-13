@@ -5,6 +5,7 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadCont
 import { getAddresses } from '@/lib/contracts';
 import { usdcAbi } from '@/lib/abis';
 import { isAdmin as checkIsAdmin } from '@/lib/accessControl';
+import { keccak256, stringToBytes } from 'viem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
@@ -18,9 +19,15 @@ export default function USDCMinterManager() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoadingAdmin, setIsLoadingAdmin] = useState(true);
   const [validAddress, setValidAddress] = useState(false);
+  const [isUsdcAdmin, setIsUsdcAdmin] = useState(false);
+  const [isCheckingUsdcAdmin, setIsCheckingUsdcAdmin] = useState(true);
 
   // Get addresses for current network
   const addresses = getAddresses();
+
+  // Role constants
+  const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`;
+  const MINTER_ROLE = keccak256(stringToBytes('MINTER_ROLE'));
 
   // Real-time address validation
   useEffect(() => {
@@ -41,6 +48,20 @@ export default function USDCMinterManager() {
     };
     checkAdminStatus();
   }, [address]);
+
+  // Check if connected address has DEFAULT_ADMIN_ROLE on USDC contract
+  const { data: hasUsdcAdminRole } = useReadContract({
+    address: addresses.usdc,
+    abi: usdcAbi,
+    functionName: 'hasRole',
+    args: [DEFAULT_ADMIN_ROLE, address as `0x${string}`],
+    query: { enabled: !!address },
+  });
+
+  useEffect(() => {
+    setIsUsdcAdmin(Boolean(hasUsdcAdminRole));
+    setIsCheckingUsdcAdmin(false);
+  }, [hasUsdcAdminRole]);
 
   const { data: addHash, writeContract: addMinter, isPending: isAdding } = useWriteContract();
   const { isLoading: isConfirmingAdd, isSuccess: isAddSuccess } = useWaitForTransactionReceipt({ hash: addHash });
@@ -70,8 +91,8 @@ export default function USDCMinterManager() {
       await addMinter({
         address: addresses.usdc,
         abi: usdcAbi,
-        functionName: 'addMinter',
-        args: [newMinterAddress as `0x${string}`],
+        functionName: 'grantRole',
+        args: [MINTER_ROLE as `0x${string}`, newMinterAddress as `0x${string}`],
       });
     } catch (error: any) {
       pushToast({ title: 'Error', description: error?.message || 'Failed to add minter', type: 'error' });
@@ -84,8 +105,8 @@ export default function USDCMinterManager() {
       await removeMinter({
         address: addresses.usdc,
         abi: usdcAbi,
-        functionName: 'removeMinter',
-        args: [minterAddress as `0x${string}`],
+        functionName: 'revokeRole',
+        args: [MINTER_ROLE as `0x${string}`, minterAddress as `0x${string}`],
       });
     } catch (error: any) {
       pushToast({ title: 'Error', description: error?.message || 'Failed to remove minter', type: 'error' });
@@ -96,8 +117,8 @@ export default function USDCMinterManager() {
     const { data: isMinterData, isLoading: isCheckingMinter } = useReadContract({
       address: addresses.usdc,
       abi: usdcAbi,
-      functionName: 'minters',
-      args: [addressToCheck as `0x${string}`],
+      functionName: 'hasRole',
+      args: [MINTER_ROLE as `0x${string}`, addressToCheck as `0x${string}`],
       query: { enabled: !!addressToCheck },
     });
 
@@ -131,7 +152,7 @@ export default function USDCMinterManager() {
     );
   };
 
-  if (isLoadingAdmin) {
+  if (isLoadingAdmin || isCheckingUsdcAdmin) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
@@ -140,6 +161,38 @@ export default function USDCMinterManager() {
   }
 
   if (!isAdmin) return null;
+
+  // Show warning if user is Core admin but not USDC admin
+  if (!isUsdcAdmin) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-sm font-bold text-amber-900 dark:text-amber-200 mb-2">
+                USDC Admin Access Required
+              </h3>
+              <p className="text-xs text-amber-800 dark:text-amber-300 mb-3">
+                You need <span className="font-mono font-bold">DEFAULT_ADMIN_ROLE</span> on the USDC contract to manage minting permissions.
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                Current Status: You have Core admin access, but not USDC admin access.
+              </p>
+              <div className="mt-3 p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                <p className="text-[10px] font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wider mb-1">
+                  USDC Contract Address
+                </p>
+                <p className="text-xs font-mono text-amber-800 dark:text-amber-300 break-all">
+                  {addresses.usdc}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

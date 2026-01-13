@@ -2,7 +2,7 @@ import { readContract, getPublicClient } from 'wagmi/actions';
 import { config } from './wagmi';
 import { getAddresses, getChainId, getCurrentNetwork, MAINNET_CHAIN_ID, TESTNET_CHAIN_ID } from './contracts';
 import { formatUnits, keccak256, stringToBytes, parseAbiItem } from 'viem';
-import { getCoreAbi } from './abis';
+import { getCoreAbi, usdcAbi } from './abis';
 import { MarketInfo, MarketState, MarketResolution } from './types';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -428,6 +428,7 @@ export async function getLpResidualPot(id: bigint): Promise<bigint> {
 // Role constants (keccak256 hashes)
 const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`;
 const MARKET_CREATOR_ROLE = keccak256(stringToBytes('MARKET_CREATOR_ROLE'));
+const MINTER_ROLE = keccak256(stringToBytes('MINTER_ROLE'));
 
 // Check if address is admin
 export async function isAdmin(address: `0x${string}`): Promise<boolean> {
@@ -465,6 +466,26 @@ export async function canCreateMarkets(address: `0x${string}`): Promise<boolean>
     return Boolean(result);
   } catch (error) {
     console.error('[canCreateMarkets] Error checking market creator role:', error);
+    return false;
+  }
+}
+
+// Check if address has minting role (on USDC contract)
+export async function canMint(address: `0x${string}`): Promise<boolean> {
+  if (!address || address === ZERO_ADDRESS) return false;
+
+  try {
+    const addresses = getAddresses();
+    const publicClient = getClientForCurrentNetwork();
+    const result = await publicClient.readContract({
+      address: addresses.usdc,
+      abi: usdcAbi,
+      functionName: 'hasRole',
+      args: [MINTER_ROLE, address],
+    });
+    return Boolean(result);
+  } catch (error) {
+    console.error('[canMint] Error checking minting role:', error);
     return false;
   }
 }

@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usePublicClient, useAccount } from 'wagmi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Users, Wallet, Database, RefreshCw, ExternalLink, Crown, Zap, Check, X, Plus } from 'lucide-react';
+import { Shield, Users, Wallet, Database, RefreshCw, ExternalLink, Crown, Zap, Check, X, Plus, Coins } from 'lucide-react';
 import { getAddresses, getCurrentNetwork } from '@/lib/contracts';
-import { getCoreAbi, treasuryAbi } from '@/lib/abis';
+import { getCoreAbi, treasuryAbi, usdcAbi } from '@/lib/abis';
 import { keccak256, stringToBytes, isAddress } from 'viem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ interface RoleHolder {
         marketCreator: boolean;
         treasuryWithdrawer: boolean;
         treasuryAdmin: boolean;
+        minting: boolean;
     };
     isYou: boolean;
 }
@@ -55,6 +56,14 @@ const ROLE_DEFINITIONS = {
         bgColor: 'bg-purple-100 dark:bg-purple-900/30',
         badgeColor: 'bg-purple-500',
     },
+    minting: {
+        name: 'MINTER_ROLE',
+        description: 'Mint USDC tokens',
+        icon: Coins,
+        color: 'text-amber-500',
+        bgColor: 'bg-amber-100 dark:bg-amber-900/30',
+        badgeColor: 'bg-amber-500',
+    },
 } as const;
 
 export default function RoleVisualization() {
@@ -70,6 +79,7 @@ export default function RoleVisualization() {
     const MARKET_CREATOR_ROLE = keccak256(stringToBytes('MARKET_CREATOR_ROLE'));
     const TREASURY_WITHDRAWER_ROLE = keccak256(stringToBytes('WITHDRAWER_ROLE'));
     const TREASURY_ADMIN_ROLE = keccak256(stringToBytes('ADMIN_ROLE'));
+    const MINTER_ROLE = keccak256(stringToBytes('MINTER_ROLE'));
 
     // Check roles for a specific address
     const checkRolesForAddress = useCallback(async (addr: string): Promise<RoleHolder | null> => {
@@ -79,7 +89,11 @@ export default function RoleVisualization() {
             const addresses = getAddresses();
             const coreAbi = getCoreAbi(getCurrentNetwork());
 
-            const [hasDefaultAdmin, hasMarketCreator, hasTreasuryWithdrawer, hasTreasuryAdmin] = await Promise.all([
+            console.log('[RoleVisualization] Checking roles for address:', addr);
+            console.log('[RoleVisualization] USDC address:', addresses.usdc);
+            console.log('[RoleVisualization] MINTER_ROLE hash:', MINTER_ROLE);
+
+            const [hasDefaultAdmin, hasMarketCreator, hasTreasuryWithdrawer, hasTreasuryAdmin, hasMinting] = await Promise.all([
                 publicClient.readContract({
                     address: addresses.core,
                     abi: coreAbi,
@@ -108,7 +122,22 @@ export default function RoleVisualization() {
                         args: [TREASURY_ADMIN_ROLE, addr as `0x${string}`],
                     }).catch(() => false) as Promise<boolean>
                     : Promise.resolve(false),
+                publicClient.readContract({
+                    address: addresses.usdc,
+                    abi: usdcAbi,
+                    functionName: 'hasRole',
+                    args: [MINTER_ROLE as `0x${string}`, addr as `0x${string}`],
+                }).catch(() => false) as Promise<boolean>,
             ]);
+
+            console.log('[RoleVisualization] Role check results:', {
+                address: addr,
+                hasDefaultAdmin,
+                hasMarketCreator,
+                hasTreasuryWithdrawer,
+                hasTreasuryAdmin,
+                hasMinting
+            });
 
             return {
                 address: addr,
@@ -117,6 +146,7 @@ export default function RoleVisualization() {
                     marketCreator: Boolean(hasMarketCreator),
                     treasuryWithdrawer: Boolean(hasTreasuryWithdrawer),
                     treasuryAdmin: Boolean(hasTreasuryAdmin),
+                    minting: Boolean(hasMinting),
                 },
                 isYou: addr.toLowerCase() === connectedAddress?.toLowerCase(),
             };
@@ -124,7 +154,7 @@ export default function RoleVisualization() {
             console.error(`Error checking roles for ${addr}:`, e);
             return null;
         }
-    }, [publicClient, connectedAddress, DEFAULT_ADMIN_ROLE, MARKET_CREATOR_ROLE, TREASURY_WITHDRAWER_ROLE, TREASURY_ADMIN_ROLE]);
+    }, [publicClient, connectedAddress, DEFAULT_ADMIN_ROLE, MARKET_CREATOR_ROLE, TREASURY_WITHDRAWER_ROLE, TREASURY_ADMIN_ROLE, MINTER_ROLE]);
 
     const loadAllRoleHolders = useCallback(async () => {
         if (!publicClient) return;
@@ -292,8 +322,8 @@ export default function RoleVisualization() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: idx * 0.05 }}
                                 className={`bg-white dark:bg-gray-800/50 border rounded-xl p-3 ${holder.isYou
-                                        ? 'border-purple-300 dark:border-purple-700 ring-2 ring-purple-200 dark:ring-purple-800'
-                                        : 'border-gray-200 dark:border-white/5'
+                                    ? 'border-purple-300 dark:border-purple-700 ring-2 ring-purple-200 dark:ring-purple-800'
+                                    : 'border-gray-200 dark:border-white/5'
                                     }`}
                             >
                                 <div className="flex items-center justify-between mb-2">
@@ -330,8 +360,8 @@ export default function RoleVisualization() {
                                             <div
                                                 key={key}
                                                 className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-opacity ${hasRole
-                                                        ? `${def.bgColor} ${def.color}`
-                                                        : 'bg-gray-100 dark:bg-gray-700/50 text-gray-400 opacity-50'
+                                                    ? `${def.bgColor} ${def.color}`
+                                                    : 'bg-gray-100 dark:bg-gray-700/50 text-gray-400 opacity-50'
                                                     }`}
                                             >
                                                 <Icon className="w-3 h-3" />
