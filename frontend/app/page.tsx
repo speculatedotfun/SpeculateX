@@ -7,7 +7,6 @@ import '@/lib/bigint-serializer';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
-import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '@/components/Header';
 import { getMarketCount } from '@/lib/hooks';
@@ -31,7 +30,6 @@ const STATUS_FILTERS = ['Active', 'Expired', 'Resolved'] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 export default function MarketsPage() {
-  const searchParams = useSearchParams();
   const { address } = useAccount();
 
   // Optimized Data Fetching
@@ -89,7 +87,6 @@ export default function MarketsPage() {
         if (activeStatusTab === 'Active' && market.status !== 'LIVE TRADING') return false;
         if (activeStatusTab === 'Expired' && market.status !== 'EXPIRED') return false;
         if (activeStatusTab === 'Resolved' && market.status !== 'RESOLVED') return false;
-        if (activeStatusTab === 'Cancelled' && market.status !== 'CANCELLED') return false;
       }
       return true;
     });
