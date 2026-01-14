@@ -74,6 +74,7 @@ export function useAdminRoles(): AdminRoles {
             try {
                 const addresses = getAddresses();
                 const coreAbi = getCoreAbi(getCurrentNetwork());
+                const chainId = getChainId(); // Use selected network's chain ID
 
                 // Check all roles in parallel
                 const [
@@ -90,6 +91,7 @@ export function useAdminRoles(): AdminRoles {
                         abi: coreAbi,
                         functionName: 'hasRole',
                         args: [DEFAULT_ADMIN_ROLE, address],
+                        chainId: chainId as 56 | 97,
                     }).catch(() => false) as Promise<boolean>,
 
                     // Core: MARKET_CREATOR_ROLE
@@ -98,6 +100,7 @@ export function useAdminRoles(): AdminRoles {
                         abi: coreAbi,
                         functionName: 'hasRole',
                         args: [MARKET_CREATOR_ROLE, address],
+                        chainId: chainId as 56 | 97,
                     }).catch(() => false) as Promise<boolean>,
 
                     // Treasury: WITHDRAWER_ROLE
@@ -106,6 +109,7 @@ export function useAdminRoles(): AdminRoles {
                         abi: treasuryAbi,
                         functionName: 'hasRole',
                         args: [TREASURY_WITHDRAWER_ROLE, address],
+                        chainId: chainId as 56 | 97,
                     }).catch(() => false) as Promise<boolean> : Promise.resolve(false),
 
                     // Treasury: ADMIN_ROLE
@@ -114,6 +118,7 @@ export function useAdminRoles(): AdminRoles {
                         abi: treasuryAbi,
                         functionName: 'hasRole',
                         args: [TREASURY_ADMIN_ROLE, address],
+                        chainId: chainId as 56 | 97,
                     }).catch(() => false) as Promise<boolean> : Promise.resolve(false),
 
                     // USDC: DEFAULT_ADMIN_ROLE
@@ -122,6 +127,7 @@ export function useAdminRoles(): AdminRoles {
                         abi: usdcAbi,
                         functionName: 'hasRole',
                         args: [DEFAULT_ADMIN_ROLE, address],
+                        chainId: chainId as 56 | 97,
                     }).catch(() => false) as Promise<boolean>,
 
                     // USDC: MINTER_ROLE
@@ -130,6 +136,7 @@ export function useAdminRoles(): AdminRoles {
                         abi: usdcAbi,
                         functionName: 'hasRole',
                         args: [MINTER_ROLE, address],
+                        chainId: chainId as 56 | 97,
                     }).catch(() => false) as Promise<boolean>,
                 ]);
 

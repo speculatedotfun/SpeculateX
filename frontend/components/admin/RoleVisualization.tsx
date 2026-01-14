@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { usePublicClient, useAccount } from 'wagmi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Users, Wallet, Database, RefreshCw, ExternalLink, Crown, Zap, Check, X, Plus, Coins } from 'lucide-react';
-import { getAddresses, getCurrentNetwork } from '@/lib/contracts';
+import { getAddresses, getCurrentNetwork, getChainId } from '@/lib/contracts';
 import { getCoreAbi, treasuryAbi, usdcAbi } from '@/lib/abis';
 import { keccak256, stringToBytes, isAddress } from 'viem';
 import { Button } from '@/components/ui/button';
@@ -88,10 +88,9 @@ export default function RoleVisualization() {
         try {
             const addresses = getAddresses();
             const coreAbi = getCoreAbi(getCurrentNetwork());
+            const chainId = getChainId(); // Use selected network's chain ID
 
-            console.log('[RoleVisualization] Checking roles for address:', addr);
-            console.log('[RoleVisualization] USDC address:', addresses.usdc);
-            console.log('[RoleVisualization] MINTER_ROLE hash:', MINTER_ROLE);
+            console.log('[RoleVisualization] Checking roles for address:', addr, 'on chain:', chainId);
 
             const [hasDefaultAdmin, hasMarketCreator, hasTreasuryWithdrawer, hasTreasuryAdmin, hasMinting] = await Promise.all([
                 publicClient.readContract({
@@ -99,12 +98,14 @@ export default function RoleVisualization() {
                     abi: coreAbi,
                     functionName: 'hasRole',
                     args: [DEFAULT_ADMIN_ROLE as `0x${string}`, addr as `0x${string}`],
+                    chainId: chainId as 56 | 97,
                 }).catch(() => false) as Promise<boolean>,
                 publicClient.readContract({
                     address: addresses.core,
                     abi: coreAbi,
                     functionName: 'hasRole',
                     args: [MARKET_CREATOR_ROLE as `0x${string}`, addr as `0x${string}`],
+                    chainId: chainId as 56 | 97,
                 }).catch(() => false) as Promise<boolean>,
                 addresses.treasury
                     ? publicClient.readContract({
@@ -112,6 +113,7 @@ export default function RoleVisualization() {
                         abi: treasuryAbi,
                         functionName: 'hasRole',
                         args: [TREASURY_WITHDRAWER_ROLE, addr as `0x${string}`],
+                        chainId: chainId as 56 | 97,
                     }).catch(() => false) as Promise<boolean>
                     : Promise.resolve(false),
                 addresses.treasury
@@ -120,6 +122,7 @@ export default function RoleVisualization() {
                         abi: treasuryAbi,
                         functionName: 'hasRole',
                         args: [TREASURY_ADMIN_ROLE, addr as `0x${string}`],
+                        chainId: chainId as 56 | 97,
                     }).catch(() => false) as Promise<boolean>
                     : Promise.resolve(false),
                 publicClient.readContract({
@@ -127,6 +130,7 @@ export default function RoleVisualization() {
                     abi: usdcAbi,
                     functionName: 'hasRole',
                     args: [MINTER_ROLE as `0x${string}`, addr as `0x${string}`],
+                    chainId: chainId as 56 | 97,
                 }).catch(() => false) as Promise<boolean>,
             ]);
 
