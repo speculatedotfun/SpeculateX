@@ -26,7 +26,7 @@ import { ReferencePriceChart } from '@/components/market/ReferencePriceChart';
 
 // Lib
 import { getMarket, getSpotPriceYesE6, getMarketResolution, getMarketState } from '@/lib/hooks';
-import { addresses } from '@/lib/contracts';
+import { useAddresses } from '@/lib/contracts';
 import { positionTokenAbi, coreAbi } from '@/lib/abis';
 import { formatPriceInCents, getAssetLogo } from '@/lib/marketUtils';
 import type { PricePoint } from '@/lib/priceHistory/types';
@@ -188,6 +188,7 @@ function MarketDetailSkeleton() {
 }
 
 export default function MarketDetailPage() {
+  const addresses = useAddresses();
   const params = useParams();
   const searchParams = useSearchParams();
   const publicClient = usePublicClient();
@@ -671,7 +672,7 @@ export default function MarketDetailPage() {
                       </div>
                     </div>
                   ) : (
-                    <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{assetInfo.name || assetInfo.symbol}</span>
+                    <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{assetInfo.symbol || assetInfo.baseToken || 'Asset'}</span>
                   )}
                 </div>
 
@@ -866,7 +867,7 @@ export default function MarketDetailPage() {
                             <div className="p-4 bg-white/60 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-800 mb-4">
                               <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
                                 {resolution?.oracleType === 0 && 'This market is resolved manually by the platform administrators.'}
-                                {resolution?.oracleType === 1 && `This market resolves automatically using Chainlink oracle data at the ${market.question.includes('BTC') ? 'BTC/USD' : 'target'} price feed.`}
+                                {resolution?.oracleType === 1 && `This market resolves automatically using Chainlink oracle data at the ${(market.question ?? '').includes('BTC') ? 'BTC/USD' : 'target'} price feed.`}
                                 {!resolution && 'Standard resolution rules apply.'}
                               </p>
                             </div>

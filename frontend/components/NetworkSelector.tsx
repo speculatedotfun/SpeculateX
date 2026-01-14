@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { getNetwork, setNetwork, type Network } from '@/lib/contracts';
+import { setNetwork, type Network } from '@/lib/contracts';
+import { useSelectedNetwork } from '@/lib/networkStore';
 import { useAccount, useSwitchChain } from 'wagmi';
 import { MAINNET_CHAIN_ID, TESTNET_CHAIN_ID } from '@/lib/contracts';
 import { Check, ChevronDown, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function NetworkSelector() {
+  const selectedNetwork = useSelectedNetwork();
   const [currentNetwork, setCurrentNetwork] = useState<Network>('testnet');
   const [isOpen, setIsOpen] = useState(false);
   const { chain } = useAccount();
@@ -15,8 +17,8 @@ export default function NetworkSelector() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setCurrentNetwork(getNetwork());
-  }, []);
+    setCurrentNetwork(selectedNetwork);
+  }, [selectedNetwork]);
 
   // Close dropdown on escape key or click outside
   useEffect(() => {

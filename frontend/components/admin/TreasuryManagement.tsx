@@ -1,26 +1,27 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useAccount, useReadContract, useWriteContract, usePublicClient, useChainId } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, usePublicClient, useChainId, useSwitchChain } from 'wagmi';
 import { formatUnits, parseUnits, decodeFunctionData } from 'viem';
 import { Shield, Wallet, Download, Upload, Settings, Clock, CheckCircle2, XCircle, AlertTriangle, Loader2, Link as LinkIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
-import { getAddresses, getCurrentNetwork, getChainId } from '@/lib/contracts';
+import { useAddresses, getCurrentNetwork, getChainId } from '@/lib/contracts';
 import { treasuryAbi, usdcAbi } from '@/lib/abis';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function TreasuryManagement() {
     const { address } = useAccount();
     const walletChainId = useChainId();
-    const publicClient = usePublicClient();
+    const selectedChainId = getChainId();
+    const publicClient = usePublicClient({ chainId: selectedChainId });
     const { pushToast } = useToast();
     const { writeContractAsync } = useWriteContract();
+    const { switchChain } = useSwitchChain();
 
-    const addresses = getAddresses();
+    const addresses = useAddresses();
     const network = getCurrentNetwork();
-    const selectedChainId = getChainId();
     const isNetworkMismatch = walletChainId !== selectedChainId;
 
     // State
@@ -33,14 +34,14 @@ export function TreasuryManagement() {
     const [currentTime, setCurrentTime] = useState(BigInt(Math.floor(Date.now() / 1000)));
 
     // Contract Reads - explicitly use selectedChainId to read from the correct network
-    const { data: dailyLimit, refetch: refetchLimit } = useReadContract({
+    const { data: dailyLimit, refetch: refetchLimit, error: dailyLimitError } = useReadContract({
         address: addresses.treasury,
         abi: treasuryAbi,
         functionName: 'dailyWithdrawLimit',
         chainId: selectedChainId,
     });
 
-    const { data: withdrawnToday, refetch: refetchWithdrawn } = useReadContract({
+    const { data: withdrawnToday, refetch: refetchWithdrawn, error: withdrawnTodayError } = useReadContract({
         address: addresses.treasury,
         abi: treasuryAbi,
         functionName: 'withdrawnTodayByToken',
@@ -48,7 +49,7 @@ export function TreasuryManagement() {
         chainId: selectedChainId,
     });
 
-    const { data: treasuryBalance, refetch: refetchBalance } = useReadContract({
+    const { data: treasuryBalance, refetch: refetchBalance, error: treasuryBalanceError } = useReadContract({
         address: addresses.usdc,
         abi: usdcAbi,
         functionName: 'balanceOf',
@@ -266,22 +267,40 @@ export function TreasuryManagement() {
     };
 
     const formatUSDC = (val: any) => {
-        if (!val) return '0.00';
+        // Important: don't treat 0n as "no data"
+        if (val === undefined || val === null) return '—';
         return Number(formatUnits(val as bigint, 6)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
     return (
         <div className="space-y-6">
-            {/* Network Mismatch Warning */}
-            {isNetworkMismatch && (
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center gap-3">
+            {/* Network / RPC Warning */}
+            {(isNetworkMismatch || dailyLimitError || withdrawnTodayError || treasuryBalanceError) && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-start gap-3">
                     <AlertTriangle className="w-6 h-6 text-amber-500 flex-shrink-0" />
-                    <div>
-                        <p className="font-bold text-amber-600 dark:text-amber-400">Network Mismatch</p>
-                        <p className="text-sm text-amber-600/80 dark:text-amber-400/80">
-                            Your wallet is on chain {walletChainId} but Admin is set to {selectedChainId === 56 ? 'BSC Mainnet (56)' : 'BSC Testnet (97)'}.
-                            Please switch your wallet network to perform transactions.
+                    <div className="flex-1">
+                        <p className="font-bold text-amber-600 dark:text-amber-400">
+                            {isNetworkMismatch ? 'Network Mismatch' : 'RPC Read Failed'}
                         </p>
+                        <p className="text-sm text-amber-600/80 dark:text-amber-400/80">
+                            {isNetworkMismatch ? (
+                                <>Your wallet is on chain {walletChainId} but Admin is set to {selectedChainId === 56 ? 'BSC Mainnet (56)' : 'BSC Testnet (97)'}. Switch your wallet network to see correct data and sign transactions.</>
+                            ) : (
+                                <>Could not read treasury data. This usually means the RPC is rate-limited or misconfigured.</>
+                            )}
+                        </p>
+
+                        {isNetworkMismatch && switchChain && (
+                            <div className="mt-3">
+                                <Button
+                                    type="button"
+                                    onClick={() => switchChain({ chainId: selectedChainId })}
+                                    className="h-9 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                                >
+                                    Switch wallet network
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

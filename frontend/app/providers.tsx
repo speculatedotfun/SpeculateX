@@ -10,6 +10,7 @@ import { ThemeProvider, useTheme } from '@/lib/theme';
 import { useReferral } from '@/lib/hooks/useReferral';
 import { UsernameGuard } from '@/components/UsernameGuard';
 import { useEffect, useState } from 'react';
+import { NetworkSync } from '@/components/NetworkSync';
 
 // Client-only component that uses the referral hook
 function ReferralListenerClient() {
@@ -195,6 +196,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <WagmiProvider config={wagmiAdapter.wagmiConfig}>
         <QueryClientProvider client={queryClient}>
           <AppKitThemeSync />
+          <NetworkSync />
           <ToastHost>
             <ReferralListener />
             <UsernameGuard>

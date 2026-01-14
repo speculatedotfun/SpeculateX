@@ -7,6 +7,10 @@ import { getChainId } from './contracts';
 
 const adminRoleCache = new Map<string, boolean>();
 
+export function clearAdminRoleCache() {
+    adminRoleCache.clear();
+}
+
 // Helper to get public client for current network (matches hooks.ts usage)
 function getClientForCurrentNetwork() {
     const chainId = getChainId();
@@ -18,15 +22,17 @@ export async function isAdmin(address: `0x${string}`): Promise<boolean> {
     if (!address) return false;
 
     const normalized = address.toLowerCase();
+    const chainId = getChainId();
+    const cacheKey = `${chainId}:${normalized}`;
 
-    if (adminRoleCache.has(normalized)) {
-        return adminRoleCache.get(normalized)!;
+    if (adminRoleCache.has(cacheKey)) {
+        return adminRoleCache.get(cacheKey)!;
     }
 
     // Check against configured admin address first (fast path)
     const addresses = getAddresses();
     if (addresses.admin && normalized === addresses.admin.toLowerCase()) {
-        adminRoleCache.set(normalized, true);
+        adminRoleCache.set(cacheKey, true);
         return true;
     }
 
@@ -52,7 +58,7 @@ export async function isAdmin(address: `0x${string}`): Promise<boolean> {
         ]);
 
         if (hasAdminRole || hasMarketCreatorRole) {
-            adminRoleCache.set(normalized, true);
+            adminRoleCache.set(cacheKey, true);
             return true;
         }
     } catch (error) {
@@ -62,7 +68,7 @@ export async function isAdmin(address: `0x${string}`): Promise<boolean> {
         }
     }
 
-    adminRoleCache.set(normalized, false);
+    adminRoleCache.set(cacheKey, false);
     return false;
 }
 

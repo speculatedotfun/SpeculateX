@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAccount, useWriteContract, usePublicClient } from 'wagmi';
+import { useAccount, useWriteContract, usePublicClient, useChainId } from 'wagmi';
 import { getAddresses, getCurrentNetwork, getChainId } from '@/lib/contracts';
 import { getCoreAbi, treasuryAbi } from '@/lib/abis';
 import { isAdmin as checkIsAdmin } from '@/lib/accessControl';
@@ -76,6 +76,7 @@ const saveCache = (ops: ScheduledOp[], block: bigint) => {
 
 export function useAdminOperations() {
     const { address } = useAccount();
+    const chainId = useChainId();
     const publicClient = usePublicClient();
     const { pushToast } = useToast();
     const { writeContractAsync } = useWriteContract();
@@ -94,8 +95,10 @@ export function useAdminOperations() {
     useEffect(() => {
         if (address) {
             checkIsAdmin(address).then(setIsAdmin);
+        } else {
+            setIsAdmin(false);
         }
-    }, [address]);
+    }, [address, chainId]);
 
     // Check treasury roles
     useEffect(() => {

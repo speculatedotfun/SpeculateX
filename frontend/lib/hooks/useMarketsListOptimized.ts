@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchSubgraph } from '@/lib/subgraphClient';
 import { readContracts } from 'wagmi/actions';
 import { config } from '@/lib/wagmi';
-import { addresses } from '@/lib/contracts';
+import { useAddresses } from '@/lib/contracts';
 import { coreAbi } from '@/lib/abis';
 import { formatUnits } from 'viem';
 import type { MarketCardData } from '@/components/market/MarketCard';
@@ -17,6 +17,7 @@ function chunkArray<T>(array: T[], size: number): T[][] {
 }
 
 export function useMarketsListOptimized() {
+    const addresses = useAddresses();
     return useQuery({
         queryKey: ['marketsListOptimized'],
         queryFn: async () => {

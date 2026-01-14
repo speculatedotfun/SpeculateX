@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient, useChainId } from 'wagmi';
 import { getAddresses, getCurrentNetwork, getNetwork } from '@/lib/contracts';
 import { getCoreAbi, getChainlinkResolverAbi, treasuryAbi } from '@/lib/abis';
 import { isAdmin as checkIsAdmin } from '@/lib/accessControl';
@@ -17,6 +17,7 @@ const chainlinkResolverAbi = getChainlinkResolverAbi(getNetwork());
 
 export default function AdminManager() {
   const { address } = useAccount();
+  const walletChainId = useChainId();
   const publicClient = usePublicClient();
   const { pushToast } = useToast();
   const [newAdminAddress, setNewAdminAddress] = useState('');
@@ -95,8 +96,10 @@ export default function AdminManager() {
         setIsAdmin(result);
         setIsLoading(false);
       });
+    } else {
+      setIsAdmin(false);
     }
-  }, [address]);
+  }, [address, walletChainId]);
 
   // Check if user has DEFAULT_ADMIN_ROLE specifically (for permission management)
   useEffect(() => {

@@ -5,7 +5,7 @@ import { formatUnits } from 'viem';
 import { getMarketState, getSpotPriceYesE6, getMarket, getMarketCount, getMarketResolution } from '@/lib/hooks';
 import { readContracts } from 'wagmi/actions';
 import { config } from '@/lib/wagmi';
-import { addresses } from '@/lib/contracts';
+import { useAddresses } from '@/lib/contracts';
 import { positionTokenAbi, coreAbi } from '@/lib/abis';
 
 export interface PortfolioPosition {
@@ -44,6 +44,11 @@ export interface PortfolioRedemption {
   yesWins: boolean | null;
 }
 
+function useAddressesSnapshot() {
+  // Alias to make intent explicit inside hook usage
+  return useAddresses();
+}
+
 // Helper for chunking
 function chunkArray<T>(array: T[], size: number): T[][] {
   const result: T[][] = [];
@@ -55,6 +60,7 @@ function chunkArray<T>(array: T[], size: number): T[][] {
 
 export function useUserPortfolio() {
   const { address } = useAccount();
+  const addresses = useAddressesSnapshot();
   const userId = address?.toLowerCase();
 
   return useQuery({

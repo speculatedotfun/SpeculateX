@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useWriteContract, useReadContract } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
-import { addresses } from '@/lib/contracts';
+import { useAddresses } from '@/lib/contracts';
 import { coreAbi } from '@/lib/abis';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { Settings, RefreshCw, AlertTriangle, CheckCircle2, TrendingUp, TrendingD
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SensitivityManager() {
+  const addresses = useAddresses();
   const { pushToast } = useToast();
   const [val, setVal] = useState('');
   const [isValid, setIsValid] = useState(false);

@@ -1,3 +1,5 @@
+import { networkStore, useSelectedNetwork } from './networkStore';
+
 // Network configuration
 export type Network = 'mainnet' | 'testnet';
 
@@ -72,11 +74,25 @@ const TESTNET_ADDRESSES = {
   },
 };
 
-// Get current network from localStorage or default to testnet
+// Chain IDs
+export const MAINNET_CHAIN_ID = 56;
+export const TESTNET_CHAIN_ID = 97;
+
+// Helpers
+export function networkFromChainId(chainId: number | undefined | null): Network | null {
+  if (!chainId) return null;
+  if (chainId === MAINNET_CHAIN_ID) return 'mainnet';
+  if (chainId === TESTNET_CHAIN_ID) return 'testnet';
+  return null;
+}
+
+export function chainIdForNetwork(network: Network): number {
+  return network === 'mainnet' ? MAINNET_CHAIN_ID : TESTNET_CHAIN_ID;
+}
+
+// Get current network from storage or default to testnet
 export function getCurrentNetwork(): Network {
-  if (typeof window === 'undefined') return 'testnet';
-  const stored = localStorage.getItem('selectedNetwork') as Network | null;
-  return stored === 'mainnet' || stored === 'testnet' ? stored : 'testnet';
+  return networkStore.get();
 }
 
 // Get addresses for current network
@@ -93,23 +109,18 @@ export function isDiamondNetwork(network: Network): boolean {
 }
 
 // Export addresses as getter (for backward compatibility)
-// This will be reactive - components should use getAddresses() in hooks
+// NOTE: this is a module-level snapshot (non-reactive). Prefer `getAddresses()` or `useAddresses()`.
 export const addresses = getAddresses();
 
-// Re-export addresses getter for components that need reactive updates
+// Hook for reactive address updates (no page reload needed)
 export function useAddresses() {
-  if (typeof window === 'undefined') return addresses;
-  // This will be called on every render, so it will get the latest network
-  return getAddresses();
+  const network = useSelectedNetwork();
+  return network === 'mainnet' ? MAINNET_ADDRESSES : TESTNET_ADDRESSES;
 }
-
-// Chain IDs
-export const MAINNET_CHAIN_ID = 56;
-export const TESTNET_CHAIN_ID = 97;
 
 export function getChainId(): number {
   const network = getCurrentNetwork();
-  return network === 'mainnet' ? MAINNET_CHAIN_ID : TESTNET_CHAIN_ID;
+  return chainIdForNetwork(network);
 }
 
 export const chainId = getChainId();
@@ -125,10 +136,9 @@ export function getNetwork(): Network {
   return getCurrentNetwork();
 }
 
-export function setNetwork(network: Network) {
+function clearClientCachesForNetworkChange() {
   if (typeof window === 'undefined') return;
-  localStorage.setItem('selectedNetwork', network);
-  // Clear cache when switching networks
+
   const keysToRemove: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
@@ -153,19 +163,28 @@ export function setNetwork(network: Network) {
   }
   keysToRemove.forEach(key => localStorage.removeItem(key));
 
-  // Clear IndexedDB
   if ('indexedDB' in window) {
     indexedDB.deleteDatabase('SpeculateCache');
   }
 
-  // Reload page to apply changes
-  window.location.reload();
+  try {
+    sessionStorage.setItem('clearReactQueryCache', 'true');
+  } catch {
+    // ignore
+  }
+}
+
+export function setNetwork(network: Network) {
+  if (typeof window === 'undefined') return;
+  const prev = getCurrentNetwork();
+  networkStore.set(network);
+  if (prev !== network) clearClientCachesForNetworkChange();
 }
 
 // Clear cache if Core address changed (runs once on module load in browser)
 if (typeof window !== 'undefined') {
   const storedCoreAddress = localStorage.getItem('lastCoreAddress');
-  const currentCoreAddress = addresses.core.toLowerCase();
+  const currentCoreAddress = getAddresses().core.toLowerCase();
 
   if (storedCoreAddress && storedCoreAddress !== currentCoreAddress) {
     console.log('[contracts] Core address changed, clearing all caches...');
@@ -221,12 +240,7 @@ if (typeof window !== 'undefined') {
 
     // Update stored address
     localStorage.setItem('lastCoreAddress', currentCoreAddress);
-    console.log('[contracts] ✅ Cache cleared successfully. Page will reload in 1 second...');
-
-    // Reload page after clearing cache to ensure fresh data
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000);
+    console.log('[contracts] ✅ Cache cleared successfully.');
   } else if (!storedCoreAddress) {
     // First time, just store the address
     localStorage.setItem('lastCoreAddress', currentCoreAddress);

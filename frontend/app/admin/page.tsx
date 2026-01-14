@@ -108,7 +108,7 @@ interface Market {
 
 
 export default function AdminPage() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chain } = useAccount();
   const publicClient = usePublicClient();
   const roles = useAdminRoles();
   const [markets, setMarkets] = useState<Market[]>([]);
@@ -248,7 +248,7 @@ export default function AdminPage() {
     };
 
     checkAdmin();
-  }, [isConnected, address, loadMarkets]);
+  }, [isConnected, address, chain?.id, loadMarkets]);
 
   if (!isConnected) {
     return (
