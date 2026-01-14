@@ -439,31 +439,27 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
 
   return (
     <div className="w-full h-full flex flex-col">
-      {/* Progress Bar */}
-      <div className="flex items-center justify-between mb-8 px-2">
-        {[1, 2, 3].map((s) => (
-          <div key={s} className="flex flex-col items-center gap-2 relative z-10">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${step >= s
-              ? 'bg-[#14B8A6] text-white shadow-[0_0_20px_rgba(20,184,166,0.5)] scale-110'
-              : 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-300 dark:border-gray-700'
+      {/* Compact Progress Bar */}
+      <div className="flex items-center justify-center gap-8 mb-4 px-2 relative">
+        {[1, 2, 3].map((s, idx) => (
+          <div key={s} className="flex items-center gap-2 relative z-10">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${step >= s
+              ? 'bg-[#14B8A6] text-white shadow-md'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700'
               }`}>
-              {s < step ? <CheckCircle2 size={18} /> : s}
+              {s < step ? <CheckCircle2 size={14} /> : s}
             </div>
-            <span className={`text-[10px] font-bold uppercase tracking-wider ${step >= s ? 'text-[#14B8A6]' : 'text-gray-400 dark:text-gray-600'}`}>
+            <span className={`text-xs font-semibold ${step >= s ? 'text-[#14B8A6]' : 'text-gray-400 dark:text-gray-500'}`}>
               {s === 1 ? 'Asset' : s === 2 ? 'Details' : 'Confirm'}
             </span>
+            {idx < 2 && (
+              <div className={`w-8 h-0.5 ml-2 transition-colors ${step > s ? 'bg-[#14B8A6]' : 'bg-gray-200 dark:bg-gray-700'}`} />
+            )}
           </div>
         ))}
-        {/* Connector Line */}
-        <div className="absolute left-1/2 -translate-x-1/2 w-2/3 h-0.5 bg-gray-200 dark:bg-gray-800 -z-0 top-14 lg:top-[5.5rem] lg:w-[60%] lg:left-[51%]">
-          <div
-            className="h-full bg-gradient-to-r from-[#14B8A6] to-purple-500 transition-all duration-500 ease-out"
-            style={{ width: `${((step - 1) / (totalSteps - 1)) * 100}%` }}
-          />
-        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-1 custom-scrollbar min-h-[400px]">
+      <div className="flex-1 overflow-y-auto px-1 custom-scrollbar min-h-[320px]">
         <AnimatePresence mode="wait">
           {/* STEP 1: ASSET SELECTION */}
           {step === 1 && (
@@ -472,57 +468,54 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
+              className="space-y-4"
             >
-              <div className="sticky top-0 bg-white/80 dark:bg-[#0f1219]/80 backdrop-blur-xl z-20 pb-6 pt-2">
+              <div className="sticky top-0 bg-white/90 dark:bg-[#0f1219]/90 backdrop-blur-xl z-20 pb-3 pt-1">
                 <div className="relative group">
-                  <div className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-teal-500 transition-colors">
-                    <Search size={24} />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-teal-500 transition-colors">
+                    <Search size={18} />
                   </div>
                   <Input
-                    placeholder="Search assets (e.g. BTC, ETH)..."
+                    placeholder="Search assets..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-16 h-20 bg-black/5 dark:bg-white/5 border-transparent focus:border-teal-500/50 rounded-2xl text-xl font-bold text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-0 focus:shadow-[0_0_30px_-5px_rgba(20,184,166,0.2)] transition-all"
+                    className="pl-11 h-11 bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 focus:border-teal-500/50 rounded-xl text-sm font-medium text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-0 transition-all"
                     autoFocus
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pb-4">
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-2 pb-3">
                 {filteredAssets.map((asset) => {
                   const isSelected = selectedAsset.symbol === asset.symbol;
                   return (
                     <button
                       key={asset.symbol}
                       onClick={() => setSelectedAsset(asset)}
-                      className={`relative group flex flex-col items-center p-6 rounded-3xl border transition-all duration-300 ${isSelected
-                        ? 'border-teal-500/50 bg-teal-500/10 shadow-[0_0_30px_-5px_rgba(20,184,166,0.3)] scale-[1.02]'
-                        : 'border-black/5 dark:border-white/5 bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/10 hover:border-teal-500/30'
+                      className={`relative group flex flex-col items-center p-3 rounded-xl border transition-all duration-200 ${isSelected
+                        ? 'border-teal-500 bg-teal-500/10 shadow-sm'
+                        : 'border-gray-100 dark:border-white/5 bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 hover:border-teal-500/30'
                         }`}
                     >
-                      <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${asset.color || 'from-gray-700 to-gray-900'} flex items-center justify-center shadow-lg mb-4 group-hover:scale-110 transition-transform text-white ring-1 ring-black/5 overflow-hidden`}>
+                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${asset.color || 'from-gray-700 to-gray-900'} flex items-center justify-center shadow-sm mb-2 group-hover:scale-105 transition-transform text-white overflow-hidden`}>
                         {asset.logoSrc ? (
                           <Image
                             src={asset.logoSrc}
                             alt={`${asset.symbol} logo`}
-                            width={40}
-                            height={40}
+                            width={24}
+                            height={24}
                             className="object-contain"
                             unoptimized
                           />
                         ) : (
-                          <span className="text-3xl">{asset.icon}</span>
+                          <span className="text-lg">{asset.icon}</span>
                         )}
                       </div>
-                      <span className={`text-lg font-bold transition-colors ${isSelected ? 'text-teal-600 dark:text-teal-400' : 'text-gray-700 dark:text-gray-200'}`}>{asset.name}</span>
-                      <span className="text-sm text-gray-400 dark:text-gray-500 font-mono">{asset.symbol}</span>
+                      <span className={`text-xs font-semibold transition-colors truncate w-full text-center ${isSelected ? 'text-teal-600 dark:text-teal-400' : 'text-gray-700 dark:text-gray-200'}`}>{asset.symbol}</span>
 
                       {isSelected && (
-                        <motion.div layoutId="selectedCheck" className="absolute top-4 right-4 text-teal-500">
-                          <div className="bg-white dark:bg-gray-900 rounded-full p-1 shadow-md">
-                            <CheckCircle2 size={20} className="fill-current" />
-                          </div>
+                        <motion.div layoutId="selectedCheck" className="absolute top-1 right-1 text-teal-500">
+                          <CheckCircle2 size={14} className="fill-current" />
                         </motion.div>
                       )}
                     </button>
@@ -539,133 +532,123 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-8"
+              className="space-y-4"
             >
               {/* Direction */}
               <div>
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3 block">Prediction Direction</label>
-                <div className="grid grid-cols-2 gap-4">
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2 block">Direction</label>
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setComparison('above')}
-                    className={`p-6 rounded-2xl border flex flex-col items-center gap-3 transition-all relative overflow-hidden group ${comparison === 'above'
-                      ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-[0_0_20px_-5px_rgba(16,185,129,0.2)]'
-                      : 'border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5 text-gray-500 hover:bg-black/10 dark:hover:bg-white/10'
+                    className={`p-3 rounded-xl border flex items-center gap-3 transition-all ${comparison === 'above'
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                      : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10'
                       }`}
                   >
-                    <div className={`p-3 rounded-full ${comparison === 'above' ? 'bg-emerald-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
-                      <ArrowUpCircle size={24} />
+                    <div className={`p-2 rounded-lg ${comparison === 'above' ? 'bg-emerald-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
+                      <ArrowUpCircle size={18} />
                     </div>
-                    <span className="font-black text-lg">Above Target</span>
+                    <span className="font-bold text-sm">Above</span>
                   </button>
                   <button
                     onClick={() => setComparison('below')}
-                    className={`p-6 rounded-2xl border flex flex-col items-center gap-3 transition-all relative overflow-hidden group ${comparison === 'below'
-                      ? 'border-rose-500/50 bg-rose-500/10 text-rose-600 dark:text-rose-400 shadow-[0_0_20px_-5px_rgba(244,63,94,0.2)]'
-                      : 'border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5 text-gray-500 hover:bg-black/10 dark:hover:bg-white/10'
+                    className={`p-3 rounded-xl border flex items-center gap-3 transition-all ${comparison === 'below'
+                      ? 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                      : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10'
                       }`}
                   >
-                    <div className={`p-3 rounded-full ${comparison === 'below' ? 'bg-rose-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
-                      <ArrowDownCircle size={24} />
+                    <div className={`p-2 rounded-lg ${comparison === 'below' ? 'bg-rose-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
+                      <ArrowDownCircle size={18} />
                     </div>
-                    <span className="font-black text-lg">Below Target</span>
+                    <span className="font-bold text-sm">Below</span>
                   </button>
                 </div>
               </div>
 
               {/* Target Price */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest ml-1">Target Price</label>
-                <div className="relative group">
-                  <div className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-teal-500 transition-colors">
-                    <Target size={24} />
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Target Price</label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <Target size={16} />
                   </div>
                   <Input
                     value={targetPrice}
                     onChange={(e) => setTargetPrice(e.target.value)}
                     placeholder="0.00"
-                    className="pl-16 h-20 bg-black/5 dark:bg-white/5 border-transparent focus:border-teal-500/50 rounded-2xl text-3xl font-black font-mono text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-700 focus:ring-0 focus:shadow-[0_0_30px_-5px_rgba(20,184,166,0.2)] transition-all"
+                    className="pl-10 h-12 bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 focus:border-teal-500/50 rounded-xl text-lg font-bold font-mono text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 transition-all"
                   />
-                  <div className="absolute right-6 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">USD</div>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400">USD</div>
                 </div>
-                {validationErrors.targetPrice ? (
-                  <p className="text-rose-500 text-xs ml-1 flex items-center gap-1 font-bold"><AlertCircle size={12} /> {validationErrors.targetPrice}</p>
-                ) : (
-                  <p className="text-gray-400 text-[10px] ml-1">The price level that determines the outcome.</p>
+                {validationErrors.targetPrice && (
+                  <p className="text-rose-500 text-xs flex items-center gap-1"><AlertCircle size={10} /> {validationErrors.targetPrice}</p>
                 )}
               </div>
 
               {/* Resolution Date */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest ml-1">Resolution Date (UTC)</label>
-                <div className="relative group">
-                  <div className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-teal-500 transition-colors">
-                    <Calendar size={24} />
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Resolution Date (UTC)</label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <Calendar size={16} />
                   </div>
                   <Input
                     type="datetime-local"
                     value={resolutionDate}
                     onChange={(e) => setResolutionDate(e.target.value)}
-                    className="pl-16 h-20 bg-black/5 dark:bg-white/5 border-transparent focus:border-teal-500/50 rounded-2xl text-xl font-bold font-mono text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-700 focus:ring-0 focus:shadow-[0_0_30px_-5px_rgba(20,184,166,0.2)] transition-all"
+                    className="pl-10 h-12 bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 focus:border-teal-500/50 rounded-xl text-sm font-medium font-mono text-gray-900 dark:text-white focus:ring-0 transition-all"
                   />
                 </div>
-                {validationErrors.resolutionDate ? (
-                  <p className="text-rose-500 text-xs ml-1 flex items-center gap-1 font-bold"><AlertCircle size={12} /> {validationErrors.resolutionDate}</p>
-                ) : (
-                  <p className="text-gray-400 text-[10px] ml-1">When the market will end and resolve.</p>
+                {validationErrors.resolutionDate && (
+                  <p className="text-rose-500 text-xs flex items-center gap-1"><AlertCircle size={10} /> {validationErrors.resolutionDate}</p>
                 )}
               </div>
 
               {/* Liquidity */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest ml-1">Initial Liquidity</label>
-                <div className="relative group">
-                  <div className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-teal-500 transition-colors">
-                    <Wallet size={24} />
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Initial Liquidity</label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <Wallet size={16} />
                   </div>
                   <Input
                     type="number"
                     value={initUsdc}
                     onChange={(e) => setInitUsdc(e.target.value)}
-                    className="pl-16 h-20 bg-black/5 dark:bg-white/5 border-transparent focus:border-teal-500/50 rounded-2xl text-3xl font-black font-mono text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-700 focus:ring-0 focus:shadow-[0_0_30px_-5px_rgba(20,184,166,0.2)] transition-all"
+                    className="pl-10 h-12 bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 focus:border-teal-500/50 rounded-xl text-lg font-bold font-mono text-gray-900 dark:text-white focus:ring-0 transition-all"
                   />
-                  <div className="absolute right-6 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">USDC</div>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400">USDC</div>
                 </div>
-                {validationErrors.initUsdc ? (
-                  <p className="text-rose-500 text-xs ml-1 flex items-center gap-1 font-bold"><AlertCircle size={12} /> {validationErrors.initUsdc}</p>
-                ) : (
-                  <p className="text-gray-400 text-[10px] ml-1">Amount of USDC to seed the market with.</p>
+                {validationErrors.initUsdc && (
+                  <p className="text-rose-500 text-xs flex items-center gap-1"><AlertCircle size={10} /> {validationErrors.initUsdc}</p>
                 )}
               </div>
 
               {/* Schedule Toggle */}
-              <div className="bg-black/5 dark:bg-white/5 p-6 rounded-2xl border border-black/5 dark:border-white/5">
+              <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-200 dark:border-white/10">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-500/10 rounded-lg text-purple-500">
-                      <Clock size={20} />
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-purple-500/10 rounded-lg text-purple-500">
+                      <Clock size={16} />
                     </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-bold text-gray-900 dark:text-white">Schedule Start</span>
-                      <span className="text-xs text-gray-500">Start trading at a future date</span>
-                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">Schedule Start</span>
                   </div>
                   <button
                     onClick={() => setIsScheduled(!isScheduled)}
-                    className={`w-14 h-8 rounded-full transition-colors flex items-center p-1 ${isScheduled ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+                    className={`w-11 h-6 rounded-full transition-colors flex items-center p-0.5 ${isScheduled ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600'}`}
                   >
-                    <div className={`w-6 h-6 bg-white rounded-full shadow-sm transition-transform ${isScheduled ? 'translate-x-6' : 'translate-x-0'}`} />
+                    <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${isScheduled ? 'translate-x-5' : 'translate-x-0'}`} />
                   </button>
                 </div>
                 {isScheduled && (
-                  <div className="mt-6 animate-in fade-in slide-in-from-top-2">
-                    <label className="text-xs font-bold text-purple-500 dark:text-purple-400 uppercase mb-2 block tracking-widest">Start Time (UTC)</label>
+                  <div className="mt-3 animate-in fade-in slide-in-from-top-2">
                     <Input
                       type="datetime-local"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="h-16 bg-white dark:bg-gray-900 border-purple-500/30 rounded-xl font-mono text-lg text-gray-900 dark:text-white focus:ring-purple-500"
+                      className="h-11 bg-white dark:bg-gray-900 border-purple-500/30 rounded-lg font-mono text-sm text-gray-900 dark:text-white focus:ring-purple-500"
                     />
-                    {validationErrors.startDate && <p className="text-rose-500 text-xs mt-1 flex items-center gap-1 font-bold"><AlertCircle size={12} /> {validationErrors.startDate}</p>}
+                    {validationErrors.startDate && <p className="text-rose-500 text-xs mt-1 flex items-center gap-1"><AlertCircle size={10} /> {validationErrors.startDate}</p>}
                   </div>
                 )}
               </div>
@@ -679,47 +662,42 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-8"
+              className="space-y-4"
             >
-              <div className="bg-white/40 dark:bg-black/20 backdrop-blur-xl p-8 rounded-[32px] border border-white/20 dark:border-white/5 relative overflow-hidden text-center z-10 shadow-xl">
-                {/* Background Pattern */}
-                <div className="absolute inset-0 bg-grid-slate-900/[0.04] dark:bg-grid-white/[0.04] pointer-events-none -z-10" />
-
-                <div className="relative z-10">
-                  <div className={`w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br ${selectedAsset.color} flex items-center justify-center mb-6 shadow-2xl border-4 border-white dark:border-gray-800 text-white overflow-hidden`}>
+              <div className="bg-white dark:bg-white/5 p-6 rounded-2xl border border-gray-200 dark:border-white/10 text-center">
+                <div className="flex items-center justify-center gap-4 mb-4">
+                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${selectedAsset.color} flex items-center justify-center shadow-md text-white overflow-hidden`}>
                     {selectedAsset.logoSrc ? (
                       <Image
                         src={selectedAsset.logoSrc}
                         alt={`${selectedAsset.symbol} logo`}
-                        width={64}
-                        height={64}
+                        width={32}
+                        height={32}
                         className="object-contain"
                         unoptimized
                       />
                     ) : (
-                      <span className="text-5xl">{selectedAsset.icon}</span>
+                      <span className="text-2xl">{selectedAsset.icon}</span>
                     )}
                   </div>
-
-                  <h3 className="text-3xl font-black text-gray-900 dark:text-white mb-4 leading-tight tracking-tight">
-                    &quot;{generatedQuestion}&quot;
-                  </h3>
-
-                  <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
-                    <div className="px-4 py-2 rounded-xl bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 flex flex-col items-center">
-                      <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Liquidity</span>
-                      <span className="font-mono font-bold text-gray-900 dark:text-white text-lg">{parseUnits(initUsdc, 0).toString()} USDC</span>
-                    </div>
-                    <div className="px-4 py-2 rounded-xl bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 flex flex-col items-center">
-                      <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Resolution</span>
-                      <span className="font-mono font-bold text-gray-900 dark:text-white text-lg">{new Date(resolutionDate).toLocaleDateString('en-US')}</span>
-                    </div>
+                  <div className="text-left">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                      {selectedAsset.symbol} {comparison === 'above' ? '>' : '<'} ${targetPrice}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Resolves {new Date(resolutionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </p>
                   </div>
+                </div>
 
+                <div className="flex items-center justify-center gap-3 text-xs">
+                  <span className="px-3 py-1.5 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 font-semibold">
+                    {parseUnits(initUsdc, 0).toString()} USDC Liquidity
+                  </span>
                   {isScheduled && (
-                    <div className="mt-6 inline-flex items-center gap-2 text-purple-600 dark:text-purple-400 bg-purple-500/10 px-5 py-2.5 rounded-full text-sm font-bold border border-purple-500/20">
-                      <Timer size={16} /> Starts: {new Date(startDate).toLocaleString()}
-                    </div>
+                    <span className="px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 font-semibold flex items-center gap-1">
+                      <Timer size={12} /> {new Date(startDate).toLocaleDateString()}
+                    </span>
                   )}
                 </div>
               </div>
@@ -728,24 +706,24 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
                 <Button
                   onClick={handleApprove}
                   disabled={isApproving || isApprovalConfirming}
-                  className="w-full h-20 text-xl font-black bg-amber-500 hover:bg-amber-600 text-white rounded-2xl shadow-[0_0_40px_-10px_rgba(245,158,11,0.4)] transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  className="w-full h-12 font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-all"
                 >
-                  {isApproving || isApprovalConfirming ? <span className="animate-spin mr-3">⏳</span> : <span className="mr-3">🔓</span>}
+                  {isApproving || isApprovalConfirming ? <span className="animate-spin mr-2">⏳</span> : <span className="mr-2">🔓</span>}
                   Approve USDC
                 </Button>
               ) : (
                 <Button
                   onClick={handleSubmit}
                   disabled={isPending || isConfirming}
-                  className="w-full h-20 text-xl font-black bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-white rounded-2xl shadow-[0_0_40px_-10px_rgba(20,184,166,0.4)] hover:shadow-[0_0_60px_-10px_rgba(20,184,166,0.5)] transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                  className="w-full h-12 font-bold bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-white rounded-xl transition-all"
                 >
                   {isPending || isConfirming ? (
                     <>
-                      <span className="animate-spin mr-3">⚡</span> Creating Market...
+                      <span className="animate-spin mr-2">⚡</span> Creating...
                     </>
                   ) : (
                     <>
-                      <Zap className="mr-3 fill-current w-6 h-6" /> Launch Market
+                      <Zap className="mr-2 fill-current w-4 h-4" /> Launch Market
                     </>
                   )}
                 </Button>
@@ -756,22 +734,22 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
       </div>
 
       {/* Navigation Buttons */}
-      <div className="flex gap-4 pt-6 mt-4 border-t border-gray-200 dark:border-gray-800/50">
+      <div className="flex gap-3 pt-4 mt-3 border-t border-gray-200 dark:border-gray-800/50">
         {step > 1 && (
           <Button
             variant="outline"
             onClick={prevStep}
-            className="flex-1 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="flex-1 h-10 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 text-sm"
           >
-            <ChevronLeft size={16} className="mr-2" /> Back
+            <ChevronLeft size={14} className="mr-1" /> Back
           </Button>
         )}
         {step < totalSteps && (
           <Button
             onClick={nextStep}
-            className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 font-bold"
+            className="flex-1 h-10 bg-gray-900 dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 font-semibold text-sm"
           >
-            Next <ChevronRight size={16} className="ml-2" />
+            Next <ChevronRight size={14} className="ml-1" />
           </Button>
         )}
       </div>

@@ -230,29 +230,22 @@ export default function RoleVisualization() {
     const getRoleCount = (roles: RoleHolder['roles']) => Object.values(roles).filter(Boolean).length;
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-3">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-xl">
-                        <Users className="w-5 h-5 text-purple-500" />
-                    </div>
-                    <div>
-                        <h3 className="text-sm font-bold text-gray-900 dark:text-white">Role Matrix</h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {roleHolders.length} address{roleHolders.length !== 1 ? 'es' : ''} checked
-                        </p>
-                    </div>
+                    <Users className="w-4 h-4 text-purple-500" />
+                    <span className="text-sm font-bold text-gray-900 dark:text-white">Role Matrix</span>
+                    <span className="text-xs text-gray-400">({roleHolders.length})</span>
                 </div>
                 <Button
                     onClick={loadAllRoleHolders}
                     disabled={loading}
                     variant="ghost"
                     size="sm"
-                    className="text-xs"
+                    className="h-7 text-xs px-2"
                 >
-                    <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh
+                    <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
                 </Button>
             </div>
 
@@ -261,34 +254,30 @@ export default function RoleVisualization() {
                 <Input
                     value={newAddress}
                     onChange={(e) => setNewAddress(e.target.value)}
-                    placeholder="0x... (check address)"
-                    className="font-mono text-xs bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10"
+                    placeholder="0x... check address"
+                    className="h-9 text-xs font-mono bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10"
                 />
                 <Button
                     onClick={handleAddAddress}
                     disabled={!isAddress(newAddress)}
                     size="sm"
-                    className="shrink-0"
+                    className="h-9 px-3 shrink-0"
                 >
-                    <Plus className="w-3 h-3 mr-1" />
-                    Check
+                    <Plus className="w-3 h-3" />
                 </Button>
             </div>
 
-            {/* Role Legend */}
-            <div className="grid grid-cols-2 gap-2">
+            {/* Compact Role Legend */}
+            <div className="flex flex-wrap gap-1.5">
                 {Object.entries(ROLE_DEFINITIONS).map(([key, def]) => {
                     const Icon = def.icon;
                     return (
                         <div
                             key={key}
-                            className={`flex items-center gap-2 p-2 rounded-lg ${def.bgColor}`}
+                            className={`flex items-center gap-1 px-2 py-1 rounded-md ${def.bgColor}`}
                         >
-                            <Icon className={`w-4 h-4 ${def.color}`} />
-                            <div>
-                                <div className="text-[10px] font-bold text-gray-900 dark:text-white">{def.name}</div>
-                                <div className="text-[9px] text-gray-500 dark:text-gray-400">{def.description}</div>
-                            </div>
+                            <Icon className={`w-3 h-3 ${def.color}`} />
+                            <span className="text-[9px] font-bold text-gray-700 dark:text-gray-200">{def.name.split('_')[0]}</span>
                         </div>
                     );
                 })}

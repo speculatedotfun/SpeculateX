@@ -1,24 +1,27 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useAccount, useReadContract, useWriteContract, usePublicClient } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, usePublicClient, useChainId } from 'wagmi';
 import { formatUnits, parseUnits, decodeFunctionData } from 'viem';
 import { Shield, Wallet, Download, Upload, Settings, Clock, CheckCircle2, XCircle, AlertTriangle, Loader2, Link as LinkIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
-import { getAddresses, getCurrentNetwork } from '@/lib/contracts';
+import { getAddresses, getCurrentNetwork, getChainId } from '@/lib/contracts';
 import { treasuryAbi, usdcAbi } from '@/lib/abis';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function TreasuryManagement() {
     const { address } = useAccount();
+    const walletChainId = useChainId();
     const publicClient = usePublicClient();
     const { pushToast } = useToast();
     const { writeContractAsync } = useWriteContract();
 
     const addresses = getAddresses();
     const network = getCurrentNetwork();
+    const selectedChainId = getChainId();
+    const isNetworkMismatch = walletChainId !== selectedChainId;
 
     // State
     const [loading, setLoading] = useState(false);
@@ -29,11 +32,12 @@ export function TreasuryManagement() {
     const [scanning, setScanning] = useState(false);
     const [currentTime, setCurrentTime] = useState(BigInt(Math.floor(Date.now() / 1000)));
 
-    // Contract Reads
+    // Contract Reads - explicitly use selectedChainId to read from the correct network
     const { data: dailyLimit, refetch: refetchLimit } = useReadContract({
         address: addresses.treasury,
         abi: treasuryAbi,
         functionName: 'dailyWithdrawLimit',
+        chainId: selectedChainId,
     });
 
     const { data: withdrawnToday, refetch: refetchWithdrawn } = useReadContract({
@@ -41,6 +45,7 @@ export function TreasuryManagement() {
         abi: treasuryAbi,
         functionName: 'withdrawnTodayByToken',
         args: [addresses.usdc],
+        chainId: selectedChainId,
     });
 
     const { data: treasuryBalance, refetch: refetchBalance } = useReadContract({
@@ -48,6 +53,7 @@ export function TreasuryManagement() {
         abi: usdcAbi,
         functionName: 'balanceOf',
         args: [addresses.treasury],
+        chainId: selectedChainId,
     });
 
     // Time ticker
@@ -266,6 +272,20 @@ export function TreasuryManagement() {
 
     return (
         <div className="space-y-6">
+            {/* Network Mismatch Warning */}
+            {isNetworkMismatch && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center gap-3">
+                    <AlertTriangle className="w-6 h-6 text-amber-500 flex-shrink-0" />
+                    <div>
+                        <p className="font-bold text-amber-600 dark:text-amber-400">Network Mismatch</p>
+                        <p className="text-sm text-amber-600/80 dark:text-amber-400/80">
+                            Your wallet is on chain {walletChainId} but Admin is set to {selectedChainId === 56 ? 'BSC Mainnet (56)' : 'BSC Testnet (97)'}.
+                            Please switch your wallet network to perform transactions.
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-white/5 p-6 rounded-2xl shadow-xl shadow-blue-500/5">
@@ -337,8 +357,8 @@ export function TreasuryManagement() {
                             </div>
                             <Button
                                 onClick={handleFastWithdraw}
-                                disabled={loading || !fastWithdrawForm.to || !fastWithdrawForm.amount}
-                                className="w-full h-12 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-green-500/20"
+                                disabled={loading || isNetworkMismatch || !fastWithdrawForm.to || !fastWithdrawForm.amount}
+                                className="w-full h-12 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-green-500/20 disabled:opacity-50"
                             >
                                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Execute Fast Withdraw'}
                             </Button>
@@ -374,8 +394,8 @@ export function TreasuryManagement() {
                             </div>
                             <Button
                                 onClick={handleScheduleLarge}
-                                disabled={loading || !largeWithdrawForm.to || !largeWithdrawForm.amount}
-                                className="w-full h-12 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold rounded-xl shadow-lg shadow-amber-500/20"
+                                disabled={loading || isNetworkMismatch || !largeWithdrawForm.to || !largeWithdrawForm.amount}
+                                className="w-full h-12 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold rounded-xl shadow-lg shadow-amber-500/20 disabled:opacity-50"
                             >
                                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Schedule Large Withdraw'}
                             </Button>
@@ -454,16 +474,16 @@ export function TreasuryManagement() {
 
                                                 <div className="flex gap-2">
                                                     <Button
-                                                        className={`flex-1 h-9 text-xs font-bold transition-all ${isReady ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-200 dark:bg-gray-800 text-gray-400'}`}
-                                                        disabled={!isReady || loading}
+                                                        className={`flex-1 h-9 text-xs font-bold transition-all ${isReady && !isNetworkMismatch ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-200 dark:bg-gray-800 text-gray-400'}`}
+                                                        disabled={!isReady || loading || isNetworkMismatch}
                                                         onClick={() => handleExecuteLarge(op.opId)}
                                                     >
                                                         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Execute'}
                                                     </Button>
                                                     <Button
                                                         variant="destructive"
-                                                        className="h-9 w-9 p-0 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border-none"
-                                                        disabled={loading}
+                                                        className="h-9 w-9 p-0 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border-none disabled:opacity-50"
+                                                        disabled={loading || isNetworkMismatch}
                                                         onClick={() => handleCancelLarge(op.opId)}
                                                     >
                                                         <XCircle className="w-4 h-4" />
@@ -494,8 +514,8 @@ export function TreasuryManagement() {
                                     />
                                     <Button
                                         onClick={handleUpdateLimit}
-                                        disabled={loading || !limitForm.amount}
-                                        className="bg-gray-900 dark:bg-white dark:text-gray-900 font-bold"
+                                        disabled={loading || isNetworkMismatch || !limitForm.amount}
+                                        className="bg-gray-900 dark:bg-white dark:text-gray-900 font-bold disabled:opacity-50"
                                     >
                                         Update
                                     </Button>

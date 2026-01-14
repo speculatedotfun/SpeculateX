@@ -157,35 +157,25 @@ export default function ManualResolveMarkets() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Description */}
-      <div className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
-        <p>
-          Manually resolve expired markets that haven&apos;t been processed by Chainlink Automation yet.
-        </p>
-        <p className="text-xs">
-          The resolver will automatically find and resolve all eligible expired markets using the latest Chainlink price feed data.
-        </p>
-      </div>
-
+    <div className="space-y-3">
       {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex gap-2">
         <button
           onClick={checkExpiredMarkets}
           disabled={isChecking || isResolving}
-          className="flex-1 px-6 py-3 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 rounded-xl font-bold text-sm text-gray-700 dark:text-gray-300 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group"
+          className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 rounded-lg font-semibold text-xs text-gray-700 dark:text-gray-300 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          <RefreshCw className={`w-4 h-4 ${isChecking ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
-          {isChecking ? 'Checking...' : 'Check Expired Markets'}
+          <RefreshCw className={`w-3.5 h-3.5 ${isChecking ? 'animate-spin' : ''}`} />
+          {isChecking ? 'Checking...' : 'Check Expired'}
         </button>
 
         <button
           onClick={resolveAllMarkets}
           disabled={isResolving || isChecking}
-          className="flex-1 px-6 py-3 bg-gradient-to-r from-[#14B8A6] to-emerald-600 hover:from-[#0FA193] hover:to-emerald-700 rounded-xl font-bold text-sm text-white transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#14B8A6]/20"
+          className="flex-1 px-4 py-2.5 bg-gradient-to-r from-[#14B8A6] to-emerald-600 hover:from-[#0FA193] hover:to-emerald-700 rounded-lg font-semibold text-xs text-white transition-all flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          <Zap className={`w-4 h-4 ${isResolving ? 'animate-pulse' : ''}`} />
-          {isResolving ? 'Resolving...' : 'Resolve All Expired'}
+          <Zap className={`w-3.5 h-3.5 ${isResolving ? 'animate-pulse' : ''}`} />
+          {isResolving ? 'Resolving...' : 'Resolve All'}
         </button>
       </div>
 
@@ -196,50 +186,42 @@ export default function ManualResolveMarkets() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className={`p-4 rounded-xl border ${
-              result.type === 'success'
+            className={`p-3 rounded-lg border text-xs ${result.type === 'success'
                 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
                 : result.type === 'error'
-                ? 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400'
-                : 'bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400'
-            }`}
+                  ? 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400'
+                  : 'bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400'
+              }`}
           >
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 mt-0.5">
-                {result.type === 'success' ? (
-                  <CheckCircle2 className="w-5 h-5" />
-                ) : (
-                  <AlertCircle className="w-5 h-5" />
-                )}
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-sm">{result.message}</p>
-                {result.marketsResolved && result.marketsResolved.length > 0 && (
-                  <p className="text-xs mt-2 opacity-80">
-                    Markets resolved: {result.marketsResolved.join(', ')}
-                  </p>
-                )}
-              </div>
+            <div className="flex items-center gap-2">
+              {result.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              )}
+              <p className="font-medium">{result.message}</p>
             </div>
+            {result.marketsResolved && result.marketsResolved.length > 0 && (
+              <p className="text-[10px] mt-1 ml-6 opacity-70">
+                Markets: {result.marketsResolved.join(', ')}
+              </p>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Info Box */}
-      <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl">
-        <div className="flex items-start gap-3 text-xs text-amber-600 dark:text-amber-400">
-          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <p className="font-semibold">How it works:</p>
-            <ul className="list-disc list-inside space-y-1 opacity-80">
-              <li>Markets are resolved using the first Chainlink price update after expiry</li>
-              <li>If the first update is late (&gt;5min), TWAP fallback is used for accuracy</li>
-              <li>Each transaction resolves one market at a time</li>
-              <li>The process continues until all expired markets are resolved</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+      {/* Collapsed Info */}
+      <details className="group">
+        <summary className="text-xs text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" />
+          How it works
+        </summary>
+        <ul className="mt-2 text-[10px] text-gray-500 dark:text-gray-400 space-y-0.5 ml-4 list-disc">
+          <li>Markets resolved using first Chainlink price after expiry</li>
+          <li>TWAP fallback used if update is late (&gt;5min)</li>
+          <li>Each transaction resolves one market</li>
+        </ul>
+      </details>
     </div>
   );
 }

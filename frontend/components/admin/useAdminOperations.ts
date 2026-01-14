@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAccount, useWriteContract, usePublicClient } from 'wagmi';
-import { getAddresses, getCurrentNetwork } from '@/lib/contracts';
-import { getCoreAbi } from '@/lib/abis';
+import { getAddresses, getCurrentNetwork, getChainId } from '@/lib/contracts';
+import { getCoreAbi, treasuryAbi } from '@/lib/abis';
 import { isAdmin as checkIsAdmin } from '@/lib/accessControl';
 import { keccak256, stringToBytes, encodeAbiParameters } from 'viem';
 import { useToast } from '@/components/ui/toast';
@@ -46,6 +46,9 @@ const OP_EXPIRY_WINDOW = 7n * 24n * 60n * 60n; // 7 days in seconds
 const STORAGE_KEY_OPS = 'admin_pending_ops';
 const STORAGE_KEY_BLOCK = 'admin_last_scanned_block';
 
+const TREASURY_WITHDRAWER_ROLE = keccak256(stringToBytes('WITHDRAWER_ROLE'));
+const TREASURY_ADMIN_ROLE = keccak256(stringToBytes('ADMIN_ROLE'));
+
 const loadCache = () => {
     if (typeof window === 'undefined') return null;
     try {
@@ -78,6 +81,7 @@ export function useAdminOperations() {
     const { writeContractAsync } = useWriteContract();
 
     const [isAdmin, setIsAdmin] = useState(false);
+    const [hasTreasuryAccess, setHasTreasuryAccess] = useState(false);
     const [loading, setLoading] = useState(false);
     const [pendingOps, setPendingOps] = useState<ScheduledOp[]>([]);
     const [loadingOps, setLoadingOps] = useState(false);
@@ -92,6 +96,40 @@ export function useAdminOperations() {
             checkIsAdmin(address).then(setIsAdmin);
         }
     }, [address]);
+
+    // Check treasury roles
+    useEffect(() => {
+        const checkTreasuryRoles = async () => {
+            if (!address || !publicClient || !addresses.treasury) {
+                setHasTreasuryAccess(false);
+                return;
+            }
+
+            try {
+                const [hasWithdrawer, hasAdmin] = await Promise.all([
+                    publicClient.readContract({
+                        address: addresses.treasury,
+                        abi: treasuryAbi,
+                        functionName: 'hasRole',
+                        args: [TREASURY_WITHDRAWER_ROLE, address],
+                    }).catch(() => false) as Promise<boolean>,
+                    publicClient.readContract({
+                        address: addresses.treasury,
+                        abi: treasuryAbi,
+                        functionName: 'hasRole',
+                        args: [TREASURY_ADMIN_ROLE, address],
+                    }).catch(() => false) as Promise<boolean>,
+                ]);
+
+                setHasTreasuryAccess(Boolean(hasWithdrawer) || Boolean(hasAdmin));
+            } catch (e) {
+                console.error('Error checking treasury roles:', e);
+                setHasTreasuryAccess(false);
+            }
+        };
+
+        checkTreasuryRoles();
+    }, [address, publicClient, addresses.treasury]);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -266,6 +304,7 @@ export function useAdminOperations() {
 
     return {
         isAdmin,
+        hasTreasuryAccess,
         loading,
         pendingOps,
         loadingOps,

@@ -1,20 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Shield } from 'lucide-react';
 import { useAdminOperations } from './admin/useAdminOperations';
 import { OperationScheduler } from './admin/OperationScheduler';
 import { TreasuryManagement } from './admin/TreasuryManagement';
 
-export default function AdminOperationsManager() {
-  const [activeTab, setActiveTab] = useState<'router' | 'treasury' | 'emergency'>('router');
+type TabType = 'router' | 'treasury' | 'emergency';
 
+export default function AdminOperationsManager() {
   const {
     isAdmin,
+    hasTreasuryAccess,
     loading: opLoading,
     scheduleOperation,
   } = useAdminOperations();
 
+  // Build available tabs based on permissions
+  const availableTabs = useMemo(() => {
+    const tabs: TabType[] = ['router'];
+    if (hasTreasuryAccess) {
+      tabs.push('treasury');
+    }
+    tabs.push('emergency');
+    return tabs;
+  }, [hasTreasuryAccess]);
+
+  const [activeTab, setActiveTab] = useState<TabType>('router');
+
+  // If current tab is not available (e.g., treasury removed), fall back to first available
+  const effectiveTab = availableTabs.includes(activeTab) ? activeTab : availableTabs[0];
 
   if (!isAdmin) {
     return (
@@ -30,11 +45,11 @@ export default function AdminOperationsManager() {
     <div className="space-y-6">
       {/* Tab Navigation */}
       <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
-        {(['router', 'treasury', 'emergency'] as const).map((tab) => (
+        {availableTabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${activeTab === tab
+            className={`px-4 py-2 text-sm font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${effectiveTab === tab
               ? 'border-b-2 border-[#14B8A6] text-[#14B8A6]'
               : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
@@ -45,15 +60,15 @@ export default function AdminOperationsManager() {
       </div>
 
       <div className="min-h-[400px]">
-        {(activeTab === 'router' || activeTab === 'emergency') && (
+        {(effectiveTab === 'router' || effectiveTab === 'emergency') && (
           <OperationScheduler
-            activeTab={activeTab}
+            activeTab={effectiveTab}
             loading={opLoading}
             onSchedule={scheduleOperation}
           />
         )}
 
-        {activeTab === 'treasury' && (
+        {effectiveTab === 'treasury' && hasTreasuryAccess && (
           <TreasuryManagement />
         )}
       </div>

@@ -17,11 +17,78 @@ import RoleActivityLog from '@/components/admin/RoleActivityLog';
 import Header from '@/components/Header';
 import { getMarketCount, getMarket, getMarketState, getLpResidualPot } from '@/lib/hooks';
 import { isAdmin as checkIsAdmin } from '@/lib/accessControl';
+import { useAdminRoles } from '@/lib/useAdminRoles';
 import { formatUnits } from 'viem';
 import { positionTokenAbi } from '@/lib/abis';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Plus, Shield, Users, Wallet, Zap, BarChart3, Database, Settings, Lock, History } from 'lucide-react';
+import { Activity, Plus, Shield, Users, Wallet, Zap, BarChart3, Database, Settings, Lock, History, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// Collapsible section component
+function CollapsibleSection({
+  id,
+  title,
+  icon: Icon,
+  iconColor,
+  isOpen,
+  onToggle,
+  children,
+  className = "",
+  colSpan = "md:col-span-12"
+}: {
+  id: string;
+  title: string;
+  icon: any;
+  iconColor: string;
+  isOpen: boolean;
+  onToggle: (id: string) => void;
+  children: React.ReactNode;
+  className?: string;
+  colSpan?: string;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={cn(
+        colSpan,
+        "bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-sm dark:shadow-none transition-all",
+        className
+      )}
+    >
+      <button
+        onClick={() => onToggle(id)}
+        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className={cn("p-2 rounded-xl", iconColor)}>
+            <Icon className="w-5 h-5" />
+          </div>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h2>
+        </div>
+        <ChevronDown className={cn(
+          "w-5 h-5 text-gray-400 transition-transform duration-200",
+          isOpen && "rotate-180"
+        )} />
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-4">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
 
 interface Market {
   id: number;
@@ -43,10 +110,24 @@ interface Market {
 export default function AdminPage() {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
+  const roles = useAdminRoles();
   const [markets, setMarkets] = useState<Market[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set());
+
+  const toggleSection = (id: string) => {
+    setOpenSections(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -192,7 +273,20 @@ export default function AdminPage() {
     );
   }
 
-  if (!isAdmin) {
+  // Show loading while roles are being checked
+  if (roles.isLoading) {
+    return (
+      <div className="min-h-screen text-gray-900 dark:text-white overflow-hidden flex flex-col font-sans">
+        <Header />
+        <div className="flex-1 flex flex-col items-center justify-center p-4 relative z-10">
+          <div className="w-10 h-10 border-4 border-[#14B8A6] border-t-transparent rounded-full animate-spin mb-4" />
+          <p className="text-sm tracking-widest uppercase text-gray-500">Checking permissions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin && !roles.isAnyAdmin) {
     return (
       <div className="min-h-screen text-gray-900 dark:text-white overflow-hidden flex flex-col font-sans">
         <Header />
@@ -256,169 +350,161 @@ export default function AdminPage() {
         </div>
 
         {/* Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-min">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 auto-rows-min">
 
           {/* Create Market (Span 8) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="md:col-span-8 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 relative overflow-hidden shadow-sm dark:shadow-none transition-colors"
-          >
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#14B8A6]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="p-3 bg-[#14B8A6]/10 dark:bg-[#14B8A6]/20 rounded-2xl text-[#14B8A6]">
-                  <Plus className="w-6 h-6" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Deploy Market</h2>
-              </div>
+          {roles.canCreateMarkets && (
+            <CollapsibleSection
+              id="deploy-market"
+              title="Deploy Market"
+              icon={Plus}
+              iconColor="bg-[#14B8A6]/10 text-[#14B8A6]"
+              isOpen={openSections.has('deploy-market')}
+              onToggle={toggleSection}
+              colSpan="md:col-span-8"
+            >
               <CreateMarketForm />
-            </div>
-          </motion.div>
+            </CollapsibleSection>
+          )}
 
           {/* Sidebar Column (Span 4) */}
-          <div className="md:col-span-4 flex flex-col gap-6">
+          <div className="md:col-span-4 flex flex-col gap-4">
             {/* USDC Faucet */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-              className="flex-1 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 relative overflow-hidden shadow-sm dark:shadow-none transition-colors"
+            <CollapsibleSection
+              id="usdc-faucet"
+              title="USDC Faucet"
+              icon={Wallet}
+              iconColor="bg-blue-500/10 text-blue-500"
+              isOpen={openSections.has('usdc-faucet')}
+              onToggle={toggleSection}
+              colSpan=""
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
-              <div className="relative z-10 h-full flex flex-col">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 bg-blue-500/10 dark:bg-blue-500/20 rounded-2xl text-blue-500 dark:text-blue-400">
-                    <Wallet className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">USDC Faucet</h2>
-                </div>
-                <div className="flex-1 flex flex-col justify-end">
-                  <MintUsdcForm />
-                </div>
-              </div>
-            </motion.div>
+              <MintUsdcForm />
+            </CollapsibleSection>
 
             {/* Minter Access */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-              className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 relative overflow-hidden shadow-sm dark:shadow-none transition-colors"
-            >
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-amber-500/10 dark:bg-amber-500/20 rounded-2xl text-amber-500 dark:text-amber-400">
-                  <Shield className="w-6 h-6" />
-                </div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Minter Role</h2>
-              </div>
-              <USDCMinterManager />
-            </motion.div>
+            {roles.canManageMinters && (
+              <CollapsibleSection
+                id="minter-role"
+                title="Minter Role"
+                icon={Shield}
+                iconColor="bg-amber-500/10 text-amber-500"
+                isOpen={openSections.has('minter-role')}
+                onToggle={toggleSection}
+                colSpan=""
+              >
+                <USDCMinterManager />
+              </CollapsibleSection>
+            )}
 
             {/* Referral Logs Link */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-              className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 relative overflow-hidden shadow-sm dark:shadow-none transition-colors group cursor-pointer"
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              className="bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-2xl p-4 cursor-pointer group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
               onClick={() => window.location.href = '/admin/referrals'}
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-purple-500/20 transition-colors" />
-              <div className="relative z-10 flex items-center justify-between">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-3 bg-purple-500/10 dark:bg-purple-500/20 rounded-2xl text-purple-500 dark:text-purple-400">
-                    <Users className="w-6 h-6" />
+                  <div className="p-2 bg-purple-500/10 rounded-xl text-purple-500">
+                    <Users className="w-5 h-5" />
                   </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Referrals</h2>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">View tracking logs</p>
-                  </div>
+                  <span className="font-bold text-gray-900 dark:text-white">Referrals</span>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-purple-500 group-hover:text-white transition-colors">
-                  <Database className="w-4 h-4" />
-                </div>
+                <ChevronDown className="w-4 h-4 text-gray-400 -rotate-90" />
               </div>
             </motion.div>
           </div>
 
           {/* System Operations (Full Width) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-            className="md:col-span-12 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 shadow-sm dark:shadow-none transition-colors"
-          >
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-3 bg-orange-500/10 dark:bg-orange-500/20 rounded-2xl text-orange-500 dark:text-orange-400">
-                <Settings className="w-6 h-6" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Protocol Operations</h2>
-            </div>
-            <AdminOperationsManager />
-          </motion.div>
+          {(roles.canManageProtocol || roles.canManageTreasury) && (
+            <CollapsibleSection
+              id="protocol-ops"
+              title="Protocol Operations"
+              icon={Settings}
+              iconColor="bg-orange-500/10 text-orange-500"
+              isOpen={openSections.has('protocol-ops')}
+              onToggle={toggleSection}
+              colSpan="md:col-span-12"
+            >
+              <AdminOperationsManager />
+            </CollapsibleSection>
+          )}
 
           {/* Manual Resolve (Span 6) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-            className="md:col-span-6 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 shadow-sm dark:shadow-none transition-colors"
-          >
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-3 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-2xl text-emerald-500 dark:text-emerald-400">
-                <Zap className="w-6 h-6" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Manual Market Resolution</h2>
-            </div>
-            <ManualResolveMarkets />
-          </motion.div>
+          {roles.canResolveMarkets && (
+            <CollapsibleSection
+              id="manual-resolve"
+              title="Manual Resolution"
+              icon={Zap}
+              iconColor="bg-emerald-500/10 text-emerald-500"
+              isOpen={openSections.has('manual-resolve')}
+              onToggle={toggleSection}
+              colSpan="md:col-span-6"
+            >
+              <ManualResolveMarkets />
+            </CollapsibleSection>
+          )}
 
           {/* Permissions (Span 6) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
-            className="md:col-span-6 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 shadow-sm dark:shadow-none transition-colors"
-          >
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-3 bg-purple-500/10 dark:bg-purple-500/20 rounded-2xl text-purple-500 dark:text-purple-400">
-                <Users className="w-6 h-6" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Permissions</h2>
-            </div>
-            <AdminManager />
-          </motion.div>
+          {roles.canManagePermissions && (
+            <CollapsibleSection
+              id="permissions"
+              title="Admin Permissions"
+              icon={Users}
+              iconColor="bg-purple-500/10 text-purple-500"
+              isOpen={openSections.has('permissions')}
+              onToggle={toggleSection}
+              colSpan="md:col-span-6"
+            >
+              <AdminManager />
+            </CollapsibleSection>
+          )}
 
           {/* Role Visualization (Span 6) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }}
-            className="md:col-span-6 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 shadow-sm dark:shadow-none transition-colors"
+          <CollapsibleSection
+            id="role-viz"
+            title="Role Matrix"
+            icon={Shield}
+            iconColor="bg-indigo-500/10 text-indigo-500"
+            isOpen={openSections.has('role-viz')}
+            onToggle={toggleSection}
+            colSpan="md:col-span-6"
           >
             <RoleVisualization />
-          </motion.div>
+          </CollapsibleSection>
 
           {/* Role Activity Log (Span 6) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
-            className="md:col-span-6 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 shadow-sm dark:shadow-none transition-colors"
+          <CollapsibleSection
+            id="role-activity"
+            title="Role Activity"
+            icon={History}
+            iconColor="bg-cyan-500/10 text-cyan-500"
+            isOpen={openSections.has('role-activity')}
+            onToggle={toggleSection}
+            colSpan="md:col-span-6"
           >
             <RoleActivityLog />
-          </motion.div>
+          </CollapsibleSection>
 
           {/* System Ledger (Span 12) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}
-            className="md:col-span-12 bg-white/60 dark:bg-gray-900/40 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-[32px] p-8 shadow-sm dark:shadow-none transition-colors"
+          <CollapsibleSection
+            id="market-ledger"
+            title="Global Market Ledger"
+            icon={BarChart3}
+            iconColor="bg-indigo-500/10 text-indigo-500"
+            isOpen={openSections.has('market-ledger')}
+            onToggle={toggleSection}
+            colSpan="md:col-span-12"
           >
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-2xl text-indigo-500 dark:text-indigo-400">
-                  <BarChart3 className="w-6 h-6" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Global Market Ledger</h2>
-              </div>
-              <div className="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700 text-xs font-mono text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                LIVE SYNC
-              </div>
-            </div>
-
             {loading ? (
-              <div className="h-64 flex flex-col items-center justify-center text-gray-500">
-                <div className="w-10 h-10 border-4 border-[#14B8A6] border-t-transparent rounded-full animate-spin mb-4" />
-                <p className="text-sm tracking-widest uppercase">Synchronizing...</p>
+              <div className="h-32 flex flex-col items-center justify-center text-gray-500">
+                <div className="w-8 h-8 border-3 border-[#14B8A6] border-t-transparent rounded-full animate-spin mb-2" />
+                <p className="text-xs">Synchronizing...</p>
               </div>
             ) : (
               <AdminMarketManager markets={markets} />
             )}
-          </motion.div>
+          </CollapsibleSection>
 
         </div>
       </main>

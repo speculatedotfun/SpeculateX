@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import { getAddresses, getNetwork } from '@/lib/contracts';
 import { getCoreAbi } from '@/lib/abis';
+import { useAdminRoles } from '@/lib/useAdminRoles';
 import { formatUnits, encodeAbiParameters, keccak256, stringToBytes } from 'viem';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,6 +43,7 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
   const { pushToast } = useToast();
   const publicClient = usePublicClient();
+  const roles = useAdminRoles();
   const addresses = getAddresses();
   const network = getNetwork();
   const coreAbiForNetwork = getCoreAbi(network);
@@ -255,7 +257,7 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
               <th className="p-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-900 dark:hover:text-white text-right" onClick={() => { setSortField('startTime'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}>
                 <div className="flex items-center justify-end gap-2">Schedule <ArrowUpDown className="w-3 h-3" /></div>
               </th>
-              <th className="p-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Actions</th>
+              <th className="p-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">{roles.canResolveMarkets ? 'Actions' : 'Status'}</th>
 
             </tr>
 
@@ -304,30 +306,41 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
                     <td className="p-4 text-right">
 
                       <div className="flex items-center justify-end gap-2">
-                        {/* Feed Info / Registration */}
-                        {market.status !== 'resolved' && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-500/10"
-                            onClick={() => handleRegisterFeedForMarket(market.id)}
-                            title="Register/Update Feed"
-                          >
-                            <Zap className="w-4 h-4" />
-                          </Button>
-                        )}
-
-                        {(market.status === 'active' || market.status === 'expired') && (
-
+                        {/* Only show action buttons to users with resolve permissions */}
+                        {roles.canResolveMarkets && (
                           <>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-400/10" onClick={() => handleResolve(market, true)} disabled={isPending}>
-                              <CheckCircle className="w-4 h-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-400/10" onClick={() => handleResolve(market, false)} disabled={isPending}>
-                              <XCircle className="w-4 h-4" />
-                            </Button>
+                            {/* Feed Info / Registration */}
+                            {market.status !== 'resolved' && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-500/10"
+                                onClick={() => handleRegisterFeedForMarket(market.id)}
+                                title="Register/Update Feed"
+                              >
+                                <Zap className="w-4 h-4" />
+                              </Button>
+                            )}
+
+                            {(market.status === 'active' || market.status === 'expired') && (
+
+                              <>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-400/10" onClick={() => handleResolve(market, true)} disabled={isPending}>
+                                  <CheckCircle className="w-4 h-4" />
+                                </Button>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-400/10" onClick={() => handleResolve(market, false)} disabled={isPending}>
+                                  <XCircle className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
+                            {market.status === 'expired' && (
+                              <Button size="sm" className="h-8 text-xs bg-orange-500 hover:bg-orange-600 text-white" onClick={() => handleTriggerChainlinkResolution(market.id)}>
+                                Resolve
+                              </Button>
+                            )}
                           </>
                         )}
+                        {/* Status display for resolved markets (visible to all) */}
                         {market.status === 'resolved' && (
                           <div className="flex items-center gap-2">
                             <span className={`text-xs font-bold ${market.yesWins ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
@@ -340,10 +353,9 @@ export default function AdminMarketManager({ markets }: { markets: Market[] }) {
                             )}
                           </div>
                         )}
-                        {market.status === 'expired' && (
-                          <Button size="sm" className="h-8 text-xs bg-orange-500 hover:bg-orange-600 text-white" onClick={() => handleTriggerChainlinkResolution(market.id)}>
-                            Resolve
-                          </Button>
+                        {/* Show dash for users without permissions on active/expired markets */}
+                        {!roles.canResolveMarkets && market.status !== 'resolved' && (
+                          <span className="text-xs text-gray-400">—</span>
                         )}
                       </div>
                     </td>
