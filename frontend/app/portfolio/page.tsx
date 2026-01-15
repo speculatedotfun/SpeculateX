@@ -247,6 +247,10 @@ export default function PortfolioPage() {
     yesWins: r.yesWins ?? undefined
   }));
 
+  const winRate = resolvedPositionsCount > 0
+    ? (claimablePositions.length + claimedPositions.length) / resolvedPositionsCount
+    : 0;
+
   // Chart Data
   const allocationData = [
     { name: 'Active', value: positions.filter(p => p.status === 'Active').reduce((acc, p) => acc + (p.value || 0), 0), color: '#3B82F6' },
@@ -515,9 +519,9 @@ export default function PortfolioPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-lg font-bold tabular-nums text-gray-900 dark:text-white">
-                      {resolvedPositionsCount > 0 ? Math.round((claimablePositions.length + claimedPositions.length) / resolvedPositionsCount * 100) : 0}%
+                      {winRate.toFixed(2)}
                     </span>
-                    {resolvedPositionsCount > 0 && (claimablePositions.length + claimedPositions.length) / resolvedPositionsCount >= 0.5 && (
+                    {resolvedPositionsCount > 0 && winRate >= 0.5 && (
                       <Trophy className="w-4 h-4 text-amber-500" />
                     )}
                   </div>

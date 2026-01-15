@@ -47,6 +47,15 @@ export default function AdminManager() {
   const [validTransferToAddress, setValidTransferToAddress] = useState(false);
   const [loadingAdmins, setLoadingAdmins] = useState(false);
 
+  // Permissions manager (single address)
+  const [permissionsAddress, setPermissionsAddress] = useState('');
+  const [validPermissionsAddress, setValidPermissionsAddress] = useState(false);
+  const [loadingPermissions, setLoadingPermissions] = useState(false);
+  const [permCoreAdmin, setPermCoreAdmin] = useState<boolean | null>(null);
+  const [permMarketCreator, setPermMarketCreator] = useState<boolean | null>(null);
+  const [permTreasuryWithdrawer, setPermTreasuryWithdrawer] = useState<boolean | null>(null);
+  const [permTreasuryAdmin, setPermTreasuryAdmin] = useState<boolean | null>(null);
+
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -148,6 +157,11 @@ export default function AdminManager() {
     const isValid = /^0x[a-fA-F0-9]{40}$/.test(revokeAdminAddress);
     setValidRevokeAddress(isValid);
   }, [revokeAdminAddress]);
+
+  useEffect(() => {
+    const isValid = /^0x[a-fA-F0-9]{40}$/.test(permissionsAddress);
+    setValidPermissionsAddress(isValid);
+  }, [permissionsAddress]);
 
   useEffect(() => {
     const isValid = /^0x[a-fA-F0-9]{40}$/.test(transferFromAddress);
@@ -424,6 +438,160 @@ export default function AdminManager() {
       await refreshTreasuryRoles(target);
     } catch (e: any) {
       pushToast({ title: 'Error', description: e?.message || 'Failed to revoke Treasury roles', type: 'error' });
+    }
+  };
+
+  const refreshPermissions = async (target?: string) => {
+    if (!publicClient) return;
+    const addr = (target || permissionsAddress).trim();
+    if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) return;
+
+    try {
+      setLoadingPermissions(true);
+      const addresses = getAddresses();
+
+      const [hasCoreAdmin, hasCreator] = await Promise.all([
+        publicClient.readContract({
+          address: addresses.core,
+          abi: getCoreAbi(getCurrentNetwork()),
+          functionName: 'hasRole',
+          args: [DEFAULT_ADMIN_ROLE as `0x${string}`, addr as `0x${string}`],
+        }) as Promise<boolean>,
+        publicClient.readContract({
+          address: addresses.core,
+          abi: getCoreAbi(getCurrentNetwork()),
+          functionName: 'hasRole',
+          args: [MARKET_CREATOR_ROLE as `0x${string}`, addr as `0x${string}`],
+        }) as Promise<boolean>,
+      ]);
+
+      setPermCoreAdmin(Boolean(hasCoreAdmin));
+      setPermMarketCreator(Boolean(hasCreator));
+
+      if (!addresses.treasury) {
+        setPermTreasuryWithdrawer(null);
+        setPermTreasuryAdmin(null);
+        return;
+      }
+
+      const [hasWithdrawer, hasTreasuryAdmin] = await Promise.all([
+        publicClient.readContract({
+          address: addresses.treasury,
+          abi: treasuryAbi,
+          functionName: 'hasRole',
+          args: [TREASURY_WITHDRAWER_ROLE as `0x${string}`, addr as `0x${string}`],
+        }) as Promise<boolean>,
+        publicClient.readContract({
+          address: addresses.treasury,
+          abi: treasuryAbi,
+          functionName: 'hasRole',
+          args: [TREASURY_ADMIN_ROLE as `0x${string}`, addr as `0x${string}`],
+        }) as Promise<boolean>,
+      ]);
+
+      setPermTreasuryWithdrawer(Boolean(hasWithdrawer));
+      setPermTreasuryAdmin(Boolean(hasTreasuryAdmin));
+    } catch (e) {
+      console.error('Error checking permissions:', e);
+      pushToast({ title: 'Error', description: 'Failed to check permissions', type: 'error' });
+    } finally {
+      setLoadingPermissions(false);
+    }
+  };
+
+  const handleGrantAllPermissions = async () => {
+    if (!publicClient || !validPermissionsAddress) return;
+    const addr = permissionsAddress.trim();
+    try {
+      const addresses = getAddresses();
+      pushToast({ title: 'Granting All Roles', description: 'Confirm the transactions…', type: 'info' });
+
+      const h1 = await addAdminAsync({
+        address: addresses.core,
+        abi: getCoreAbi(getCurrentNetwork()),
+        functionName: 'grantRole',
+        args: [DEFAULT_ADMIN_ROLE as `0x${string}`, addr as `0x${string}`],
+      });
+      await publicClient.waitForTransactionReceipt({ hash: h1 });
+
+      const h2 = await addAdminAsync({
+        address: addresses.core,
+        abi: getCoreAbi(getCurrentNetwork()),
+        functionName: 'grantRole',
+        args: [MARKET_CREATOR_ROLE as `0x${string}`, addr as `0x${string}`],
+      });
+      await publicClient.waitForTransactionReceipt({ hash: h2 });
+
+      if (addresses.treasury) {
+        const h3 = await treasuryGrantRoleAsync({
+          address: addresses.treasury,
+          abi: treasuryAbi,
+          functionName: 'grantRole',
+          args: [TREASURY_WITHDRAWER_ROLE, addr as `0x${string}`],
+        });
+        await publicClient.waitForTransactionReceipt({ hash: h3 });
+
+        const h4 = await treasuryGrantRoleAsync({
+          address: addresses.treasury,
+          abi: treasuryAbi,
+          functionName: 'grantRole',
+          args: [TREASURY_ADMIN_ROLE, addr as `0x${string}`],
+        });
+        await publicClient.waitForTransactionReceipt({ hash: h4 });
+      }
+
+      pushToast({ title: 'Success', description: 'All roles granted.', type: 'success' });
+      await refreshPermissions(addr);
+    } catch (e: any) {
+      pushToast({ title: 'Error', description: e?.message || 'Failed to grant permissions', type: 'error' });
+    }
+  };
+
+  const handleRevokeAllPermissions = async () => {
+    if (!publicClient || !validPermissionsAddress) return;
+    const addr = permissionsAddress.trim();
+    try {
+      const addresses = getAddresses();
+      pushToast({ title: 'Revoking All Roles', description: 'Confirm the transactions…', type: 'info' });
+
+      const h1 = await revokeAdminAsync({
+        address: addresses.core,
+        abi: getCoreAbi(getCurrentNetwork()),
+        functionName: 'revokeRole',
+        args: [DEFAULT_ADMIN_ROLE as `0x${string}`, addr as `0x${string}`],
+      });
+      await publicClient.waitForTransactionReceipt({ hash: h1 });
+
+      const h2 = await revokeAdminAsync({
+        address: addresses.core,
+        abi: getCoreAbi(getCurrentNetwork()),
+        functionName: 'revokeRole',
+        args: [MARKET_CREATOR_ROLE as `0x${string}`, addr as `0x${string}`],
+      });
+      await publicClient.waitForTransactionReceipt({ hash: h2 });
+
+      if (addresses.treasury) {
+        const h3 = await treasuryRevokeRoleAsync({
+          address: addresses.treasury,
+          abi: treasuryAbi,
+          functionName: 'revokeRole',
+          args: [TREASURY_WITHDRAWER_ROLE, addr as `0x${string}`],
+        });
+        await publicClient.waitForTransactionReceipt({ hash: h3 });
+
+        const h4 = await treasuryRevokeRoleAsync({
+          address: addresses.treasury,
+          abi: treasuryAbi,
+          functionName: 'revokeRole',
+          args: [TREASURY_ADMIN_ROLE, addr as `0x${string}`],
+        });
+        await publicClient.waitForTransactionReceipt({ hash: h4 });
+      }
+
+      pushToast({ title: 'Success', description: 'All roles revoked.', type: 'success' });
+      await refreshPermissions(addr);
+    } catch (e: any) {
+      pushToast({ title: 'Error', description: e?.message || 'Failed to revoke permissions', type: 'error' });
     }
   };
 
@@ -725,10 +893,32 @@ export default function AdminManager() {
 
       if (creatorHash) {
         await publicClient.waitForTransactionReceipt({ hash: creatorHash });
-        pushToast({ title: 'Success', description: 'Admin roles revoked successfully!', type: 'success' });
-        setRevokeAdminAddress('');
-        await loadCurrentAdmins(); // Refresh admin list
       }
+
+      // Revoke Treasury roles (if Treasury configured)
+      if (addresses.treasury) {
+        pushToast({ title: 'Revoking Treasury Roles', description: 'Removing treasury permissions...', type: 'info' });
+
+        const h1 = await treasuryRevokeRoleAsync({
+          address: addresses.treasury,
+          abi: treasuryAbi,
+          functionName: 'revokeRole',
+          args: [TREASURY_WITHDRAWER_ROLE, revokeAdminAddress as `0x${string}`],
+        });
+        await publicClient.waitForTransactionReceipt({ hash: h1 });
+
+        const h2 = await treasuryRevokeRoleAsync({
+          address: addresses.treasury,
+          abi: treasuryAbi,
+          functionName: 'revokeRole',
+          args: [TREASURY_ADMIN_ROLE, revokeAdminAddress as `0x${string}`],
+        });
+        await publicClient.waitForTransactionReceipt({ hash: h2 });
+      }
+
+      pushToast({ title: 'Success', description: 'Admin roles revoked successfully!', type: 'success' });
+      setRevokeAdminAddress('');
+      await loadCurrentAdmins(); // Refresh admin list
     } catch (e: any) {
       pushToast({ title: 'Error', description: e.message || 'Failed to revoke roles', type: 'error' });
     }
@@ -1020,6 +1210,48 @@ export default function AdminManager() {
     });
   };
 
+  const confirmGrantAllPermissions = () => {
+    if (!validPermissionsAddress) return;
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Grant All Permissions',
+      description: 'You are about to grant ALL core and treasury roles to this address.',
+      type: 'warning',
+      addressDisplay: permissionsAddress,
+      roleInfo: 'DEFAULT_ADMIN_ROLE + MARKET_CREATOR_ROLE + WITHDRAWER_ROLE + ADMIN_ROLE',
+      onConfirm: async () => {
+        setConfirmLoading(true);
+        try {
+          await handleGrantAllPermissions();
+        } finally {
+          setConfirmLoading(false);
+          setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        }
+      },
+    });
+  };
+
+  const confirmRevokeAllPermissions = () => {
+    if (!validPermissionsAddress) return;
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Revoke All Permissions',
+      description: 'You are about to revoke ALL core and treasury roles from this address.',
+      type: 'danger',
+      addressDisplay: permissionsAddress,
+      roleInfo: 'DEFAULT_ADMIN_ROLE + MARKET_CREATOR_ROLE + WITHDRAWER_ROLE + ADMIN_ROLE',
+      onConfirm: async () => {
+        setConfirmLoading(true);
+        try {
+          await handleRevokeAllPermissions();
+        } finally {
+          setConfirmLoading(false);
+          setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        }
+      },
+    });
+  };
+
 
   if (isLoading) {
     return (
@@ -1266,6 +1498,303 @@ export default function AdminManager() {
         </div>
 
         {!validTreasuryRoleAddress && treasuryRoleAddress.length > 0 && (
+          <p className="text-xs text-red-500 dark:text-red-400 ml-1">Invalid Ethereum address format</p>
+        )}
+      </div>
+
+      {/* Admin Permissions (All Roles) */}
+      <div className="space-y-2 pt-4 border-t border-gray-200 dark:border-white/5">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 block">
+            Admin Permissions (All Roles)
+          </label>
+          <Button
+            onClick={() => refreshPermissions()}
+            disabled={!validPermissionsAddress || loadingPermissions}
+            variant="ghost"
+            size="sm"
+            className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+          >
+            {loadingPermissions ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Database className="w-3 h-3 mr-1" />}
+            Check
+          </Button>
+        </div>
+
+        <p className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+          Manage all core + treasury permissions for a single address from one place.
+        </p>
+
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Input
+              value={permissionsAddress}
+              onChange={(e) => setPermissionsAddress(e.target.value)}
+              placeholder="0x... (address to manage)"
+              className="font-mono pr-10 bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:ring-blue-500"
+              aria-label="Address to manage permissions"
+            />
+            <AnimatePresence>
+              {validPermissionsAddress && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                >
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          <Button
+            onClick={confirmGrantAllPermissions}
+            disabled={!validPermissionsAddress}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white min-w-[110px]"
+          >
+            Grant All
+          </Button>
+          <Button
+            onClick={confirmRevokeAllPermissions}
+            disabled={!validPermissionsAddress}
+            className="bg-red-600 hover:bg-red-700 text-white min-w-[110px]"
+          >
+            Revoke All
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 bg-white/60 dark:bg-gray-900/30 p-3">
+            <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              CORE: DEFAULT_ADMIN_ROLE
+            </div>
+            <div className="mt-1 text-sm font-bold text-gray-900 dark:text-white">
+              {permCoreAdmin === null ? '—' : permCoreAdmin ? '✅ Granted' : '❌ Not granted'}
+            </div>
+            <div className="mt-2 flex gap-2">
+              <Button
+                onClick={async () => {
+                  if (!publicClient || !validPermissionsAddress) return;
+                  const addr = permissionsAddress.trim();
+                  const addresses = getAddresses();
+                  try {
+                    const h = await addAdminAsync({
+                      address: addresses.core,
+                      abi: getCoreAbi(getCurrentNetwork()),
+                      functionName: 'grantRole',
+                      args: [DEFAULT_ADMIN_ROLE as `0x${string}`, addr as `0x${string}`],
+                    });
+                    await publicClient.waitForTransactionReceipt({ hash: h });
+                    await refreshPermissions(addr);
+                  } catch (e: any) {
+                    pushToast({ title: 'Error', description: e?.message || 'Failed to grant DEFAULT_ADMIN_ROLE', type: 'error' });
+                  }
+                }}
+                disabled={!validPermissionsAddress}
+                className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                Grant
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!publicClient || !validPermissionsAddress) return;
+                  const addr = permissionsAddress.trim();
+                  const addresses = getAddresses();
+                  try {
+                    const h = await revokeAdminAsync({
+                      address: addresses.core,
+                      abi: getCoreAbi(getCurrentNetwork()),
+                      functionName: 'revokeRole',
+                      args: [DEFAULT_ADMIN_ROLE as `0x${string}`, addr as `0x${string}`],
+                    });
+                    await publicClient.waitForTransactionReceipt({ hash: h });
+                    await refreshPermissions(addr);
+                  } catch (e: any) {
+                    pushToast({ title: 'Error', description: e?.message || 'Failed to revoke DEFAULT_ADMIN_ROLE', type: 'error' });
+                  }
+                }}
+                disabled={!validPermissionsAddress}
+                className="h-8 bg-red-600 hover:bg-red-700 text-white"
+              >
+                Revoke
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 bg-white/60 dark:bg-gray-900/30 p-3">
+            <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              CORE: MARKET_CREATOR_ROLE
+            </div>
+            <div className="mt-1 text-sm font-bold text-gray-900 dark:text-white">
+              {permMarketCreator === null ? '—' : permMarketCreator ? '✅ Granted' : '❌ Not granted'}
+            </div>
+            <div className="mt-2 flex gap-2">
+              <Button
+                onClick={async () => {
+                  if (!publicClient || !validPermissionsAddress) return;
+                  const addr = permissionsAddress.trim();
+                  const addresses = getAddresses();
+                  try {
+                    const h = await addAdminAsync({
+                      address: addresses.core,
+                      abi: getCoreAbi(getCurrentNetwork()),
+                      functionName: 'grantRole',
+                      args: [MARKET_CREATOR_ROLE as `0x${string}`, addr as `0x${string}`],
+                    });
+                    await publicClient.waitForTransactionReceipt({ hash: h });
+                    await refreshPermissions(addr);
+                  } catch (e: any) {
+                    pushToast({ title: 'Error', description: e?.message || 'Failed to grant MARKET_CREATOR_ROLE', type: 'error' });
+                  }
+                }}
+                disabled={!validPermissionsAddress}
+                className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                Grant
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!publicClient || !validPermissionsAddress) return;
+                  const addr = permissionsAddress.trim();
+                  const addresses = getAddresses();
+                  try {
+                    const h = await revokeAdminAsync({
+                      address: addresses.core,
+                      abi: getCoreAbi(getCurrentNetwork()),
+                      functionName: 'revokeRole',
+                      args: [MARKET_CREATOR_ROLE as `0x${string}`, addr as `0x${string}`],
+                    });
+                    await publicClient.waitForTransactionReceipt({ hash: h });
+                    await refreshPermissions(addr);
+                  } catch (e: any) {
+                    pushToast({ title: 'Error', description: e?.message || 'Failed to revoke MARKET_CREATOR_ROLE', type: 'error' });
+                  }
+                }}
+                disabled={!validPermissionsAddress}
+                className="h-8 bg-red-600 hover:bg-red-700 text-white"
+              >
+                Revoke
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 bg-white/60 dark:bg-gray-900/30 p-3">
+            <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              TREASURY: WITHDRAWER_ROLE
+            </div>
+            <div className="mt-1 text-sm font-bold text-gray-900 dark:text-white">
+              {permTreasuryWithdrawer === null ? '—' : permTreasuryWithdrawer ? '✅ Granted' : '❌ Not granted'}
+            </div>
+            <div className="mt-2 flex gap-2">
+              <Button
+                onClick={async () => {
+                  if (!publicClient || !validPermissionsAddress) return;
+                  const addr = permissionsAddress.trim();
+                  const addresses = getAddresses();
+                  if (!addresses.treasury) return;
+                  try {
+                    const h = await treasuryGrantRoleAsync({
+                      address: addresses.treasury,
+                      abi: treasuryAbi,
+                      functionName: 'grantRole',
+                      args: [TREASURY_WITHDRAWER_ROLE, addr as `0x${string}`],
+                    });
+                    await publicClient.waitForTransactionReceipt({ hash: h });
+                    await refreshPermissions(addr);
+                  } catch (e: any) {
+                    pushToast({ title: 'Error', description: e?.message || 'Failed to grant WITHDRAWER_ROLE', type: 'error' });
+                  }
+                }}
+                disabled={!validPermissionsAddress}
+                className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                Grant
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!publicClient || !validPermissionsAddress) return;
+                  const addr = permissionsAddress.trim();
+                  const addresses = getAddresses();
+                  if (!addresses.treasury) return;
+                  try {
+                    const h = await treasuryRevokeRoleAsync({
+                      address: addresses.treasury,
+                      abi: treasuryAbi,
+                      functionName: 'revokeRole',
+                      args: [TREASURY_WITHDRAWER_ROLE, addr as `0x${string}`],
+                    });
+                    await publicClient.waitForTransactionReceipt({ hash: h });
+                    await refreshPermissions(addr);
+                  } catch (e: any) {
+                    pushToast({ title: 'Error', description: e?.message || 'Failed to revoke WITHDRAWER_ROLE', type: 'error' });
+                  }
+                }}
+                disabled={!validPermissionsAddress}
+                className="h-8 bg-red-600 hover:bg-red-700 text-white"
+              >
+                Revoke
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 bg-white/60 dark:bg-gray-900/30 p-3">
+            <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              TREASURY: ADMIN_ROLE
+            </div>
+            <div className="mt-1 text-sm font-bold text-gray-900 dark:text-white">
+              {permTreasuryAdmin === null ? '—' : permTreasuryAdmin ? '✅ Granted' : '❌ Not granted'}
+            </div>
+            <div className="mt-2 flex gap-2">
+              <Button
+                onClick={async () => {
+                  if (!publicClient || !validPermissionsAddress) return;
+                  const addr = permissionsAddress.trim();
+                  const addresses = getAddresses();
+                  if (!addresses.treasury) return;
+                  try {
+                    const h = await treasuryGrantRoleAsync({
+                      address: addresses.treasury,
+                      abi: treasuryAbi,
+                      functionName: 'grantRole',
+                      args: [TREASURY_ADMIN_ROLE, addr as `0x${string}`],
+                    });
+                    await publicClient.waitForTransactionReceipt({ hash: h });
+                    await refreshPermissions(addr);
+                  } catch (e: any) {
+                    pushToast({ title: 'Error', description: e?.message || 'Failed to grant ADMIN_ROLE', type: 'error' });
+                  }
+                }}
+                disabled={!validPermissionsAddress}
+                className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                Grant
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!publicClient || !validPermissionsAddress) return;
+                  const addr = permissionsAddress.trim();
+                  const addresses = getAddresses();
+                  if (!addresses.treasury) return;
+                  try {
+                    const h = await treasuryRevokeRoleAsync({
+                      address: addresses.treasury,
+                      abi: treasuryAbi,
+                      functionName: 'revokeRole',
+                      args: [TREASURY_ADMIN_ROLE, addr as `0x${string}`],
+                    });
+                    await publicClient.waitForTransactionReceipt({ hash: h });
+                    await refreshPermissions(addr);
+                  } catch (e: any) {
+                    pushToast({ title: 'Error', description: e?.message || 'Failed to revoke ADMIN_ROLE', type: 'error' });
+                  }
+                }}
+                disabled={!validPermissionsAddress}
+                className="h-8 bg-red-600 hover:bg-red-700 text-white"
+              >
+                Revoke
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {!validPermissionsAddress && permissionsAddress.length > 0 && (
           <p className="text-xs text-red-500 dark:text-red-400 ml-1">Invalid Ethereum address format</p>
         )}
       </div>
