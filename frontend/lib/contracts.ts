@@ -28,14 +28,11 @@ const MAINNET_ADDRESSES = {
   startBlock: BigInt(String(process.env.NEXT_PUBLIC_MAINNET_START_BLOCK || '73821951')),
   // Mainnet uses Diamond architecture (Router + Facets)
   facets: {
-    market: (process.env.NEXT_PUBLIC_MAINNET_FACET_MARKET ??
-      '0x8aE4e9fAA34aFA70cf7D01239f1fB87b1ea303e7') as `0x${string}`,
-    trading: (process.env.NEXT_PUBLIC_MAINNET_FACET_TRADING ??
-      '0x55390A0AAc12b1FD765969e3B5A9Ee51894E8830') as `0x${string}`,
-    liquidity: (process.env.NEXT_PUBLIC_MAINNET_FACET_LIQUIDITY ??
-      '0x5A5350E102C3224024901ad9379Baf9af4FBAb87') as `0x${string}`,
-    settlement: (process.env.NEXT_PUBLIC_MAINNET_FACET_SETTLEMENT ??
-      '0xc12560a00609FFd23110a5630497d4926da4d83D') as `0x${string}`,
+    // Keep these in sync with the Core's facetOf mappings on mainnet.
+    market: '0x8aE4e9fAA34aFA70cf7D01239f1fB87b1ea303e7' as `0x${string}`,
+    trading: '0x55390A0AAc12b1FD765969e3B5A9Ee51894E8830' as `0x${string}`,
+    liquidity: '0x5A5350E102C3224024901ad9379Baf9af4FBAb87' as `0x${string}`,
+    settlement: '0xc12560a00609FFd23110a5630497d4926da4d83D' as `0x${string}`,
   },
 };
 

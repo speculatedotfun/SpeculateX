@@ -56,6 +56,16 @@ export default function AdminManager() {
   const [permTreasuryWithdrawer, setPermTreasuryWithdrawer] = useState<boolean | null>(null);
   const [permTreasuryAdmin, setPermTreasuryAdmin] = useState<boolean | null>(null);
 
+  // Facet wiring checks (core selector -> facet)
+  const [facetChecksLoading, setFacetChecksLoading] = useState(false);
+  const [facetChecks, setFacetChecks] = useState<Array<{
+    label: string;
+    selector: `0x${string}`;
+    expectedFacet?: string;
+    mappedFacet?: string;
+    ok?: boolean;
+  }>>([]);
+
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -438,6 +448,80 @@ export default function AdminManager() {
       await refreshTreasuryRoles(target);
     } catch (e: any) {
       pushToast({ title: 'Error', description: e?.message || 'Failed to revoke Treasury roles', type: 'error' });
+    }
+  };
+
+  const selectorFromSig = (sig: string): `0x${string}` => {
+    return (`0x${keccak256(stringToBytes(sig)).slice(2, 10)}`) as `0x${string}`;
+  };
+
+  const runFacetWiringChecks = async () => {
+    if (!publicClient) return;
+    try {
+      setFacetChecksLoading(true);
+      const addresses = getAddresses();
+      const coreAddr = addresses.core;
+
+      const checks = [
+        {
+          label: 'MarketFacet.createMarket',
+          selector: selectorFromSig('createMarket(string,string,string,string,string,uint256,uint256,address,bytes32,uint256,uint8)'),
+          expectedFacet: addresses.facets?.market,
+        },
+        {
+          label: 'TradingFacet.buy',
+          selector: selectorFromSig('buy(uint256,bool,uint256,uint256,uint256)'),
+          expectedFacet: addresses.facets?.trading,
+        },
+        {
+          label: 'LiquidityFacet.addLiquidity',
+          selector: selectorFromSig('addLiquidity(uint256,uint256)'),
+          expectedFacet: addresses.facets?.liquidity,
+        },
+        {
+          label: 'SettlementFacet.redeem',
+          selector: selectorFromSig('redeem(uint256,bool)'),
+          expectedFacet: addresses.facets?.settlement,
+        },
+      ];
+
+      const facetOfAbi = [
+        {
+          name: 'facetOf',
+          type: 'function',
+          stateMutability: 'view',
+          inputs: [{ name: 'selector', type: 'bytes4' }],
+          outputs: [{ type: 'address' }],
+        },
+      ] as const;
+
+      const results = await Promise.all(
+        checks.map(async (check) => {
+          let mappedFacet: string | undefined;
+          try {
+            mappedFacet = await publicClient.readContract({
+              address: coreAddr,
+              abi: facetOfAbi,
+              functionName: 'facetOf',
+              args: [check.selector],
+            }) as `0x${string}`;
+          } catch (e) {
+            mappedFacet = undefined;
+          }
+
+          const ok = !!mappedFacet && !!check.expectedFacet &&
+            mappedFacet.toLowerCase() === check.expectedFacet.toLowerCase();
+
+          return { ...check, mappedFacet, ok };
+        })
+      );
+
+      setFacetChecks(results);
+    } catch (e) {
+      console.error('Facet check failed:', e);
+      pushToast({ title: 'Error', description: 'Failed to check facet wiring', type: 'error' });
+    } finally {
+      setFacetChecksLoading(false);
     }
   };
 
@@ -1500,6 +1584,61 @@ export default function AdminManager() {
         {!validTreasuryRoleAddress && treasuryRoleAddress.length > 0 && (
           <p className="text-xs text-red-500 dark:text-red-400 ml-1">Invalid Ethereum address format</p>
         )}
+      </div>
+
+      {/* Facet Wiring Check */}
+      <div className="space-y-2 pt-4 border-t border-gray-200 dark:border-white/5">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 block">
+            Facet Wiring Check
+          </label>
+          <Button
+            onClick={runFacetWiringChecks}
+            disabled={facetChecksLoading}
+            variant="ghost"
+            size="sm"
+            className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+          >
+            {facetChecksLoading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Database className="w-3 h-3 mr-1" />}
+            Check
+          </Button>
+        </div>
+
+        <p className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+          Verifies that key selectors are mapped to the expected facets in the Core router.
+        </p>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+          {facetChecks.length === 0 && (
+            <div className="rounded-lg border border-gray-200 dark:border-white/10 bg-white/60 dark:bg-gray-900/30 p-3 text-xs text-gray-500 dark:text-gray-400">
+              Click “Check” to verify facet wiring.
+            </div>
+          )}
+
+          {facetChecks.map((check) => (
+            <div key={check.label} className="rounded-lg border border-gray-200 dark:border-white/10 bg-white/60 dark:bg-gray-900/30 p-3">
+              <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                {check.label}
+              </div>
+              <div className="mt-1 text-xs font-mono text-gray-600 dark:text-gray-300">
+                selector: {check.selector}
+              </div>
+              <div className="mt-2 text-xs text-gray-600 dark:text-gray-300">
+                expected: <span className="font-mono">{check.expectedFacet ?? '—'}</span>
+              </div>
+              <div className="mt-1 text-xs text-gray-600 dark:text-gray-300">
+                mapped: <span className="font-mono">{check.mappedFacet ?? '—'}</span>
+              </div>
+              <div className="mt-2 text-sm font-bold">
+                {check.ok ? (
+                  <span className="text-emerald-600 dark:text-emerald-400">✅ Connected</span>
+                ) : (
+                  <span className="text-red-600 dark:text-red-400">❌ Not connected</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Admin Permissions (All Roles) */}
