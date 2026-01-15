@@ -2,8 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchSubgraph } from '@/lib/subgraphClient';
 import { readContracts } from 'wagmi/actions';
 import { config } from '@/lib/wagmi';
-import { useAddresses } from '@/lib/contracts';
-import { coreAbi } from '@/lib/abis';
+import { useAddresses, getCurrentNetwork, getChainId } from '@/lib/contracts';
+import { getCoreAbi } from '@/lib/abis';
 import { formatUnits } from 'viem';
 import type { MarketCardData } from '@/components/market/MarketCard';
 
@@ -18,8 +18,13 @@ function chunkArray<T>(array: T[], size: number): T[][] {
 
 export function useMarketsListOptimized() {
     const addresses = useAddresses();
+    const network = getCurrentNetwork();
+    const chainId = getChainId();
+    const coreAbi = getCoreAbi(network);
+    
     return useQuery({
-        queryKey: ['marketsListOptimized'],
+        // Include core address in queryKey so cache is invalidated when network changes
+        queryKey: ['marketsListOptimized', addresses.core],
         queryFn: async () => {
             // 1. Fetch Subgraph Data (List of markets + Sparkline history)
             // fetching more than needed to allow for client-side filtering
@@ -66,7 +71,7 @@ export function useMarketsListOptimized() {
                 ]);
 
                 const results = await readContracts(config, {
-                    contracts: calls,
+                    contracts: calls.map(call => ({ ...call, chainId })),
                     allowFailure: true
                 });
 

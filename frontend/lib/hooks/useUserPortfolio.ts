@@ -5,8 +5,8 @@ import { formatUnits } from 'viem';
 import { getMarketState, getSpotPriceYesE6, getMarket, getMarketCount, getMarketResolution } from '@/lib/hooks';
 import { readContracts } from 'wagmi/actions';
 import { config } from '@/lib/wagmi';
-import { useAddresses } from '@/lib/contracts';
-import { positionTokenAbi, coreAbi } from '@/lib/abis';
+import { useAddresses, getCurrentNetwork, getChainId } from '@/lib/contracts';
+import { positionTokenAbi, getCoreAbi } from '@/lib/abis';
 
 export interface PortfolioPosition {
   marketId: number;
@@ -61,10 +61,14 @@ function chunkArray<T>(array: T[], size: number): T[][] {
 export function useUserPortfolio() {
   const { address } = useAccount();
   const addresses = useAddressesSnapshot();
+  const network = getCurrentNetwork();
+  const chainId = getChainId();
+  const coreAbi = getCoreAbi(network);
   const userId = address?.toLowerCase();
 
   return useQuery({
-    queryKey: ['userPortfolioOptimized', userId],
+    // Include core address in queryKey so cache is invalidated when network changes
+    queryKey: ['userPortfolioOptimized', userId, addresses.core],
     enabled: !!userId && !!address,
     queryFn: async () => {
       if (!userId || !address) throw new Error('No user');
@@ -183,7 +187,7 @@ export function useUserPortfolio() {
         ]);
 
         const results = await readContracts(config, {
-          contracts: calls,
+          contracts: calls.map(call => ({ ...call, chainId })),
           allowFailure: true
         });
 
@@ -250,7 +254,7 @@ export function useUserPortfolio() {
       const balanceResults: any[] = [];
 
       for (const chunk of balanceChunks) {
-        const res = await readContracts(config, { contracts: chunk, allowFailure: true });
+        const res = await readContracts(config, { contracts: chunk.map(c => ({ ...c, chainId })), allowFailure: true });
         balanceResults.push(...res);
       }
 

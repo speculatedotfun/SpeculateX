@@ -14,8 +14,10 @@ export interface LeaderboardUser {
 }
 
 export function useLeaderboard() {
+  const network = getCurrentNetwork();
   return useQuery({
-    queryKey: ['leaderboard'],
+    // Include network in queryKey so cache is invalidated when network changes
+    queryKey: ['leaderboard', network],
     queryFn: async () => {
       let users: LeaderboardUser[] = [];
       try {

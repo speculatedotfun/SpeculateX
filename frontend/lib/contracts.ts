@@ -18,7 +18,7 @@ const MAINNET_ADDRESSES = {
   core: (process.env.NEXT_PUBLIC_MAINNET_CORE ??
     '0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365') as `0x${string}`,
   usdc: (process.env.NEXT_PUBLIC_MAINNET_USDC ??
-    '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d') as `0x${string}`, // Real USDC on BSC (use this, not MockUSDC)
+    '0x5fE1972Cb9D1b5040ccEF327E78cC0F47A71cb62') as `0x${string}`, // Mock USDC (6 decimals) - matches what Core contract was deployed with
   chainlinkResolver: (process.env.NEXT_PUBLIC_MAINNET_RESOLVER ??
     '0xe11c1Dc5768858732d4a255A3baE579860780AE2') as `0x${string}`,
   treasury: (process.env.NEXT_PUBLIC_MAINNET_TREASURY ??

@@ -20,7 +20,7 @@ import { useUserPortfolio, type PortfolioPosition, type PortfolioTrade } from '@
 import { useNicknames, getDisplayName } from '@/lib/hooks/useNicknames';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { coreAbi, positionTokenAbi } from '@/lib/abis';
-import { useAddresses } from '@/lib/contracts';
+import { addresses } from '@/lib/contracts';
 import { useWriteContract, usePublicClient, useReadContract } from 'wagmi';
 import { getMarketResolution } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
@@ -59,7 +59,6 @@ const formatNumber = (value: number) => {
 type PortfolioTab = 'positions' | 'history' | 'claims' | 'faucet';
 
 export default function PortfolioPage() {
-  const addresses = useAddresses();
   const { isConnected, address, chain } = useAccount();
   const { nicknames, fetchUsernamesBulk } = useNicknames();
   const { data, isLoading, refetch, isRefetching } = useUserPortfolio();
@@ -246,10 +245,6 @@ export default function PortfolioPage() {
     marketResolved: true,
     yesWins: r.yesWins ?? undefined
   }));
-
-  const winRate = resolvedPositionsCount > 0
-    ? (claimablePositions.length + claimedPositions.length) / resolvedPositionsCount
-    : 0;
 
   // Chart Data
   const allocationData = [
@@ -519,9 +514,9 @@ export default function PortfolioPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-lg font-bold tabular-nums text-gray-900 dark:text-white">
-                      {winRate.toFixed(2)}
+                      {resolvedPositionsCount > 0 ? Math.round((claimablePositions.length + claimedPositions.length) / resolvedPositionsCount * 100) : 0}%
                     </span>
-                    {resolvedPositionsCount > 0 && winRate >= 0.5 && (
+                    {resolvedPositionsCount > 0 && (claimablePositions.length + claimedPositions.length) / resolvedPositionsCount >= 0.5 && (
                       <Trophy className="w-4 h-4 text-amber-500" />
                     )}
                   </div>
