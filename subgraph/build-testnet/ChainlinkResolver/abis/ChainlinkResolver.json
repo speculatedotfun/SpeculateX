@@ -1,0 +1,182 @@
+[
+  {
+    "type": "event",
+    "name": "OpScheduled",
+    "inputs": [
+      {
+        "name": "opId",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "tag",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "readyAt",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OpExecuted",
+    "inputs": [
+      {
+        "name": "opId",
+        "type": "bytes32",
+        "indexed": true
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OpCancelled",
+    "inputs": [
+      {
+        "name": "opId",
+        "type": "bytes32",
+        "indexed": true
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CoreUpdated",
+    "inputs": [
+      {
+        "name": "newCore",
+        "type": "address",
+        "indexed": true
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MaxStalenessUpdated",
+    "inputs": [
+      {
+        "name": "newMaxStaleness",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "TimelockDelayUpdated",
+    "inputs": [
+      {
+        "name": "newDelay",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MarketResolved",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "indexed": true
+      },
+      {
+        "name": "feed",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "price",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "updatedAt",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MarketResolvedTwap",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "indexed": true
+      },
+      {
+        "name": "feed",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "twapPrice",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "windowStart",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "windowEnd",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MarketResolvedLate",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "indexed": true
+      },
+      {
+        "name": "feed",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "updatedAt",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "UpkeepPayload",
+    "inputs": [
+      {
+        "name": "len",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "w0",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  }
+]

@@ -1,0 +1,97 @@
+[
+  {
+    "type": "event",
+    "name": "Withdraw",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "LargeWithdrawScheduled",
+    "inputs": [
+      {
+        "name": "opId",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "readyAt",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "LargeWithdrawCancelled",
+    "inputs": [
+      {
+        "name": "opId",
+        "type": "bytes32",
+        "indexed": true
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "LargeWithdrawExecuted",
+    "inputs": [
+      {
+        "name": "opId",
+        "type": "bytes32",
+        "indexed": true
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DailyLimitUpdated",
+    "inputs": [
+      {
+        "name": "oldLimit",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "newLimit",
+        "type": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  }
+]
