@@ -18,7 +18,7 @@ contract TreasuryTest is Test {
 
     function setUp() public {
         usdc = new MockUSDC(admin);
-        treasury = new Treasury(admin, INITIAL_DAILY_LIMIT);
+        treasury = new Treasury(admin, INITIAL_DAILY_LIMIT, 6);
 
         // Grant withdrawer role to withdrawer address
         treasury.grantRole(treasury.WITHDRAWER_ROLE(), withdrawer);
@@ -41,7 +41,7 @@ contract TreasuryTest is Test {
 
     function test_constructor_revertsOnZeroAdmin() public {
         vm.expectRevert(Treasury.ZeroAddress.selector);
-        new Treasury(address(0), INITIAL_DAILY_LIMIT);
+        new Treasury(address(0), INITIAL_DAILY_LIMIT, 6);
     }
 
     // ============================================

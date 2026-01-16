@@ -8,6 +8,7 @@ import {MarketFacet} from "../src/facets/MarketFacet.sol";
 import {TradingFacet} from "../src/facets/TradingFacet.sol";
 import {LiquidityFacet} from "../src/facets/LiquidityFacet.sol";
 import {SettlementFacet} from "../src/facets/SettlementFacet.sol";
+import {AdminFacet} from "../src/facets/AdminFacet.sol";
 
 import {MockUSDC} from "../src/MockUSDC.sol";
 import {Treasury} from "../src/Treasury.sol";
@@ -18,6 +19,7 @@ contract DeploySpeculateX is Script {
     // - PRIVATE_KEY: deployer key (must have BNB for gas)
     // - ADMIN_ADDRESS: multisig/owner (recommended; defaults to deployer if omitted)
     // - USDC_ADDRESS: real USDC for mainnet (required unless DEPLOY_MOCK_USDC=true)
+    // - USDC_DECIMALS: token decimals (default 6 for mock, 18 for mainnet)
     // - DEPLOY_MOCK_USDC: "true" to deploy MockUSDC (testnet/local only)
     // - CORE_TIMELOCK_DELAY: seconds (default 24h on mainnet, 0 on testnets)
     // - TREASURY_DAILY_LIMIT: uint (default 50_000e6)
@@ -55,7 +57,11 @@ contract DeploySpeculateX is Script {
         bool deployMock = vm.envOr("DEPLOY_MOCK_USDC", false);
         uint256 defaultDelay = block.chainid == 56 ? 24 hours : 0; // 24h for mainnet, 0 for testnet
         uint256 timelockDelay = vm.envOr("CORE_TIMELOCK_DELAY", defaultDelay);
-        uint256 treasuryDailyLimit = vm.envOr("TREASURY_DAILY_LIMIT", uint256(50_000e6));
+        uint256 usdcDecimalsRaw = vm.envOr("USDC_DECIMALS", uint256(deployMock ? 6 : 18));
+        if (usdcDecimalsRaw > type(uint8).max) revert("USDC_DECIMALS too large");
+        uint8 usdcDecimals = uint8(usdcDecimalsRaw);
+        uint256 unit = 10 ** uint256(usdcDecimals);
+        uint256 treasuryDailyLimit = vm.envOr("TREASURY_DAILY_LIMIT", uint256(50_000 * unit));
 
         vm.startBroadcast(pk);
 
@@ -69,7 +75,7 @@ contract DeploySpeculateX is Script {
         console.log("");
 
         // ============ Deploy ============
-        Treasury treasury = new Treasury(tempAdmin, treasuryDailyLimit);
+        Treasury treasury = new Treasury(tempAdmin, treasuryDailyLimit, usdcDecimals);
         console.log("Treasury:", address(treasury));
 
         address usdcAddr;
@@ -83,7 +89,7 @@ contract DeploySpeculateX is Script {
         }
 
         SpeculateCoreRouter core = new SpeculateCoreRouter(
-            tempAdmin, usdcAddr, address(treasury), timelockDelay
+            tempAdmin, usdcAddr, usdcDecimals, address(treasury), timelockDelay
         );
         console.log("Core Router:", address(core));
 
@@ -94,11 +100,13 @@ contract DeploySpeculateX is Script {
         TradingFacet tradingFacet = new TradingFacet();
         LiquidityFacet liquidityFacet = new LiquidityFacet();
         SettlementFacet settlementFacet = new SettlementFacet();
+        AdminFacet adminFacet = new AdminFacet();
         
         console.log("MarketFacet:", address(marketFacet));
         console.log("TradingFacet:", address(tradingFacet));
         console.log("LiquidityFacet:", address(liquidityFacet));
         console.log("SettlementFacet:", address(settlementFacet));
+        console.log("AdminFacet:", address(adminFacet));
 
         // ============ Schedule & Execute ============
         bytes32 OP_SET_RESOLVER = keccak256("OP_SET_RESOLVER");
@@ -137,6 +145,14 @@ contract DeploySpeculateX is Script {
         bytes32 op19 = _schedule(core, OP_SET_FACET, "pendingLpResidual(uint256,address)", address(settlementFacet));
         bytes32 op20 = _schedule(core, OP_SET_FACET, "claimLpResidual(uint256)", address(settlementFacet));
 
+        // AdminFacet
+        bytes32 op21 = _schedule(core, OP_SET_FACET, "executeSetUsdc(bytes32,address,uint8)", address(adminFacet));
+        bytes32 op22 = _schedule(core, OP_SET_FACET, "executeSetLimits(bytes32,uint256,uint256,uint256)", address(adminFacet));
+        bytes32 op23 = _schedule(core, OP_SET_FACET, "executeSetFees(bytes32,uint16,uint16,uint16)", address(adminFacet));
+        bytes32 op24 = _schedule(core, OP_SET_FACET, "executeSetPriceBandThreshold(bytes32,uint256)", address(adminFacet));
+        bytes32 op25 = _schedule(core, OP_SET_FACET, "executeSetMaxInstantJump(bytes32,uint256)", address(adminFacet));
+        bytes32 op26 = _schedule(core, OP_SET_FACET, "executeSetLpFeeCooldown(bytes32,uint256)", address(adminFacet));
+
         console.log("Scheduled operations (opIds):");
         console.logBytes32(opResolver);
         console.logBytes32(op1);
@@ -161,6 +177,12 @@ contract DeploySpeculateX is Script {
         console.logBytes32(op18);
         console.logBytes32(op19);
         console.logBytes32(op20);
+        console.logBytes32(op21);
+        console.logBytes32(op22);
+        console.logBytes32(op23);
+        console.logBytes32(op24);
+        console.logBytes32(op25);
+        console.logBytes32(op26);
 
         // Execute immediately if testnet
         if (timelockDelay == 0) {
@@ -193,6 +215,12 @@ contract DeploySpeculateX is Script {
             _exec(core, op18, "redeem(uint256,bool)", address(settlementFacet));
             _exec(core, op19, "pendingLpResidual(uint256,address)", address(settlementFacet));
             _exec(core, op20, "claimLpResidual(uint256)", address(settlementFacet));
+            _exec(core, op21, "executeSetUsdc(bytes32,address,uint8)", address(adminFacet));
+            _exec(core, op22, "executeSetLimits(bytes32,uint256,uint256,uint256)", address(adminFacet));
+            _exec(core, op23, "executeSetFees(bytes32,uint16,uint16,uint16)", address(adminFacet));
+            _exec(core, op24, "executeSetPriceBandThreshold(bytes32,uint256)", address(adminFacet));
+            _exec(core, op25, "executeSetMaxInstantJump(bytes32,uint256)", address(adminFacet));
+            _exec(core, op26, "executeSetLpFeeCooldown(bytes32,uint256)", address(adminFacet));
 
             console.log("All operations executed!");
         }

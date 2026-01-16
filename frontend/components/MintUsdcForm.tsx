@@ -20,6 +20,7 @@ export default function MintUsdcForm() {
   const [showBalanceIncrease, setShowBalanceIncrease] = useState(false);
   const network = getNetwork();
   const addresses = getAddresses();
+  const usdcDecimals = addresses.usdcDecimals ?? 6;
 
   const { data: hash, writeContract, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
@@ -37,7 +38,7 @@ export default function MintUsdcForm() {
 
   useEffect(() => {
     if (balance !== undefined) {
-      const newBalance = formatUnits(balance as bigint, 6);
+      const newBalance = formatUnits(balance as bigint, usdcDecimals);
       if (parseFloat(newBalance) > parseFloat(userBalance)) {
         setPrevBalance(userBalance);
         setShowBalanceIncrease(true);
@@ -92,7 +93,7 @@ export default function MintUsdcForm() {
   const handleMint = async () => {
     if (!address || !mintAmount) return;
     try {
-      const amount = parseUnits(mintAmount, 6);
+      const amount = parseUnits(mintAmount, usdcDecimals);
       writeContract({
         address: addresses.usdc,
         abi: usdcAbi,

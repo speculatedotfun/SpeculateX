@@ -1,8 +1,13 @@
 // LMSR (Logarithmic Market Scoring Rule) Math Functions
 // These implement the core AMM pricing algorithm
 
+import { getUsdcDecimals } from './contracts';
+
 const SCALE = 10n ** 18n;
-const USDC_TO_E18 = 10n ** 12n;
+function getUsdcToE18(): bigint {
+  const decimals = getUsdcDecimals();
+  return decimals >= 18 ? 1n : 10n ** BigInt(18 - decimals);
+}
 const LN2 = 693147180559945309n;
 const LOG2_E = 1442695040888963407n;
 const TWO_OVER_LN2 = (2n * SCALE * SCALE) / LN2;
@@ -187,7 +192,7 @@ export function simulateBuyChunk(
   const net = usdcIn - feeT - feeV - feeL;
   if (net <= 0n) return null;
 
-  const netE18 = net * USDC_TO_E18;
+  const netE18 = net * getUsdcToE18();
   const baseSide = isYes ? qYes : qNo;
   const baseOther = isYes ? qNo : qYes;
   const tokensOut = findSharesOut(baseSide, baseOther, netE18, bE18);
@@ -207,5 +212,5 @@ export function simulateBuyChunk(
   };
 }
 
-export { SCALE, USDC_TO_E18 };
+export { SCALE };
 

@@ -8,7 +8,10 @@
     "deploy": "goldsky subgraph deploy speculate-core-v2/production --version v1.0.0",
     "codegen:mainnet": "graph codegen subgraph.mainnet.yaml",
     "build:mainnet": "graph build subgraph.mainnet.yaml",
-    "deploy:mainnet": "goldsky subgraph deploy speculate-core-mainnet/production --version v1.0.0"
+    "deploy:mainnet": "goldsky subgraph deploy speculate-core-mainnet/production --version v1.0.0",
+    "codegen:testnet": "graph codegen subgraph.testnet.yaml",
+    "build:testnet": "graph build subgraph.testnet.yaml",
+    "deploy:testnet": "goldsky subgraph deploy speculate-core-v2/production --version v1.0.0"
   },
   "dependencies": {
     "@graphprotocol/graph-ts": "^0.32.0"

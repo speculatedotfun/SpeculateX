@@ -14,8 +14,10 @@ import AdminOperationsManager from '@/components/AdminOperationsManager';
 import ManualResolveMarkets from '@/components/admin/ManualResolveMarkets';
 import RoleVisualization from '@/components/admin/RoleVisualization';
 import RoleActivityLog from '@/components/admin/RoleActivityLog';
+import ProtocolEventLog from '@/components/admin/ProtocolEventLog';
 import Header from '@/components/Header';
 import { getMarketCount, getMarket, getMarketState, getLpResidualPot } from '@/lib/hooks';
+import { useAddresses } from '@/lib/contracts';
 import { isAdmin as checkIsAdmin } from '@/lib/accessControl';
 import { useAdminRoles } from '@/lib/useAdminRoles';
 import { formatUnits } from 'viem';
@@ -110,6 +112,7 @@ interface Market {
 export default function AdminPage() {
   const { address, isConnected, chain } = useAccount();
   const publicClient = usePublicClient();
+  const addresses = useAddresses();
   const roles = useAdminRoles();
   const [markets, setMarkets] = useState<Market[]>([]);
   const [loading, setLoading] = useState(true);
@@ -198,8 +201,8 @@ export default function AdminPage() {
               id,
               question: market.question as string,
               status,
-              vault: Number(formatUnits(vaultValue, 6)),
-              residual: Number(formatUnits(residualValue, 6)),
+              vault: Number(formatUnits(vaultValue, addresses.usdcDecimals ?? 6)),
+              residual: Number(formatUnits(residualValue, addresses.usdcDecimals ?? 6)),
               yesToken: market.yes as `0x${string}`,
               noToken: market.no as `0x${string}`,
               yesWins,
@@ -484,6 +487,19 @@ export default function AdminPage() {
             colSpan="md:col-span-6"
           >
             <RoleActivityLog />
+          </CollapsibleSection>
+
+          {/* Protocol Events (Span 12) */}
+          <CollapsibleSection
+            id="protocol-events"
+            title="Protocol Events"
+            icon={Activity}
+            iconColor="bg-emerald-500/10 text-emerald-500"
+            isOpen={openSections.has('protocol-events')}
+            onToggle={toggleSection}
+            colSpan="md:col-span-12"
+          >
+            <ProtocolEventLog />
           </CollapsibleSection>
 
           {/* System Ledger (Span 12) */}

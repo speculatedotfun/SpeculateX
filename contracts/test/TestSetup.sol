@@ -31,9 +31,9 @@ abstract contract TestSetup is Test {
     SettlementFacet internal settlementFacet;
 
     function setUp() public virtual {
-        treasury = new Treasury(admin, 20_000e6);
+        treasury = new Treasury(admin, 20_000e6, 6);
         usdc = new MockUSDC(admin);
-        core = new SpeculateCoreRouter(admin, address(usdc), address(treasury), 24 hours);
+        core = new SpeculateCoreRouter(admin, address(usdc), 6, address(treasury), 24 hours);
 
         marketFacet = new MarketFacet();
         tradingFacet = new TradingFacet();

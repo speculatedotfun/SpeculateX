@@ -8,6 +8,7 @@ import { CheckCircle2 } from 'lucide-react';
 import { Sparkline } from '@/components/market/Sparkline';
 import { useState, useEffect } from 'react';
 import { formatUnits } from 'viem';
+import { useAddresses } from '@/lib/contracts';
 
 // --- Types ---
 export interface MarketCardData {
@@ -74,6 +75,8 @@ function useCountdown(expiryTimestamp: bigint, isResolved: boolean): string {
 
 export function MarketCard({ market, prefersReducedMotion = false, getMarketLogo, formatNumber, onQuickBuy }: MarketCardProps) {
     const router = useRouter();
+    const addresses = useAddresses();
+    const usdcDecimals = addresses.usdcDecimals ?? 6;
     const isLive = market.status === 'LIVE TRADING';
     const isResolved = market.status === 'RESOLVED';
     const isAuto = market.oracleType === 1;
@@ -84,7 +87,7 @@ export function MarketCard({ market, prefersReducedMotion = false, getMarketLogo
     const countdown = useCountdown(market.expiryTimestamp, market.isResolved);
     const volumeDisplay = `$${formatNumber(market.volume)}`;
     const liquidityValue = typeof market.totalPairsUSDC === 'bigint' ? market.totalPairsUSDC : BigInt(market.totalPairsUSDC || 0);
-    const liquidityDisplay = `$${formatNumber(Number(formatUnits(liquidityValue, 6)))}`;
+    const liquidityDisplay = `$${formatNumber(Number(formatUnits(liquidityValue, usdcDecimals)))}`;
 
     // Format prices as cents
     const yesCents = (market.yesPrice * 100).toFixed(1);

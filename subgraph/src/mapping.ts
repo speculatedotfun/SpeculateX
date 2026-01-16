@@ -4,6 +4,9 @@ import {
   ScheduledMarketCreated,
   Buy,
   Sell,
+  LiquidityAdded,
+  LiquidityRemoved,
+  LpFeesClaimed,
   Redeemed,
   MarketResolved,
   MarketCancelled,
@@ -11,12 +14,35 @@ import {
   ResidualFinalized,
 } from '../generated/SpeculateCore/SpeculateCore';
 import {
+  OpScheduled,
+  OpExecuted,
+  OpCancelled,
+  CoreUpdated,
+  MaxStalenessUpdated,
+  TimelockDelayUpdated,
+  MarketResolved as ResolverMarketResolved,
+  MarketResolvedTwap,
+  MarketResolvedLate,
+  UpkeepPayload,
+} from '../generated/ChainlinkResolver/ChainlinkResolver';
+import {
+  Withdraw,
+  LargeWithdrawScheduled,
+  LargeWithdrawCancelled,
+  LargeWithdrawExecuted,
+  DailyLimitUpdated,
+} from '../generated/Treasury/Treasury';
+import {
   Market,
   Trade,
   PositionBalance,
   Redemption,
   User,
   GlobalState,
+  ResolverEvent,
+  TreasuryEvent,
+  LiquidityEvent,
+  LpFeeClaim,
   LpResidualClaim,
   ResidualFinalization,
 } from '../generated/schema';
@@ -204,6 +230,64 @@ export function handleSell(event: Sell): void {
   balance.save();
 }
 
+export function handleLiquidityAdded(event: LiquidityAdded): void {
+  const marketId = event.params.id.toString();
+  const market = Market.load(marketId);
+  if (market === null) {
+    return;
+  }
+
+  const user = getOrCreateUser(event.params.lp);
+  const liquidityEvent = new LiquidityEvent(createTradeId(event.transaction.hash, event.logIndex));
+  liquidityEvent.market = marketId;
+  liquidityEvent.user = user.id;
+  liquidityEvent.action = 'add';
+  liquidityEvent.usdcAmount = event.params.usdcAdd;
+  liquidityEvent.newB = event.params.newB;
+  liquidityEvent.txHash = event.transaction.hash;
+  liquidityEvent.blockNumber = event.block.number;
+  liquidityEvent.timestamp = event.block.timestamp;
+  liquidityEvent.save();
+}
+
+export function handleLiquidityRemoved(event: LiquidityRemoved): void {
+  const marketId = event.params.id.toString();
+  const market = Market.load(marketId);
+  if (market === null) {
+    return;
+  }
+
+  const user = getOrCreateUser(event.params.lp);
+  const liquidityEvent = new LiquidityEvent(createTradeId(event.transaction.hash, event.logIndex));
+  liquidityEvent.market = marketId;
+  liquidityEvent.user = user.id;
+  liquidityEvent.action = 'remove';
+  liquidityEvent.usdcAmount = event.params.usdcRemove;
+  liquidityEvent.newB = event.params.newB;
+  liquidityEvent.txHash = event.transaction.hash;
+  liquidityEvent.blockNumber = event.block.number;
+  liquidityEvent.timestamp = event.block.timestamp;
+  liquidityEvent.save();
+}
+
+export function handleLpFeesClaimed(event: LpFeesClaimed): void {
+  const marketId = event.params.id.toString();
+  const market = Market.load(marketId);
+  if (market === null) {
+    return;
+  }
+
+  const user = getOrCreateUser(event.params.lp);
+  const claim = new LpFeeClaim(createTradeId(event.transaction.hash, event.logIndex));
+  claim.market = marketId;
+  claim.user = user.id;
+  claim.amount = event.params.amount;
+  claim.txHash = event.transaction.hash;
+  claim.blockNumber = event.block.number;
+  claim.timestamp = event.block.timestamp;
+  claim.save();
+}
+
 export function handleRedeemed(event: Redeemed): void {
   const marketId = event.params.id.toString();
   const market = Market.load(marketId);
@@ -288,5 +372,174 @@ export function handleResidualFinalized(event: ResidualFinalized): void {
   finalization.blockNumber = event.block.number;
   finalization.timestamp = event.block.timestamp;
   finalization.save();
+}
+
+export function handleResolverOpScheduled(event: OpScheduled): void {
+  const entry = new ResolverEvent(createTradeId(event.transaction.hash, event.logIndex));
+  entry.type = 'OpScheduled';
+  entry.opId = event.params.opId;
+  entry.tag = event.params.tag;
+  entry.readyAt = event.params.readyAt;
+  entry.txHash = event.transaction.hash;
+  entry.blockNumber = event.block.number;
+  entry.timestamp = event.block.timestamp;
+  entry.save();
+}
+
+export function handleResolverOpExecuted(event: OpExecuted): void {
+  const entry = new ResolverEvent(createTradeId(event.transaction.hash, event.logIndex));
+  entry.type = 'OpExecuted';
+  entry.opId = event.params.opId;
+  entry.txHash = event.transaction.hash;
+  entry.blockNumber = event.block.number;
+  entry.timestamp = event.block.timestamp;
+  entry.save();
+}
+
+export function handleResolverOpCancelled(event: OpCancelled): void {
+  const entry = new ResolverEvent(createTradeId(event.transaction.hash, event.logIndex));
+  entry.type = 'OpCancelled';
+  entry.opId = event.params.opId;
+  entry.txHash = event.transaction.hash;
+  entry.blockNumber = event.block.number;
+  entry.timestamp = event.block.timestamp;
+  entry.save();
+}
+
+export function handleResolverCoreUpdated(event: CoreUpdated): void {
+  const entry = new ResolverEvent(createTradeId(event.transaction.hash, event.logIndex));
+  entry.type = 'CoreUpdated';
+  entry.newCore = event.params.newCore;
+  entry.txHash = event.transaction.hash;
+  entry.blockNumber = event.block.number;
+  entry.timestamp = event.block.timestamp;
+  entry.save();
+}
+
+export function handleResolverMaxStalenessUpdated(event: MaxStalenessUpdated): void {
+  const entry = new ResolverEvent(createTradeId(event.transaction.hash, event.logIndex));
+  entry.type = 'MaxStalenessUpdated';
+  entry.newMaxStaleness = event.params.newMaxStaleness;
+  entry.txHash = event.transaction.hash;
+  entry.blockNumber = event.block.number;
+  entry.timestamp = event.block.timestamp;
+  entry.save();
+}
+
+export function handleResolverTimelockDelayUpdated(event: TimelockDelayUpdated): void {
+  const entry = new ResolverEvent(createTradeId(event.transaction.hash, event.logIndex));
+  entry.type = 'TimelockDelayUpdated';
+  entry.newDelay = event.params.newDelay;
+  entry.txHash = event.transaction.hash;
+  entry.blockNumber = event.block.number;
+  entry.timestamp = event.block.timestamp;
+  entry.save();
+}
+
+export function handleResolverMarketResolved(event: ResolverMarketResolved): void {
+  const entry = new ResolverEvent(createTradeId(event.transaction.hash, event.logIndex));
+  entry.type = 'MarketResolved';
+  entry.market = event.params.marketId.toString();
+  entry.feed = event.params.feed;
+  entry.price = event.params.price;
+  entry.updatedAt = event.params.updatedAt;
+  entry.txHash = event.transaction.hash;
+  entry.blockNumber = event.block.number;
+  entry.timestamp = event.block.timestamp;
+  entry.save();
+}
+
+export function handleResolverMarketResolvedTwap(event: MarketResolvedTwap): void {
+  const entry = new ResolverEvent(createTradeId(event.transaction.hash, event.logIndex));
+  entry.type = 'MarketResolvedTwap';
+  entry.market = event.params.marketId.toString();
+  entry.feed = event.params.feed;
+  entry.twapPrice = event.params.twapPrice;
+  entry.windowStart = event.params.windowStart;
+  entry.windowEnd = event.params.windowEnd;
+  entry.txHash = event.transaction.hash;
+  entry.blockNumber = event.block.number;
+  entry.timestamp = event.block.timestamp;
+  entry.save();
+}
+
+export function handleResolverMarketResolvedLate(event: MarketResolvedLate): void {
+  const entry = new ResolverEvent(createTradeId(event.transaction.hash, event.logIndex));
+  entry.type = 'MarketResolvedLate';
+  entry.market = event.params.marketId.toString();
+  entry.feed = event.params.feed;
+  entry.updatedAt = event.params.updatedAt;
+  entry.txHash = event.transaction.hash;
+  entry.blockNumber = event.block.number;
+  entry.timestamp = event.block.timestamp;
+  entry.save();
+}
+
+export function handleResolverUpkeepPayload(event: UpkeepPayload): void {
+  const entry = new ResolverEvent(createTradeId(event.transaction.hash, event.logIndex));
+  entry.type = 'UpkeepPayload';
+  entry.payloadLen = event.params.len;
+  entry.payloadWord0 = event.params.w0;
+  entry.txHash = event.transaction.hash;
+  entry.blockNumber = event.block.number;
+  entry.timestamp = event.block.timestamp;
+  entry.save();
+}
+
+export function handleTreasuryWithdraw(event: Withdraw): void {
+  const entry = new TreasuryEvent(createTradeId(event.transaction.hash, event.logIndex));
+  entry.type = 'Withdraw';
+  entry.token = event.params.token;
+  entry.to = event.params.to;
+  entry.amount = event.params.amount;
+  entry.txHash = event.transaction.hash;
+  entry.blockNumber = event.block.number;
+  entry.timestamp = event.block.timestamp;
+  entry.save();
+}
+
+export function handleTreasuryLargeWithdrawScheduled(event: LargeWithdrawScheduled): void {
+  const entry = new TreasuryEvent(createTradeId(event.transaction.hash, event.logIndex));
+  entry.type = 'LargeWithdrawScheduled';
+  entry.opId = event.params.opId;
+  entry.token = event.params.token;
+  entry.to = event.params.to;
+  entry.amount = event.params.amount;
+  entry.readyAt = event.params.readyAt;
+  entry.txHash = event.transaction.hash;
+  entry.blockNumber = event.block.number;
+  entry.timestamp = event.block.timestamp;
+  entry.save();
+}
+
+export function handleTreasuryLargeWithdrawCancelled(event: LargeWithdrawCancelled): void {
+  const entry = new TreasuryEvent(createTradeId(event.transaction.hash, event.logIndex));
+  entry.type = 'LargeWithdrawCancelled';
+  entry.opId = event.params.opId;
+  entry.txHash = event.transaction.hash;
+  entry.blockNumber = event.block.number;
+  entry.timestamp = event.block.timestamp;
+  entry.save();
+}
+
+export function handleTreasuryLargeWithdrawExecuted(event: LargeWithdrawExecuted): void {
+  const entry = new TreasuryEvent(createTradeId(event.transaction.hash, event.logIndex));
+  entry.type = 'LargeWithdrawExecuted';
+  entry.opId = event.params.opId;
+  entry.txHash = event.transaction.hash;
+  entry.blockNumber = event.block.number;
+  entry.timestamp = event.block.timestamp;
+  entry.save();
+}
+
+export function handleTreasuryDailyLimitUpdated(event: DailyLimitUpdated): void {
+  const entry = new TreasuryEvent(createTradeId(event.transaction.hash, event.logIndex));
+  entry.type = 'DailyLimitUpdated';
+  entry.oldLimit = event.params.oldLimit;
+  entry.newLimit = event.params.newLimit;
+  entry.txHash = event.transaction.hash;
+  entry.blockNumber = event.block.number;
+  entry.timestamp = event.block.timestamp;
+  entry.save();
 }
 

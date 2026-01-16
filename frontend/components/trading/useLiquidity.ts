@@ -32,6 +32,7 @@ export function useLiquidity({
     const [pendingLpAction, setPendingLpAction] = useState('');
 
     const addresses = getAddresses();
+    const usdcDecimals = addresses.usdcDecimals ?? 6;
     const network = getCurrentNetwork();
     const coreAbiForNetwork = getCoreAbi(network);
 
@@ -48,7 +49,7 @@ export function useLiquidity({
         if (!addLiquidityAmount || parseFloat(addLiquidityAmount) <= 0) return;
         try {
             setIsLpProcessing(true);
-            const amountBI = parseUnits(addLiquidityAmount, 6);
+            const amountBI = parseUnits(addLiquidityAmount, usdcDecimals);
 
             if (address) {
                 await ensureAllowance({
@@ -89,7 +90,7 @@ export function useLiquidity({
         try {
             setIsLpProcessing(true);
             setPendingLpAction('Removing liquidity…');
-            const amountBI = parseUnits(removeLiquidityAmount, 6);
+            const amountBI = parseUnits(removeLiquidityAmount, usdcDecimals);
             const tx = await writeContractAsync({
                 address: addresses.core,
                 abi: coreAbiForNetwork,

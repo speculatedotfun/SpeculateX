@@ -22,6 +22,7 @@ contract ExecuteAfterDelay is Script {
     // TRADING_FACET=0x...
     // LIQUIDITY_FACET=0x...
     // SETTLEMENT_FACET=0x...
+    // ADMIN_FACET=0x...
 
     function run() external {
         // Support both PRIVATE_KEY_MAIN (preferred) and PRIVATE_KEY (legacy)
@@ -44,6 +45,7 @@ contract ExecuteAfterDelay is Script {
         address tradingFacetAddr = vm.envAddress("TRADING_FACET");
         address liquidityFacetAddr = vm.envAddress("LIQUIDITY_FACET");
         address settlementFacetAddr = vm.envAddress("SETTLEMENT_FACET");
+        address adminFacetAddr = vm.envAddress("ADMIN_FACET");
 
         SpeculateCoreRouter core = SpeculateCoreRouter(payable(coreAddr));
 
@@ -84,6 +86,13 @@ contract ExecuteAfterDelay is Script {
         nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "redeem(uint256,bool)", settlementFacetAddr);
         nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "pendingLpResidual(uint256,address)", settlementFacetAddr);
         nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "claimLpResidual(uint256)", settlementFacetAddr);
+
+        nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "executeSetUsdc(bytes32,address,uint8)", adminFacetAddr);
+        nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "executeSetLimits(bytes32,uint256,uint256,uint256)", adminFacetAddr);
+        nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "executeSetFees(bytes32,uint16,uint16,uint16)", adminFacetAddr);
+        nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "executeSetPriceBandThreshold(bytes32,uint256)", adminFacetAddr);
+        nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "executeSetMaxInstantJump(bytes32,uint256)", adminFacetAddr);
+        nonce = _tryExecuteFacet(core, OP_SET_FACET, nonce, "executeSetLpFeeCooldown(bytes32,uint256)", adminFacetAddr);
 
         vm.stopBroadcast();
 

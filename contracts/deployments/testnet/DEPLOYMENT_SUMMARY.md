@@ -1,26 +1,28 @@
 # BSC Testnet Deployment Summary
-**Date:** January 8, 2026
+**Date:** January 2026
 **Network:** BSC Testnet (Chain ID: 97)
 **Deployer:** 0x29D67d1Ad683A76b2750f74B40b6e79d715C933c
-**Start Block:** 82087927
+**FinalAdmin:** 0x29D67d1Ad683A76b2750f74B40b6e79d715C933c
+**Start Block:** 84802491
 
 ## Deployed Contracts
 
 ### Core Contracts
-- **Treasury:** [0x03BDBFc8A9c237eB81C5c3F5dD4c566F79E9CfE7](https://testnet.bscscan.com/address/0x03BDBFc8A9c237eB81C5c3F5dD4c566F79E9CfE7)
-- **CoreRouter:** [0x769706b79F3AfCb2D2aaa658D4444f68E6A03489](https://testnet.bscscan.com/address/0x769706b79F3AfCb2D2aaa658D4444f68E6A03489)
-- **ChainlinkResolver:** [0x5E4Bf042933B9f8ec0789F97Df8179558960b412](https://testnet.bscscan.com/address/0x5E4Bf042933B9f8ec0789F97Df8179558960b412) (✅ Verified: Bulletproof `performUpkeep` supports 32/64/96+ bytes payloads)
-- **MockUSDC:** [0x3A84EDDD1A1C4bE4aEfB157476a82002bdD005D4](https://testnet.bscscan.com/address/0x3A84EDDD1A1C4bE4aEfB157476a82002bdD005D4)
+- **Treasury:** [0x8566B7c306099c7CdB1c2fcACA099C86cf74C977](https://testnet.bscscan.com/address/0x8566B7c306099c7CdB1c2fcACA099C86cf74C977)
+- **CoreRouter:** [0x9315fc0082d85ABa5Dd680C30b53D73b0F032C2D](https://testnet.bscscan.com/address/0x9315fc0082d85ABa5Dd680C30b53D73b0F032C2D)
+- **ChainlinkResolver:** [0x997a2393976e2629bb1DF909Ee4e42A800d2D0BD](https://testnet.bscscan.com/address/0x997a2393976e2629bb1DF909Ee4e42A800d2D0BD)
+- **MockUSDC:** [0x34F7d01f7529F176fF682aACD468Ba99A89E5aAF](https://testnet.bscscan.com/address/0x34F7d01f7529F176fF682aACD468Ba99A89E5aAF)
 
 ### Facets (Diamond Pattern)
-- **MarketFacet:** [0x858D0Bb450b208Ee5841FFC5f49cf0Fcc6Fc5cb3](https://testnet.bscscan.com/address/0x858D0Bb450b208Ee5841FFC5f49cf0Fcc6Fc5cb3)
-- **TradingFacet:** [0xCc960988f0ea3B407DCE9886E1c43619F93F99B0](https://testnet.bscscan.com/address/0xCc960988f0ea3B407DCE9886E1c43619F93F99B0)
-- **LiquidityFacet:** [0x47650b66e83bf8AE1F8538F270b5F07fc3c83db9](https://testnet.bscscan.com/address/0x47650b66e83bf8AE1F8538F270b5F07fc3c83db9)
-- **SettlementFacet:** [0x20213F0E39DA96A8f09eb0756E33B3732eb9Fb25](https://testnet.bscscan.com/address/0x20213F0E39DA96A8f09eb0756E33B3732eb9Fb25)
+- **MarketFacet:** [0xdba345d7535E7f4c1745667B181e13c9EF74F056](https://testnet.bscscan.com/address/0xdba345d7535E7f4c1745667B181e13c9EF74F056)
+- **TradingFacet:** [0xbdC0b854289F29B95C919A9A05474d815C806960](https://testnet.bscscan.com/address/0xbdC0b854289F29B95C919A9A05474d815C806960)
+- **LiquidityFacet:** [0xc1C8C0eC33e055Ef092E207B12594ca5E9120528](https://testnet.bscscan.com/address/0xc1C8C0eC33e055Ef092E207B12594ca5E9120528)
+- **SettlementFacet:** [0x6312F6730891924c78735E762eC7042634B4D1fA](https://testnet.bscscan.com/address/0x6312F6730891924c78735E762eC7042634B4D1fA)
+- **AdminFacet:** [0x22A62b5ABE7Eb54A72066c75cC61bd9343Dab804](https://testnet.bscscan.com/address/0x22A62b5ABE7Eb54A72066c75cC61bd9343Dab804)
 
 ## Configuration
 
-- **USDC Token:** 0x3A84EDDD1A1C4bE4aEfB157476a82002bdD005D4 (MockUSDC with faucet)
+- **USDC Token:** 0x34F7d01f7529F176fF682aACD468Ba99A89E5aAF (MockUSDC with faucet, 6 decimals)
 - **Timelock Delay:** 0 seconds (instant execution for testnet)
 - **Treasury Daily Limit:** 50,000 USDC
 - **Minimum Market Seed:** 500 USDC
@@ -70,7 +72,7 @@ forge script script/TestMarketCreation.s.sol:TestMarketCreation --rpc-url bsc_te
 ## Next Steps
 
 1. **Frontend Integration:** Update frontend configuration to use testnet addresses
-2. **Get Testnet USDC:** Use MockUSDC faucet at 0x3A84EDDD1A1C4bE4aEfB157476a82002bdD005D4
+2. **Get Testnet USDC:** Use MockUSDC faucet at 0x34F7d01f7529F176fF682aACD468Ba99A89E5aAF
 3. **Create Test Market:** Create a test prediction market via frontend
 4. **Test Scheduled Market:** Create a scheduled market and verify trading restrictions
 5. **Test Trading Flow:** Test complete user flow (buy, sell, add/remove liquidity)

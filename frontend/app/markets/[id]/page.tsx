@@ -500,7 +500,9 @@ export default function MarketDetailPage() {
     return [...sortedChartData, snapPoint];
   }, [sortedChartData, market?.resolution?.isResolved, market?.resolution?.yesWins]);
 
-  const totalVolume = marketData.marketState ? Number(formatUnits(marketData.marketState.vault || 0n, 6)) : 0;
+  const totalVolume = marketData.marketState
+    ? Number(formatUnits(marketData.marketState.vault || 0n, addresses.usdcDecimals ?? 6))
+    : 0;
 
   // Merge createdAt from snapshotData if available (subgraph has it, on-chain doesn't)
   const marketWithCreatedAt = useMemo(() => {

@@ -11,7 +11,7 @@ import "./PositionToken.sol";
  * 3. Both Router and Facets MUST inherit this exactly as defined.
  * 
  * UNITS:
- * - USDC: 6 decimals (stored in usdcVault, totalLpUsdc, lpFeesUSDC, residualUSDC).
+ * - USDC: `usdcDecimals` (stored in usdcVault, totalLpUsdc, lpFeesUSDC, residualUSDC).
  * - E18: 18 decimals (stored in qYes, qNo, bE18, dustSharesE18, liquidityMultiplierE18, maxJumpE18).
  * - targetValue: In oracle feed decimals (8 for BTC/USD, ETH/USD etc.).
  * 
@@ -23,14 +23,17 @@ abstract contract CoreStorage {
 
     // ===== Tokens / addresses =====
     address public usdc;            // IERC20 but store address to reduce facet imports
+    uint8 public usdcDecimals;      // Token decimals for USDC (e.g. 6 or 18)
     address public treasury;
     address public chainlinkResolver;
 
     // ===== Constants =====
-    uint256 public constant USDC_TO_E18 = 1e12;
     uint256 public constant BPS = 10_000;
     uint256 public constant MAX_SHARES = 1e60; // 1 trillion * 1 trillion * 1 trillion tokens
-    uint256 public constant MIN_LP_USDC = 1e6; // 1 USDC minimum liquidity floor (6 decimals)
+    uint256 public constant MIN_LP_USDC_1 = 1; // 1 USDC minimum liquidity floor (in whole units)
+    uint256 public constant MAX_USDC_PER_TRADE_UNITS = 100_000;
+    uint256 public constant MIN_MARKET_SEED_UNITS = 500;
+    uint256 public constant MIN_LIQUIDITY_ADD_UNITS = 500;
 
     // ===== Global params =====
     uint256 public maxUsdcPerTrade;
@@ -43,6 +46,7 @@ abstract contract CoreStorage {
     uint16 public defaultFeeTreasuryBps;
     uint16 public defaultFeeLpBps;
     uint16 public defaultFeeVaultBps;
+    uint256 public defaultPriceBandThresholdUSDC;
 
     // ===== Simple pause + reentrancy (lighter than OZ in router) =====
     bool internal _paused;
@@ -151,6 +155,12 @@ abstract contract CoreStorage {
     bytes32 public constant OP_SET_FACET   = keccak256("OP_SET_FACET");
     bytes32 public constant OP_SET_TREASURY= keccak256("OP_SET_TREASURY");
     bytes32 public constant OP_SET_RESOLVER= keccak256("OP_SET_RESOLVER");
+    bytes32 public constant OP_SET_USDC    = keccak256("OP_SET_USDC");
+    bytes32 public constant OP_SET_LIMITS  = keccak256("OP_SET_LIMITS");
+    bytes32 public constant OP_SET_FEES    = keccak256("OP_SET_FEES");
+    bytes32 public constant OP_SET_PRICE_BAND = keccak256("OP_SET_PRICE_BAND");
+    bytes32 public constant OP_SET_MAX_JUMP = keccak256("OP_SET_MAX_JUMP");
+    bytes32 public constant OP_SET_LP_COOLDOWN = keccak256("OP_SET_LP_COOLDOWN");
     bytes32 public constant OP_PAUSE       = keccak256("OP_PAUSE");
     bytes32 public constant OP_UNPAUSE     = keccak256("OP_UNPAUSE");
     bytes32 public constant OP_CANCEL_MARKET= keccak256("OP_CANCEL_MARKET");
@@ -197,6 +207,21 @@ abstract contract CoreStorage {
 
     // Minimum blocks LP must wait before claiming fees after adding liquidity
     uint256 public lpFeeCooldownBlocks;
+
+    // ===== USDC conversion helpers =====
+    function _usdcUnit() internal view returns (uint256) {
+        return 10 ** uint256(usdcDecimals);
+    }
+
+    function _usdcToE18(uint256 amount) internal view returns (uint256) {
+        if (usdcDecimals == 18) return amount;
+        return amount * (10 ** (18 - uint256(usdcDecimals)));
+    }
+
+    function _e18ToUsdc(uint256 amountE18) internal view returns (uint256) {
+        if (usdcDecimals == 18) return amountE18;
+        return amountE18 / (10 ** (18 - uint256(usdcDecimals)));
+    }
 
     // ===== Future Upgrade Gap =====
     uint256 public constant STORAGE_VERSION = 1;

@@ -2,6 +2,7 @@
 
 import { Wallet } from 'lucide-react';
 import { formatUnits } from 'viem';
+import { useUsdcDecimals } from '@/lib/contracts';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface TradeAmountInputProps {
@@ -38,12 +39,13 @@ export function TradeAmountInput({
     amountRegex,
 }: TradeAmountInputProps) {
     const isError = amount && parseFloat(amount) > 0 && !(tradeMode === 'buy' ? canBuy : canSell);
+    const usdcDecimals = useUsdcDecimals();
 
     // Quick amount chips for buy mode
     const quickAmounts = tradeMode === 'buy' ? [10, 25, 50, 100] : [];
 
     const maxValue = tradeMode === 'buy'
-        ? parseFloat(formatUnits(usdcBalanceRaw, 6))
+        ? parseFloat(formatUnits(usdcBalanceRaw, usdcDecimals))
         : side === 'yes'
             ? parseFloat(formatUnits(yesBalanceRaw, 18))
             : parseFloat(formatUnits(noBalanceRaw, 18));

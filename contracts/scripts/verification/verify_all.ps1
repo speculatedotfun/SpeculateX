@@ -36,7 +36,7 @@ Write-Host "Note: Using foundry.toml configuration for API key" -ForegroundColor
 Write-Host "=== Verifying Contracts on BSC Testnet ===" -ForegroundColor Green
 Write-Host ""
 
-# Treasury: new Treasury(admin, 50_000e6)
+# Treasury: new Treasury(admin, 50_000e6, usdcDecimals)
 # admin = 0x9D767E1a7D6650EEf1cEaa82841Eb553eDD6b76F
 Write-Host "Verifying Treasury..." -ForegroundColor Yellow
 & $FORGE verify-contract `
@@ -63,7 +63,7 @@ Write-Host "Verifying MockUSDC..." -ForegroundColor Yellow
     "0xADEa1B9F54A9Be395DDCAf51e072667E1edA09cf" `
     "src/MockUSDC.sol:MockUSDC"
 
-# SpeculateCoreRouter: new SpeculateCoreRouter(admin, usdc, treasury, timelockDelay)
+# SpeculateCoreRouter: new SpeculateCoreRouter(admin, usdc, usdcDecimals, treasury, timelockDelay)
 # timelockDelay = 0 for testnet
 Write-Host "Verifying SpeculateCoreRouter..." -ForegroundColor Yellow
 & $FORGE verify-contract `

@@ -13,9 +13,9 @@ contract RouterTimelockTest is Test {
     Treasury internal treasury;
 
     function setUp() public {
-        treasury = new Treasury(address(this), 20_000e6);
+        treasury = new Treasury(address(this), 20_000e6, 6);
         usdc = new MockUSDC(address(this));
-        core = new SpeculateCoreRouter(address(this), address(usdc), address(treasury), 24 hours);
+        core = new SpeculateCoreRouter(address(this), address(usdc), 6, address(treasury), 24 hours);
     }
 
     function test_executeSetFacet_revertsBeforeDelay() public {

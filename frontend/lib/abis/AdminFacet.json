@@ -1,0 +1,68 @@
+[
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "opId", "type": "bytes32" },
+      { "internalType": "address", "name": "newUsdc", "type": "address" },
+      { "internalType": "uint8", "name": "newDecimals", "type": "uint8" }
+    ],
+    "name": "executeSetUsdc",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "opId", "type": "bytes32" },
+      { "internalType": "uint256", "name": "maxUsdcPerTradeUnits", "type": "uint256" },
+      { "internalType": "uint256", "name": "minMarketSeedUnits", "type": "uint256" },
+      { "internalType": "uint256", "name": "minLiquidityAddUnits", "type": "uint256" }
+    ],
+    "name": "executeSetLimits",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "opId", "type": "bytes32" },
+      { "internalType": "uint16", "name": "treasuryBps", "type": "uint16" },
+      { "internalType": "uint16", "name": "lpBps", "type": "uint16" },
+      { "internalType": "uint16", "name": "vaultBps", "type": "uint16" }
+    ],
+    "name": "executeSetFees",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "opId", "type": "bytes32" },
+      { "internalType": "uint256", "name": "thresholdUnits", "type": "uint256" }
+    ],
+    "name": "executeSetPriceBandThreshold",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "opId", "type": "bytes32" },
+      { "internalType": "uint256", "name": "maxJumpE18", "type": "uint256" }
+    ],
+    "name": "executeSetMaxInstantJump",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "opId", "type": "bytes32" },
+      { "internalType": "uint256", "name": "blocks", "type": "uint256" }
+    ],
+    "name": "executeSetLpFeeCooldown",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]
+

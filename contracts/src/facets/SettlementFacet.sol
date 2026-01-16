@@ -76,8 +76,8 @@ contract SettlementFacet is CoreStorage {
         uint256 cirYes = m.yes.totalSupply() - m.yes.balanceOf(address(this));
         uint256 cirNo  = m.no.totalSupply()  - m.no.balanceOf(address(this));
 
-        // requiredUSDC = (cirYes + cirNo) * 0.5 / 1e12  == (cirYes + cirNo) / 2e12
-        uint256 requiredUSDC = (cirYes + cirNo) / 2e12;
+        // requiredUSDC = (cirYes + cirNo) * 0.5 converted to USDC units
+        uint256 requiredUSDC = _e18ToUsdc((cirYes + cirNo) / 2);
 
         if (m.usdcVault > requiredUSDC) {
             uint256 residue = m.usdcVault - requiredUSDC;
@@ -110,12 +110,12 @@ contract SettlementFacet is CoreStorage {
 
         emit MarketResolved(id, yesWins);
 
-        // requiredUSDC = circulatingWinnerSupply / 1e12
+        // requiredUSDC = circulatingWinnerSupply converted to USDC units
         // Exclude router-held "locked" shares (used to preserve spot price when liquidity changes).
         uint256 winnerSupply = yesWins
             ? (m.yes.totalSupply() - m.yes.balanceOf(address(this)))
             : (m.no.totalSupply()  - m.no.balanceOf(address(this)));
-        uint256 requiredUSDC = winnerSupply / 1e12;
+        uint256 requiredUSDC = _e18ToUsdc(winnerSupply);
 
         if (m.usdcVault > requiredUSDC) {
             uint256 residue = m.usdcVault - requiredUSDC;
@@ -150,11 +150,11 @@ contract SettlementFacet is CoreStorage {
         uint256 payoutUSDC = 0;
 
         if (m.status == MarketStatus.Resolved) {
-            if (isYes == m.resolution.yesWins) payoutUSDC = bal / 1e12;
+            if (isYes == m.resolution.yesWins) payoutUSDC = _e18ToUsdc(bal);
         } else if (m.status == MarketStatus.Cancelled) {
             // Cancellation pays p=0.5 to both sides so total payout stays solvent under
-            // vault >= max(cirYes, cirNo) / 1e12.
-            payoutUSDC = (bal / 1e12) / 2;
+            // vault >= max(cirYes, cirNo) converted to USDC units.
+            payoutUSDC = _e18ToUsdc(bal) / 2;
         }
 
         if (payoutUSDC == 0) revert DustAmount();

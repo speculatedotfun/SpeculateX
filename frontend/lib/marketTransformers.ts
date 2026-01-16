@@ -1,5 +1,6 @@
 // Data transformers for market data
 import { formatUnits } from 'viem';
+import { getUsdcDecimals } from './contracts';
 import type { SnapshotTrade, SnapshotBalance } from './useMarketSnapshot';
 import { absString } from './marketUtils';
 
@@ -21,6 +22,7 @@ export type TransactionRow = {
 };
 
 export const toTransactionRow = (trade: SnapshotTrade): TransactionRow | null => {
+  const usdcDecimals = getUsdcDecimals();
   const txHash = trade.txHash ?? '';
   const user = trade.user?.id?.toLowerCase() ?? '';
   if (!txHash || !user) return null;
@@ -35,13 +37,13 @@ export const toTransactionRow = (trade: SnapshotTrade): TransactionRow | null =>
 
   const amount =
     action === 'buy'
-      ? formatUnits(absUsdc, 6)
+      ? formatUnits(absUsdc, usdcDecimals)
       : formatUnits(absToken, 18);
 
   const output =
     action === 'buy'
       ? formatUnits(absToken, 18)
-      : formatUnits(absUsdc, 6);
+      : formatUnits(absUsdc, usdcDecimals);
 
   // Formatting for display (2 decimals) handled in UI, but here we provide "raw" human readable float string.
   // Actually the UI calls parseFloat().toFixed(2). So returning "59.0" is fine.

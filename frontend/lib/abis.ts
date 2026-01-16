@@ -5,6 +5,7 @@ import marketFacetAbiData from './abis/MarketFacet.json';
 import tradingFacetAbiData from './abis/TradingFacet.json';
 import liquidityFacetAbiData from './abis/LiquidityFacet.json';
 import settlementFacetAbiData from './abis/SettlementFacet.json';
+import adminFacetAbiData from './abis/AdminFacet.json';
 import usdcAbiData from './abis/MockUSDC.json';
 import positionTokenAbiData from './abis/PositionToken.json';
 import chainlinkResolverLegacyAbiData from './abis/ChainlinkResolver.legacy.json';
@@ -28,6 +29,7 @@ export const marketFacetAbi = extractAbi(marketFacetAbiData);
 export const tradingFacetAbi = extractAbi(tradingFacetAbiData);
 export const liquidityFacetAbi = extractAbi(liquidityFacetAbiData);
 export const settlementFacetAbi = extractAbi(settlementFacetAbiData);
+export const adminFacetAbi = extractAbi(adminFacetAbiData);
 
 // Combined ABI for Router (includes all facet functions)
 // This allows calling facet functions directly on the router address
@@ -37,6 +39,7 @@ export const coreAbiTestnet = [
   ...tradingFacetAbi,
   ...liquidityFacetAbi,
   ...settlementFacetAbi,
+  ...adminFacetAbi,
 ] as const as Abi;
 
 // Mainnet uses old monolithic core ABI

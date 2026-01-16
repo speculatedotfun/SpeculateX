@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useAccount, usePublicClient } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
+import { useUsdcDecimals } from '@/lib/contracts';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertTriangle,
@@ -57,6 +58,7 @@ export default function TradingCard({
   setSide
 }: TradingCardProps) {
   const { address, isConnected } = useAccount();
+  const usdcDecimals = useUsdcDecimals();
   const marketIdBI = useMemo(() => BigInt(marketId), [marketId]);
 
   // --- UI State ---
@@ -217,8 +219,8 @@ export default function TradingCard({
     <>
       <SplitOrderModal
         show={showSplitConfirm}
-        totalSplitDisplay={formatUnits(pendingSplitAmount, 6)}
-        splitChunkAmountDisplay={formatUnits(maxJumpE6, 6)}
+        totalSplitDisplay={formatUnits(pendingSplitAmount, usdcDecimals)}
+        splitChunkAmountDisplay={formatUnits(maxJumpE6, usdcDecimals)}
         splitChunkCountDisplay={maxJumpE6 > 0n ? Number(pendingSplitAmount / maxJumpE6) + 1 : 0}
         isTradeable={isTradeable}
         isBusy={isBusy}
@@ -385,11 +387,11 @@ export default function TradingCard({
 
                 <div className="px-4 pb-4">
                   <LiquiditySection
-                    vaultBase={parseFloat(formatUnits(toBigIntSafe(marketStateData?.[2]), 6))}
-                    lpShareFloat={parseFloat(formatUnits(lpSharesValue, 6))}
-                    userSharePct={(parseFloat(formatUnits(lpSharesValue, 6)) / parseFloat(formatUnits(totalLpUsdc, 6))) * 100 || 0}
-                    pendingFeesFloat={parseFloat(formatUnits(pendingFeesValue, 6))}
-                    pendingResidualFloat={parseFloat(formatUnits(pendingResidualValue, 6))}
+                    vaultBase={parseFloat(formatUnits(toBigIntSafe(marketStateData?.[2]), usdcDecimals))}
+                    lpShareFloat={parseFloat(formatUnits(lpSharesValue, usdcDecimals))}
+                    userSharePct={(parseFloat(formatUnits(lpSharesValue, usdcDecimals)) / parseFloat(formatUnits(totalLpUsdc, usdcDecimals))) * 100 || 0}
+                    pendingFeesFloat={parseFloat(formatUnits(pendingFeesValue, usdcDecimals))}
+                    pendingResidualFloat={parseFloat(formatUnits(pendingResidualValue, usdcDecimals))}
                     lpFeePoolFloat={parseFloat(formatUnits(toBigIntSafe(
                       Array.isArray(contractData) ? contractData?.[14] : contractData?.lpFeesUSDC
                     ), 6))}
@@ -402,7 +404,7 @@ export default function TradingCard({
                     formatLiquidity={(n) => n.toFixed(6)}
                     maxBuyAmount={parseFloat(usdcBalance)}
                     canAddLiquidity={parseFloat(addLiquidityAmount) > 0}
-                    canRemoveLiquidity={parseFloat(removeLiquidityAmount) > 0 && parseFloat(removeLiquidityAmount) <= parseFloat(formatUnits(lpSharesValue, 6))}
+                    canRemoveLiquidity={parseFloat(removeLiquidityAmount) > 0 && parseFloat(removeLiquidityAmount) <= parseFloat(formatUnits(lpSharesValue, usdcDecimals))}
                     isLpProcessing={isLpProcessing}
                     isBusy={isBusy}
                     isTradeable={isTradeable}

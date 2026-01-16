@@ -14,8 +14,8 @@ contract Treasury is AccessControl, ReentrancyGuard {
 
     uint256 public constant MIN_DELAY = 24 hours;
     uint256 public constant OP_EXPIRY_WINDOW = 7 days;
-    uint256 public constant MAX_SINGLE_LARGE_WITHDRAW = 1_000_000e6; // 1M USDC safety cap
-    uint256 public constant MAX_DAILY_LIMIT = 5_000_000e6; // 5M USDC safety cap
+    uint256 public maxSingleLargeWithdraw; // safety cap in token units
+    uint256 public maxDailyLimit; // safety cap in token units
 
     uint256 public dailyWithdrawLimit; // in token units (e.g. USDC 6 decimals)
     // Track daily withdrawals per token to avoid mixed-decimal footguns.
@@ -49,12 +49,17 @@ contract Treasury is AccessControl, ReentrancyGuard {
     error NotReady(uint256 readyAt);
     error OpExpired();
 
-    constructor(address admin, uint256 initialDailyLimit) {
+    constructor(address admin, uint256 initialDailyLimit, uint8 tokenDecimals) {
         if (admin == address(0)) revert ZeroAddress();
+        if (tokenDecimals > 18) revert BadAmount();
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(ADMIN_ROLE, admin);
         _grantRole(WITHDRAWER_ROLE, admin);
 
+        uint256 unit = 10 ** uint256(tokenDecimals);
+        maxSingleLargeWithdraw = 1_000_000 * unit;
+        maxDailyLimit = 5_000_000 * unit;
+        if (initialDailyLimit == 0 || initialDailyLimit > maxDailyLimit) revert BadAmount();
         dailyWithdrawLimit = initialDailyLimit;
         emit DailyLimitUpdated(0, initialDailyLimit);
     }
@@ -84,7 +89,7 @@ contract Treasury is AccessControl, ReentrancyGuard {
         returns (bytes32 opId)
     {
         if (token == address(0) || to == address(0)) revert ZeroAddress();
-        if (amount == 0 || amount > MAX_SINGLE_LARGE_WITHDRAW) revert BadAmount();
+        if (amount == 0 || amount > maxSingleLargeWithdraw) revert BadAmount();
 
         uint256 nonce_ = ++opNonce;
         opId = keccak256(abi.encode(
@@ -135,7 +140,7 @@ contract Treasury is AccessControl, ReentrancyGuard {
     }
 
     function setDailyLimit(uint256 newLimit) external onlyRole(ADMIN_ROLE) {
-        if (newLimit > MAX_DAILY_LIMIT) revert BadAmount();
+        if (newLimit > maxDailyLimit) revert BadAmount();
         // Sanity check: allow 0 only if explicitly intended to freeze regular withdrawals
         uint256 oldLimit = dailyWithdrawLimit;
         dailyWithdrawLimit = newLimit;

@@ -20,6 +20,8 @@ type Market @entity(immutable: false) {
   trades: [Trade!]! @derivedFrom(field: "market")
   balances: [PositionBalance!]! @derivedFrom(field: "market")
   redemptions: [Redemption!]! @derivedFrom(field: "market")
+  liquidityEvents: [LiquidityEvent!]! @derivedFrom(field: "market")
+  lpFeeClaims: [LpFeeClaim!]! @derivedFrom(field: "market")
   lpResidualClaims: [LpResidualClaim!]! @derivedFrom(field: "market")
   residualFinalization: ResidualFinalization
   isCancelled: Boolean!
@@ -65,12 +67,74 @@ type User @entity(immutable: false) {
   trades: [Trade!]! @derivedFrom(field: "user")
   balances: [PositionBalance!]! @derivedFrom(field: "user")
   redemptions: [Redemption!]! @derivedFrom(field: "user")
+  liquidityEvents: [LiquidityEvent!]! @derivedFrom(field: "user")
+  lpFeeClaims: [LpFeeClaim!]! @derivedFrom(field: "user")
   lpResidualClaims: [LpResidualClaim!]! @derivedFrom(field: "lp")
 }
 
 type GlobalState @entity(immutable: false) {
   id: ID!
   uniqueTraders: Int!
+}
+
+type ResolverEvent @entity(immutable: false) {
+  id: ID!
+  type: String!
+  opId: Bytes
+  tag: Bytes
+  readyAt: BigInt
+  market: Market
+  feed: Bytes
+  price: BigInt
+  updatedAt: BigInt
+  twapPrice: BigInt
+  windowStart: BigInt
+  windowEnd: BigInt
+  newCore: Bytes
+  newMaxStaleness: BigInt
+  newDelay: BigInt
+  payloadLen: BigInt
+  payloadWord0: BigInt
+  txHash: Bytes!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+}
+
+type TreasuryEvent @entity(immutable: false) {
+  id: ID!
+  type: String!
+  opId: Bytes
+  token: Bytes
+  to: Bytes
+  amount: BigInt
+  readyAt: BigInt
+  oldLimit: BigInt
+  newLimit: BigInt
+  txHash: Bytes!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+}
+
+type LiquidityEvent @entity(immutable: false) {
+  id: ID!
+  market: Market!
+  user: User!
+  action: String!
+  usdcAmount: BigInt!
+  newB: BigInt!
+  txHash: Bytes!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+}
+
+type LpFeeClaim @entity(immutable: false) {
+  id: ID!
+  market: Market!
+  user: User!
+  amount: BigInt!
+  txHash: Bytes!
+  blockNumber: BigInt!
+  timestamp: BigInt!
 }
 
 type LpResidualClaim @entity(immutable: false) {

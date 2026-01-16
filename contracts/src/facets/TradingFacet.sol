@@ -32,7 +32,8 @@ contract TradingFacet is CoreStorage {
     }
 
     function spotPriceYesE6(uint256 id) public view returns (uint256) {
-        return spotPriceYesE18(id) / 1e12;
+        // Return price scaled to current USDC decimals (legacy name kept for compatibility)
+        return _e18ToUsdc(spotPriceYesE18(id));
     }
 
     function getMaxJumpE18(uint256 id) public view returns (uint256) {
@@ -86,7 +87,7 @@ contract TradingFacet is CoreStorage {
         if (feeV > 0) m.usdcVault += feeV;
         m.usdcVault += net;
 
-        uint256 netE18 = net * USDC_TO_E18;
+        uint256 netE18 = _usdcToE18(net);
 
         uint256 qSide = isYes ? m.qYes : m.qNo;
         uint256 qOther = isYes ? m.qNo : m.qYes;
@@ -197,7 +198,7 @@ contract TradingFacet is CoreStorage {
         uint256 newCost = LMSRMath.calculateCost(newQYes, newQNo, m.bE18);
 
         uint256 refundE18 = oldCost - newCost;
-        uint256 usdcOut = refundE18 / USDC_TO_E18;
+        uint256 usdcOut = _e18ToUsdc(refundE18);
 
         if (usdcOut < minUsdcOut) revert SlippageExceeded();
         if (usdcOut > m.usdcVault) revert SolvencyIssue();
@@ -242,9 +243,9 @@ contract TradingFacet is CoreStorage {
         uint256 cirNo  = nextQNo  > lockedNo  ? (nextQNo  - lockedNo)  : 0;
 
         uint256 maxCir = cirYes > cirNo ? cirYes : cirNo;
-        uint256 liabilityUSDC = maxCir / 1e12;
+        uint256 liabilityUSDC = _e18ToUsdc(maxCir);
 
-        uint256 bufferUSDC = 1000; // 0.001 USDC (6 decimals)
+        uint256 bufferUSDC = _usdcUnit() / 1000; // 0.001 USDC
         if (vaultValue + bufferUSDC < liabilityUSDC) revert BackingInsufficient();
 
         // M-03 Fix: Always enforce price jump limits, but use dynamic cap for larger markets

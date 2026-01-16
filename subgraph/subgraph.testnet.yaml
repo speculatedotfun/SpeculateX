@@ -6,9 +6,9 @@ dataSources:
     name: SpeculateCore
     network: chapel
     source:
-      address: "0xff020FeBB063d375e4D28291Da81f835Ba258Cb6"
+      address: "0x9315fc0082d85ABa5Dd680C30b53D73b0F032C2D"
       abi: SpeculateCore
-      startBlock: 46800000    # Deployed December 31, 2025 (Latest Diamond Router - All Audit Fixes)
+      startBlock: 84802491  # Deployed January 2026 (Dynamic USDC decimals + AdminFacet)
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -20,19 +20,105 @@ dataSources:
         - Redemption
         - User
         - GlobalState
+        - LiquidityEvent
+        - LpFeeClaim
+        - LpResidualClaim
+        - ResidualFinalization
       abis:
         - name: SpeculateCore
           file: ./abis/SpeculateCore.json
       eventHandlers:
         - event: MarketCreated(indexed uint256,address,address,bytes32,string,uint256,uint256)
           handler: handleMarketCreated
+        - event: ScheduledMarketCreated(indexed uint256,address,address,bytes32,string,uint256,uint256,uint256)
+          handler: handleScheduledMarketCreated
         - event: Buy(indexed uint256,indexed address,bool,uint256,uint256,uint256)
           handler: handleBuy
         - event: Sell(indexed uint256,indexed address,bool,uint256,uint256,uint256)
           handler: handleSell
+        - event: LiquidityAdded(indexed uint256,indexed address,uint256,uint256)
+          handler: handleLiquidityAdded
+        - event: LiquidityRemoved(indexed uint256,indexed address,uint256,uint256)
+          handler: handleLiquidityRemoved
+        - event: LpFeesClaimed(indexed uint256,indexed address,uint256)
+          handler: handleLpFeesClaimed
         - event: Redeemed(indexed uint256,indexed address,uint256)
           handler: handleRedeemed
         - event: MarketResolved(indexed uint256,bool)
           handler: handleMarketResolved
+        - event: MarketCancelled(indexed uint256)
+          handler: handleMarketCancelled
+        - event: LpResidualClaimed(indexed uint256,indexed address,uint256)
+          handler: handleLpResidualClaimed
+        - event: ResidualFinalized(indexed uint256,uint256,uint256)
+          handler: handleResidualFinalized
+      file: ./src/mapping.ts
+
+  - kind: ethereum/contract
+    name: ChainlinkResolver
+    network: chapel
+    source:
+      address: "0x997a2393976e2629bb1DF909Ee4e42A800d2D0BD"
+      abi: ChainlinkResolver
+      startBlock: 84802491
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - ResolverEvent
+      abis:
+        - name: ChainlinkResolver
+          file: ./abis/ChainlinkResolver.json
+      eventHandlers:
+        - event: OpScheduled(indexed bytes32,indexed bytes32,uint256)
+          handler: handleResolverOpScheduled
+        - event: OpExecuted(indexed bytes32)
+          handler: handleResolverOpExecuted
+        - event: OpCancelled(indexed bytes32)
+          handler: handleResolverOpCancelled
+        - event: CoreUpdated(indexed address)
+          handler: handleResolverCoreUpdated
+        - event: MaxStalenessUpdated(uint256)
+          handler: handleResolverMaxStalenessUpdated
+        - event: TimelockDelayUpdated(uint256)
+          handler: handleResolverTimelockDelayUpdated
+        - event: MarketResolved(indexed uint256,indexed address,uint256,uint256)
+          handler: handleResolverMarketResolved
+        - event: MarketResolvedTwap(indexed uint256,indexed address,uint256,uint256,uint256)
+          handler: handleResolverMarketResolvedTwap
+        - event: MarketResolvedLate(indexed uint256,indexed address,uint256)
+          handler: handleResolverMarketResolvedLate
+        - event: UpkeepPayload(uint256,uint256)
+          handler: handleResolverUpkeepPayload
+      file: ./src/mapping.ts
+
+  - kind: ethereum/contract
+    name: Treasury
+    network: chapel
+    source:
+      address: "0x8566B7c306099c7CdB1c2fcACA099C86cf74C977"
+      abi: Treasury
+      startBlock: 84802491
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - TreasuryEvent
+      abis:
+        - name: Treasury
+          file: ./abis/Treasury.json
+      eventHandlers:
+        - event: Withdraw(indexed address,indexed address,uint256)
+          handler: handleTreasuryWithdraw
+        - event: LargeWithdrawScheduled(indexed bytes32,address,address,uint256,uint256)
+          handler: handleTreasuryLargeWithdrawScheduled
+        - event: LargeWithdrawExecuted(indexed bytes32)
+          handler: handleTreasuryLargeWithdrawExecuted
+        - event: LargeWithdrawCancelled(indexed bytes32)
+          handler: handleTreasuryLargeWithdrawCancelled
+        - event: DailyLimitUpdated(uint256,uint256)
+          handler: handleTreasuryDailyLimitUpdated
       file: ./src/mapping.ts
 

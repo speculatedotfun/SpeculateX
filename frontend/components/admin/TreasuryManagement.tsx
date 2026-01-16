@@ -23,6 +23,7 @@ export function TreasuryManagement() {
     const addresses = useAddresses();
     const network = getCurrentNetwork();
     const isNetworkMismatch = walletChainId !== selectedChainId;
+    const usdcDecimals = addresses.usdcDecimals ?? 6;
 
     // State
     const [loading, setLoading] = useState(false);
@@ -163,7 +164,7 @@ export function TreasuryManagement() {
         if (!fastWithdrawForm.to || !fastWithdrawForm.amount) return;
         setLoading(true);
         try {
-            const amountRaw = parseUnits(fastWithdrawForm.amount, 6); // USDC is 6 decimals on this testnet.
+            const amountRaw = parseUnits(fastWithdrawForm.amount, usdcDecimals);
 
             const hash = await writeContractAsync({
                 address: addresses.treasury,
@@ -187,7 +188,7 @@ export function TreasuryManagement() {
         if (!largeWithdrawForm.to || !largeWithdrawForm.amount) return;
         setLoading(true);
         try {
-            const amountRaw = parseUnits(largeWithdrawForm.amount, 6);
+            const amountRaw = parseUnits(largeWithdrawForm.amount, usdcDecimals);
             const hash = await writeContractAsync({
                 address: addresses.treasury,
                 abi: treasuryAbi,
@@ -248,7 +249,7 @@ export function TreasuryManagement() {
         if (!limitForm.amount) return;
         setLoading(true);
         try {
-            const amountRaw = parseUnits(limitForm.amount, 6);
+            const amountRaw = parseUnits(limitForm.amount, usdcDecimals);
             const hash = await writeContractAsync({
                 address: addresses.treasury,
                 abi: treasuryAbi,
@@ -269,7 +270,7 @@ export function TreasuryManagement() {
     const formatUSDC = (val: any) => {
         // Important: don't treat 0n as "no data"
         if (val === undefined || val === null) return '—';
-        return Number(formatUnits(val as bigint, 6)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return Number(formatUnits(val as bigint, usdcDecimals)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
     return (

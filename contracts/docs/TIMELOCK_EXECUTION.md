@@ -8,24 +8,18 @@ Your contracts were deployed with a **24-hour (86,400 seconds) timelock** on BSC
 
 ---
 
-## Current Mainnet Deployment
+## Current Mainnet Deployment (January 2026)
 
 | Contract | Address |
 |----------|---------|
-| **CoreRouter** | `0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b` |
-| **ChainlinkResolver** | `0x4076a6951B8d1EB2f4008A8b1E73FCB614e44dC2` |
-| **MarketFacet** | `0x333be16200CA738D49B40CDDe056F9aa7ccf643E` |
-| **TradingFacet** | `0x4c8806ce17594bA88EeCB27eBa00B40543778A43` |
-| **LiquidityFacet** | `0x9E60cA13313ff0A20eE3b32E57675a4FB9e89FCf` |
-| **SettlementFacet** | `0x7B95420f86c7325F4fdeCE2ad8C249C84708852B` |
-| **Treasury** | `0x641b1FF8875eC2f1822F748C32858348409E0e39` |
-
-### Previous Facet Versions (Pre-Scheduled Markets)
-| Contract | Address |
-|----------|---------|
-| **MarketFacet (v1)** | `0xf670Eb4cfe8B0a6f98Ba5Dbbdf145Cad49a94ba2` |
-| **TradingFacet (v1)** | `0xBca0707dAc82c3946a2A326Ba33C821c0A2E28bE` |
-| **LiquidityFacet (v1)** | `0xD9DCA9eC368E44d7bDAe1A6997f4BB21ADDFeb87` |
+| **CoreRouter** | `0xAbD5bfbdc4f5B3faa8F07C48152d1cf61a88416E` |
+| **ChainlinkResolver** | `0xbff5aC1fd8EdB1aEf0a32e3Dedd01ff351DBa446` |
+| **Treasury** | `0x50c377AedEB8E87f9C3715Af4D84f4fA23154553` |
+| **MarketFacet** | `0x1df83247E0Bb2A6da9B9Cea76cC6467c7b41eD58` |
+| **TradingFacet** | `0x1e88647a37DDb2191F4B72Aa134cFcb98782e694` |
+| **LiquidityFacet** | `0x0d44a169f822FC256EF6EB55b72D806Ac62E02b2` |
+| **SettlementFacet** | `0x3F7831134683d6fC0F5658E5503b2cF7774A0697` |
+| **AdminFacet** | `0x1FeFe6E8C47fbf1f0919aeF65C18722E89a8769e` |
 
 ---
 
@@ -34,7 +28,7 @@ Your contracts were deployed with a **24-hour (86,400 seconds) timelock** on BSC
 ### 1. Find Deployment Time
 
 Check the CoreRouter contract creation on BscScan:
-- https://bscscan.com/address/0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b
+- https://bscscan.com/address/0xAbD5bfbdc4f5B3faa8F07C48152d1cf61a88416E
 
 Look for the "Contract Creation" transaction timestamp.
 
@@ -59,12 +53,13 @@ cast block latest --rpc-url bsc_mainnet | grep timestamp
 ```bash
 cd contracts
 
-CORE_ROUTER=0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b \
-RESOLVER=0x4076a6951B8d1EB2f4008A8b1E73FCB614e44dC2 \
-MARKET_FACET=0xf670Eb4cfe8B0a6f98Ba5Dbbdf145Cad49a94ba2 \
-TRADING_FACET=0xBca0707dAc82c3946a2A326Ba33C821c0A2E28bE \
-LIQUIDITY_FACET=0xD9DCA9eC368E44d7bDAe1A6997f4BB21ADDFeb87 \
-SETTLEMENT_FACET=0x7B95420f86c7325F4fdeCE2ad8C249C84708852B \
+CORE_ROUTER=0xAbD5bfbdc4f5B3faa8F07C48152d1cf61a88416E \
+RESOLVER=0xbff5aC1fd8EdB1aEf0a32e3Dedd01ff351DBa446 \
+MARKET_FACET=0x1df83247E0Bb2A6da9B9Cea76cC6467c7b41eD58 \
+TRADING_FACET=0x1e88647a37DDb2191F4B72Aa134cFcb98782e694 \
+LIQUIDITY_FACET=0x0d44a169f822FC256EF6EB55b72D806Ac62E02b2 \
+SETTLEMENT_FACET=0x3F7831134683d6fC0F5658E5503b2cF7774A0697 \
+ADMIN_FACET=0x1FeFe6E8C47fbf1f0919aeF65C18722E89a8769e \
 forge script script/ExecuteAfterDelay.s.sol:ExecuteAfterDelay \
   --rpc-url bsc_mainnet \
   --broadcast \
@@ -76,12 +71,13 @@ forge script script/ExecuteAfterDelay.s.sol:ExecuteAfterDelay \
 ```powershell
 cd contracts
 
-$env:CORE_ROUTER="0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b"
-$env:RESOLVER="0x4076a6951B8d1EB2f4008A8b1E73FCB614e44dC2"
-$env:MARKET_FACET="0xf670Eb4cfe8B0a6f98Ba5Dbbdf145Cad49a94ba2"
-$env:TRADING_FACET="0xBca0707dAc82c3946a2A326Ba33C821c0A2E28bE"
-$env:LIQUIDITY_FACET="0xD9DCA9eC368E44d7bDAe1A6997f4BB21ADDFeb87"
-$env:SETTLEMENT_FACET="0x7B95420f86c7325F4fdeCE2ad8C249C84708852B"
+$env:CORE_ROUTER="0xAbD5bfbdc4f5B3faa8F07C48152d1cf61a88416E"
+$env:RESOLVER="0xbff5aC1fd8EdB1aEf0a32e3Dedd01ff351DBa446"
+$env:MARKET_FACET="0x1df83247E0Bb2A6da9B9Cea76cC6467c7b41eD58"
+$env:TRADING_FACET="0x1e88647a37DDb2191F4B72Aa134cFcb98782e694"
+$env:LIQUIDITY_FACET="0x0d44a169f822FC256EF6EB55b72D806Ac62E02b2"
+$env:SETTLEMENT_FACET="0x3F7831134683d6fC0F5658E5503b2cF7774A0697"
+$env:ADMIN_FACET="0x1FeFe6E8C47fbf1f0919aeF65C18722E89a8769e"
 
 forge script script/ExecuteAfterDelay.s.sol:ExecuteAfterDelay --rpc-url bsc_mainnet --broadcast --legacy
 ```
@@ -91,12 +87,13 @@ forge script script/ExecuteAfterDelay.s.sol:ExecuteAfterDelay --rpc-url bsc_main
 Add these to your `contracts/.env`:
 
 ```env
-CORE_ROUTER=0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b
-RESOLVER=0x4076a6951B8d1EB2f4008A8b1E73FCB614e44dC2
-MARKET_FACET=0xf670Eb4cfe8B0a6f98Ba5Dbbdf145Cad49a94ba2
-TRADING_FACET=0xBca0707dAc82c3946a2A326Ba33C821c0A2E28bE
-LIQUIDITY_FACET=0xD9DCA9eC368E44d7bDAe1A6997f4BB21ADDFeb87
-SETTLEMENT_FACET=0x7B95420f86c7325F4fdeCE2ad8C249C84708852B
+CORE_ROUTER=0xAbD5bfbdc4f5B3faa8F07C48152d1cf61a88416E
+RESOLVER=0xbff5aC1fd8EdB1aEf0a32e3Dedd01ff351DBa446
+MARKET_FACET=0x1df83247E0Bb2A6da9B9Cea76cC6467c7b41eD58
+TRADING_FACET=0x1e88647a37DDb2191F4B72Aa134cFcb98782e694
+LIQUIDITY_FACET=0x0d44a169f822FC256EF6EB55b72D806Ac62E02b2
+SETTLEMENT_FACET=0x3F7831134683d6fC0F5658E5503b2cF7774A0697
+ADMIN_FACET=0x1FeFe6E8C47fbf1f0919aeF65C18722E89a8769e
 ```
 
 Then run:
@@ -162,20 +159,20 @@ After running the script, verify facets are connected:
 cd contracts
 
 # Check createMarket is wired to MarketFacet
-cast call 0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b "facetOf(bytes4)(address)" 0x56c8d23d --rpc-url bsc_mainnet
-# Expected: 0xf670Eb4cfe8B0a6f98Ba5Dbbdf145Cad49a94ba2
+cast call 0xAbD5bfbdc4f5B3faa8F07C48152d1cf61a88416E "facetOf(bytes4)(address)" 0x56c8d23d --rpc-url bsc_mainnet
+# Expected: 0x1df83247E0Bb2A6da9B9Cea76cC6467c7b41eD58
 
 # Check buy is wired to TradingFacet
-cast call 0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b "facetOf(bytes4)(address)" 0xbdad35e5 --rpc-url bsc_mainnet
-# Expected: 0xBca0707dAc82c3946a2A326Ba33C821c0A2E28bE
+cast call 0xAbD5bfbdc4f5B3faa8F07C48152d1cf61a88416E "facetOf(bytes4)(address)" 0xbdad35e5 --rpc-url bsc_mainnet
+# Expected: 0x1e88647a37DDb2191F4B72Aa134cFcb98782e694
 
 # Check addLiquidity is wired to LiquidityFacet
-cast call 0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b "facetOf(bytes4)(address)" 0x9cd441da --rpc-url bsc_mainnet
-# Expected: 0xD9DCA9eC368E44d7bDAe1A6997f4BB21ADDFeb87
+cast call 0xAbD5bfbdc4f5B3faa8F07C48152d1cf61a88416E "facetOf(bytes4)(address)" 0x9cd441da --rpc-url bsc_mainnet
+# Expected: 0x0d44a169f822FC256EF6EB55b72D806Ac62E02b2
 
 # Check redeem is wired to SettlementFacet
-cast call 0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b "facetOf(bytes4)(address)" 0xd65a06b0 --rpc-url bsc_mainnet
-# Expected: 0x7B95420f86c7325F4fdeCE2ad8C249C84708852B
+cast call 0xAbD5bfbdc4f5B3faa8F07C48152d1cf61a88416E "facetOf(bytes4)(address)" 0xd65a06b0 --rpc-url bsc_mainnet
+# Expected: 0x3F7831134683d6fC0F5658E5503b2cF7774A0697
 ```
 
 ---
@@ -249,7 +246,7 @@ Once all 22 operations are executed:
 cd contracts
 
 # Execute createScheduledMarket selector
-cast send 0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b \
+cast send 0xAbD5bfbdc4f5B3faa8F07C48152d1cf61a88416E \
   "executeSetFacet(bytes32,bytes4,address)" \
   0x8728ff92112b17e6130e42dc6380831d9c47743027327fd5d5ab530155697a38 \
   0xf00bccd9 \
@@ -262,35 +259,24 @@ cast send 0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b \
 
 ```bash
 # Check createScheduledMarket is wired to new MarketFacet
-cast call 0xC0b288C9d0ae817BdA2DA810F34268b0224faC4b "facetOf(bytes4)(address)" 0xf00bccd9 --rpc-url https://bsc-dataseed.binance.org/
+cast call 0xAbD5bfbdc4f5B3faa8F07C48152d1cf61a88416E "facetOf(bytes4)(address)" 0xf00bccd9 --rpc-url https://bsc-dataseed.binance.org/
 # Expected: 0x333be16200CA738D49B40CDDe056F9aa7ccf643E
 ```
 
 ---
 
-## Testnet Deployment (v2 - Scheduled Markets)
+## Testnet Deployment (January 2026 - Dynamic USDC + AdminFacet)
 
-| Facet | Address |
-|-------|---------|
-| **MarketFacet** | `0xF27C3a35840Befef553bE912A0ec7Ee60d5C64e0` |
-| **TradingFacet** | `0x8578569669Eaa1246382A9Ea7d45df88B8d26BF2` |
-| **LiquidityFacet** | `0x8c51494c0a9d5ad030d489ACa61E01D0dDb5A677` |
-| **SettlementFacet** | `0x4B6e27aEbd6eaB2F6b239fE1D8470C2275B6B5c9` |
+| Contract | Address |
+|----------|---------|
+| **CoreRouter** | `0x9315fc0082d85ABa5Dd680C30b53D73b0F032C2D` |
+| **Treasury** | `0x8566B7c306099c7CdB1c2fcACA099C86cf74C977` |
+| **Resolver** | `0x997a2393976e2629bb1DF909Ee4e42A800d2D0BD` |
+| **MockUSDC** | `0x34F7d01f7529F176fF682aACD468Ba99A89E5aAF` |
+| **MarketFacet** | `0xdba345d7535E7f4c1745667B181e13c9EF74F056` |
+| **TradingFacet** | `0xbdC0b854289F29B95C919A9A05474d815C806960` |
+| **LiquidityFacet** | `0xc1C8C0eC33e055Ef092E207B12594ca5E9120528` |
+| **SettlementFacet** | `0x6312F6730891924c78735E762eC7042634B4D1fA` |
+| **AdminFacet** | `0x22A62b5ABE7Eb54A72066c75cC61bd9343Dab804` |
 
-**Testnet Router**: `0x22B5E95C7B81D340CfCEBE93A2EE665dC310C491`
-
-### Wire createScheduledMarket on Testnet
-
-Testnet has no timelock delay, execute immediately after scheduling:
-
-```bash
-# Execute createScheduledMarket selector on testnet
-cast send 0x22B5E95C7B81D340CfCEBE93A2EE665dC310C491 \
-  "executeSetFacet(bytes32,bytes4,address)" \
-  0x9af8897c1dac83145081c64fb783559210f72beb3db07c2a249e3691a67f9b40 \
-  0xf00bccd9 \
-  0xF27C3a35840Befef553bE912A0ec7Ee60d5C64e0 \
-  --private-key $PRIVATE_KEY_MAIN \
-  --rpc-url https://data-seed-prebsc-1-s1.binance.org:8545 \
-  --gas-price 5000000000
-```
+**Note**: Testnet has no timelock delay (0 seconds). All operations execute immediately during deployment.

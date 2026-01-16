@@ -95,6 +95,7 @@ export function useMarketsListOptimized() {
             // 3. Merge and Format
             const formattedMarkets: MarketCardData[] = [];
             const now = Math.floor(Date.now() / 1000);
+            const usdcDecimals = addresses.usdcDecimals ?? 6;
 
             // We iterate over the subgraph list to preserve order (newest first)
             for (const mRaw of marketsRaw) {
@@ -153,7 +154,7 @@ export function useMarketsListOptimized() {
                 }
 
                 // formatted price
-                let yesPrice = Number(pYesE6) / 1e6;
+                let yesPrice = Number(pYesE6) / 10 ** usdcDecimals;
                 let noPrice = 1 - yesPrice;
 
                 // Force resolved prices
@@ -169,7 +170,7 @@ export function useMarketsListOptimized() {
                 const metaVaultArr = Array.isArray(metadata) ? metadata[5] : undefined;
                 const vaultVal = typeof metaVault === 'bigint' ? metaVault : (typeof metaVaultArr === 'bigint' ? metaVaultArr : 0n);
 
-                const totalPairs = Number(formatUnits(vaultVal, 6));
+                const totalPairs = Number(formatUnits(vaultVal, usdcDecimals));
 
                 // History for Sparkline
                 // trades from subgraph are { priceE6 }

@@ -85,7 +85,7 @@ contract MarketFacet is CoreStorage {
         IERC20(usdc).safeTransferFrom(msg.sender, address(this), initUsdc);
 
         uint256 ln2E18 = 693147180559945309;
-        uint256 bE18_  = (initUsdc * liquidityMultiplierE18 * USDC_TO_E18) / ln2E18;
+        uint256 bE18_  = (_usdcToE18(initUsdc) * liquidityMultiplierE18) / ln2E18;
 
         OracleType oType = oracleFeed == address(0) ? OracleType.None : OracleType.ChainlinkFeed;
         bytes32 qh = keccak256(bytes(question));
@@ -148,7 +148,7 @@ contract MarketFacet is CoreStorage {
             totalLpUsdc: initUsdc,
             lpFeesUSDC: 0,
             residualUSDC: 0,
-            priceBandThresholdUSDC: 10_000e6,
+            priceBandThresholdUSDC: defaultPriceBandThresholdUSDC,
             maxJumpE18: 0,
             resolution: ResolutionConfig({
                 startTime: 0, // Immediate start for backward compatibility
@@ -221,7 +221,7 @@ contract MarketFacet is CoreStorage {
         IERC20(usdc).safeTransferFrom(msg.sender, address(this), initUsdc);
 
         uint256 ln2E18 = 693147180559945309;
-        uint256 bE18_  = (initUsdc * liquidityMultiplierE18 * USDC_TO_E18) / ln2E18;
+        uint256 bE18_  = (_usdcToE18(initUsdc) * liquidityMultiplierE18) / ln2E18;
 
         OracleType oType = oracleFeed == address(0) ? OracleType.None : OracleType.ChainlinkFeed;
         bytes32 qh = keccak256(bytes(question));
@@ -275,7 +275,7 @@ contract MarketFacet is CoreStorage {
             totalLpUsdc: initUsdc,
             lpFeesUSDC: 0,
             residualUSDC: 0,
-            priceBandThresholdUSDC: 10_000e6,
+            priceBandThresholdUSDC: defaultPriceBandThresholdUSDC,
             maxJumpE18: 0,
             resolution: ResolutionConfig({
                 startTime: effectiveStartTime,
@@ -317,7 +317,7 @@ contract MarketFacet is CoreStorage {
      * @dev Circulating supply excludes router-held locked shares used for liquidity scaling.
      * @return cirYes circulating YES shares (1e18)
      * @return cirNo circulating NO shares (1e18)
-     * @return liabilityUSDC max(cirYes,cirNo)/1e12 (6 decimals)
+     * @return liabilityUSDC max(cirYes,cirNo) converted to USDC units
      * @return vaultUSDC market vault balance (6 decimals)
      * @return bE18_ LMSR liquidity parameter (1e18)
      */
@@ -336,7 +336,7 @@ contract MarketFacet is CoreStorage {
         cirNo  = m.qNo  > lockedNo  ? (m.qNo  - lockedNo)  : 0;
 
         uint256 maxCir = cirYes > cirNo ? cirYes : cirNo;
-        liabilityUSDC = maxCir / 1e12;
+        liabilityUSDC = _e18ToUsdc(maxCir);
         vaultUSDC = m.usdcVault;
         bE18_ = m.bE18;
     }

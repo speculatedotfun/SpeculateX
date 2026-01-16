@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { formatUnits, parseUnits } from 'viem';
+import { useUsdcDecimals } from '@/lib/contracts';
 import { clamp } from '@/lib/tradingUtils';
 import { findSharesOut, spotPriceYesE18, costFunction } from '@/lib/lmsrMath';
-
-const USDC_TO_E18 = 10n ** 12n;
 
 interface UseTradePreviewProps {
     amount: string;
@@ -34,6 +33,8 @@ export function useTradePreview({
     totalFeeBps,
     getActualBasePrice,
 }: UseTradePreviewProps) {
+    const usdcDecimals = useUsdcDecimals();
+    const usdcToE18 = 10n ** BigInt(18 - usdcDecimals);
     const [currentPrice, setCurrentPrice] = useState(0);
     const [newPrice, setNewPrice] = useState(0);
     const [shares, setShares] = useState(0);
@@ -66,7 +67,7 @@ export function useTradePreview({
         }
         try {
             if (tradeMode === 'buy') {
-                const usdcIn = parseUnits(amount, 6);
+                const usdcIn = parseUnits(amount, usdcDecimals);
                 if (usdcIn <= 0n) { resetPreview(); return; }
 
                 const feeT = usdcIn * BigInt(feeTreasuryBps) / 10_000n;
@@ -75,15 +76,15 @@ export function useTradePreview({
                 const net = usdcIn - feeT - feeV - feeL;
                 if (net <= 0n) { resetPreview(); return; }
 
-                const netE18 = net * USDC_TO_E18;
+                const netE18 = net * usdcToE18;
                 const baseSide = side === 'yes' ? qYes : qNo;
                 const baseOther = side === 'yes' ? qNo : qYes;
                 const tokensOut = findSharesOut(baseSide, baseOther, netE18, bE18);
                 if (tokensOut <= 0n) { resetPreview(); return; }
 
                 const sharesNum = parseFloat(formatUnits(tokensOut, 18));
-                const grossUsd = parseFloat(formatUnits(usdcIn, 6));
-                const feeUsdValue = parseFloat(formatUnits(feeT + feeV + feeL, 6));
+                const grossUsd = parseFloat(formatUnits(usdcIn, usdcDecimals));
+                const feeUsdValue = parseFloat(formatUnits(feeT + feeV + feeL, usdcDecimals));
 
                 const newQYes = side === 'yes' ? qYes + tokensOut : qYes;
                 const newQNo = side === 'yes' ? qNo : qNo + tokensOut;
@@ -116,10 +117,10 @@ export function useTradePreview({
                 const refundE18 = oldCost - newCost;
                 if (refundE18 <= 0n) { resetPreview(); return; }
 
-                const usdcOut = refundE18 / USDC_TO_E18;
+                const usdcOut = refundE18 / usdcToE18;
                 const newPriceYes = parseFloat(formatUnits(spotPriceYesE18(newQYes, newQNo, bE18), 18));
                 const sharesNum = parseFloat(formatUnits(tokensIn, 18));
-                const payout = parseFloat(formatUnits(usdcOut, 6));
+                const payout = parseFloat(formatUnits(usdcOut, usdcDecimals));
                 const avgPrice = sharesNum > 0 ? payout / sharesNum : 0;
 
                 const actualBase = getActualBasePrice();
@@ -138,7 +139,7 @@ export function useTradePreview({
             console.error('Preview error', e);
             resetPreview();
         }
-    }, [amount, tradeMode, side, qYes, qNo, bE18, feeTreasuryBps, feeVaultBps, feeLpBps, totalFeeBps, resetPreview, getActualBasePrice]);
+    }, [amount, tradeMode, side, qYes, qNo, bE18, feeTreasuryBps, feeVaultBps, feeLpBps, totalFeeBps, resetPreview, getActualBasePrice, usdcDecimals]);
 
     return {
         currentPrice,

@@ -61,6 +61,7 @@ function chunkArray<T>(array: T[], size: number): T[][] {
 export function useUserPortfolio() {
   const { address } = useAccount();
   const addresses = useAddressesSnapshot();
+  const usdcDecimals = addresses.usdcDecimals ?? 6;
   const network = getCurrentNetwork();
   const chainId = getChainId();
   const coreAbi = getCoreAbi(network);
@@ -331,7 +332,7 @@ export function useUserPortfolio() {
         action: t.action,
         side: t.side.toUpperCase(),
         tokenAmount: Math.abs(Number(formatUnits(BigInt(t.tokenDelta), 18))),
-        usdcAmount: Math.abs(Number(formatUnits(BigInt(t.usdcDelta), 6))),
+        usdcAmount: Math.abs(Number(formatUnits(BigInt(t.usdcDelta), usdcDecimals))),
         price: Number(t.priceE6) / 1e6,
         timestamp: Number(t.timestamp),
         txHash: t.txHash,
@@ -342,7 +343,7 @@ export function useUserPortfolio() {
         id: r.id,
         marketId: Number(r.market.id),
         question: r.market.question,
-        amount: Number(formatUnits(BigInt(r.amount), 6)),
+        amount: Number(formatUnits(BigInt(r.amount), usdcDecimals)),
         timestamp: Number(r.timestamp),
         txHash: r.txHash,
         yesWins: r.market.yesWins ?? null,

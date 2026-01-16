@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient } from 'wagmi';
-import { parseUnits, keccak256, stringToBytes } from 'viem';
+import { parseUnits, keccak256, stringToBytes, formatUnits } from 'viem';
 import Image from 'next/image';
 import { addresses, getCurrentNetwork, getNetwork, isDiamondNetwork } from '@/lib/contracts';
 import { getCoreAbi, usdcAbi, chainlinkResolverAbiLegacy } from '@/lib/abis';
@@ -29,6 +29,7 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
   const publicClient = usePublicClient();
   const { pushToast } = useToast();
   const network = getNetwork();
+  const usdcDecimals = addresses.usdcDecimals ?? 6;
 
   // --- Wizard State ---
   const [step, setStep] = useState(1);
@@ -69,6 +70,47 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
     startDate: '',
   });
 
+  // --- EXACT QUESTION FORMATTING ---
+  const generatedQuestion = useMemo(() => {
+    if (!targetPrice || !resolutionDate) return '...';
+    try {
+      const dateObj = new Date(resolutionDate);
+      const month = dateObj.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
+      const day = dateObj.toLocaleString('en-US', { day: 'numeric', timeZone: 'UTC' });
+      const time = dateObj.toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
+      const formattedPrice = Number(targetPrice).toLocaleString('en-US');
+      return `Will ${selectedAsset.symbol} trade ${comparison} ${formattedPrice}$ on ${month}, ${day} at ${time} UTC?`;
+    } catch { return '...'; }
+  }, [selectedAsset, comparison, targetPrice, resolutionDate]);
+
+  // --- Contract Interaction ---
+  const { data: approvalHash, writeContractAsync: writeApproveAsync, isPending: isApproving } = useWriteContract();
+  const { isLoading: isApprovalConfirming, isSuccess: isApprovalSuccess } = useWaitForTransactionReceipt({ hash: approvalHash });
+
+  const { data: currentAllowance } = useReadContract({
+    address: addresses.usdc,
+    abi: usdcAbi,
+    functionName: 'allowance',
+    args: address && addresses.core ? [address, addresses.core] : undefined,
+    query: { enabled: !!address, refetchInterval: 2000 },
+  });
+
+  const { data: minMarketSeedRaw } = useReadContract({
+    address: addresses.core,
+    abi: getCoreAbi(getCurrentNetwork()),
+    functionName: 'minMarketSeed',
+    query: { enabled: !!addresses.core },
+  });
+
+  const minMarketSeed = useMemo(() => {
+    if (minMarketSeedRaw === undefined || minMarketSeedRaw === null) return 500;
+    try {
+      return parseFloat(formatUnits(minMarketSeedRaw as bigint, usdcDecimals));
+    } catch {
+      return 500;
+    }
+  }, [minMarketSeedRaw, usdcDecimals]);
+
   // --- Real-time Validation ---
   useEffect(() => {
     const errors = { targetPrice: '', resolutionDate: '', initUsdc: '', startDate: '' };
@@ -103,37 +145,12 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
 
     if (initUsdc) {
       const amount = parseFloat(initUsdc);
-      if (isNaN(amount) || amount < 100) errors.initUsdc = 'Min 100 USDC';
+      if (isNaN(amount) || amount < minMarketSeed) errors.initUsdc = `Min ${minMarketSeed.toLocaleString()} USDC`;
       else if (amount > 1000000) errors.initUsdc = 'Max 1M USDC';
     }
 
     setValidationErrors(errors);
-  }, [targetPrice, resolutionDate, initUsdc, isScheduled, startDate]);
-
-  // --- EXACT QUESTION FORMATTING ---
-  const generatedQuestion = useMemo(() => {
-    if (!targetPrice || !resolutionDate) return '...';
-    try {
-      const dateObj = new Date(resolutionDate);
-      const month = dateObj.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
-      const day = dateObj.toLocaleString('en-US', { day: 'numeric', timeZone: 'UTC' });
-      const time = dateObj.toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
-      const formattedPrice = Number(targetPrice).toLocaleString('en-US');
-      return `Will ${selectedAsset.symbol} trade ${comparison} ${formattedPrice}$ on ${month}, ${day} at ${time} UTC?`;
-    } catch { return '...'; }
-  }, [selectedAsset, comparison, targetPrice, resolutionDate]);
-
-  // --- Contract Interaction ---
-  const { data: approvalHash, writeContractAsync: writeApproveAsync, isPending: isApproving } = useWriteContract();
-  const { isLoading: isApprovalConfirming, isSuccess: isApprovalSuccess } = useWaitForTransactionReceipt({ hash: approvalHash });
-
-  const { data: currentAllowance } = useReadContract({
-    address: addresses.usdc,
-    abi: usdcAbi,
-    functionName: 'allowance',
-    args: address && addresses.core ? [address, addresses.core] : undefined,
-    query: { enabled: !!address, refetchInterval: 2000 },
-  });
+  }, [targetPrice, resolutionDate, initUsdc, isScheduled, startDate, minMarketSeed]);
 
   const [needsApproval, setNeedsApproval] = useState(false);
   const { data: hash, writeContractAsync, isPending } = useWriteContract();
@@ -141,7 +158,7 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
 
   useEffect(() => {
     if (address && addresses.core && currentAllowance !== undefined) {
-      const requiredAmount = parseUnits(initUsdc || '0', 6);
+      const requiredAmount = parseUnits(initUsdc || '0', usdcDecimals);
       setNeedsApproval((currentAllowance as bigint) < requiredAmount);
     }
   }, [address, currentAllowance, initUsdc]);
@@ -204,7 +221,7 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
 
   const handleApprove = async () => {
     try {
-      const amount = parseUnits(initUsdc || '1000', 6);
+      const amount = parseUnits(initUsdc || '1000', usdcDecimals);
       await writeApproveAsync({
         address: addresses.usdc,
         abi: usdcAbi,
@@ -227,7 +244,7 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
     }
 
     try {
-      const initUsdcE6 = parseUnits(initUsdc, 6);
+      const initUsdcE6 = parseUnits(initUsdc, usdcDecimals);
       const expiry = Math.floor(new Date(resolutionDate).getTime() / 1000);
       const targetValueBigInt = parseUnits(targetPrice, 8);
       const comparisonEnum = comparison === 'above' ? 0 : 1;

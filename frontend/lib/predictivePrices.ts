@@ -2,9 +2,15 @@
  * Client-side LMSR price predictions for instant feedback
  */
 
+import { getUsdcDecimals } from './contracts';
+
 // LMSR Constants (matching contract)
+
 const SCALE = 10n ** 18n;
-const USDC_TO_E18 = 10n ** 12n;
+function getUsdcToE18(): bigint {
+  const decimals = getUsdcDecimals();
+  return decimals >= 18 ? 1n : 10n ** BigInt(18 - decimals);
+}
 const LN2 = 693147180559945309n;
 const LOG2_E = 1442695040888963407n;
 const TWO_OVER_LN2 = (2n * SCALE * SCALE) / LN2;
@@ -198,7 +204,7 @@ export function simulateTrade(
     const net = trade.usdcIn - fee;
 
     // Convert to E18 for calculations
-    const netE18 = net * USDC_TO_E18;
+    const netE18 = net * getUsdcToE18();
 
     // Find tokens out
     const tokensOut = findTokensOut(
@@ -229,7 +235,7 @@ export function simulateTrade(
 
     // Calculate slippage (difference between expected and actual price)
     const expectedPrice = trade.usdcIn > 0n
-      ? Number(trade.usdcIn * USDC_TO_E18) / Number(tokensOut) / Number(SCALE)
+      ? Number(trade.usdcIn * getUsdcToE18()) / Number(tokensOut) / Number(SCALE)
       : currentPrice;
     const slippage = Math.abs(newPrice - expectedPrice) / expectedPrice;
 
@@ -306,8 +312,8 @@ export function calculateOptimalTradeSize(
   isYes: boolean
 ): bigint {
   // Binary search for optimal USDC amount
-  let low = 1n * USDC_TO_E18; // $1
-  let high = 100000n * USDC_TO_E18; // $100k
+  let low = 1n * getUsdcToE18(); // $1
+  let high = 100000n * getUsdcToE18(); // $100k
 
   for (let i = 0; i < 20; i++) {
     const mid = (low + high) / 2n;
@@ -455,7 +461,7 @@ export class PricePredictor {
    */
   async warmCache(state: MarketState): Promise<void> {
     const commonSizes = [10n, 50n, 100n, 500n, 1000n, 5000n].map(
-      (amount) => amount * USDC_TO_E18
+      (amount) => amount * getUsdcToE18()
     );
 
     const promises = [];

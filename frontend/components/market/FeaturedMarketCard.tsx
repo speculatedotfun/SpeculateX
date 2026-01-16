@@ -7,6 +7,7 @@ import { Sparkline } from '@/components/market/Sparkline';
 import { MarketCardData } from './MarketCard';
 import { useMemo, useState } from 'react';
 import { formatUnits } from 'viem';
+import { useAddresses } from '@/lib/contracts';
 
 interface FeaturedMarketCardProps {
     market: MarketCardData;
@@ -29,13 +30,15 @@ function getTimeRemaining(timestamp: bigint): string {
 
 export function FeaturedMarketCard({ market, prefersReducedMotion = false, getMarketLogo, formatNumber }: FeaturedMarketCardProps) {
     const [selectedSide, setSelectedSide] = useState<'yes' | 'no'>('yes');
+    const addresses = useAddresses();
+    const usdcDecimals = addresses.usdcDecimals ?? 6;
 
     const isAuto = market.oracleType === 1;
     const isLive = market.status === 'LIVE TRADING';
     const timeLeft = useMemo(() => getTimeRemaining(market.expiryTimestamp), [market.expiryTimestamp]);
     const volumeDisplay = `$${formatNumber(market.volume)}`;
     const liquidityValue = typeof market.totalPairsUSDC === 'bigint' ? market.totalPairsUSDC : BigInt(market.totalPairsUSDC || 0);
-    const liquidityDisplay = `$${formatNumber(Number(formatUnits(liquidityValue, 6)))}`;
+    const liquidityDisplay = `$${formatNumber(Number(formatUnits(liquidityValue, usdcDecimals)))}`;
 
     const yesLeading = market.yesPrice >= 0.5;
     const leadingPercent = Math.round((yesLeading ? market.yesPrice : market.noPrice) * 100);

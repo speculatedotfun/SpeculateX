@@ -97,5 +97,23 @@
     "marketId": 1,
     "amount": "50",
     "type": "BuyNo"
+  },
+  {
+    "timestamp": 1768583628605,
+    "referrer": "0xbb9ed373c8fa2a2432737ac97cdefa727d1210e9",
+    "user": "0x29D67d1Ad683A76b2750f74B40b6e79d715C933c",
+    "txHash": "0x33824490ba02fc2422b4789b712e255b93e944b1eb111a4a7c73849f5c79453e",
+    "marketId": 1,
+    "amount": "100",
+    "type": "BuyYes"
+  },
+  {
+    "timestamp": 1768583632543,
+    "referrer": "0xbb9ed373c8fa2a2432737ac97cdefa727d1210e9",
+    "user": "0x29D67d1Ad683A76b2750f74B40b6e79d715C933c",
+    "txHash": "0x3859f15bede9800dcdc102b96f1941b08f0ede7107acb52e68d76e8627f0e584",
+    "marketId": 1,
+    "amount": "70",
+    "type": "BuyNo"
   }
 ]

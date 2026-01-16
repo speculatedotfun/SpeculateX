@@ -15,6 +15,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchSubgraph } from '@/lib/subgraphClient';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAccount } from 'wagmi';
+import { useAddresses } from '@/lib/contracts';
 import { formatCompact } from '@/lib/format';
 import { Pagination } from '@/components/ui/Pagination';
 
@@ -31,6 +32,7 @@ type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 export default function MarketsPage() {
   const { address } = useAccount();
+  const addresses = useAddresses();
 
   // Optimized Data Fetching
   const { data: marketsRaw = [], isLoading: isLoadingMarkets } = useMarketsListOptimized();
@@ -124,7 +126,7 @@ export default function MarketsPage() {
     let liquidity = 0, live = 0, resolved = 0, expired = 0, cancelled = 0;
     for (const market of markets) {
       const vaultValue = typeof market.totalPairsUSDC === 'bigint' ? market.totalPairsUSDC : BigInt(market.totalPairsUSDC || 0);
-      liquidity += Number(formatUnits(vaultValue, 6));
+      liquidity += Number(formatUnits(vaultValue, addresses.usdcDecimals ?? 6));
       if (market.status === 'LIVE TRADING') live += 1;
       else if (market.status === 'RESOLVED') resolved += 1;
       else if (market.status === 'EXPIRED') expired += 1;

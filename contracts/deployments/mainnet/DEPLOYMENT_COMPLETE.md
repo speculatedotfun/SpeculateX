@@ -2,11 +2,11 @@
 
 ## ✅ Deployment Status: VERIFIED & ACTIVE
 
-**Deployment Date:** January 2, 2026
+**Deployment Date:** January 2026
 **Network:** BSC Mainnet (Chain ID: 56)
 **Deployer:** 0x29D67d1Ad683A76b2750f74B40b6e79d715C933c
 **Admin:** 0x29D67d1Ad683A76b2750f74B40b6e79d715C933c
-**Start Block:** 73821951
+**Start Block:** (Update after deployment)
 
 ---
 
@@ -14,13 +14,14 @@
 
 | Contract | Address | Verification |
 |----------|---------|--------------|
-| **Treasury** | `0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651` | ✅ Verified |
-| **CoreRouter** ⭐ | `0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365` | ✅ Verified |
-| **ChainlinkResolver** | `0xe11c1Dc5768858732d4a255A3baE579860780AE2` | ✅ Verified |
-| **MarketFacet** | `0x8aE4e9fAA34aFA70cf7D01239f1fB87b1ea303e7` | ✅ Verified |
-| **TradingFacet** | `0x55390A0AAc12b1FD765969e3B5A9Ee51894E8830` | ✅ Verified |
-| **LiquidityFacet** | `0x5A5350E102C3224024901ad9379Baf9af4FBAb87` | ✅ Verified |
-| **SettlementFacet** | `0xc12560a00609FFd23110a5630497d4926da4d83D` | ✅ Verified |
+| **Treasury** | `0x50c377AedEB8E87f9C3715Af4D84f4fA23154553` | ✅ Verified |
+| **CoreRouter** ⭐ | `0xAbD5bfbdc4f5B3faa8F07C48152d1cf61a88416E` | ✅ Verified |
+| **ChainlinkResolver** | `0xbff5aC1fd8EdB1aEf0a32e3Dedd01ff351DBa446` | ✅ Verified |
+| **MarketFacet** | `0x1df83247E0Bb2A6da9B9Cea76cC6467c7b41eD58` | ✅ Verified |
+| **TradingFacet** | `0x1e88647a37DDb2191F4B72Aa134cFcb98782e694` | ✅ Verified |
+| **LiquidityFacet** | `0x0d44a169f822FC256EF6EB55b72D806Ac62E02b2` | ✅ Verified |
+| **SettlementFacet** | `0x3F7831134683d6fC0F5658E5503b2cF7774A0697` | ✅ Verified |
+| **AdminFacet** | `0x1FeFe6E8C47fbf1f0919aeF65C18722E89a8769e` | ✅ Verified |
 
 ⭐ **Main Contract** - Use this address in your frontend/subgraph
 
@@ -28,13 +29,14 @@
 
 ## 🔗 BscScan Links
 
-- [Treasury](https://bscscan.com/address/0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651#code)
-- [CoreRouter](https://bscscan.com/address/0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365#code) ⭐
-- [ChainlinkResolver](https://bscscan.com/address/0xe11c1Dc5768858732d4a255A3baE579860780AE2#code)
-- [MarketFacet](https://bscscan.com/address/0x8aE4e9fAA34aFA70cf7D01239f1fB87b1ea303e7#code)
-- [TradingFacet](https://bscscan.com/address/0x55390A0AAc12b1FD765969e3B5A9Ee51894E8830#code)
-- [LiquidityFacet](https://bscscan.com/address/0x5A5350E102C3224024901ad9379Baf9af4FBAb87#code)
-- [SettlementFacet](https://bscscan.com/address/0xc12560a00609FFd23110a5630497d4926da4d83D#code)
+- [Treasury](https://bscscan.com/address/0x50c377AedEB8E87f9C3715Af4D84f4fA23154553#code)
+- [CoreRouter](https://bscscan.com/address/0xAbD5bfbdc4f5B3faa8F07C48152d1cf61a88416E#code) ⭐
+- [ChainlinkResolver](https://bscscan.com/address/0xbff5aC1fd8EdB1aEf0a32e3Dedd01ff351DBa446#code)
+- [MarketFacet](https://bscscan.com/address/0x1df83247E0Bb2A6da9B9Cea76cC6467c7b41eD58#code)
+- [TradingFacet](https://bscscan.com/address/0x1e88647a37DDb2191F4B72Aa134cFcb98782e694#code)
+- [LiquidityFacet](https://bscscan.com/address/0x0d44a169f822FC256EF6EB55b72D806Ac62E02b2#code)
+- [SettlementFacet](https://bscscan.com/address/0x3F7831134683d6fC0F5658E5503b2cF7774A0697#code)
+- [AdminFacet](https://bscscan.com/address/0x1FeFe6E8C47fbf1f0919aeF65C18722E89a8769e#code)
 
 ---
 
@@ -67,9 +69,9 @@ See `../docs/TIMELOCK_EXECUTION.md` for detailed execution instructions.
 | Parameter | Value |
 |-----------|-------|
 | **Timelock Delay** | 86,400 seconds (24 hours) |
-| **Treasury Daily Limit** | 50,000 USDC (50,000,000,000 with 6 decimals) |
-| **Collateral Token** | USDC (0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d) |
-| **Operations Scheduled** | 23 (1 resolver + 22 facets, including createScheduledMarket) |
+| **Treasury Daily Limit** | 50,000 USDC (50,000 * 10^18 with 18 decimals) |
+| **Collateral Token** | USDC (0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d, 18 decimals) |
+| **Operations Scheduled** | 28 (1 resolver + 27 facets, including AdminFacet) |
 
 ---
 
@@ -80,14 +82,15 @@ See `../docs/TIMELOCK_EXECUTION.md` for detailed execution instructions.
 Update your frontend environment variables:
 
 ```env
-NEXT_PUBLIC_MAINNET_CORE=0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365
-NEXT_PUBLIC_MAINNET_TREASURY=0x5fB4E87Dd91d60fb55405d4593Ec3B58225c2651
-NEXT_PUBLIC_MAINNET_RESOLVER=0xe11c1Dc5768858732d4a255A3baE579860780AE2
+NEXT_PUBLIC_MAINNET_CORE=0xAbD5bfbdc4f5B3faa8F07C48152d1cf61a88416E
+NEXT_PUBLIC_MAINNET_TREASURY=0x50c377AedEB8E87f9C3715Af4D84f4fA23154553
+NEXT_PUBLIC_MAINNET_RESOLVER=0xbff5aC1fd8EdB1aEf0a32e3Dedd01ff351DBa446
 NEXT_PUBLIC_MAINNET_USDC=0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d
-NEXT_PUBLIC_MAINNET_FACET_MARKET=0x8aE4e9fAA34aFA70cf7D01239f1fB87b1ea303e7
-NEXT_PUBLIC_MAINNET_FACET_TRADING=0x55390A0AAc12b1FD765969e3B5A9Ee51894E8830
-NEXT_PUBLIC_MAINNET_FACET_LIQUIDITY=0x5A5350E102C3224024901ad9379Baf9af4FBAb87
-NEXT_PUBLIC_MAINNET_FACET_SETTLEMENT=0xc12560a00609FFd23110a5630497d4926da4d83D
+NEXT_PUBLIC_MAINNET_USDC_DECIMALS=18
+NEXT_PUBLIC_MAINNET_FACET_MARKET=0x1df83247E0Bb2A6da9B9Cea76cC6467c7b41eD58
+NEXT_PUBLIC_MAINNET_FACET_TRADING=0x1e88647a37DDb2191F4B72Aa134cFcb98782e694
+NEXT_PUBLIC_MAINNET_FACET_LIQUIDITY=0x0d44a169f822FC256EF6EB55b72D806Ac62E02b2
+NEXT_PUBLIC_MAINNET_FACET_SETTLEMENT=0x3F7831134683d6fC0F5658E5503b2cF7774A0697
 NEXT_PUBLIC_CHAIN_ID=56
 ```
 
@@ -100,9 +103,9 @@ dataSources:
   - name: SpeculateCore
     network: bsc
     source:
-      address: "0xfBd5dD6bC095eA9C3187AEC24E4D1F04F25f8365"
+      address: "0xAbD5bfbdc4f5B3faa8F07C48152d1cf61a88416E"
       abi: SpeculateCore
-      startBlock: 73821951
+      startBlock: (Update after deployment)
 ```
 
 ### ABI Files

@@ -33,19 +33,23 @@ contract SpeculateCoreRouter is CoreStorage, AccessControl {
     bytes4 private constant CLAIM_LP_FEES_SELECTOR = bytes4(keccak256("claimLpFees(uint256)"));
     bytes4 private constant CLAIM_LP_RESID_SELECTOR= bytes4(keccak256("claimLpResidual(uint256)"));
 
-    constructor(address admin, address usdc_, address treasury_, uint256 minTimelockDelay_) {
+    constructor(address admin, address usdc_, uint8 usdcDecimals_, address treasury_, uint256 minTimelockDelay_) {
         if (admin == address(0) || usdc_ == address(0) || treasury_ == address(0)) revert ZeroAddress();
         if (block.chainid == 56 && minTimelockDelay_ < ABSOLUTE_MIN_DELAY_BSC_MAINNET) revert BadValue();
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(MARKET_CREATOR_ROLE, admin);
 
         usdc = usdc_;
+        if (usdcDecimals_ > 18) revert BadValue();
+        usdcDecimals = usdcDecimals_;
         treasury = treasury_;
         minTimelockDelay = minTimelockDelay_;
 
-        maxUsdcPerTrade = 100_000e6;
-        minMarketSeed   = 500e6;
-        minLiquidityAdd = 500e6;
+        uint256 unit = 10 ** uint256(usdcDecimals_);
+        maxUsdcPerTrade = MAX_USDC_PER_TRADE_UNITS * unit;
+        minMarketSeed   = MIN_MARKET_SEED_UNITS * unit;
+        minLiquidityAdd = MIN_LIQUIDITY_ADD_UNITS * unit;
+        defaultPriceBandThresholdUSDC = 10_000 * unit;
         dustSharesE18   = 1e12;
         liquidityMultiplierE18 = 1e18;
         maxInstantJumpE18 = 15e16;

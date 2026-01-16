@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchSubgraph } from '@/lib/subgraphClient';
-import { getCurrentNetwork } from '@/lib/contracts';
+import { getCurrentNetwork, getAddresses } from '@/lib/contracts';
 import { formatUnits } from 'viem';
 
 export interface LeaderboardUser {
@@ -15,6 +15,7 @@ export interface LeaderboardUser {
 
 export function useLeaderboard() {
   const network = getCurrentNetwork();
+  const usdcDecimals = getAddresses().usdcDecimals ?? 6;
   return useQuery({
     // Include network in queryKey so cache is invalidated when network changes
     queryKey: ['leaderboard', network],
@@ -57,7 +58,7 @@ export function useLeaderboard() {
 
           user.trades.forEach((trade) => {
             // Parse USDC amount (6 decimals)
-            const amount = parseFloat(formatUnits(BigInt(trade.usdcDelta), 6));
+            const amount = parseFloat(formatUnits(BigInt(trade.usdcDelta), usdcDecimals));
             volume += Math.abs(amount);
             tradeCount++;
             marketIds.add(trade.market.id);

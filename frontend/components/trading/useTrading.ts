@@ -11,7 +11,6 @@ import { simulateBuyChunk, costFunction } from '@/lib/lmsrMath';
 
 const SLIPPAGE_BPS = 50n;
 const TRADE_DEADLINE_SECONDS = 5n * 60n;
-const USDC_TO_E18 = 10n ** 12n;
 
 interface UseTradingProps {
     marketId: number;
@@ -68,6 +67,8 @@ export function useTrading({
     const [pendingSplitAmount, setPendingSplitAmount] = useState<bigint>(0n);
 
     const addresses = getAddresses();
+    const usdcDecimals = addresses.usdcDecimals ?? 6;
+    const usdcToE18 = usdcDecimals >= 18 ? 1n : 10n ** BigInt(18 - usdcDecimals);
     const network = getCurrentNetwork();
     const isTestnetNetwork = network === 'testnet';
     const coreAbiForNetwork = getCoreAbi(network);
@@ -185,7 +186,7 @@ export function useTrading({
                 const deadline = BigInt(Math.floor(Date.now() / 1000)) + TRADE_DEADLINE_SECONDS;
 
                 // Calculate Price: USDC / Shares
-                const usdcVal = Number(formatUnits(amountBigInt, 6));
+                const usdcVal = Number(formatUnits(amountBigInt, usdcDecimals));
                 const sharesVal = Number(formatUnits(minOut, 18));
                 if (sharesVal > 0) estimatedPrice = (usdcVal / sharesVal).toFixed(2);
 
@@ -206,13 +207,13 @@ export function useTrading({
                 const newQNo = side === 'yes' ? qNo : qNo - tokensIn;
                 const newCost = costFunction(newQYes, newQNo, bE18);
                 const refundE18 = oldCost - newCost;
-                const expectedUsdcOut = refundE18 > 0n ? refundE18 / USDC_TO_E18 : 0n;
+                const expectedUsdcOut = refundE18 > 0n ? refundE18 / usdcToE18 : 0n;
                 const slippageGuard = (expectedUsdcOut * SLIPPAGE_BPS) / 10_000n;
                 const minUsdcOut = expectedUsdcOut > slippageGuard ? expectedUsdcOut - slippageGuard : expectedUsdcOut;
                 const deadline = BigInt(Math.floor(Date.now() / 1000)) + TRADE_DEADLINE_SECONDS;
 
                 // Calculate Price: USDC / Shares
-                const usdcVal = Number(formatUnits(expectedUsdcOut, 6));
+                const usdcVal = Number(formatUnits(expectedUsdcOut, usdcDecimals));
                 const sharesVal = Number(formatUnits(tokensIn, 18));
                 if (sharesVal > 0) estimatedPrice = (usdcVal / sharesVal).toFixed(2);
 

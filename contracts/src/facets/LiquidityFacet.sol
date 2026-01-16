@@ -49,7 +49,7 @@ contract LiquidityFacet is CoreStorage {
         // We mint the delta to the router (address(this)) so circulating supply / user balances are unchanged.
         uint256 oldB = m.bE18;
         uint256 ln2E18 = 693147180559945309;
-        uint256 newB = (m.totalLpUsdc * liquidityMultiplierE18 * USDC_TO_E18) / ln2E18;
+        uint256 newB = (_usdcToE18(m.totalLpUsdc) * liquidityMultiplierE18) / ln2E18;
 
         if (oldB > 0 && newB > oldB) {
             // qNew = qOld * newB / oldB
@@ -122,14 +122,14 @@ contract LiquidityFacet is CoreStorage {
         uint256 lockedNo  = m.no.balanceOf(address(this));
         uint256 cirYes = m.qYes > lockedYes ? (m.qYes - lockedYes) : 0;
         uint256 cirNo  = m.qNo  > lockedNo  ? (m.qNo  - lockedNo)  : 0;
-        uint256 maxLiability = (cirYes > cirNo ? cirYes : cirNo) / 1e12;
-        uint256 bufferUSDC = 1000; // 0.001 USDC (6 decimals)
+        uint256 maxLiability = _e18ToUsdc(cirYes > cirNo ? cirYes : cirNo);
+        uint256 bufferUSDC = _usdcUnit() / 1000; // 0.001 USDC
         
         if (m.usdcVault - usdcRemove + bufferUSDC < maxLiability) revert SolvencyIssue();
 
         // 3. Check minimum liquidity floor (prevent bE18 == 0)
         uint256 newTotalLp = m.totalLpUsdc - usdcRemove;
-        if (m.status == MarketStatus.Active && newTotalLp < MIN_LP_USDC) revert LiquidityTooLow();
+        if (m.status == MarketStatus.Active && newTotalLp < (MIN_LP_USDC_1 * _usdcUnit())) revert LiquidityTooLow();
 
         // 4. Update LP records
         lpShares[id][msg.sender] -= usdcRemove;
@@ -139,7 +139,7 @@ contract LiquidityFacet is CoreStorage {
         // 5. Recalculate b and scale down q's
         uint256 oldB = m.bE18;
         uint256 ln2E18 = 693147180559945309;
-        uint256 newB = (m.totalLpUsdc * liquidityMultiplierE18 * USDC_TO_E18) / ln2E18;
+        uint256 newB = (_usdcToE18(m.totalLpUsdc) * liquidityMultiplierE18) / ln2E18;
 
         if (oldB > 0 && newB < oldB) {
             // qNew = qOld * newB / oldB

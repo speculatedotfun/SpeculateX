@@ -4,7 +4,7 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadCont
 import { getAddresses, getCurrentNetwork, getNetwork } from '@/lib/contracts';
 import { getCoreAbi, getChainlinkResolverAbi, treasuryAbi } from '@/lib/abis';
 import { isAdmin as checkIsAdmin } from '@/lib/accessControl';
-import { keccak256, stringToBytes, decodeErrorResult } from 'viem';
+import { keccak256, stringToBytes, decodeErrorResult, encodeAbiParameters, decodeEventLog, parseUnits } from 'viem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
@@ -66,6 +66,30 @@ export default function AdminManager() {
     ok?: boolean;
   }>>([]);
 
+  // Protocol params (timelock)
+  const [usdcUpdateAddress, setUsdcUpdateAddress] = useState('');
+  const [usdcUpdateDecimals, setUsdcUpdateDecimals] = useState('18');
+  const [usdcUpdateOpId, setUsdcUpdateOpId] = useState('');
+
+  const [limitsMaxTrade, setLimitsMaxTrade] = useState('100000');
+  const [limitsMinSeed, setLimitsMinSeed] = useState('500');
+  const [limitsMinLiquidity, setLimitsMinLiquidity] = useState('500');
+  const [limitsOpId, setLimitsOpId] = useState('');
+
+  const [feeTreasuryBps, setFeeTreasuryBps] = useState('100');
+  const [feeLpBps, setFeeLpBps] = useState('100');
+  const [feeVaultBps, setFeeVaultBps] = useState('0');
+  const [feesOpId, setFeesOpId] = useState('');
+
+  const [priceBandThreshold, setPriceBandThreshold] = useState('10000');
+  const [priceBandOpId, setPriceBandOpId] = useState('');
+
+  const [maxInstantJump, setMaxInstantJump] = useState('0.15'); // 15% default
+  const [maxJumpOpId, setMaxJumpOpId] = useState('');
+
+  const [lpFeeCooldownBlocks, setLpFeeCooldownBlocks] = useState('1');
+  const [lpCooldownOpId, setLpCooldownOpId] = useState('');
+
   // Confirmation dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -93,9 +117,12 @@ export default function AdminManager() {
   const { writeContractAsync: transferAdminAsync } = useWriteContract();
   const { writeContractAsync: treasuryGrantRoleAsync } = useWriteContract();
   const { writeContractAsync: treasuryRevokeRoleAsync } = useWriteContract();
+  const { writeContractAsync: scheduleOpAsync } = useWriteContract();
+  const { writeContractAsync: executeAdminAsync } = useWriteContract();
 
   // Check current resolver address
   const addresses = getAddresses();
+  const coreAbiForNetwork = getCoreAbi(getNetwork());
   const { data: resolverAddress, refetch: refetchResolver } = useReadContract({
     address: addresses.core,
     abi: getCoreAbi(getCurrentNetwork()),
@@ -218,6 +245,170 @@ export default function AdminManager() {
       setCurrentResolver(null);
     }
   }, [resolverAddress]);
+
+  const OP_SET_USDC = keccak256(stringToBytes('OP_SET_USDC')) as `0x${string}`;
+  const OP_SET_LIMITS = keccak256(stringToBytes('OP_SET_LIMITS')) as `0x${string}`;
+  const OP_SET_FEES = keccak256(stringToBytes('OP_SET_FEES')) as `0x${string}`;
+  const OP_SET_PRICE_BAND = keccak256(stringToBytes('OP_SET_PRICE_BAND')) as `0x${string}`;
+  const OP_SET_MAX_JUMP = keccak256(stringToBytes('OP_SET_MAX_JUMP')) as `0x${string}`;
+  const OP_SET_LP_COOLDOWN = keccak256(stringToBytes('OP_SET_LP_COOLDOWN')) as `0x${string}`;
+
+  const extractOpIdFromReceipt = (receipt: any): `0x${string}` | null => {
+    if (!receipt?.logs?.length) return null;
+    for (const log of receipt.logs) {
+      if (log.address?.toLowerCase() !== addresses.core.toLowerCase()) continue;
+      try {
+        const decoded = decodeEventLog({
+          abi: coreAbiForNetwork,
+          data: log.data,
+          topics: log.topics,
+        });
+        if (decoded.eventName === 'OperationScheduled') {
+          return (decoded.args as any).opId as `0x${string}`;
+        }
+      } catch {
+        continue;
+      }
+    }
+    return null;
+  };
+
+  const scheduleOpWithData = async (
+    tag: `0x${string}`,
+    data: `0x${string}`,
+    setOpId: (value: string) => void,
+  ) => {
+    if (!addresses.core) return;
+    const hash = await scheduleOpAsync({
+      address: addresses.core,
+      abi: coreAbiForNetwork,
+      functionName: 'scheduleOp',
+      args: [tag, data],
+    });
+    const receipt = await publicClient?.waitForTransactionReceipt({ hash });
+    const opId = extractOpIdFromReceipt(receipt);
+    if (opId) {
+      setOpId(opId);
+      pushToast({ title: 'Scheduled', description: `opId: ${opId}`, type: 'success' });
+    } else {
+      pushToast({ title: 'Scheduled', description: 'Op scheduled. Please check the transaction logs for opId.', type: 'info' });
+    }
+  };
+
+  const handleScheduleUsdc = async () => {
+    if (!usdcUpdateAddress || !usdcUpdateDecimals) return;
+    const data = encodeAbiParameters(
+      [{ type: 'address' }, { type: 'uint8' }],
+      [usdcUpdateAddress as `0x${string}`, Number(usdcUpdateDecimals)]
+    );
+    await scheduleOpWithData(OP_SET_USDC, data, setUsdcUpdateOpId);
+  };
+
+  const handleExecuteUsdc = async () => {
+    if (!usdcUpdateOpId) return;
+    await executeAdminAsync({
+      address: addresses.core,
+      abi: coreAbiForNetwork,
+      functionName: 'executeSetUsdc',
+      args: [usdcUpdateOpId as `0x${string}`, usdcUpdateAddress as `0x${string}`, Number(usdcUpdateDecimals)],
+    });
+  };
+
+  const handleScheduleLimits = async () => {
+    const data = encodeAbiParameters(
+      [{ type: 'uint256' }, { type: 'uint256' }, { type: 'uint256' }],
+      [BigInt(limitsMaxTrade), BigInt(limitsMinSeed), BigInt(limitsMinLiquidity)]
+    );
+    await scheduleOpWithData(OP_SET_LIMITS, data, setLimitsOpId);
+  };
+
+  const handleExecuteLimits = async () => {
+    if (!limitsOpId) return;
+    await executeAdminAsync({
+      address: addresses.core,
+      abi: coreAbiForNetwork,
+      functionName: 'executeSetLimits',
+      args: [
+        limitsOpId as `0x${string}`,
+        BigInt(limitsMaxTrade),
+        BigInt(limitsMinSeed),
+        BigInt(limitsMinLiquidity),
+      ],
+    });
+  };
+
+  const handleScheduleFees = async () => {
+    const data = encodeAbiParameters(
+      [{ type: 'uint16' }, { type: 'uint16' }, { type: 'uint16' }],
+      [Number(feeTreasuryBps), Number(feeLpBps), Number(feeVaultBps)]
+    );
+    await scheduleOpWithData(OP_SET_FEES, data, setFeesOpId);
+  };
+
+  const handleExecuteFees = async () => {
+    if (!feesOpId) return;
+    await executeAdminAsync({
+      address: addresses.core,
+      abi: coreAbiForNetwork,
+      functionName: 'executeSetFees',
+      args: [
+        feesOpId as `0x${string}`,
+        Number(feeTreasuryBps),
+        Number(feeLpBps),
+        Number(feeVaultBps),
+      ],
+    });
+  };
+
+  const handleSchedulePriceBand = async () => {
+    const data = encodeAbiParameters(
+      [{ type: 'uint256' }],
+      [BigInt(priceBandThreshold)]
+    );
+    await scheduleOpWithData(OP_SET_PRICE_BAND, data, setPriceBandOpId);
+  };
+
+  const handleExecutePriceBand = async () => {
+    if (!priceBandOpId) return;
+    await executeAdminAsync({
+      address: addresses.core,
+      abi: coreAbiForNetwork,
+      functionName: 'executeSetPriceBandThreshold',
+      args: [priceBandOpId as `0x${string}`, BigInt(priceBandThreshold)],
+    });
+  };
+
+  const handleScheduleMaxJump = async () => {
+    const maxJumpE18 = parseUnits(maxInstantJump, 18);
+    const data = encodeAbiParameters([{ type: 'uint256' }], [maxJumpE18]);
+    await scheduleOpWithData(OP_SET_MAX_JUMP, data, setMaxJumpOpId);
+  };
+
+  const handleExecuteMaxJump = async () => {
+    if (!maxJumpOpId) return;
+    const maxJumpE18 = parseUnits(maxInstantJump, 18);
+    await executeAdminAsync({
+      address: addresses.core,
+      abi: coreAbiForNetwork,
+      functionName: 'executeSetMaxInstantJump',
+      args: [maxJumpOpId as `0x${string}`, maxJumpE18],
+    });
+  };
+
+  const handleScheduleLpCooldown = async () => {
+    const data = encodeAbiParameters([{ type: 'uint256' }], [BigInt(lpFeeCooldownBlocks)]);
+    await scheduleOpWithData(OP_SET_LP_COOLDOWN, data, setLpCooldownOpId);
+  };
+
+  const handleExecuteLpCooldown = async () => {
+    if (!lpCooldownOpId) return;
+    await executeAdminAsync({
+      address: addresses.core,
+      abi: coreAbiForNetwork,
+      functionName: 'executeSetLpFeeCooldown',
+      args: [lpCooldownOpId as `0x${string}`, BigInt(lpFeeCooldownBlocks)],
+    });
+  };
 
   // Load markets that can be resolved
   const loadResolvableMarkets = async () => {
@@ -2174,6 +2365,101 @@ export default function AdminManager() {
             })}
           </div>
         )}
+      </div>
+
+      {/* Protocol Params (Timelock) */}
+      <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-white/5">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1 block">
+            Protocol Params (Timelock)
+          </label>
+          <span className="text-[10px] text-gray-500 dark:text-gray-400">Schedule → wait → execute</span>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+          Change core parameters safely via timelock. These updates affect future markets.
+        </p>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 bg-white/60 dark:bg-gray-900/30 p-3 space-y-2">
+            <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">USDC Token + Decimals</div>
+            <Input
+              value={usdcUpdateAddress}
+              onChange={(e) => setUsdcUpdateAddress(e.target.value)}
+              placeholder="0x... USDC token"
+              className="font-mono bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10"
+            />
+            <Input
+              value={usdcUpdateDecimals}
+              onChange={(e) => setUsdcUpdateDecimals(e.target.value)}
+              placeholder="Decimals (e.g. 18)"
+              className="bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10"
+            />
+            <div className="flex gap-2">
+              <Button onClick={handleScheduleUsdc} className="bg-blue-600 hover:bg-blue-700 text-white h-8 text-xs">Schedule</Button>
+              <Button onClick={handleExecuteUsdc} disabled={!usdcUpdateOpId} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs">Execute</Button>
+            </div>
+            <Input
+              value={usdcUpdateOpId}
+              onChange={(e) => setUsdcUpdateOpId(e.target.value)}
+              placeholder="opId from schedule"
+              className="font-mono text-xs bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10"
+            />
+          </div>
+
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 bg-white/60 dark:bg-gray-900/30 p-3 space-y-2">
+            <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Limits (whole token units)</div>
+            <Input value={limitsMaxTrade} onChange={(e) => setLimitsMaxTrade(e.target.value)} placeholder="Max USDC per trade (e.g. 100000)" className="bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10" />
+            <Input value={limitsMinSeed} onChange={(e) => setLimitsMinSeed(e.target.value)} placeholder="Min market seed (e.g. 500)" className="bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10" />
+            <Input value={limitsMinLiquidity} onChange={(e) => setLimitsMinLiquidity(e.target.value)} placeholder="Min liquidity add (e.g. 500)" className="bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10" />
+            <div className="flex gap-2">
+              <Button onClick={handleScheduleLimits} className="bg-blue-600 hover:bg-blue-700 text-white h-8 text-xs">Schedule</Button>
+              <Button onClick={handleExecuteLimits} disabled={!limitsOpId} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs">Execute</Button>
+            </div>
+            <Input value={limitsOpId} onChange={(e) => setLimitsOpId(e.target.value)} placeholder="opId from schedule" className="font-mono text-xs bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10" />
+          </div>
+
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 bg-white/60 dark:bg-gray-900/30 p-3 space-y-2">
+            <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Fee Split (bps)</div>
+            <Input value={feeTreasuryBps} onChange={(e) => setFeeTreasuryBps(e.target.value)} placeholder="Treasury bps (e.g. 100)" className="bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10" />
+            <Input value={feeLpBps} onChange={(e) => setFeeLpBps(e.target.value)} placeholder="LP bps (e.g. 100)" className="bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10" />
+            <Input value={feeVaultBps} onChange={(e) => setFeeVaultBps(e.target.value)} placeholder="Vault bps (e.g. 0)" className="bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10" />
+            <div className="flex gap-2">
+              <Button onClick={handleScheduleFees} className="bg-blue-600 hover:bg-blue-700 text-white h-8 text-xs">Schedule</Button>
+              <Button onClick={handleExecuteFees} disabled={!feesOpId} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs">Execute</Button>
+            </div>
+            <Input value={feesOpId} onChange={(e) => setFeesOpId(e.target.value)} placeholder="opId from schedule" className="font-mono text-xs bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10" />
+          </div>
+
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 bg-white/60 dark:bg-gray-900/30 p-3 space-y-2">
+            <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Price Band Threshold (whole units)</div>
+            <Input value={priceBandThreshold} onChange={(e) => setPriceBandThreshold(e.target.value)} placeholder="e.g. 10000" className="bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10" />
+            <div className="flex gap-2">
+              <Button onClick={handleSchedulePriceBand} className="bg-blue-600 hover:bg-blue-700 text-white h-8 text-xs">Schedule</Button>
+              <Button onClick={handleExecutePriceBand} disabled={!priceBandOpId} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs">Execute</Button>
+            </div>
+            <Input value={priceBandOpId} onChange={(e) => setPriceBandOpId(e.target.value)} placeholder="opId from schedule" className="font-mono text-xs bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10" />
+          </div>
+
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 bg-white/60 dark:bg-gray-900/30 p-3 space-y-2">
+            <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Max Instant Jump (E18)</div>
+            <Input value={maxInstantJump} onChange={(e) => setMaxInstantJump(e.target.value)} placeholder="e.g. 0.15" className="bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10" />
+            <div className="flex gap-2">
+              <Button onClick={handleScheduleMaxJump} className="bg-blue-600 hover:bg-blue-700 text-white h-8 text-xs">Schedule</Button>
+              <Button onClick={handleExecuteMaxJump} disabled={!maxJumpOpId} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs">Execute</Button>
+            </div>
+            <Input value={maxJumpOpId} onChange={(e) => setMaxJumpOpId(e.target.value)} placeholder="opId from schedule" className="font-mono text-xs bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10" />
+          </div>
+
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 bg-white/60 dark:bg-gray-900/30 p-3 space-y-2">
+            <div className="text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">LP Fee Cooldown (blocks)</div>
+            <Input value={lpFeeCooldownBlocks} onChange={(e) => setLpFeeCooldownBlocks(e.target.value)} placeholder="e.g. 1" className="bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10" />
+            <div className="flex gap-2">
+              <Button onClick={handleScheduleLpCooldown} className="bg-blue-600 hover:bg-blue-700 text-white h-8 text-xs">Schedule</Button>
+              <Button onClick={handleExecuteLpCooldown} disabled={!lpCooldownOpId} className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs">Execute</Button>
+            </div>
+            <Input value={lpCooldownOpId} onChange={(e) => setLpCooldownOpId(e.target.value)} placeholder="opId from schedule" className="font-mono text-xs bg-white dark:bg-gray-900/50 border-gray-200 dark:border-white/10" />
+          </div>
+        </div>
       </div>
 
       {/* Confirmation Dialog */}
