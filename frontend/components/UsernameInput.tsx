@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useAccount, useSignMessage } from 'wagmi';
+import { useAccount, useChainId } from 'wagmi';
 import { User, Check, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 
@@ -12,6 +12,7 @@ interface UsernameInputProps {
 
 export function UsernameInput({ onUsernameSet, currentUsername }: UsernameInputProps) {
     const { address, isConnected } = useAccount();
+    const chainId = useChainId();
     const { pushToast } = useToast();
     const [username, setUsername] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -30,6 +31,7 @@ export function UsernameInput({ onUsernameSet, currentUsername }: UsernameInputP
                 body: JSON.stringify({
                     username: username.trim(),
                     address,
+                    chainId,
                 }),
             });
 

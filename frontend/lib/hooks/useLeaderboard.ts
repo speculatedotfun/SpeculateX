@@ -54,7 +54,7 @@ export function useLeaderboard() {
           let volume = 0;
           let tradeCount = 0;
           const marketIds = new Set<string>();
-          const liquidityProvided = 0; // TODO: Add LiquidityAdded entity to subgraph to track this
+          const liquidityProvided = 0; // Not tracked yet; kept for future UI expansion
 
           user.trades.forEach((trade) => {
             // Parse USDC amount (6 decimals)
@@ -69,8 +69,7 @@ export function useLeaderboard() {
           // Weighted Formula:
           // 1. Volume: 1 point per 1 USDC
           // 2. Markets: 10 points per unique market traded
-          // 3. Liquidity: 2 points per 1 USDC provided (Placeholder for future)
-          const points = (volume * 1) + (uniqueMarkets * 10) + (liquidityProvided * 2);
+          const points = (volume * 1) + (uniqueMarkets * 10);
 
           return {
             address: user.id,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import { useAccount, useWriteContract, usePublicClient } from 'wagmi';
+import { useAccount, useWriteContract, usePublicClient, useChainId } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
 import { getAddresses, getCurrentNetwork } from '@/lib/contracts';
 import { getCoreAbi, usdcAbi } from '@/lib/abis';
@@ -56,6 +56,7 @@ export function useTrading({
     onTradeSuccess, // NEW
 }: UseTradingProps) {
     const { address } = useAccount();
+    const chainId = useChainId();
     const { writeContractAsync } = useWriteContract();
     const publicClient = usePublicClient();
     const { pushToast } = useToast();
@@ -237,7 +238,8 @@ export function useTrading({
             // Optimistic Update
             if (onTradeSuccess && txHash) {
                 // Check for referrer
-                const referrer = localStorage.getItem('speculate_referrer');
+                const referrerKey = `speculate_referrer_${chainId ?? 'unknown'}`;
+                const referrer = localStorage.getItem(referrerKey);
                 if (referrer) {
                     console.log(`[Referral] 🔗 Found attributes: ${referrer}`);
 
@@ -251,7 +253,8 @@ export function useTrading({
                             txHash,
                             marketId,
                             amount: amount,
-                            type: tradeMode === 'buy' ? (side === 'yes' ? 'BuyYes' : 'BuyNo') : (side === 'yes' ? 'SellYes' : 'SellNo')
+                            type: tradeMode === 'buy' ? (side === 'yes' ? 'BuyYes' : 'BuyNo') : (side === 'yes' ? 'SellYes' : 'SellNo'),
+                            chainId,
                         })
                     }).catch(err => console.error('[Referral] Failed to log:', err));
                 }
@@ -275,7 +278,7 @@ export function useTrading({
             setPendingTrade(false);
             setBusyLabel('');
         }
-    }, [amount, amountBigInt, isTradeable, tradeMode, address, publicClient, writeContractAsync, usdcAllowanceValue, maxJumpE6, refetchAll, showToastMsg, showErrorToast, bE18, feeLpBps, feeTreasuryBps, feeVaultBps, marketIdBI, qNo, qYes, side, tradeDisabledReason, addresses.core, addresses.usdc, coreAbiForNetwork, isTestnetNetwork, setAmount]);
+    }, [amount, amountBigInt, isTradeable, tradeMode, address, publicClient, writeContractAsync, usdcAllowanceValue, maxJumpE6, refetchAll, showToastMsg, showErrorToast, bE18, feeLpBps, feeTreasuryBps, feeVaultBps, marketIdBI, qNo, qYes, side, tradeDisabledReason, addresses.core, addresses.usdc, coreAbiForNetwork, isTestnetNetwork, setAmount, chainId]);
 
     return {
         pendingTrade,

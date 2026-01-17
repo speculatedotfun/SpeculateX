@@ -1,60 +1,11 @@
 import { NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { getSupabaseServerClient } from '@/lib/supabaseServer';
 
-const DATA_PATH = path.join(process.cwd(), 'data', 'usernames.json');
-
-interface UsernameEntry {
-    username: string;
-    address: string;
-    createdAt: number;
-}
-
-// In-memory cache with TTL
-let cache: {
-    data: Record<string, UsernameEntry>;
-    timestamp: number;
-} | null = null;
-
-const CACHE_TTL = 10000; // 10 seconds
-
-async function readData(): Promise<Record<string, UsernameEntry>> {
-    // Check cache first
-    if (cache && Date.now() - cache.timestamp < CACHE_TTL) {
-        return cache.data;
-    }
-
-    try {
-        await fs.access(DATA_PATH);
-        const raw = await fs.readFile(DATA_PATH, 'utf-8');
-        const data = JSON.parse(raw);
-        
-        // Update cache
-        cache = { data, timestamp: Date.now() };
-        return data;
-    } catch (e: any) {
-        if (e.code === 'ENOENT') {
-            // File doesn't exist, create it
-            await fs.writeFile(DATA_PATH, '{}', 'utf-8');
-            const emptyData = {};
-            cache = { data: emptyData, timestamp: Date.now() };
-            return emptyData;
-        }
-        console.error('[Usernames] Failed to read data:', e);
-        return {};
-    }
-}
-
-async function writeData(data: Record<string, UsernameEntry>) {
-    try {
-        await fs.writeFile(DATA_PATH, JSON.stringify(data, null, 2), 'utf-8');
-        // Invalidate cache on write
-        cache = { data, timestamp: Date.now() };
-    } catch (e) {
-        console.error('[Usernames] Failed to write data:', e);
-        // Invalidate cache on error to force fresh read
-        cache = null;
-    }
+function normalizeChainId(raw: string | null): string {
+    if (raw && /^[0-9]+$/.test(raw)) return raw;
+    const fallback = process.env.NEXT_PUBLIC_CHAIN_ID;
+    if (fallback && /^[0-9]+$/.test(fallback)) return fallback;
+    return 'unknown';
 }
 
 // Validate username: 3-20 chars, alphanumeric + underscores
@@ -68,43 +19,81 @@ export async function GET(request: Request) {
     const username = searchParams.get('username')?.toLowerCase();
     const address = searchParams.get('address')?.toLowerCase();
     const addresses = searchParams.get('addresses')?.toLowerCase();
-
-    const data = await readData();
+    const chainId = normalizeChainId(searchParams.get('chainId'));
+    const supabase = getSupabaseServerClient();
 
     // Bulk lookup by addresses
     if (addresses) {
         const addressList = addresses.split(',').map(a => a.trim());
+        const { data, error } = await supabase
+            .from('usernames')
+            .select('username,address,created_at')
+            .eq('chain_id', chainId)
+            .in('address', addressList);
+
+        if (error) {
+            console.error('[Usernames] Bulk lookup error:', error);
+            return NextResponse.json({ found: false, chainId }, { status: 500 });
+        }
+
         const results: Record<string, string> = {};
-
-        // Build address -> username map
-        const addressToUsername: Record<string, string> = {};
-        Object.values(data).forEach(entry => {
-            addressToUsername[entry.address.toLowerCase()] = entry.username;
+        (data ?? []).forEach(entry => {
+            results[entry.address.toLowerCase()] = entry.username;
         });
 
-        addressList.forEach(addr => {
-            if (addressToUsername[addr]) {
-                results[addr] = addressToUsername[addr];
-            }
-        });
-
-        return NextResponse.json({ found: true, usernames: results });
+        return NextResponse.json({ found: true, usernames: results, chainId });
     }
 
     if (username) {
-        const entry = data[username];
-        if (entry) {
-            return NextResponse.json({ found: true, ...entry });
+        const { data, error } = await supabase
+            .from('usernames')
+            .select('username,address,created_at')
+            .eq('chain_id', chainId)
+            .eq('username', username)
+            .maybeSingle();
+
+        if (error) {
+            console.error('[Usernames] Username lookup error:', error);
+            return NextResponse.json({ found: false, chainId }, { status: 500 });
         }
-        return NextResponse.json({ found: false });
+
+        if (data) {
+            return NextResponse.json({
+                found: true,
+                username: data.username,
+                address: data.address,
+                createdAt: data.created_at ? Date.parse(data.created_at) : Date.now(),
+                chainId,
+            });
+        }
+
+        return NextResponse.json({ found: false, chainId });
     }
 
     if (address) {
-        const entry = Object.values(data).find(e => e.address.toLowerCase() === address);
-        if (entry) {
-            return NextResponse.json({ found: true, ...entry });
+        const { data, error } = await supabase
+            .from('usernames')
+            .select('username,address,created_at')
+            .eq('chain_id', chainId)
+            .eq('address', address)
+            .maybeSingle();
+
+        if (error) {
+            console.error('[Usernames] Address lookup error:', error);
+            return NextResponse.json({ found: false, chainId }, { status: 500 });
         }
-        return NextResponse.json({ found: false });
+
+        if (data) {
+            return NextResponse.json({
+                found: true,
+                username: data.username,
+                address: data.address,
+                createdAt: data.created_at ? Date.parse(data.created_at) : Date.now(),
+                chainId,
+            });
+        }
+
+        return NextResponse.json({ found: false, chainId });
     }
 
     return NextResponse.json({ error: 'Provide ?username=, ?address=, or ?addresses=' }, { status: 400 });
@@ -114,7 +103,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { username, address } = body;
+        const { username, address, chainId } = body;
 
         if (!username || !address) {
             return NextResponse.json({ error: 'Missing username or address' }, { status: 400 });
@@ -122,6 +111,8 @@ export async function POST(request: Request) {
 
         const normalizedUsername = username.toLowerCase().trim();
         const normalizedAddress = address.toLowerCase();
+        const chainKey = normalizeChainId(chainId ? String(chainId) : null);
+        const supabase = getSupabaseServerClient();
 
         if (!isValidUsername(normalizedUsername)) {
             return NextResponse.json({
@@ -134,35 +125,52 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid address format' }, { status: 400 });
         }
 
-        const data = await readData();
+        const { data: existingUsername } = await supabase
+            .from('usernames')
+            .select('username,address')
+            .eq('chain_id', chainKey)
+            .eq('username', normalizedUsername)
+            .maybeSingle();
 
-        // Check if username is taken
-        if (data[normalizedUsername]) {
+        if (existingUsername) {
             return NextResponse.json({ error: 'Username already taken' }, { status: 409 });
         }
 
-        // Check if address already has a username
-        const existingEntry = Object.values(data).find(e => e.address.toLowerCase() === normalizedAddress);
-        if (existingEntry) {
+        const { data: existingAddress } = await supabase
+            .from('usernames')
+            .select('username,address')
+            .eq('chain_id', chainKey)
+            .eq('address', normalizedAddress)
+            .maybeSingle();
+
+        if (existingAddress) {
             return NextResponse.json({
                 error: 'Address already has a username',
-                existingUsername: existingEntry.username
+                existingUsername: existingAddress.username
             }, { status: 409 });
         }
 
-        // Register the username
-        data[normalizedUsername] = {
-            username: normalizedUsername,
-            address: normalizedAddress,
-            createdAt: Date.now(),
-        };
+        const { data: inserted, error } = await supabase
+            .from('usernames')
+            .insert({
+                chain_id: chainKey,
+                username: normalizedUsername,
+                address: normalizedAddress,
+            })
+            .select('username,address,created_at')
+            .single();
 
-        await writeData(data);
+        if (error || !inserted) {
+            console.error('[Usernames] Insert error:', error);
+            return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        }
 
         return NextResponse.json({
             success: true,
-            username: normalizedUsername,
-            address: normalizedAddress,
+            username: inserted.username,
+            address: inserted.address,
+            createdAt: inserted.created_at ? Date.parse(inserted.created_at) : Date.now(),
+            chainId: chainKey,
         });
 
     } catch (e) {
@@ -175,7 +183,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
     try {
         const body = await request.json();
-        const { newUsername, address } = body;
+        const { newUsername, address, chainId } = body;
 
         if (!newUsername || !address) {
             return NextResponse.json({ error: 'Missing newUsername or address' }, { status: 400 });
@@ -183,6 +191,8 @@ export async function PUT(request: Request) {
 
         const normalizedNewUsername = newUsername.toLowerCase().trim();
         const normalizedAddress = address.toLowerCase();
+        const chainKey = normalizeChainId(chainId ? String(chainId) : null);
+        const supabase = getSupabaseServerClient();
 
         if (!isValidUsername(normalizedNewUsername)) {
             return NextResponse.json({
@@ -194,37 +204,46 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: 'Invalid address format' }, { status: 400 });
         }
 
-        const data = await readData();
+        const { data: existingUsername } = await supabase
+            .from('usernames')
+            .select('username,address')
+            .eq('chain_id', chainKey)
+            .eq('username', normalizedNewUsername)
+            .maybeSingle();
 
-        // Check if new username is already taken
-        if (data[normalizedNewUsername]) {
+        if (existingUsername && existingUsername.address.toLowerCase() !== normalizedAddress) {
             return NextResponse.json({ error: 'Username already taken' }, { status: 409 });
         }
 
-        // Find and remove old username for this address
-        let oldUsername: string | null = null;
-        for (const [key, entry] of Object.entries(data)) {
-            if (entry.address.toLowerCase() === normalizedAddress) {
-                oldUsername = key;
-                delete data[key];
-                break;
-            }
+        const { data: currentEntry } = await supabase
+            .from('usernames')
+            .select('username,address')
+            .eq('chain_id', chainKey)
+            .eq('address', normalizedAddress)
+            .maybeSingle();
+
+        const { data: updated, error } = await supabase
+            .from('usernames')
+            .upsert({
+                chain_id: chainKey,
+                username: normalizedNewUsername,
+                address: normalizedAddress,
+            }, { onConflict: 'chain_id,address' })
+            .select('username,address,created_at')
+            .single();
+
+        if (error || !updated) {
+            console.error('[Usernames] Update error:', error);
+            return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
-
-        // Register the new username
-        data[normalizedNewUsername] = {
-            username: normalizedNewUsername,
-            address: normalizedAddress,
-            createdAt: Date.now(),
-        };
-
-        await writeData(data);
 
         return NextResponse.json({
             success: true,
-            oldUsername,
-            username: normalizedNewUsername,
-            address: normalizedAddress,
+            oldUsername: currentEntry?.username ?? null,
+            username: updated.username,
+            address: updated.address,
+            createdAt: updated.created_at ? Date.parse(updated.created_at) : Date.now(),
+            chainId: chainKey,
         });
 
     } catch (e) {

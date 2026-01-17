@@ -8,14 +8,18 @@ const requiredVars = {
     'NEXT_PUBLIC_GOLDSKY_HTTP_URL',
     'NEXT_PUBLIC_CHAIN_ID',
     'NEXT_PUBLIC_NETWORK',
-    'NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID'
+    'NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID',
+    'SUPABASE_URL',
+    'SUPABASE_SERVICE_ROLE_KEY'
   ],
   testnet: [
     'NEXT_PUBLIC_TESTNET_CORE',
     'NEXT_PUBLIC_GOLDSKY_HTTP_URL',
     'NEXT_PUBLIC_CHAIN_ID',
     'NEXT_PUBLIC_NETWORK',
-    'NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID'
+    'NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID',
+    'SUPABASE_URL',
+    'SUPABASE_SERVICE_ROLE_KEY'
   ]
 };
 
@@ -29,8 +33,11 @@ let allPresent = true;
 vars.forEach(varName => {
   const value = process.env[varName];
   if (value) {
+    const isSensitive = varName.includes('SERVICE_ROLE') || varName.includes('SUPABASE_SERVICE_ROLE_KEY');
     // Truncate long values for display
-    const displayValue = value.length > 60 ? value.substring(0, 60) + '...' : value;
+    const displayValue = isSensitive
+      ? '[REDACTED]'
+      : (value.length > 60 ? value.substring(0, 60) + '...' : value);
     console.log(`✅ ${varName}: ${displayValue}`);
   } else {
     console.log(`❌ ${varName}: NOT SET`);

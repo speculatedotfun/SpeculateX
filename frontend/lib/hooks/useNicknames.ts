@@ -1,36 +1,26 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-
-const STORAGE_KEY = 'speculatex_nicknames';
-const USERNAME_CACHE_KEY = 'speculatex_usernames_cache';
+import { useChainId } from 'wagmi';
 
 interface NicknameMap {
   [address: string]: string;
 }
 
 /**
- * Hook to manage user nicknames
- * Merges localStorage nicknames with API usernames
+ * Hook to manage usernames (single source of truth)
  */
 export function useNicknames() {
-  const [nicknames, setNicknames] = useState<NicknameMap>({});
+  const chainId = useChainId();
+  const usernameCacheKey = useMemo(
+    () => `speculatex_usernames_cache_${chainId ?? 'unknown'}`,
+    [chainId],
+  );
   const [usernames, setUsernames] = useState<NicknameMap>({});
   // Track addresses we've already attempted to fetch to avoid infinite loops
   const fetchedAddresses = useRef<Set<string>>(new Set());
   // Track pending requests to prevent duplicate concurrent requests
   const pendingRequests = useRef<Map<string, Promise<string | null>>>(new Map());
-
-  // Save nicknames to localStorage and dispatch event
-  const saveNicknames = useCallback((newNicknames: NicknameMap) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newNicknames));
-      setNicknames(newNicknames);
-      window.dispatchEvent(new Event('nickname-update'));
-    } catch (error) {
-      console.error('Failed to save nicknames:', error);
-    }
-  }, []);
 
   // Fetch username from API for a specific address
   const fetchUsernameForAddress = useCallback(async (address: string) => {
@@ -51,13 +41,13 @@ export function useNicknames() {
     // Create the request promise
     const requestPromise = (async () => {
       try {
-        const res = await fetch(`/api/usernames?address=${normalized}`);
+        const res = await fetch(`/api/usernames?address=${normalized}&chainId=${chainId ?? ''}`);
         const data = await res.json();
         if (data.found && data.username) {
           setUsernames(prev => {
             const updated = { ...prev, [normalized]: data.username };
             try {
-              localStorage.setItem(USERNAME_CACHE_KEY, JSON.stringify(updated));
+              localStorage.setItem(usernameCacheKey, JSON.stringify(updated));
             } catch (e) { }
             return updated;
           });
@@ -78,7 +68,7 @@ export function useNicknames() {
     // Store the pending request
     pendingRequests.current.set(normalized, requestPromise);
     return requestPromise;
-  }, []);
+  }, [chainId, usernameCacheKey]);
 
   // Fetch usernames for multiple addresses in bulk
   const fetchUsernamesBulk = useCallback(async (addresses: string[]) => {
@@ -103,13 +93,13 @@ export function useNicknames() {
 
     const requestPromise = (async () => {
       try {
-        const res = await fetch(`/api/usernames?addresses=${toFetch.join(',')}`);
+        const res = await fetch(`/api/usernames?addresses=${toFetch.join(',')}&chainId=${chainId ?? ''}`);
         const data = await res.json();
         if (data.found && data.usernames) {
           setUsernames(prev => {
             const updated = { ...prev, ...data.usernames };
             try {
-              localStorage.setItem(USERNAME_CACHE_KEY, JSON.stringify(updated));
+              localStorage.setItem(usernameCacheKey, JSON.stringify(updated));
             } catch (e) { }
             return updated;
           });
@@ -127,61 +117,37 @@ export function useNicknames() {
     // Store the pending bulk request
     pendingRequests.current.set(bulkKey, requestPromise);
     return requestPromise;
-  }, []);
+  }, [chainId, usernameCacheKey]);
 
   // Sync state on mount
   useEffect(() => {
-    const loadNicknames = () => {
-      try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          setNicknames(JSON.parse(stored));
-        }
-      } catch (error) {
-        console.error('Failed to load nicknames:', error);
-      }
-    };
-
     const loadUsernameCache = () => {
       try {
-        const cached = localStorage.getItem(USERNAME_CACHE_KEY);
+        const cached = localStorage.getItem(usernameCacheKey);
         if (cached) {
           const parsed = JSON.parse(cached);
           setUsernames(parsed);
           // Add initially cached addresses to the "fetched" set
           Object.keys(parsed).forEach(addr => fetchedAddresses.current.add(addr.toLowerCase()));
+        } else {
+          setUsernames({});
         }
       } catch (e) { }
     };
 
-    loadNicknames();
+    fetchedAddresses.current = new Set();
+    pendingRequests.current.clear();
     loadUsernameCache();
 
-    window.addEventListener('nickname-update', () => {
-      loadNicknames();
-      loadUsernameCache();
-    });
-    window.addEventListener('storage', () => {
-      loadNicknames();
-      loadUsernameCache();
-    });
+    const handleUpdate = () => loadUsernameCache();
+    window.addEventListener('username-update', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
 
     return () => {
-      window.removeEventListener('nickname-update', loadNicknames);
-      window.removeEventListener('storage', loadNicknames);
+      window.removeEventListener('username-update', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
     };
-  }, []);
-
-  // Set nickname for an address
-  const setNickname = useCallback((address: string, nickname: string) => {
-    if (!address) return;
-    const normalizedAddress = address.toLowerCase();
-    const newNicknames = {
-      ...nicknames,
-      [normalizedAddress]: nickname.trim(),
-    };
-    saveNicknames(newNicknames);
-  }, [nicknames, saveNicknames]);
+  }, [usernameCacheKey]);
 
   // Manually register a username in local state (after API call)
   const registerUsername = useCallback((address: string, username: string) => {
@@ -192,39 +158,17 @@ export function useNicknames() {
     setUsernames(prev => {
       const updated = { ...prev, [normalized]: username };
       try {
-        localStorage.setItem(USERNAME_CACHE_KEY, JSON.stringify(updated));
+        localStorage.setItem(usernameCacheKey, JSON.stringify(updated));
       } catch (e) { }
       return updated;
     });
 
     // Notify other hook instances
-    window.dispatchEvent(new Event('nickname-update'));
-  }, []);
-
-  // Remove nickname for an address
-  const removeNickname = useCallback((address: string) => {
-    if (!address) return;
-    const normalizedAddress = address.toLowerCase();
-    const newNicknames = { ...nicknames };
-    delete newNicknames[normalizedAddress];
-    saveNicknames(newNicknames);
-  }, [nicknames, saveNicknames]);
-
-  // Get nickname for an address (checks username first, then local nickname)
-  const getNickname = useCallback((address: string): string | null => {
-    if (!address) return null;
-    const normalizedAddress = address.toLowerCase();
-    return usernames[normalizedAddress] || nicknames[normalizedAddress] || null;
-  }, [nicknames, usernames]);
-
-  // Combined map for display purposes - MEMOIZED to prevent infinite loops in effects
-  const allNicknames = useMemo(() => ({ ...nicknames, ...usernames }), [nicknames, usernames]);
+    window.dispatchEvent(new Event('username-update'));
+  }, [usernameCacheKey]);
 
   return {
-    nicknames: allNicknames,
-    setNickname,
-    removeNickname,
-    getNickname,
+    nicknames: usernames,
     fetchUsernameForAddress,
     fetchUsernamesBulk,
     registerUsername,
@@ -232,14 +176,14 @@ export function useNicknames() {
 }
 
 /**
- * Utility function to get display name (username/nickname or shortened address)
+ * Utility function to get display name (username or shortened address)
  */
 export function getDisplayName(address: string, nicknames: NicknameMap): string {
   if (!address) return '';
   const normalizedAddress = address.toLowerCase();
-  const nickname = nicknames[normalizedAddress];
-  if (nickname) {
-    return nickname;
+  const username = nicknames[normalizedAddress];
+  if (username) {
+    return username;
   }
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }

@@ -7,6 +7,10 @@ NEXT_PUBLIC_CHAIN_ID=97
 # WalletConnect / Reown (REQUIRED for good wallet coverage)
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id_here
 
+# Supabase (server-only)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+
 # Core contracts (override defaults in `lib/contracts.ts`)
 NEXT_PUBLIC_TESTNET_CORE=0x9315fc0082d85ABa5Dd680C30b53D73b0F032C2D
 NEXT_PUBLIC_TESTNET_USDC=0x34F7d01f7529F176fF682aACD468Ba99A89E5aAF

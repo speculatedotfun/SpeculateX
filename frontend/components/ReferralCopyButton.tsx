@@ -1,14 +1,19 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useChainId } from 'wagmi';
 import { Link2, Check, Loader2, X, User, AlertCircle, Sparkles } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNicknames } from '@/lib/hooks/useNicknames';
 
-export function ReferralCopyButton() {
+type ReferralCopyButtonProps = {
+    variant?: 'default' | 'compact';
+};
+
+export function ReferralCopyButton({ variant = 'default' }: ReferralCopyButtonProps) {
     const { address, isConnected } = useAccount();
+    const chainId = useChainId();
     const { pushToast } = useToast();
     const { registerUsername, fetchUsernameForAddress, nicknames } = useNicknames();
     const [copied, setCopied] = useState(false);
@@ -16,18 +21,20 @@ export function ReferralCopyButton() {
     const [inputUsername, setInputUsername] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isFetchingUsername, setIsFetchingUsername] = useState(false);
 
     // Get username from hook (uses cache)
     const username = address ? nicknames[address.toLowerCase()] || null : null;
-    const isLoading = address ? !nicknames[address.toLowerCase()] && address !== undefined : false;
+    const isLoading = isFetchingUsername;
 
     // Fetch username on mount if not in cache
     useEffect(() => {
         if (!address || username) return;
         
-        fetchUsernameForAddress(address).then((fetchedUsername) => {
-            // Username will be set via hook's state management
-        });
+        setIsFetchingUsername(true);
+        fetchUsernameForAddress(address)
+            .catch(() => null)
+            .finally(() => setIsFetchingUsername(false));
     }, [address, username, fetchUsernameForAddress]);
 
     const handleClick = useCallback(() => {
@@ -42,18 +49,18 @@ export function ReferralCopyButton() {
 
         // Copy the link with username
         const baseUrl = window.location.origin;
-        const referralLink = `${baseUrl}?ref=${currentUsername}`;
+        const referralLink = `${baseUrl}?ref=${currentUsername}&chainId=${chainId ?? ''}`;
 
         navigator.clipboard.writeText(referralLink).then(() => {
             setCopied(true);
             pushToast({
                 title: 'Referral Link Copied!',
-                description: `Share: ${baseUrl}?ref=${currentUsername}`,
+                description: `Share: ${baseUrl}?ref=${currentUsername}&chainId=${chainId ?? ''}`,
                 type: 'success',
             });
             setTimeout(() => setCopied(false), 2000);
         });
-    }, [address, nicknames, pushToast]);
+    }, [address, nicknames, pushToast, chainId]);
 
     const handleEditClick = useCallback(() => {
         const currentUsername = address ? nicknames[address.toLowerCase()] : null;
@@ -73,8 +80,8 @@ export function ReferralCopyButton() {
             // Use PUT if already have a username, POST if new
             const method = currentUsername ? 'PUT' : 'POST';
             const bodyData = currentUsername
-                ? { newUsername: inputUsername.trim(), address }
-                : { username: inputUsername.trim(), address };
+                ? { newUsername: inputUsername.trim(), address, chainId }
+                : { username: inputUsername.trim(), address, chainId };
 
             const response = await fetch('/api/usernames', {
                 method,
@@ -95,13 +102,13 @@ export function ReferralCopyButton() {
 
             // Now copy the link
             const baseUrl = window.location.origin;
-            const referralLink = `${baseUrl}?ref=${data.username}`;
+            const referralLink = `${baseUrl}?ref=${data.username}&chainId=${chainId ?? ''}`;
 
             navigator.clipboard.writeText(referralLink).then(() => {
                 setCopied(true);
                 pushToast({
                     title: 'Username Set & Link Copied!',
-                    description: `Share: ${baseUrl}?ref=${data.username}`,
+                    description: `Share: ${baseUrl}?ref=${data.username}&chainId=${chainId ?? ''}`,
                     type: 'success',
                 });
                 setTimeout(() => setCopied(false), 2000);
@@ -112,17 +119,23 @@ export function ReferralCopyButton() {
         } finally {
             setIsSubmitting(false);
         }
-    }, [address, inputUsername, nicknames, pushToast, registerUsername]);
+    }, [address, inputUsername, nicknames, pushToast, registerUsername, chainId]);
 
     if (!isConnected || !address) return null;
 
+    const isCompact = variant === 'compact';
+
     return (
         <>
-            <div className="flex items-center gap-1">
+            <div className={isCompact ? 'flex flex-col items-center gap-2' : 'flex items-center gap-1'}>
                 <button
                     onClick={handleClick}
                     disabled={isLoading}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-[#14B8A6] dark:hover:text-[#14B8A6] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full hover:border-[#14B8A6] transition-all shadow-sm group disabled:opacity-50"
+                    className={
+                        isCompact
+                            ? 'inline-flex items-center gap-2 px-3 py-2 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-[#14B8A6] dark:hover:text-[#14B8A6] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full hover:border-[#14B8A6] transition-all shadow-sm group disabled:opacity-50'
+                            : 'inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-[#14B8A6] dark:hover:text-[#14B8A6] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full hover:border-[#14B8A6] transition-all shadow-sm group disabled:opacity-50'
+                    }
                     title="Copy Referral Link"
                 >
                     {isLoading ? (
@@ -135,15 +148,15 @@ export function ReferralCopyButton() {
                     ) : (
                         <>
                             <Link2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                            <span className="hidden sm:inline">
-                                {username ? `?ref=${username}` : 'Invite'}
+                            <span className={isCompact ? 'text-xs' : 'hidden sm:inline'}>
+                                {username ? `?ref=${username}&chainId=${chainId ?? ''}` : 'Invite'}
                             </span>
                         </>
                     )}
                 </button>
 
                 {/* Edit Button - only show if username exists */}
-                {username && address && nicknames[address.toLowerCase()] && (
+                {username && address && nicknames[address.toLowerCase()] && !isCompact && (
                     <button
                         onClick={handleEditClick}
                         className="p-2 text-gray-400 hover:text-[#14B8A6] hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
@@ -155,6 +168,11 @@ export function ReferralCopyButton() {
                     </button>
                 )}
             </div>
+            {!isLoading && !username && (
+                <div className={isCompact ? 'text-[11px] text-gray-400' : 'mt-2 text-xs text-gray-400'}>
+                    No username yet. Click to set one.
+                </div>
+            )}
 
             {/* Username Setup Modal */}
             <AnimatePresence>
@@ -231,7 +249,7 @@ export function ReferralCopyButton() {
                                     <div className="bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2 text-xs">
                                         <span className="text-gray-500">Your link will be: </span>
                                         <span className="font-mono text-[#14B8A6] font-bold">
-                                            {window.location.origin}?ref={inputUsername.toLowerCase()}
+                                            {window.location.origin}?ref={inputUsername.toLowerCase()}&chainId={chainId ?? ''}
                                         </span>
                                     </div>
                                 )}

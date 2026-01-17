@@ -621,26 +621,41 @@ export function useMarketPriceHistory(
     };
   }, [marketIdNum]); // Re-register when marketId changes
 
-  // Load from localStorage - TEMPORARILY DISABLED FOR TESTING
+  // Load from localStorage (best-effort, merged with fresh data)
   useEffect(() => {
-    /*
-    // DISABLED: LocalStorage caching can cause stale data issues when combined with
-    // complex merging of RPC + Subgraph + Live updates.
-    // For now, we rely on fresh data + RPC fallback.
-    */
-  }, [priceHistoryStorageKey]);
+    if (!priceHistoryStorageKey || typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem(priceHistoryStorageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || parsed.length === 0) return;
+      const sanitized = parsed.filter((p: any) =>
+        p &&
+        typeof p.timestamp === 'number' &&
+        typeof p.priceYes === 'number' &&
+        typeof p.priceNo === 'number'
+      );
+      if (sanitized.length > 0) {
+        mergePricePoints(sanitized);
+      }
+    } catch (error) {
+      console.warn('[useMarketPriceHistory] Failed to load cache', error);
+    }
+  }, [priceHistoryStorageKey, mergePricePoints]);
 
-  // Save to localStorage - DISABLED
+  // Save to localStorage (cap size to avoid oversized cache)
   useEffect(() => {
-    /*
     if (!priceHistoryStorageKey || typeof window === 'undefined') return;
     if (!livePriceHistory || livePriceHistory.length === 0) return;
     try {
-      window.localStorage.setItem(priceHistoryStorageKey, JSON.stringify(livePriceHistory));
+      const MAX_CACHE_POINTS = 1500;
+      const toStore = livePriceHistory.length > MAX_CACHE_POINTS
+        ? livePriceHistory.slice(-MAX_CACHE_POINTS)
+        : livePriceHistory;
+      window.localStorage.setItem(priceHistoryStorageKey, JSON.stringify(toStore));
     } catch (error) {
       console.warn('[useMarketPriceHistory] Failed to persist cache', error);
     }
-    */
   }, [priceHistoryStorageKey, livePriceHistory]);
 
   return {

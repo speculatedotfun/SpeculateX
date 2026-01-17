@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount } from 'wagmi';
 import { formatUnits } from 'viem';
 
-import { Wallet, TrendingUp, History, ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertCircle, Trophy, Check, X, RefreshCw, Search, PieChart, Sparkles, ArrowRight, User, Users, Copy, ExternalLink, Share2, PiggyBank, AlertTriangle, Info } from 'lucide-react';
+import { Wallet, TrendingUp, History, ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertCircle, Trophy, Check, RefreshCw, Search, PieChart, Sparkles, ArrowRight, User, Users, Copy, ExternalLink, Share2, PiggyBank, AlertTriangle, Info } from 'lucide-react';
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 
 import Header from '@/components/Header';
@@ -25,7 +25,6 @@ import { useWriteContract, usePublicClient, useReadContract } from 'wagmi';
 import { getMarketResolution } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
 import { Sparkline } from '@/components/market/Sparkline';
-import { NicknameManager } from '@/components/NicknameManager';
 import Image from 'next/image';
 import { useMarketsListOptimized } from '@/lib/hooks/useMarketsListOptimized';
 
@@ -70,7 +69,8 @@ export default function PortfolioPage() {
   useEffect(() => {
     if (activeTab === 'referrals' && address) {
       setLoadingReferrals(true);
-      fetch(`/api/referrals?referrer=${address}`)
+      const chainId = chain?.id ?? '';
+      fetch(`/api/referrals?referrer=${address}&chainId=${chainId}`)
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) {
@@ -83,10 +83,9 @@ export default function PortfolioPage() {
         .catch(err => console.error(err))
         .finally(() => setLoadingReferrals(false));
     }
-  }, [activeTab, address, fetchUsernamesBulk]);
+  }, [activeTab, address, fetchUsernamesBulk, chain?.id]);
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const [isNicknameModalOpen, setIsNicknameModalOpen] = useState(false);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -137,14 +136,45 @@ export default function PortfolioPage() {
     let realized7dAcc = 0;
     let basis7dAcc = 0;
 
-    const sorted = [...trades].sort((a, b) => a.timestamp - b.timestamp);
+    const tradeEvents = trades.map(t => ({
+      marketId: t.marketId,
+      side: (t.side || '').toUpperCase(),
+      action: (t.action || '').toLowerCase(),
+      qty: Number(t.tokenAmount || 0),
+      price: Number(t.price || 0),
+      timestamp: Number(t.timestamp || 0),
+    }));
+
+    const redemptionEvents = redemptions
+      .map(r => {
+        const side = r.yesWins === true ? 'YES' : r.yesWins === false ? 'NO' : '';
+        if (!side) return null;
+        return {
+          marketId: r.marketId,
+          side,
+          action: 'redeem',
+          qty: Number(r.amount || 0), // $1 payout per winning token
+          price: 1,
+          timestamp: Number(r.timestamp || 0),
+        };
+      })
+      .filter(Boolean) as Array<{
+        marketId: number;
+        side: string;
+        action: string;
+        qty: number;
+        price: number;
+        timestamp: number;
+      }>;
+
+    const sorted = [...tradeEvents, ...redemptionEvents].sort((a, b) => a.timestamp - b.timestamp);
 
     for (const t of sorted) {
       const side = (t.side || '').toUpperCase();
       if (side !== 'YES' && side !== 'NO') continue;
 
       const action = (t.action || '').toLowerCase();
-      const qty = Number(t.tokenAmount || 0);
+      const qty = Number(t.qty || 0);
       const price = Number(t.price || 0); // USD per token
       if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(price) || price < 0) continue;
 
@@ -159,7 +189,7 @@ export default function PortfolioPage() {
         continue;
       }
 
-      if (action === 'sell') {
+      if (action === 'sell' || action === 'redeem') {
         if (st.tokens <= 0) continue;
         const sellQty = Math.min(qty, st.tokens);
         const avgCost = st.tokens > 0 ? st.costSum / st.tokens : 0;
@@ -198,12 +228,14 @@ export default function PortfolioPage() {
       basis7d: basis7dAcc,
       avgCostByKey: avgCostByKeyLocal,
     };
-  }, [trades, cutoff24h, cutoff7d]);
+  }, [trades, redemptions, cutoff24h, cutoff7d]);
 
   const pnl24h = realized24h;
   const pnlPercent24h = basis24h > 0 ? (realized24h / basis24h) * 100 : 0;
   const pnl7d = realized7d;
   const pnlPercent7d = basis7d > 0 ? (realized7d / basis7d) * 100 : 0;
+  const hasBasis24h = basis24h > 0;
+  const hasBasis7d = basis7d > 0;
 
   const bestMarket = useMemo(() => {
     const actives = positions.filter(p => p.status === 'Active');
@@ -395,10 +427,12 @@ export default function PortfolioPage() {
                         <span className="text-sm font-bold tabular-nums text-gray-900 dark:text-white">{formatCurrency(pnl24h)}</span>
                         <span className={cn(
                           "text-[10px] font-bold tabular-nums px-2 py-0.5 rounded-full transition-transform group-hover:scale-105",
-                          pnlPercent24h >= 0
-                            ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                            : "bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400"
-                        )}>{pnlPercent24h >= 0 ? '+' : ''}{pnlPercent24h.toFixed(1)}%</span>
+                          !hasBasis24h
+                            ? "bg-gray-100 dark:bg-gray-700/40 text-gray-400"
+                            : pnlPercent24h >= 0
+                              ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                              : "bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400"
+                        )}>{hasBasis24h ? `${pnlPercent24h >= 0 ? '+' : ''}${pnlPercent24h.toFixed(1)}%` : '—'}</span>
                       </div>
                     </div>
                     <div className="flex items-center justify-between group cursor-default">
@@ -422,10 +456,12 @@ export default function PortfolioPage() {
                         <span className="text-sm font-bold tabular-nums text-gray-900 dark:text-white">{formatCurrency(pnl7d)}</span>
                         <span className={cn(
                           "text-[10px] font-bold tabular-nums px-2 py-0.5 rounded-full transition-transform group-hover:scale-105",
-                          pnlPercent7d >= 0
-                            ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                            : "bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400"
-                        )}>{pnlPercent7d >= 0 ? '+' : ''}{pnlPercent7d.toFixed(1)}%</span>
+                          !hasBasis7d
+                            ? "bg-gray-100 dark:bg-gray-700/40 text-gray-400"
+                            : pnlPercent7d >= 0
+                              ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                              : "bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400"
+                        )}>{hasBasis7d ? `${pnlPercent7d >= 0 ? '+' : ''}${pnlPercent7d.toFixed(1)}%` : '—'}</span>
                       </div>
                     </div>
                     <div className="h-px bg-gray-200 dark:bg-gray-700" />
@@ -1180,6 +1216,9 @@ export default function PortfolioPage() {
                           <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
                             Share your referral link with friends and start earning rewards when they trade!
                           </p>
+                          <div className="mt-4">
+                            <ReferralCopyButton variant="compact" />
+                          </div>
                         </div>
                       ) : (
                         referralData.map((row: any, i: number) => (
@@ -1237,36 +1276,6 @@ export default function PortfolioPage() {
         </div>
       </main>
 
-      <AnimatePresence>
-        {isNicknameModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-            onClick={() => setIsNicknameModalOpen(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700"
-            >
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Set Your Nickname</h2>
-                <button
-                  onClick={() => setIsNicknameModalOpen(false)}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                </button>
-              </div>
-              <NicknameManager onClose={() => setIsNicknameModalOpen(false)} />
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

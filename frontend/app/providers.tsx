@@ -188,6 +188,18 @@ function AppKitThemeSync() {
   return <AppKitThemeSyncClient />;
 }
 
+function ProductionLogSilencer() {
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production') return;
+    const noop = () => {};
+    // Keep warn/error for visibility; silence debug noise in production UI.
+    console.log = noop;
+    console.info = noop;
+    console.debug = noop;
+  }, []);
+  return null;
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
 
@@ -195,6 +207,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ThemeProvider>
       <WagmiProvider config={wagmiAdapter.wagmiConfig}>
         <QueryClientProvider client={queryClient}>
+          <ProductionLogSilencer />
           <AppKitThemeSync />
           <NetworkSync />
           <ToastHost>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useChainId } from 'wagmi';
 import Header from '@/components/Header';
 import { Loader2, RefreshCw, FileText, ExternalLink } from 'lucide-react';
 
@@ -17,11 +18,13 @@ interface ReferralRecord {
 export default function AdminReferralsPage() {
     const [data, setData] = useState<ReferralRecord[]>([]);
     const [loading, setLoading] = useState(true);
+    const chainId = useChainId();
+    const explorerBase = chainId === 56 ? 'https://bscscan.com' : 'https://testnet.bscscan.com';
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/referrals');
+            const res = await fetch(`/api/referrals?chainId=${chainId ?? ''}`);
             const json = await res.json();
             if (Array.isArray(json)) {
                 setData(json);
@@ -35,7 +38,7 @@ export default function AdminReferralsPage() {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [chainId]);
 
     return (
         <div className="min-h-screen bg-gray-50/50 dark:bg-[#0a0a0a]">
@@ -108,7 +111,7 @@ export default function AdminReferralsPage() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-center">
                                                 <a
-                                                    href={`https://testnet.bscscan.com/tx/${row.txHash}`}
+                                                    href={`${explorerBase}/tx/${row.txHash}`}
                                                     target="_blank"
                                                     rel="noreferrer"
                                                     className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-[#14B8A6] hover:bg-[#14B8A6]/10 transition-colors"

@@ -48,16 +48,23 @@ export function FeaturedMarketCard({ market, prefersReducedMotion = false, getMa
 
     const priceHistory = market.priceHistory || [];
     const stats24h = useMemo(() => {
-        if (priceHistory.length === 0) return { high: market.yesPrice, low: market.yesPrice, change: 0, changePct: 0 };
+        if (priceHistory.length === 0) {
+            const base = 0.5;
+            const change = market.yesPrice - base;
+            const changePct = base > 0 ? (change / base) * 100 : 0;
+            return { high: market.yesPrice, low: market.yesPrice, change, changePct };
+        }
         const high = Math.max(...priceHistory);
         const low = Math.min(...priceHistory);
-        const firstPrice = priceHistory[0] || market.yesPrice;
+        const firstPrice = priceHistory[0] || 0.5;
         const change = market.yesPrice - firstPrice;
         const changePct = firstPrice > 0 ? (change / firstPrice) * 100 : 0;
         return { high, low, change, changePct };
     }, [priceHistory, market.yesPrice]);
 
     const isPositiveChange = stats24h.changePct >= 0;
+    const has24hHistory = priceHistory.length > 1;
+    const changeLabel = has24hHistory ? 'Last 24 Hours' : 'Since start';
 
     return (
         <motion.div
@@ -159,9 +166,9 @@ export function FeaturedMarketCard({ market, prefersReducedMotion = false, getMa
                     {/* RIGHT - Gray chart panel */}
                     <div className="lg:w-[220px] bg-gray-50 dark:bg-gray-800/50 lg:border-l border-t lg:border-t-0 border-gray-100 dark:border-gray-800 p-5">
                         <div className="flex items-start justify-between mb-3">
-                            <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Last 24 Hours</span>
+                            <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">{changeLabel}</span>
                             <span className={`text-base font-bold ${isPositiveChange ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                {isPositiveChange ? '+' : ''}{stats24h.changePct.toFixed(1)}%
+                                {`${isPositiveChange ? '+' : ''}${stats24h.changePct.toFixed(1)}%`}
                             </span>
                         </div>
                         <div className="h-[80px] mb-4">
@@ -179,12 +186,12 @@ export function FeaturedMarketCard({ market, prefersReducedMotion = false, getMa
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-gray-400">Low</span>
-                                <span className="font-medium text-emerald-500">{isPositiveChange ? '+' : ''}{(stats24h.low * 100).toFixed(1)}¢</span>
+                                <span className="font-medium text-emerald-500">{(stats24h.low * 100).toFixed(1)}¢</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-gray-400">Change</span>
                                 <span className={`font-medium ${isPositiveChange ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                    {isPositiveChange ? '+' : ''}{stats24h.changePct.toFixed(1)}%
+                                    {`${isPositiveChange ? '+' : ''}${stats24h.changePct.toFixed(1)}%`}
                                 </span>
                             </div>
                         </div>
