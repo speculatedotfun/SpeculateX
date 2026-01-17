@@ -849,15 +849,15 @@ export default function MarketDetailPage() {
                         <motion.div
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.1 }}
-                          className="mt-6 p-5 bg-gradient-to-br from-white to-indigo-50/30 dark:from-gray-800/80 dark:to-indigo-900/10 rounded-2xl border border-indigo-100/50 dark:border-indigo-800/30 relative overflow-hidden"
+                          transition={{ delay: 0.15 }}
+                          className="mt-5 p-5 rounded-2xl bg-gradient-to-br from-indigo-500/5 via-purple-500/[0.02] to-transparent border border-indigo-500/20 backdrop-blur-sm relative overflow-hidden"
                         >
-                          {/* Decorative background */}
-                          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl" />
+                          {/* Decorative glow */}
+                          <div className="absolute -top-16 -right-16 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
                           <div className="relative z-10">
                             <div className="flex items-center gap-3 mb-4">
-                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                              <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/20">
                                 <Info className="w-5 h-5 text-white" />
                               </div>
                               <div>
@@ -866,7 +866,7 @@ export default function MarketDetailPage() {
                               </div>
                             </div>
 
-                            <div className="p-4 bg-white/60 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-800 mb-4">
+                            <div className="p-4 rounded-xl bg-white/60 dark:bg-gray-800/40 border border-gray-100/50 dark:border-gray-700/50 mb-4">
                               <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
                                 {resolution?.oracleType === 0 && 'This market is resolved manually by the platform administrators.'}
                                 {resolution?.oracleType === 1 && `This market resolves automatically using Chainlink oracle data at the ${(market.question ?? '').includes('BTC') ? 'BTC/USD' : 'target'} price feed.`}
@@ -874,13 +874,15 @@ export default function MarketDetailPage() {
                               </p>
                             </div>
 
-                            <button
+                            <motion.button
+                              whileHover={{ scale: 1.02, x: 2 }}
+                              whileTap={{ scale: 0.98 }}
                               onClick={() => setActiveTab('Resolution')}
-                              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold rounded-lg transition-all shadow-lg shadow-indigo-500/20"
+                              className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/30"
                             >
                               View Technical Details
-                              <ArrowRight className="w-3.5 h-3.5" />
-                            </button>
+                              <ArrowRight className="w-4 h-4" />
+                            </motion.button>
                           </div>
                         </motion.div>
                       </div>

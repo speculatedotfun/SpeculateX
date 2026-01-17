@@ -22,6 +22,8 @@ interface CreateMarketFormProps {
 }
 
 import { Asset, CRYPTO_ASSETS } from '@/lib/assets';
+import Link from 'next/link';
+import { Droplets } from 'lucide-react';
 
 
 export default function CreateMarketForm({ standalone = false }: CreateMarketFormProps) {
@@ -456,6 +458,25 @@ export default function CreateMarketForm({ standalone = false }: CreateMarketFor
 
   return (
     <div className="w-full h-full flex flex-col">
+      {/* Testnet Faucet Banner */}
+      {network === 'testnet' && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-4"
+        >
+          <Link
+            href="/portfolio?tab=faucet"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all group"
+          >
+            <Droplets className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+              Don't have USDC? Get testnet funds from the faucet →
+            </span>
+          </Link>
+        </motion.div>
+      )}
+
       {/* Compact Progress Bar */}
       <div className="flex items-center justify-center gap-8 mb-4 px-2 relative">
         {[1, 2, 3].map((s, idx) => (

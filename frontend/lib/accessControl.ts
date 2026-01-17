@@ -72,6 +72,39 @@ export async function isAdmin(address: `0x${string}`): Promise<boolean> {
     return false;
 }
 
+// Check if an address has DEFAULT_ADMIN_ROLE (for admin UI access)
+export async function hasDefaultAdminRole(address: `0x${string}`): Promise<boolean> {
+    if (!address) return false;
+
+    const normalized = address.toLowerCase();
+    const addresses = getAddresses();
+    
+    // Check against configured admin address first (fast path)
+    if (addresses.admin && normalized === addresses.admin.toLowerCase()) {
+        return true;
+    }
+
+    try {
+        const publicClient = getClientForCurrentNetwork();
+        const DEFAULT_ADMIN_ROLE = '0x0000000000000000000000000000000000000000000000000000000000000000';
+        
+        const hasAdminRole = await publicClient.readContract({
+            address: addresses.core,
+            abi: getCoreAbi(getCurrentNetwork()),
+            functionName: 'hasRole',
+            args: [DEFAULT_ADMIN_ROLE as `0x${string}`, address],
+        }) as boolean;
+
+        return hasAdminRole;
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (!message.includes('exceeds defined limit')) {
+            console.error('Error checking DEFAULT_ADMIN_ROLE:', error);
+        }
+        return false;
+    }
+}
+
 // Check if an address can create markets (has MARKET_CREATOR_ROLE)
 export async function canCreateMarkets(address: `0x${string}`): Promise<boolean> {
     if (!address) return false;

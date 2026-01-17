@@ -26,8 +26,9 @@ import { FeaturedMarketCard } from '@/components/market/FeaturedMarketCard';
 import { QuickBuyModal } from '@/components/QuickBuyModal';
 import { Filter, ArrowUpDown } from 'lucide-react';
 import { useMarketsListOptimized } from '@/lib/hooks/useMarketsListOptimized'; // NEW HOOK
+import { detectCryptoSymbol } from '@/lib/hooks/useCryptoPrice';
 
-const STATUS_FILTERS = ['Active', 'Expired', 'Resolved'] as const;
+const STATUS_FILTERS = ['Active', 'Resolved'] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 export default function MarketsPage() {
@@ -47,6 +48,7 @@ export default function MarketsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeStatusTab, setActiveStatusTab] = useState<StatusFilter>('Active');
   const [sortBy, setSortBy] = useState<'volume' | 'newest' | 'ending'>('volume');
+  const [selectedCoin, setSelectedCoin] = useState<string | null>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 12;
@@ -79,6 +81,18 @@ export default function MarketsPage() {
   // Removed old loadMarkets and useEffect
 
 
+  // Get available coins from markets
+  const availableCoins = useMemo(() => {
+    const coinSet = new Set<string>();
+    markets.forEach(market => {
+      const { baseToken } = detectCryptoSymbol(market.question || '');
+      if (baseToken) {
+        coinSet.add(baseToken);
+      }
+    });
+    return Array.from(coinSet).sort();
+  }, [markets]);
+
   const filteredMarkets = useMemo(() => {
     let result = markets.filter(market => {
       // Always filter out scheduled markets - users should not see them
@@ -87,8 +101,12 @@ export default function MarketsPage() {
       if (searchTerm && !market.question.toLowerCase().includes(searchTerm.toLowerCase())) return false;
       if (activeStatusTab) {
         if (activeStatusTab === 'Active' && market.status !== 'LIVE TRADING') return false;
-        if (activeStatusTab === 'Expired' && market.status !== 'EXPIRED') return false;
         if (activeStatusTab === 'Resolved' && market.status !== 'RESOLVED') return false;
+      }
+      // Coin filter
+      if (selectedCoin) {
+        const { baseToken } = detectCryptoSymbol(market.question || '');
+        if (baseToken !== selectedCoin) return false;
       }
       return true;
     });
@@ -100,7 +118,7 @@ export default function MarketsPage() {
       if (sortBy === 'ending') return Number(a.expiryTimestamp) - Number(b.expiryTimestamp);
       return 0;
     });
-  }, [markets, searchTerm, activeStatusTab, sortBy]);
+  }, [markets, searchTerm, activeStatusTab, sortBy, selectedCoin]);
 
   // Identify Featured Market (Highest Volume Active Market)
   const featuredMarket = useMemo(() => {
@@ -113,7 +131,7 @@ export default function MarketsPage() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, activeStatusTab]);
+  }, [searchTerm, activeStatusTab, selectedCoin]);
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredMarkets.length / ITEMS_PER_PAGE);
@@ -122,17 +140,16 @@ export default function MarketsPage() {
   const paginatedMarkets = filteredMarkets.slice(startIndex, endIndex);
 
   const stats = useMemo(() => {
-    if (markets.length === 0) return { liquidity: 0, live: 0, resolved: 0, expired: 0, cancelled: 0, total: 0 };
-    let liquidity = 0, live = 0, resolved = 0, expired = 0, cancelled = 0;
+    if (markets.length === 0) return { liquidity: 0, live: 0, resolved: 0, cancelled: 0, total: 0 };
+    let liquidity = 0, live = 0, resolved = 0, cancelled = 0;
     for (const market of markets) {
       const vaultValue = typeof market.totalPairsUSDC === 'bigint' ? market.totalPairsUSDC : BigInt(market.totalPairsUSDC || 0);
       liquidity += Number(formatUnits(vaultValue, addresses.usdcDecimals ?? 6));
       if (market.status === 'LIVE TRADING') live += 1;
       else if (market.status === 'RESOLVED') resolved += 1;
-      else if (market.status === 'EXPIRED') expired += 1;
       else if (market.status === 'CANCELLED') cancelled += 1;
     }
-    return { liquidity, live, resolved, expired, cancelled, total: markets.length };
+    return { liquidity, live, resolved, cancelled, total: markets.length };
   }, [markets]);
 
   const formatNumber = useCallback((value: number) => {
@@ -300,7 +317,6 @@ export default function MarketsPage() {
                 // Get count for each tab
                 let count = 0;
                 if (tab === 'Active') count = stats.live;
-                else if (tab === 'Expired') count = stats.expired;
                 else if (tab === 'Resolved') count = stats.resolved;
                 else if (tab === 'Cancelled') count = stats.cancelled;
 
@@ -324,7 +340,7 @@ export default function MarketsPage() {
               })}
             </div>
 
-            {/* Right: Sort Dropdown + Filter Button */}
+            {/* Right: Sort Dropdown + Coin Filter */}
             <div className="flex items-center gap-2 shrink-0">
               {/* Sort Dropdown */}
               <div className="relative">
@@ -340,11 +356,20 @@ export default function MarketsPage() {
                 <ArrowUpDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 dark:text-gray-400 pointer-events-none" />
               </div>
 
-              {/* Filter Button */}
-              <button className="h-8 px-3 rounded-full bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-sm flex items-center gap-1.5 hover:border-slate-300 dark:hover:border-gray-600 transition-colors">
-                <Filter className="w-3.5 h-3.5 text-slate-500 dark:text-gray-400" />
-                <span className="text-slate-600 dark:text-gray-300">Filter</span>
-              </button>
+              {/* Coin Filter Dropdown */}
+              <div className="relative">
+                <select
+                  value={selectedCoin || ''}
+                  onChange={(e) => setSelectedCoin(e.target.value || null)}
+                  className="appearance-none h-8 pl-3 pr-7 bg-white dark:bg-gray-800 rounded-full text-sm border border-slate-200 dark:border-gray-700 cursor-pointer hover:border-slate-300 dark:hover:border-gray-600 transition-colors text-slate-700 dark:text-gray-200"
+                >
+                  <option value="">All Coins</option>
+                  {availableCoins.map(coin => (
+                    <option key={coin} value={coin}>{coin}</option>
+                  ))}
+                </select>
+                <Filter className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 dark:text-gray-400 pointer-events-none" />
+              </div>
             </div>
           </div>
         </motion.div>
@@ -384,13 +409,6 @@ export default function MarketsPage() {
                     <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700/50 rounded-full flex items-center justify-center mb-4 text-3xl shadow-inner">🔍</div>
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No markets found</h3>
                     <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-xs">We couldn&apos;t find any markets matching your current filters.</p>
-                  </>
-                )}
-                {activeStatusTab === 'Expired' && (
-                  <>
-                    <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-4 text-3xl shadow-inner">🎉</div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">All caught up!</h3>
-                    <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-xs">No expired markets waiting for resolution. Everything is either live or resolved.</p>
                   </>
                 )}
                 {activeStatusTab === 'Resolved' && (

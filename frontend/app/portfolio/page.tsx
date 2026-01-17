@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount } from 'wagmi';
 import { formatUnits } from 'viem';
 
-import { Wallet, TrendingUp, History, ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertCircle, Trophy, Check, RefreshCw, Search, PieChart, Sparkles, ArrowRight, User, Users, Copy, ExternalLink, Share2, PiggyBank, AlertTriangle, Info } from 'lucide-react';
+import { Wallet, TrendingUp, History, ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertCircle, Trophy, Check, RefreshCw, Search, PieChart, Sparkles, ArrowRight, User, Users, Copy, ExternalLink, Share2, PiggyBank, AlertTriangle, Info, Coins, Droplets, DollarSign } from 'lucide-react';
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 
 import Header from '@/components/Header';
@@ -17,6 +17,7 @@ import { UsernameInput } from '@/components/UsernameInput';
 import { Button } from '@/components/ui';
 import MintUsdcForm from '@/components/MintUsdcForm';
 import { useUserPortfolio, type PortfolioPosition, type PortfolioTrade } from '@/lib/hooks/useUserPortfolio';
+import { useLpPositions } from '@/lib/hooks/useLpPositions';
 import { useNicknames, getDisplayName } from '@/lib/hooks/useNicknames';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { coreAbi, positionTokenAbi } from '@/lib/abis';
@@ -55,15 +56,27 @@ const formatNumber = (value: number) => {
   }).format(value);
 };
 
-type PortfolioTab = 'positions' | 'history' | 'claims' | 'faucet';
+type PortfolioTab = 'positions' | 'history' | 'claims' | 'lp' | 'faucet';
 
 export default function PortfolioPage() {
   const { isConnected, address, chain } = useAccount();
   const { nicknames, fetchUsernamesBulk } = useNicknames();
   const { data, isLoading, refetch, isRefetching } = useUserPortfolio();
+  const { lpPositions, totals: lpTotals, isLoading: isLoadingLp, refetch: refetchLp, claimLpRewards, claimingMarketId } = useLpPositions();
   const [activeTab, setActiveTab] = useState<PortfolioTab | 'referrals'>('positions');
   const [referralData, setReferralData] = useState<any[]>([]);
   const [loadingReferrals, setLoadingReferrals] = useState(false);
+
+  // Handle query param tab selection
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab && ['positions', 'claims', 'history', 'referrals', 'lp', 'faucet'].includes(tab)) {
+        setActiveTab(tab as PortfolioTab | 'referrals');
+      }
+    }
+  }, []);
 
   // Fetch referrals when tab is active
   useEffect(() => {
@@ -86,6 +99,7 @@ export default function PortfolioPage() {
   }, [activeTab, address, fetchUsernamesBulk, chain?.id]);
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [lpSubTab, setLpSubTab] = useState<'fees' | 'residual'>('fees');
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -356,14 +370,6 @@ export default function PortfolioPage() {
                 {/* Left: Net Worth */}
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <motion.div
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-                      className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/25"
-                    >
-                      <Wallet className="w-5 h-5 text-white" />
-                    </motion.div>
                     <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Net Worth</span>
                   </div>
                   <motion.div
@@ -613,174 +619,174 @@ export default function PortfolioPage() {
                   <p className="text-xs text-gray-400 dark:text-gray-500">Your portfolio breakdown will appear here</p>
                 </motion.div>
               ) : (
-              <div className="flex items-start gap-6">
-                {/* Donut Chart */}
-                <div className="relative w-[120px] h-[120px] shrink-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RechartsPie>
-                      <defs>
-                        <linearGradient id="activeGrad" x1="0" y1="0" x2="1" y2="1">
-                          <stop offset="0%" stopColor="#10B981" />
-                          <stop offset="100%" stopColor="#34D399" />
-                        </linearGradient>
-                        <linearGradient id="pendingGrad" x1="0" y1="0" x2="1" y2="1">
-                          <stop offset="0%" stopColor="#6366F1" />
-                          <stop offset="100%" stopColor="#818CF8" />
-                        </linearGradient>
-                        <linearGradient id="unusedGrad" x1="0" y1="0" x2="1" y2="1">
-                          <stop offset="0%" stopColor="#D1D5DB" />
-                          <stop offset="100%" stopColor="#E5E7EB" />
-                        </linearGradient>
-                      </defs>
-                      <Pie
-                        data={
-                          allocationData.length > 0 && totalNetWorth > 0
-                            ? allocationData
-                            : [{ name: 'Available', value: 100, color: '#E5E7EB' }]
-                        }
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={42}
-                        outerRadius={56}
-                        paddingAngle={allocationData.length > 1 ? 3 : 0}
-                        dataKey="value"
-                        stroke="none"
-                        startAngle={90}
-                        endAngle={-270}
-                        animationBegin={0}
-                        animationDuration={800}
+                <div className="flex items-start gap-6">
+                  {/* Donut Chart */}
+                  <div className="relative w-[120px] h-[120px] shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsPie>
+                        <defs>
+                          <linearGradient id="activeGrad" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stopColor="#10B981" />
+                            <stop offset="100%" stopColor="#34D399" />
+                          </linearGradient>
+                          <linearGradient id="pendingGrad" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stopColor="#6366F1" />
+                            <stop offset="100%" stopColor="#818CF8" />
+                          </linearGradient>
+                          <linearGradient id="unusedGrad" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stopColor="#D1D5DB" />
+                            <stop offset="100%" stopColor="#E5E7EB" />
+                          </linearGradient>
+                        </defs>
+                        <Pie
+                          data={
+                            allocationData.length > 0 && totalNetWorth > 0
+                              ? allocationData
+                              : [{ name: 'Available', value: 100, color: '#E5E7EB' }]
+                          }
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={42}
+                          outerRadius={56}
+                          paddingAngle={allocationData.length > 1 ? 3 : 0}
+                          dataKey="value"
+                          stroke="none"
+                          startAngle={90}
+                          endAngle={-270}
+                          animationBegin={0}
+                          animationDuration={800}
+                        >
+                          {allocationData.length > 0 && totalNetWorth > 0
+                            ? allocationData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} className="drop-shadow-sm cursor-pointer hover:opacity-80 transition-opacity" />
+                            ))
+                            : <Cell fill="url(#unusedGrad)" />}
+                        </Pie>
+                        <RechartsTooltip
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length > 0) {
+                              const data = payload[0].payload;
+                              return (
+                                <div className="bg-white dark:bg-gray-800 px-3 py-2 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: data.color }} />
+                                    <span className="text-xs font-semibold text-gray-900 dark:text-white">{data.name}</span>
+                                  </div>
+                                  <p className="text-sm font-bold tabular-nums text-gray-900 dark:text-white">{formatCurrency(data.value)}</p>
+                                  <p className="text-[10px] text-gray-500">{Math.round((data.value / totalNetWorth) * 100)}% of portfolio</p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                      </RechartsPie>
+                    </ResponsiveContainer>
+
+                    {/* Center Stats */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                      <motion.span
+                        initial={{ scale: 0.5, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.3, type: "spring" }}
+                        className="text-xl font-black tabular-nums text-gray-900 dark:text-white"
                       >
                         {allocationData.length > 0 && totalNetWorth > 0
-                          ? allocationData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} className="drop-shadow-sm cursor-pointer hover:opacity-80 transition-opacity" />
-                          ))
-                          : <Cell fill="url(#unusedGrad)" />}
-                      </Pie>
-                      <RechartsTooltip
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length > 0) {
-                            const data = payload[0].payload;
-                            return (
-                              <div className="bg-white dark:bg-gray-800 px-3 py-2 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: data.color }} />
-                                  <span className="text-xs font-semibold text-gray-900 dark:text-white">{data.name}</span>
-                                </div>
-                                <p className="text-sm font-bold tabular-nums text-gray-900 dark:text-white">{formatCurrency(data.value)}</p>
-                                <p className="text-[10px] text-gray-500">{Math.round((data.value / totalNetWorth) * 100)}% of portfolio</p>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                    </RechartsPie>
-                  </ResponsiveContainer>
+                          ? `${Math.round((activeValue / totalNetWorth) * 100)}%`
+                          : '0%'}
+                      </motion.span>
+                      <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider">
+                        Invested
+                      </span>
+                    </div>
+                  </div>
 
-                  {/* Center Stats */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <motion.span
-                      initial={{ scale: 0.5, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: 0.3, type: "spring" }}
-                      className="text-xl font-black tabular-nums text-gray-900 dark:text-white"
-                    >
-                      {allocationData.length > 0 && totalNetWorth > 0
-                        ? `${Math.round((activeValue / totalNetWorth) * 100)}%`
-                        : '0%'}
-                    </motion.span>
-                    <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider">
-                      Invested
-                    </span>
+                  {/* Legend & Breakdown */}
+                  <div className="flex-1 space-y-3">
+                    {allocationData.length > 0 && totalNetWorth > 0 ? (
+                      <>
+                        {allocationData.map((d, idx) => {
+                          const pct = Math.round((d.value / totalNetWorth) * 100);
+                          return (
+                            <motion.div
+                              key={d.name}
+                              initial={{ opacity: 0, x: 10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.2 + idx * 0.1 }}
+                              className="group cursor-default hover:bg-gray-50 dark:hover:bg-gray-800/50 p-2 -mx-2 rounded-lg transition-colors"
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-3 h-3 rounded-full shadow-sm group-hover:ring-2 transition-all"
+                                    style={{ backgroundColor: d.color, '--tw-ring-color': `${d.color}40` } as any}
+                                  />
+                                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{d.name}</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className="text-xs font-bold tabular-nums text-gray-900 dark:text-white">
+                                    {formatCurrency(d.value)}
+                                  </span>
+                                  <span className="text-[10px] font-semibold tabular-nums text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded group-hover:bg-gray-200 dark:group-hover:bg-gray-700 transition-colors">
+                                    {pct}%
+                                  </span>
+                                </div>
+                              </div>
+                              {/* Progress bar */}
+                              <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${pct}%` }}
+                                  transition={{ duration: 0.8, delay: 0.3 + idx * 0.1, ease: "easeOut" }}
+                                  className="h-full rounded-full"
+                                  style={{ backgroundColor: d.color }}
+                                />
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </>
+                    ) : (
+                      <>
+                        <div className="group">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm" />
+                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Active Markets</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs font-bold tabular-nums text-gray-900 dark:text-white">$0.00</span>
+                              <span className="text-[10px] font-semibold tabular-nums text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">0%</span>
+                            </div>
+                          </div>
+                          <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                            <div className="h-full w-0 bg-emerald-500 rounded-full" />
+                          </div>
+                        </div>
+                        <div className="group">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600 shadow-sm" />
+                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Available Balance</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs font-bold tabular-nums text-gray-900 dark:text-white">{formatCurrency(totalNetWorth || 0)}</span>
+                              <span className="text-[10px] font-semibold tabular-nums text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">100%</span>
+                            </div>
+                          </div>
+                          <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: "100%" }}
+                              transition={{ duration: 0.8, ease: "easeOut" }}
+                              className="h-full bg-gray-300 dark:bg-gray-600 rounded-full"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
-
-                {/* Legend & Breakdown */}
-                <div className="flex-1 space-y-3">
-                  {allocationData.length > 0 && totalNetWorth > 0 ? (
-                    <>
-                      {allocationData.map((d, idx) => {
-                        const pct = Math.round((d.value / totalNetWorth) * 100);
-                        return (
-                          <motion.div
-                            key={d.name}
-                            initial={{ opacity: 0, x: 10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.2 + idx * 0.1 }}
-                            className="group cursor-default hover:bg-gray-50 dark:hover:bg-gray-800/50 p-2 -mx-2 rounded-lg transition-colors"
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-3 h-3 rounded-full shadow-sm group-hover:ring-2 transition-all"
-                                  style={{ backgroundColor: d.color, '--tw-ring-color': `${d.color}40` } as any}
-                                />
-                                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{d.name}</span>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <span className="text-xs font-bold tabular-nums text-gray-900 dark:text-white">
-                                  {formatCurrency(d.value)}
-                                </span>
-                                <span className="text-[10px] font-semibold tabular-nums text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded group-hover:bg-gray-200 dark:group-hover:bg-gray-700 transition-colors">
-                                  {pct}%
-                                </span>
-                              </div>
-                            </div>
-                            {/* Progress bar */}
-                            <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${pct}%` }}
-                                transition={{ duration: 0.8, delay: 0.3 + idx * 0.1, ease: "easeOut" }}
-                                className="h-full rounded-full"
-                                style={{ backgroundColor: d.color }}
-                              />
-                            </div>
-                          </motion.div>
-                        );
-                      })}
-                    </>
-                  ) : (
-                    <>
-                      <div className="group">
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm" />
-                            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Active Markets</span>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs font-bold tabular-nums text-gray-900 dark:text-white">$0.00</span>
-                            <span className="text-[10px] font-semibold tabular-nums text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">0%</span>
-                          </div>
-                        </div>
-                        <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                          <div className="h-full w-0 bg-emerald-500 rounded-full" />
-                        </div>
-                      </div>
-                      <div className="group">
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600 shadow-sm" />
-                            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Available Balance</span>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs font-bold tabular-nums text-gray-900 dark:text-white">{formatCurrency(totalNetWorth || 0)}</span>
-                            <span className="text-[10px] font-semibold tabular-nums text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">100%</span>
-                          </div>
-                        </div>
-                        <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: "100%" }}
-                            transition={{ duration: 0.8, ease: "easeOut" }}
-                            className="h-full bg-gray-300 dark:bg-gray-600 rounded-full"
-                          />
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
               )}
             </div>
           </motion.div>
@@ -798,6 +804,7 @@ export default function PortfolioPage() {
                 { id: 'claims', label: 'Claims', count: claimablePositions.length },
                 { id: 'history', label: 'History', count: trades.length },
                 { id: 'referrals', label: 'Referrals', count: referralData.length },
+                { id: 'lp', label: 'LP', count: lpPositions.length },
                 { id: 'faucet', label: 'Faucet', count: 0 },
               ] as const)
                 .filter(tab => {
@@ -1266,6 +1273,286 @@ export default function PortfolioPage() {
                             </div>
                           </motion.div>
                         ))
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* LP Tab */}
+              {activeTab === 'lp' && (
+                <motion.div
+                  key="lp"
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-6"
+                >
+                  {/* Hero Card - LP Overview with Stats */}
+                  <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-500/20 via-purple-500/10 to-indigo-500/5 border border-blue-500/20 backdrop-blur-xl">
+                    {/* Background Decoration */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/30 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                    <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-purple-500/20 to-transparent rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+
+                    <div className="relative z-10 p-6 md:p-8">
+                      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                        {/* Left: Title & Description */}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                              <Droplets className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="text-xl font-black text-gray-900 dark:text-white">Liquidity Provider</h3>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Earn trading fees by providing liquidity</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right: Stats */}
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <div className="px-4 py-2.5 rounded-xl bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 shadow-sm">
+                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total LP</div>
+                            <div className="text-lg font-black text-gray-900 dark:text-white tabular-nums">
+                              ${lpTotals.totalLpValue.toFixed(2)}
+                            </div>
+                          </div>
+                          <div className="px-4 py-2.5 rounded-xl bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 shadow-sm">
+                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Pending Fees</div>
+                            <div className="text-lg font-black text-emerald-500 tabular-nums">
+                              ${lpTotals.totalPendingFees.toFixed(4)}
+                            </div>
+                          </div>
+                          <div className="px-4 py-2.5 rounded-xl bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 shadow-sm">
+                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Residual</div>
+                            <div className="text-lg font-black text-purple-500 tabular-nums">
+                              ${lpTotals.totalPendingResidual.toFixed(4)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* LP Sub-tabs and Positions */}
+                  <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                    {/* Sub-tab Header */}
+                    <div className="px-6 py-4 border-b border-gray-200/60 dark:border-gray-800/60">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                          <button
+                            onClick={() => setLpSubTab('fees')}
+                            className={cn(
+                              "px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2",
+                              lpSubTab === 'fees'
+                                ? "bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-sm"
+                                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                            )}
+                          >
+                            <DollarSign className="w-4 h-4" />
+                            Active
+                            {lpPositions.filter(p => !p.isResolved).length > 0 && (
+                              <span className="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold rounded-full">
+                                {lpPositions.filter(p => !p.isResolved).length}
+                              </span>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => setLpSubTab('residual')}
+                            className={cn(
+                              "px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2",
+                              lpSubTab === 'residual'
+                                ? "bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm"
+                                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                            )}
+                          >
+                            <Coins className="w-4 h-4" />
+                            Resolved
+                            {lpPositions.filter(p => p.isResolved).length > 0 && (
+                              <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 text-[10px] font-bold rounded-full">
+                                {lpPositions.filter(p => p.isResolved).length}
+                              </span>
+                            )}
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => refetchLp()}
+                          className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                          title="Refresh LP data"
+                        >
+                          <RefreshCw className={cn("w-4 h-4", isLoadingLp && "animate-spin")} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="divide-y divide-gray-100 dark:divide-gray-800/50">
+                      {isLoadingLp ? (
+                        <div className="flex items-center justify-center py-12 text-gray-400">
+                          <RefreshCw className="w-5 h-5 animate-spin mr-2" />
+                          Loading LP positions...
+                        </div>
+                      ) : lpSubTab === 'fees' ? (
+                        // ACTIVE / FEES TAB
+                        lpPositions.filter(p => !p.isResolved).length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 flex items-center justify-center mb-4">
+                              <DollarSign className="w-8 h-8 text-emerald-400" />
+                            </div>
+                            <h5 className="text-lg font-bold text-gray-900 dark:text-white mb-2">No Active Positions</h5>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
+                              You don't have any active LP positions. Check the Resolved tab or add liquidity to new markets.
+                            </p>
+                          </div>
+                        ) : (
+                          lpPositions.filter(p => !p.isResolved).map((lp) => (
+                            <div
+                              key={`${lp.marketId}-fees`}
+                              className="group px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
+                            >
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="flex-1 min-w-0">
+                                  <Link
+                                    href={`/markets/${lp.marketId}`}
+                                    className="text-sm font-bold text-gray-900 dark:text-white hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors line-clamp-1"
+                                  >
+                                    #{lp.marketId} · {lp.question}
+                                  </Link>
+                                  <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                                    <span className="flex items-center gap-1">
+                                      <Droplets className="w-3 h-3" />
+                                      {lp.lpShares.toFixed(2)} USDC LP
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3 shrink-0">
+                                  <div className="text-right">
+                                    <div className="text-[10px] font-semibold text-gray-400 uppercase">Fees</div>
+                                    <div className={cn("text-lg font-black tabular-nums leading-none", lp.pendingFees > 0 ? "text-emerald-500" : "text-gray-300 dark:text-gray-600")}>
+                                      +${lp.pendingFees.toFixed(4)}
+                                    </div>
+                                    {lp.claimedFees > 0 && (
+                                      <div className="text-[10px] font-medium text-gray-400 mt-1">
+                                        Claimed: <span className="text-emerald-600/80 dark:text-emerald-400/80">${lp.claimedFees.toFixed(4)}</span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {lp.pendingFees > 0 ? (
+                                    <motion.button
+                                      whileHover={{ scale: 1.02 }}
+                                      whileTap={{ scale: 0.98 }}
+                                      onClick={() => claimLpRewards(lp.marketId, true, false)}
+                                      disabled={claimingMarketId === lp.marketId}
+                                      className={cn(
+                                        "px-4 py-2 text-sm font-bold rounded-xl transition-all flex items-center gap-2",
+                                        claimingMarketId === lp.marketId
+                                          ? "bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
+                                          : "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/20"
+                                      )}
+                                    >
+                                      {claimingMarketId === lp.marketId ? (
+                                        <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Claiming...</>
+                                      ) : (
+                                        <><DollarSign className="w-3.5 h-3.5" /> Claim Fees</>
+                                      )}
+                                    </motion.button>
+                                  ) : (
+                                    <Link
+                                      href={`/markets/${lp.marketId}`}
+                                      className="px-4 py-2 text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-all flex items-center gap-2"
+                                    >
+                                      View Market
+                                      <ExternalLink className="w-3.5 h-3.5" />
+                                    </Link>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )
+                      ) : (
+                        // RESOLVED / RESIDUAL TAB
+                        lpPositions.filter(p => p.isResolved).length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-500/5 flex items-center justify-center mb-4">
+                              <Coins className="w-8 h-8 text-purple-400" />
+                            </div>
+                            <h5 className="text-lg font-bold text-gray-900 dark:text-white mb-2">No Resolved Positions</h5>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
+                              None of your markets have resolved yet.
+                            </p>
+                          </div>
+                        ) : (
+                          lpPositions.filter(p => p.isResolved).map((lp) => (
+                            <div
+                              key={`${lp.marketId}-residual`}
+                              className="group px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
+                            >
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="flex-1 min-w-0">
+                                  <Link
+                                    href={`/markets/${lp.marketId}`}
+                                    className="text-sm font-bold text-gray-900 dark:text-white hover:text-purple-500 dark:hover:text-purple-400 transition-colors line-clamp-1"
+                                  >
+                                    #{lp.marketId} · {lp.question}
+                                  </Link>
+                                  <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                                    <span className="flex items-center gap-1">
+                                      <Droplets className="w-3 h-3" />
+                                      {lp.lpShares.toFixed(2)} USDC LP
+                                    </span>
+                                    <span className="px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-bold">
+                                      Resolved
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3 shrink-0">
+                                  <div className="text-right">
+                                    <div className="text-[10px] font-semibold text-gray-400 uppercase">Residual</div>
+                                    <div className={cn("text-lg font-black tabular-nums leading-none", lp.pendingResidual > 0 ? "text-purple-500" : "text-gray-300 dark:text-gray-600")}>
+                                      +${lp.pendingResidual.toFixed(4)}
+                                    </div>
+                                    {lp.claimedResidual > 0 && (
+                                      <div className="text-[10px] font-medium text-gray-400 mt-1">
+                                        Claimed: <span className="text-purple-600/80 dark:text-purple-400/80">${lp.claimedResidual.toFixed(4)}</span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {lp.pendingResidual > 0 ? (
+                                    <motion.button
+                                      whileHover={{ scale: 1.02 }}
+                                      whileTap={{ scale: 0.98 }}
+                                      onClick={() => claimLpRewards(lp.marketId, false, true)}
+                                      disabled={claimingMarketId === lp.marketId}
+                                      className={cn(
+                                        "px-4 py-2 text-sm font-bold rounded-xl transition-all flex items-center gap-2",
+                                        claimingMarketId === lp.marketId
+                                          ? "bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
+                                          : "bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/20"
+                                      )}
+                                    >
+                                      {claimingMarketId === lp.marketId ? (
+                                        <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Claiming...</>
+                                      ) : (
+                                        <><Coins className="w-3.5 h-3.5" /> Claim Residual</>
+                                      )}
+                                    </motion.button>
+                                  ) : (
+                                    <Link
+                                      href={`/markets/${lp.marketId}`}
+                                      className="px-4 py-2 text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-all flex items-center gap-2"
+                                    >
+                                      View Market
+                                      <ExternalLink className="w-3.5 h-3.5" />
+                                    </Link>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )
                       )}
                     </div>
                   </div>

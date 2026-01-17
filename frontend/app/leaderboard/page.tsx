@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Header from '@/components/Header';
 import { useLeaderboard, type LeaderboardUser } from '@/lib/hooks/useLeaderboard';
 import { useAccount } from 'wagmi';
-import { Trophy, Medal, Award, TrendingUp, Users, Activity, Search, Zap, Crown, SlidersHorizontal, ArrowUpRight, Sparkles } from 'lucide-react';
+import { Trophy, Medal, Award, Activity, Search, Crown, SlidersHorizontal, ArrowUpRight, Sparkles } from 'lucide-react';
 import { Sparkline } from '@/components/market/Sparkline';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -116,18 +116,12 @@ export default function LeaderboardPage() {
                         {/* Quick Stats */}
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
-                                <div className="p-2 bg-teal-50 dark:bg-teal-900/30 rounded-xl">
-                                    <Users className="w-5 h-5 text-teal-500" />
-                                </div>
                                 <div>
                                     <div className="text-xl font-black text-gray-900 dark:text-white">{users.length}</div>
                                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Traders</div>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
-                                <div className="p-2 bg-yellow-50 dark:bg-yellow-900/30 rounded-xl">
-                                    <Zap className="w-5 h-5 text-yellow-500" />
-                                </div>
                                 <div>
                                     <div className="text-xl font-black text-gray-900 dark:text-white">
                                         {formatNumber(users.reduce((sum, u) => sum + u.points, 0))}
@@ -137,9 +131,6 @@ export default function LeaderboardPage() {
                             </div>
                             {currentUserStats && (
                                 <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-teal-50 to-emerald-50 dark:from-teal-900/20 dark:to-emerald-900/20 rounded-2xl border border-teal-200 dark:border-teal-800 shadow-sm">
-                                    <div className="p-2 bg-teal-500 rounded-xl">
-                                        <TrendingUp className="w-5 h-5 text-white" />
-                                    </div>
                                     <div>
                                         <div className="text-xl font-black text-teal-600 dark:text-teal-400">#{currentUserStats.rank}</div>
                                         <div className="text-[10px] font-bold text-teal-500 uppercase tracking-wider">Your Rank</div>

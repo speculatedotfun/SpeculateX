@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useAccount, useDisconnect } from 'wagmi';
 import { useEffect, useState, type ReactNode } from 'react';
 import Image from 'next/image';
-import { isAdmin as checkIsAdmin } from '@/lib/accessControl';
+import { hasDefaultAdminRole, canCreateMarkets } from '@/lib/accessControl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import NetworkSelector from '@/components/NetworkSelector';
@@ -198,6 +198,7 @@ export default function Header(props: HeaderProps = {}) {
   const pathname = usePathname();
   const { address, isConnected } = useAccount();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [canCreate, setCanCreate] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -221,15 +222,21 @@ export default function Header(props: HeaderProps = {}) {
   }, []);
 
   useEffect(() => {
-    const checkAdmin = async () => {
+    const checkRoles = async () => {
       if (isConnected && address) {
-        const adminStatus = await checkIsAdmin(address);
+        // Only show Admin link for DEFAULT_ADMIN_ROLE, not MARKET_CREATOR_ROLE
+        const [adminStatus, creatorStatus] = await Promise.all([
+          hasDefaultAdminRole(address),
+          canCreateMarkets(address)
+        ]);
         setIsAdmin(adminStatus);
+        setCanCreate(creatorStatus);
       } else {
         setIsAdmin(false);
+        setCanCreate(false);
       }
     };
-    checkAdmin();
+    checkRoles();
   }, [isConnected, address]);
 
   const isActive = (path: string) => {
@@ -242,6 +249,7 @@ export default function Header(props: HeaderProps = {}) {
     { href: '/', label: 'Markets' },
     { href: '/portfolio', label: 'Portfolio' },
     { href: '/leaderboard', label: 'Leaderboard' },
+    ...(canCreate && !isAdmin ? [{ href: '/markets/create', label: 'Create Market' }] : []),
     ...(isAdmin ? [{ href: '/admin', label: 'Admin' }] : []),
   ];
 

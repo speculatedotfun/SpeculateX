@@ -18,7 +18,7 @@ import ProtocolEventLog from '@/components/admin/ProtocolEventLog';
 import Header from '@/components/Header';
 import { getMarketCount, getMarket, getMarketState, getLpResidualPot } from '@/lib/hooks';
 import { useAddresses } from '@/lib/contracts';
-import { isAdmin as checkIsAdmin } from '@/lib/accessControl';
+import { hasDefaultAdminRole } from '@/lib/accessControl';
 import { useAdminRoles } from '@/lib/useAdminRoles';
 import { formatUnits } from 'viem';
 import { positionTokenAbi } from '@/lib/abis';
@@ -238,7 +238,8 @@ export default function AdminPage() {
       }
 
       setLoading(true);
-      const adminStatus = await checkIsAdmin(address);
+      // Only allow DEFAULT_ADMIN_ROLE users, not MARKET_CREATOR_ROLE
+      const adminStatus = await hasDefaultAdminRole(address);
       setIsAdmin(adminStatus);
 
       if (!adminStatus) {
@@ -336,8 +337,8 @@ export default function AdminPage() {
             <button
               onClick={async () => {
                 if (!address) return;
-                const isAdminForce = await checkIsAdmin(address);
-                alert(`Role Verification:\n\nCreate/Resolve Role (ADMIN): ${isAdminForce ? '✅ GRANTED' : '❌ MISSING'}\n\nAddress: ${address}\n\nNote: If role is MISSING, you cannot perform admin actions.`);
+                const isAdminForce = await hasDefaultAdminRole(address);
+                alert(`Role Verification:\n\nAdmin Role (DEFAULT_ADMIN_ROLE): ${isAdminForce ? '✅ GRANTED' : '❌ MISSING'}\n\nAddress: ${address}\n\nNote: If role is MISSING, you cannot perform admin actions.`);
               }}
               className="mt-4 px-4 py-2 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
